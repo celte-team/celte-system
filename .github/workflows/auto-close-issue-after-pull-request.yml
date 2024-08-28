@@ -1,0 +1,25 @@
+name: Automatically Close Issue After Pull Request
+run-name: ${{ github.actor }} at ${{ github.run_number }}
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+    Auto-Close-Issue:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Check out repository code
+          uses: actions/checkout@v4
+        - name: Close issue
+          run: |
+            if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+                echo "🎉 Pull request was merged!"
+                echo "🔒 Closing issue..."
+                curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments -d '{"body":"🎉 Pull request was merged and issue is being closed."}'
+                curl -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }} -d '{"state":"closed"}'
+                echo "🔒 Issue closed!"
+            else
+                echo "🚫 Pull request was not merged."
+                echo "🔒 Issue will not be closed."
+            fi

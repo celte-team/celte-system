@@ -1,0 +1,18 @@
+name: Automatically Delete Branch After Pull Request
+run-name: ${{ github.actor }} at ${{ github.run_number }}
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  Auto-Delete-Branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Delete branch
+        run: |
+          git fetch --all
+          git checkout master
+          git push origin --delete ${{ github.head_ref }}

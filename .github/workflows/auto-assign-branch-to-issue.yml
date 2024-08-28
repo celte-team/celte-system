@@ -1,0 +1,40 @@
+name: Auto Assign Branch to Issue
+
+on:
+  create
+
+jobs:
+  assign-branch-to-issue:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v2
+
+      - name: Extract issue number from branch name
+        id: extract-issue-number
+        run: |
+          branch_name=${GITHUB_REF##*/}
+          echo "Branch name: $branch_name"
+          if [[ $branch_name =~ ^([0-9]+)-.*$ ]]; then
+            echo "::set-output name=issue_number::${BASH_REMATCH[1]}"
+          else
+            echo "Branch name does not match the expected pattern"
+            exit 1
+          fi
+
+      - name: Link branch to issue
+        if: steps.extract-issue-number.outputs.issue_number
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USER: ${{ github.actor }}
+        run: |
+          issue_number=${{ steps.extract-issue-number.outputs.issue_number }}
+          branch_name=${GITHUB_REF##*/}
+          comment_body="$USER assigned branch [$branch_name](https://github.com/${{ github.repository }}/tree/$branch_name) for this issue."
+          echo "Comment body: $comment_body"
+          curl -s -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/issues/${issue_number}/comments \
+            -d "{\"body\":\"$comment_body\"}"
