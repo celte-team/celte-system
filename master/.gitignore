@@ -41,4 +41,5 @@ appsettings.Development.json
 
 # Ignore Visual Studio Code settings
 .vscode/
-.DS_Store
+*.DS_Store
+*.skn
