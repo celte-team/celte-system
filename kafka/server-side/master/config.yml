@@ -1,0 +1,4 @@
+configuration:
+  relation_layer_configuration:
+    ip: 127.0.0.1
+    port: 10000
