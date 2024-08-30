@@ -5,6 +5,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libs)
 
+set(CMAKE_CXX_STANDARD 20)
 
 if(APPLE)
     set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};$ENV{VCPKG_ROOT}/installed/arm64-osx")
@@ -13,6 +14,7 @@ elseif(UNIX)
 elseif(WIN32)
     set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};$ENV{VCPKG_ROOT}/installed/x64-windows")
 endif()
+
 
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install")
 
@@ -24,9 +26,11 @@ endif()
 include_directories(
     kafka/cpp/include
     client/include
-    server/include)
+    server/include
+    runtime/include)
 
 add_subdirectory(runtime)
 add_subdirectory(kafka/cpp)
 add_subdirectory(client)
 add_subdirectory(server)
+add_subdirectory(tests)

@@ -99,6 +99,22 @@ namespace celte {
             void __initClient();
 
             // =================================================================================================
+            // Services API
+            // =================================================================================================
+        public:
+            /**
+             * @brief Attemps a connection to a kafka cluster.
+             */
+            void ConnectToCluster(const std::string& ip, int port);
+
+            /**
+             * @brief Returns true if the runtime is currently connected to
+             * kafka
+             */
+            bool IsConnectedToCluster();
+
+        private:
+            // =================================================================================================
             // PRIVATE METHODS
             // =================================================================================================
 

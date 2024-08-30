@@ -1,5 +1,14 @@
 #include "KafkaFSM.hpp"
+#include "KafkaLinkStatesDeclaration.hpp"
 #include "kafka/Properties.h"
+
+namespace tinyfsm {
+    template <> void Fsm<celte::nl::AKafkaLink>::set_initial_state()
+    {
+        Fsm<celte::nl::AKafkaLink>::current_state_ptr
+            = &_state_instance<celte::nl::states::KLDisconnected>::value;
+    }
+} // namespace tinyfsm
 
 using namespace celte::nl;
 

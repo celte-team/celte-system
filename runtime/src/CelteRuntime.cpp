@@ -14,6 +14,7 @@
 */
 
 #include "CelteRuntime.hpp"
+#include "KafkaLinkStatesDeclaration.hpp"
 #include "tinyfsm.hpp"
 
 namespace tinyfsm {
@@ -84,11 +85,42 @@ namespace celte {
 
         void CelteRuntime::__initNetworkLayer(RuntimeMode mode)
         {
-            // celte::net::CelteNLOptions options {
-            //     // 0 to let the OS choose the port
-            //     .port = 0
-            // };
-            // _networkLayer.emplace(options);
+            Services::start();
+
+            switch (mode) {
+            case SERVER:
+                __initServer();
+                break;
+            case CLIENT:
+                __initClient();
+                break;
+            default:
+                break;
+            }
+        }
+
+        void CelteRuntime::ConnectToCluster(const std::string& ip, int port)
+        {
+#ifdef CELTE_SERVER_MODE_ENABLED
+            std::shared_ptr<std::string> message
+                = std::make_shared<std::string>("hello SN");
+#else
+            std::shared_ptr<std::string> message
+                = std::make_shared<std::string>("hello C");
+#endif
+            celte::nl::EConnectToCluster event {
+                .ip = ip, .port = port, .message = message
+            };
+            Services::dispatch(event);
+        }
+
+        bool CelteRuntime::IsConnectedToCluster()
+        {
+            if (celte::nl::AKafkaLink::is_in_state<
+                    celte::nl::states::KLConnected>()) {
+                return true;
+            }
+            return false;
         }
 
     } // namespace runtime
