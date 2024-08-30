@@ -1,0 +1,40 @@
+---
+- name: Build and test project
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Create build directory
+      file:
+        path: ./build
+        state: directory
+
+    - name: Run cmake
+      command: cmake ..
+      args:
+        chdir: ./build
+
+    - name: Build project
+      command: make -j8
+      args:
+        chdir: ./build
+
+    - name: Up kafka cluster
+      command: docker-compose up -d
+      args:
+        chdir: ./kafka
+
+    - name: Run test server
+      command: ./celte-libraries/test_server
+      args:
+        chdir: ./build
+
+    - name: Down kafka cluster
+      command: docker-compose down
+      args:
+        chdir: ./kafka
+
+    - name: Clean build artifacts
+      command: make clean
+      args:
+        chdir: ./build
