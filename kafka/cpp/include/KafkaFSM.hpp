@@ -14,6 +14,7 @@
 */
 
 #pragma once
+#include "KafkaEvents.hpp"
 #include "kafka/KafkaConsumer.h"
 #include "tinyfsm.hpp"
 #include <functional>
@@ -26,17 +27,6 @@
 
 namespace celte {
     namespace nl {
-
-        // ==========================================================================
-        // Event reactions
-        // ==========================================================================
-
-        struct EConnectToCluster : tinyfsm::Event {
-            std::string ip;
-            int port;
-            std::shared_ptr<std::string> message;
-        };
-
         /**
          * @brief base state for all possible states of a connection to a kafka
          * cluster.

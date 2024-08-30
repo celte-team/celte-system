@@ -19,7 +19,7 @@ void AKafkaLink::RegisterConsumer(const std::string& topic,
 
     Consumer consumer = {
         .consumer = kafka::clients::consumer::KafkaConsumer(props),
-        .dataHandler = (callback != nullptr) callback : []() {},
+        .dataHandler = (callback != nullptr) ? callback : [](auto) {},
     };
 
     consumer.consumer.subscribe({ topic });

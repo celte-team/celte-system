@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.30)
 project(celtesystems)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 
 if (DEFINED ENV{VCPKG_ROOT})
     set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
@@ -27,16 +29,11 @@ include_directories(include ${GLIB_INCLUDE_DIRS} ${RDKAFKA_INCLUDE_DIRS})
 link_directories(${GLIB_LIBRARY_DIRS})
 add_definitions(${GLIB_CFLAGS_OTHER})
 
-# # Specify Boost version
-# set(Boost_VERSION 1.85)
-# find_package(Boost 1.85 REQUIRED COMPONENTS system program_options)
-# include_directories(${Boost_INCLUDE_DIRS})
-
-set(KLSOURCES
-    src/states/KLDisconnected.cpp
-    src/states/KLErrorCouldNotConnect.cpp
-    src/states/KLConnected.cpp
-    src/KafkaFSM.cpp
+add_library(CelteServer SHARED
+    src/CelteServer.cpp
+    src/StateConnected.cpp
+    src/StateConnecting.cpp
+    src/StateDisconnected.cpp
 )
-add_library(KafkaLink ${KLSOURCES})
-target_link_libraries(KafkaLink PRIVATE RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES})
+
+target_link_libraries(CelteServer PRIVATE KafkaLink  ${GLIB_LIBRARIES})
