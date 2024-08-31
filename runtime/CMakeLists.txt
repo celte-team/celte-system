@@ -68,7 +68,7 @@ if(NOT RDKAFKA++_LIBRARY)
 endif()
 
 install(FILES ${RDKAFKA_LIBRARY} ${RDKAFKA++_LIBRARY}
-        DESTINATION libs)
+        DESTINATION celte-libraries)
 
 # Glib
 
@@ -81,7 +81,7 @@ if(NOT GLIB_LIBRARY)
 endif()
 
 install(FILES ${GLIB_LIBRARY}
-        DESTINATION libs)
+        DESTINATION celte-libraries)
 
 # Boost
 
@@ -99,14 +99,15 @@ if(NOT BOOST_PROGRAM_OPTIONS_LIBRARY)
 endif()
 
 install(FILES ${BOOST_SYSTEM_LIBRARY} ${BOOST_PROGRAM_OPTIONS_LIBRARY}
-        DESTINATION libs)
+        DESTINATION celte-libraries)
 
 # CELTE Targets
 
 install(TARGETS celtesystems_runtime_server celtesystems_runtime_client
         RUNTIME DESTINATION bin
-        LIBRARY DESTINATION libs
-        ARCHIVE DESTINATION libs)
+        LIBRARY DESTINATION celte-libraries
+        ARCHIVE DESTINATION celte-libraries
+        PUBLIC_HEADER DESTINATION include)
 
 
 set(CPACK_PACKAGE_NAME "celtesystems")

@@ -41,7 +41,6 @@ void KLDisconnected::react(EConnectToCluster const& event)
               const kafka::clients::producer::RecordMetadata& metadata,
               const kafka::Error& error) {
               if (!error) {
-
                   transit<KLConnected>();
               } else {
                   std::cout << "an error occured: " << error.message()

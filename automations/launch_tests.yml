@@ -6,35 +6,30 @@
   tasks:
     - name: Create build directory
       file:
-        path: ./build
+        path: ../build
         state: directory
 
     - name: Run cmake
       command: cmake ..
       args:
-        chdir: ./build
+        chdir: ../build
 
     - name: Build project
       command: make -j8
       args:
-        chdir: ./build
+        chdir: ../build
 
     - name: Up kafka cluster
       command: docker-compose up -d
       args:
-        chdir: ./kafka
+        chdir: ../kafka
 
     - name: Run test server
-      command: ./celte-libraries/test_server
+      command: ./tests/test_server
       args:
-        chdir: ./build
+        chdir: ../build
 
     - name: Down kafka cluster
       command: docker-compose down
       args:
-        chdir: ./kafka
-
-    - name: Clean build artifacts
-      command: make clean
-      args:
-        chdir: ./build
+        chdir: ../kafka

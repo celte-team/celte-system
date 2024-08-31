@@ -27,11 +27,6 @@ include_directories(include ${GLIB_INCLUDE_DIRS} ${RDKAFKA_INCLUDE_DIRS})
 link_directories(${GLIB_LIBRARY_DIRS})
 add_definitions(${GLIB_CFLAGS_OTHER})
 
-# # Specify Boost version
-# set(Boost_VERSION 1.85)
-# find_package(Boost 1.85 REQUIRED COMPONENTS system program_options)
-# include_directories(${Boost_INCLUDE_DIRS})
-
 set(KLSOURCES
     src/states/KLDisconnected.cpp
     src/states/KLErrorCouldNotConnect.cpp
@@ -40,3 +35,8 @@ set(KLSOURCES
 )
 add_library(KafkaLink ${KLSOURCES})
 target_link_libraries(KafkaLink PRIVATE RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES})
+
+install(TARGETS KafkaLink
+    LIBRARY DESTINATION celte-libraries
+    PUBLIC_HEADER DESTINATION include
+)

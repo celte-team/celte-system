@@ -37,3 +37,8 @@ add_library(CelteClient SHARED
 )
 
 target_link_libraries(CelteClient PRIVATE KafkaLink  ${GLIB_LIBRARIES})
+
+install(TARGETS CelteClient
+    LIBRARY DESTINATION celte-libraries
+    PUBLIC_HEADER DESTINATION include
+)
