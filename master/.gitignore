@@ -1,6 +1,6 @@
 # Ignore build output folders
-bin/
-obj/
+bin/*
+obj/*
 
 # Ignore NuGet package folders
 packages/
