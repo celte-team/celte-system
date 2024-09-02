@@ -1,35 +1,40 @@
 using Confluent.Kafka;
 using System;
-using System.Collections.Generic;
 
 class KFKProducer : IDisposable
 {
-    private ProducerConfig _config;
-    private IProducer<Null, string> _producer;
+    private readonly ProducerConfig _config;
+    private readonly IProducer<Null, string> _producer;
+    private bool _disposed = false;
+    private UUIDProducerService _uuidProducerService;
 
     public KFKProducer()
     {
         Master master = Master.GetInstance();
-        try {
+        try
+        {
             var configObject = master._setupConfig.GetYamlObjectConfig();
-
             var kafkaConfig = configObject["kafka_brokers"];
             string kafka_brokers = kafkaConfig.ToString();
 
             _config = new ProducerConfig
             {
                 BootstrapServers = kafka_brokers,
-                Acks = Acks.All,
+                Acks = Acks.All
             };
-        } catch (Exception e) {
-            Console.WriteLine($"Error: {e.Message}");
+
+            _producer = new ProducerBuilder<Null, string>(_config).Build();
+            // use the UUIDProducerService to produce UUIDs to the topic
+            _uuidProducerService = new UUIDProducerService("uuids");
+            _uuidProducerService.StartAsync();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error initializing Kafka producer: {e.Message}");
         }
     }
 
-    ~KFKProducer()
-    {
-        Dispose();
-    }
+
 
     public void Send(string topic, string message)
     {
@@ -53,10 +58,29 @@ class KFKProducer : IDisposable
         }
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // Dispose managed resources
+                _producer?.Flush(TimeSpan.FromSeconds(10));
+                _producer?.Dispose();
+            }
+            _disposed = true;
+        }
+    }
+
     public void Dispose()
     {
-        _producer?.Flush(TimeSpan.FromSeconds(10));
-        _producer?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
         Console.WriteLine("Kafka producer disposed.");
+    }
+
+    ~KFKProducer()
+    {
+        Dispose(false);
     }
 }

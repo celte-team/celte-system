@@ -25,35 +25,39 @@ class DockerSystem
 
     public async Task LaunchContainer()
     {
-        if (_yamlObject?["container_image"] == null)
-        {
-            Console.WriteLine("No 'container_image' key found in the configuration file.");
-            return;
-        }
-
-        var UUID = "celte" + Guid.NewGuid().ToString();
-        var response = await _client.Containers.CreateContainerAsync(new CreateContainerParameters
-        {
-            Name = UUID,
-            Image = _yamlObject["container_image"].ToString(),
-            HostConfig = new HostConfig()
+        try {
+            if (_yamlObject?["container_image"] == null)
             {
-                NanoCPUs = _yamlObject.ContainsKey("cpu") ? Convert.ToInt64(_yamlObject["cpu"]) : 100000000L,
-                Memory = _yamlObject.ContainsKey("memory") ? Convert.ToInt64(_yamlObject["memory"]) * 1024 * 1024 : 512 * 1024 * 1024
+                Console.WriteLine("No 'container_image' key found in the configuration file.");
+                return;
             }
-        });
 
-        _containerIds.Add(response.ID);
+            var UUID = "celte" + Guid.NewGuid().ToString();
+            var response = await _client.Containers.CreateContainerAsync(new CreateContainerParameters
+            {
+                Name = UUID,
+                Image = _yamlObject["container_image"].ToString(),
+                HostConfig = new HostConfig()
+                {
+                    NanoCPUs = _yamlObject.ContainsKey("cpu") ? Convert.ToInt64(_yamlObject["cpu"]) : 100000000L,
+                    Memory = _yamlObject.ContainsKey("memory") ? Convert.ToInt64(_yamlObject["memory"]) * 1024 * 1024 : 512 * 1024 * 1024
+                }
+            });
 
-        // Start the container
-        bool started = await _client.Containers.StartContainerAsync(response.ID, new ContainerStartParameters());
-        if (!started)
-        {
-            Console.WriteLine($"Failed to start container {UUID}.");
-        }
-        else
-        {
-            Console.WriteLine($"Container {UUID} started successfully.");
+            _containerIds.Add(response.ID);
+
+            // Start the container
+            bool started = await _client.Containers.StartContainerAsync(response.ID, new ContainerStartParameters());
+            if (!started)
+            {
+                Console.WriteLine($"Failed to start container {UUID}.");
+            }
+            else
+            {
+                Console.WriteLine($"Container {UUID} started successfully.");
+            }
+        } catch (Exception e) {
+            Console.WriteLine($"Error launching container: {e.Message}");
         }
     }
 
