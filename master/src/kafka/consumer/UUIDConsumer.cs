@@ -1,38 +1,3 @@
-    // public async Task<int> GetUUIDCountAsync()
-    // {
-    //     int totalMessages = 0;
-
-    //     try
-    //     {
-    //         using (var consumer = new ConsumerBuilder<Ignore, Ignore>(_config).Build())
-    //         {
-    //             var partitions = consumer.Assignment;
-
-    //             if (partitions.Count == 0)
-    //             {
-    //                 partitions = consumer.Assignment;
-    //                 consumer.Assign(partitions);
-    //             }
-
-    //             foreach (var partition in partitions)
-    //             {
-    //                 var watermarkOffsets = consumer.QueryWatermarkOffsets(new TopicPartition(_topic, partition.Partition), TimeSpan.FromSeconds(10));
-    //                 var earliestOffset = watermarkOffsets.Low;
-    //                 var latestOffset = watermarkOffsets.High;
-
-    //                 // Calculate the number of messages in this partition
-    //                 int messageCount = (int)(latestOffset - earliestOffset);
-    //                 totalMessages += messageCount;
-    //             }
-    //         }
-    //     }
-    //     catch (Exception e)
-    //     {
-    //         Console.WriteLine($"Error counting UUIDs: {e.Message}");
-    //     }
-
-    //     return totalMessages;
-    // }
 using Confluent.Kafka;
 using System;
 using System.Threading;
@@ -42,7 +7,6 @@ class UUIDConsumerService : IDisposable
     private ConsumerConfig _config;
     private Master _master;
     private string _topic;
-
 
     public UUIDConsumerService(Config config, string topic)
     {
@@ -62,41 +26,49 @@ class UUIDConsumerService : IDisposable
         _master = Master.GetInstance();
     }
 
-    public async Task<int> GetUUIDCountAsync()
+public async Task<int> GetUUIDCountAsync()
+{
+    int totalMessages = 0;
+
+    try
     {
-        int totalMessages = 0;
-
-        try
+        using (var consumer = new ConsumerBuilder<Ignore, Ignore>(_config).Build())
         {
-            using (var consumer = new ConsumerBuilder<Ignore, Ignore>(_config).Build())
+            Console.WriteLine($"topic: {_topic}");
+            consumer.Subscribe(_topic); // Subscribe to the topic
+
+            await Task.Delay(1000); // Give some time for partitions to be assigned
+
+            var partitions = consumer.Assignment;
+            Console.WriteLine($"Partitions: {partitions.Count}");
+            if (partitions.Count == 0)
             {
-                var partitions = consumer.Assignment;
+                partitions = consumer.Assignment;
+                consumer.Assign(partitions);
+            }
 
-                if (partitions.Count == 0)
-                {
-                    partitions = consumer.Assignment;
-                    consumer.Assign(partitions);
-                }
+            foreach (var partition in partitions)
+            {
+                var watermarkOffsets = consumer.QueryWatermarkOffsets(new TopicPartition(_topic, partition.Partition), TimeSpan.FromSeconds(10));
+                Console.WriteLine($"Watermark offsets for partition {partition.Partition}: {watermarkOffsets.Low} - {watermarkOffsets.High}");
+                var earliestOffset = watermarkOffsets.Low;
+                Console.WriteLine($"Earliest offset: {earliestOffset}");
+                var latestOffset = watermarkOffsets.High;
+                Console.WriteLine($"Latest offset: {latestOffset}");
 
-                foreach (var partition in partitions)
-                {
-                    var watermarkOffsets = consumer.QueryWatermarkOffsets(new TopicPartition(_topic, partition.Partition), TimeSpan.FromSeconds(10));
-                    var earliestOffset = watermarkOffsets.Low;
-                    var latestOffset = watermarkOffsets.High;
-
-                    // Calculate the number of messages in this partition
-                    int messageCount = (int)(latestOffset - earliestOffset);
-                    totalMessages += messageCount;
-                }
+                int messageCount = (int)(latestOffset - earliestOffset);
+                totalMessages += messageCount;
             }
         }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Error counting UUIDs: {e.Message}");
-        }
-
-        return totalMessages;
     }
+    catch (Exception e)
+    {
+        Console.WriteLine($"Error counting UUIDs: {e.Message}");
+    }
+
+    return totalMessages;
+}
+
 
     ~UUIDConsumerService()
     {

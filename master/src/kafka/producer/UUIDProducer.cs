@@ -43,6 +43,7 @@ class UUIDProducerService : IDisposable
             try
             {
                 int currentUUIDCount = await _uuidConsumerService.GetUUIDCountAsync();
+                Console.WriteLine($"Current UUID count: {currentUUIDCount}");
                 if (currentUUIDCount < _minUUIDs)
                 {
                     int uuidsToProduce = _minUUIDs - currentUUIDCount;
@@ -59,7 +60,7 @@ class UUIDProducerService : IDisposable
                             }
                             else
                             {
-                                Console.WriteLine($"Delivered UUID: {uuid} to {deliveryReport.TopicPartitionOffset}");
+                                // Console.WriteLine($"Delivered UUID: {uuid} to {deliveryReport.TopicPartitionOffset}");
                             }
                         });
                     }
@@ -78,43 +79,6 @@ class UUIDProducerService : IDisposable
             }
         }
     }
-
-    // public async Task<int> GetUUIDCountAsync()
-    // {
-    //     int totalMessages = 0;
-
-    //     try
-    //     {
-    //         using (var consumer = new ConsumerBuilder<Ignore, Ignore>(_config).Build())
-    //         {
-    //             var partitions = consumer.Assignment;
-
-    //             if (partitions.Count == 0)
-    //             {
-    //                 partitions = consumer.Assignment;
-    //                 consumer.Assign(partitions);
-    //             }
-
-    //             foreach (var partition in partitions)
-    //             {
-    //                 var watermarkOffsets = consumer.QueryWatermarkOffsets(new TopicPartition(_topic, partition.Partition), TimeSpan.FromSeconds(10));
-    //                 var earliestOffset = watermarkOffsets.Low;
-    //                 var latestOffset = watermarkOffsets.High;
-
-    //                 // Calculate the number of messages in this partition
-    //                 int messageCount = (int)(latestOffset - earliestOffset);
-    //                 totalMessages += messageCount;
-    //             }
-    //         }
-    //     }
-    //     catch (Exception e)
-    //     {
-    //         Console.WriteLine($"Error counting UUIDs: {e.Message}");
-    //     }
-
-    //     return totalMessages;
-    // }
-
     protected virtual void Dispose(bool disposing)
     {
         if (!_disposed)
