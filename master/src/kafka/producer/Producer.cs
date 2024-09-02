@@ -24,8 +24,7 @@ class KFKProducer : IDisposable
             };
 
             _producer = new ProducerBuilder<Null, string>(_config).Build();
-            // use the UUIDProducerService to produce UUIDs to the topic
-            _uuidProducerService = new UUIDProducerService("uuids");
+            _uuidProducerService = new UUIDProducerService("UUID");
             _uuidProducerService.StartAsync();
         }
         catch (Exception e)

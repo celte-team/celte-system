@@ -11,12 +11,11 @@ class UUIDProducerService : IDisposable
     private bool _disposed = false;
     private readonly int _minUUIDs = 100;
     private readonly int _checkIntervalMilliseconds = 30000; // 30 seconds
-
+    private UUIDConsumerService _uuidConsumerService;
     public UUIDProducerService(string topic)
     {
         Master master = Master.GetInstance();
         _topic = topic;
-
         try
         {
             var configObject = master._setupConfig.GetYamlObjectConfig();
@@ -28,7 +27,7 @@ class UUIDProducerService : IDisposable
                 BootstrapServers = kafka_brokers,
                 Acks = Acks.All
             };
-
+            _uuidConsumerService = new UUIDConsumerService(_config, _topic);
             _producer = new ProducerBuilder<Null, string>(_config).Build();
         }
         catch (Exception e)
@@ -43,9 +42,7 @@ class UUIDProducerService : IDisposable
         {
             try
             {
-                // Check the number of UUIDs in the topic
-                int currentUUIDCount = await GetUUIDCountAsync();
-
+                int currentUUIDCount = await _uuidConsumerService.GetUUIDCountAsync();
                 if (currentUUIDCount < _minUUIDs)
                 {
                     int uuidsToProduce = _minUUIDs - currentUUIDCount;
@@ -82,41 +79,41 @@ class UUIDProducerService : IDisposable
         }
     }
 
-    public async Task<int> GetUUIDCountAsync()
-    {
-        int totalMessages = 0;
+    // public async Task<int> GetUUIDCountAsync()
+    // {
+    //     int totalMessages = 0;
 
-        try
-        {
-            using (var consumer = new ConsumerBuilder<Ignore, Ignore>(_config).Build())
-            {
-                var partitions = consumer.Assignment;
+    //     try
+    //     {
+    //         using (var consumer = new ConsumerBuilder<Ignore, Ignore>(_config).Build())
+    //         {
+    //             var partitions = consumer.Assignment;
 
-                if (partitions.Count == 0)
-                {
-                    partitions = consumer.Assignment;
-                    consumer.Assign(partitions);
-                }
+    //             if (partitions.Count == 0)
+    //             {
+    //                 partitions = consumer.Assignment;
+    //                 consumer.Assign(partitions);
+    //             }
 
-                foreach (var partition in partitions)
-                {
-                    var watermarkOffsets = consumer.QueryWatermarkOffsets(new TopicPartition(_topic, partition.Partition), TimeSpan.FromSeconds(10));
-                    var earliestOffset = watermarkOffsets.Low;
-                    var latestOffset = watermarkOffsets.High;
+    //             foreach (var partition in partitions)
+    //             {
+    //                 var watermarkOffsets = consumer.QueryWatermarkOffsets(new TopicPartition(_topic, partition.Partition), TimeSpan.FromSeconds(10));
+    //                 var earliestOffset = watermarkOffsets.Low;
+    //                 var latestOffset = watermarkOffsets.High;
 
-                    // Calculate the number of messages in this partition
-                    int messageCount = (int)(latestOffset - earliestOffset);
-                    totalMessages += messageCount;
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Error counting UUIDs: {e.Message}");
-        }
+    //                 // Calculate the number of messages in this partition
+    //                 int messageCount = (int)(latestOffset - earliestOffset);
+    //                 totalMessages += messageCount;
+    //             }
+    //         }
+    //     }
+    //     catch (Exception e)
+    //     {
+    //         Console.WriteLine($"Error counting UUIDs: {e.Message}");
+    //     }
 
-        return totalMessages;
-    }
+    //     return totalMessages;
+    // }
 
     protected virtual void Dispose(bool disposing)
     {
