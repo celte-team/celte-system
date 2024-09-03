@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(celte-unit-tests)
+project(celte-functional-tests)
 
 include(FetchContent)
 
@@ -14,7 +14,6 @@ enable_testing()
 
 FetchContent_MakeAvailable(googletest)
 
-add_subdirectory(single_node_poc)
 
 if (DEFINED ENV{VCPKG_ROOT})
     set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
@@ -40,12 +39,20 @@ include_directories(include
 )
 
 
-# Set the source files for the unit tests
+# Set the source files for the functional tests
 set(SOURCES
-    test_runtime_connected_cluster.cpp
+    test_server_single_node.cpp
 )
 
-add_executable(test_server ${SOURCES})
-target_compile_definitions(test_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(test_server gtest gtest_main)
-target_link_libraries(test_server celtesystems_runtime_server)
+add_executable(test_server_single_node ${SOURCES})
+target_compile_definitions(test_server_single_node PRIVATE -DCELTE_SERVER_MODE_ENABLED)
+target_link_libraries(test_server_single_node gtest gtest_main)
+target_link_libraries(test_server_single_node celtesystems_runtime_server)
+
+set(SOURCES_SINGLE_NODE_CLIENT
+    test_client_single_node.cpp
+)
+
+add_executable(test_client_single_node ${SOURCES_SINGLE_NODE_CLIENT})
+target_link_libraries(test_client_single_node gtest gtest_main)
+target_link_libraries(test_client_single_node celtesystems_runtime_client)
