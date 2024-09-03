@@ -133,13 +133,6 @@ namespace celte {
             std::vector<std::function<void()>> _tickCallbacks;
 
             RuntimeMode _mode;
-
-            // // FSM for the client if in client mode
-            // std::optional<celte::client::ServicesStates> _clientFSM
-            //     = std::nullopt;
-
-            // // FSM for the server node if in server mode
-            // // TODO
         };
     } // namespace runtime
 } // namespace celte

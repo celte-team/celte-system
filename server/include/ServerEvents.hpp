@@ -27,4 +27,4 @@ namespace celte {
             std::shared_ptr<std::string> message;
         };
     }
-}
+}   

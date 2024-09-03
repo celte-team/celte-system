@@ -9,6 +9,12 @@
 
 namespace celte {
     namespace client {
+        /**
+         * @brief Base class for all client's states.
+         * Each state inheriting from this class should implement a particular
+         * time of the client's lifecycle. See ClientStatesDeclaration.hpp for
+         * more information.
+         */
         class AClient : public tinyfsm::Fsm<AClient> {
             friend class Fsm;
 

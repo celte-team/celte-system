@@ -1,14 +1,30 @@
+#include "KafkaFSM.hpp"
 #include "KafkaLinkStatesDeclaration.hpp"
 
 using namespace celte::nl::states;
 
-void KLConnected::entry()
+KLConnected::~KLConnected() { __stopPolling(); }
+
+void KLConnected::entry() { __startPolling(); }
+
+void KLConnected::exit() { __stopPolling(); }
+
+void KLConnected::__stopPolling()
 {
-    // TODO create polling thread
-    std::cout << "Successfully connected to network." << std::endl;
+    _shouldPoll = false;
+    if (_pollThread.joinable()) {
+        _pollThread.join();
+    }
 }
 
-void KLConnected::exit()
+void KLConnected::__startPolling()
 {
-    // TODO terminate polling thread
+    _shouldPoll = true;
+    _pollThread = std::thread([this]() {
+        while (_shouldPoll) {
+            celte::nl::AKafkaLink::__pollAllConsumers();
+            std::this_thread::sleep_for(
+                celte::nl::AKafkaLink::kCelteConfig.pollingIntervalMs);
+        }
+    });
 }

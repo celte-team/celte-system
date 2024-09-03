@@ -15,7 +15,9 @@
 
 #pragma once
 #include "KafkaFSM.hpp"
+#include <atomic>
 #include <string>
+#include <thread>
 
 namespace celte {
     namespace nl {
@@ -57,6 +59,16 @@ namespace celte {
             class KLConnected : public AKafkaLink {
                 void entry() override;
                 void exit() override;
+
+            public:
+                ~KLConnected();
+
+            private:
+                void __stopPolling();
+                void __startPolling();
+
+                std::thread _pollThread;
+                std::atomic<bool> _shouldPoll = true;
             };
 
         } // namespace states

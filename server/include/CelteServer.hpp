@@ -9,6 +9,11 @@
 
 namespace celte {
     namespace server {
+        /**
+         * @brief Base class for all server's states.
+         * Each state inheriting from this class should implement a particular
+         * time of the server's lifecycle. See ServerStatesDeclaration.hpp for
+         */
         class AServer : public tinyfsm::Fsm<AServer> {
             friend class Fsm;
 
