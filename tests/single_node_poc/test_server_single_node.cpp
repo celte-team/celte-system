@@ -13,6 +13,7 @@
  * Commands are applied manually to simulate the evolution of the game state.
  */
 
+#include "BasicMovementGame.cpp"
 #include "CelteRuntime.hpp"
 #include <iostream>
 

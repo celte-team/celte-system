@@ -18,6 +18,8 @@ include_directories(
     server/include
     runtime/include)
 
+include_directories(${CMAKE_PREFIX_PATH}/include)
+
 set(INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
 set(INSTALL_LIBRARY_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 

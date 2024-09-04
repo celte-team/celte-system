@@ -12,8 +12,11 @@
  * Commands are applied manually to simulate the evolution of the game state.
  */
 
+#include "BasicMovementGame.cpp"
 #include "CelteRuntime.hpp"
 #include <iostream>
+
+// TODO create celte chunk wrapper
 
 int main()
 {
@@ -25,5 +28,7 @@ int main()
         throw std::runtime_error("Client should be connected to the cluster");
     }
 
-    std::cout << "client is done" << std::endl;
+    dummy::Engine engine;
+    // Updating the celte runtime each frame
+    // engine.RegisterGameLoopStep([&runtime]() { runtime.Tick(); });
 }
