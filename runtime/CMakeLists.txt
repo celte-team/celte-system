@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package(RdKafka CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
+find_package(glm CONFIG REQUIRED)
 
 include_directories(include)
 
@@ -16,16 +17,19 @@ add_definitions(${GLIB_CFLAGS_OTHER})
 
 set(COMMON_SOURCES
     src/CelteRuntime.cpp
+    src/CelteEntity.cpp
+    src/Grape.cpp
+    src/CelteChunk.cpp
 )
 
 # Runtime for server
 add_library(celtesystems_runtime_server SHARED ${COMMON_SOURCES})
 target_compile_definitions(celtesystems_runtime_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(celtesystems_runtime_server PRIVATE KafkaLink CelteServer)
+target_link_libraries(celtesystems_runtime_server PRIVATE KafkaLink CelteServer glm::glm)
 
 # # Runtime for client
 add_library(celtesystems_runtime_client SHARED ${COMMON_SOURCES})
-target_link_libraries(celtesystems_runtime_client PRIVATE KafkaLink CelteClient)
+target_link_libraries(celtesystems_runtime_client PRIVATE KafkaLink CelteClient glm::glm)
 
 
 
@@ -49,8 +53,8 @@ if(NOT RDKAFKA++_LIBRARY)
     message(FATAL_ERROR "rdkafka++ library not found")
 endif()
 
-install(FILES ${RDKAFKA_LIBRARY} ${RDKAFKA++_LIBRARY}
-        DESTINATION celte-libraries)
+# install(FILES ${RDKAFKA_LIBRARY} ${RDKAFKA++_LIBRARY}
+#         DESTINATION celte-libraries)
 
 # Glib
 
