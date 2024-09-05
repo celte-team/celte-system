@@ -14,7 +14,6 @@ class SetupConfig
     public SetupConfig(string[] args)
     {
         _args = args;
-
     }
 
     ~SetupConfig()
@@ -34,6 +33,7 @@ class SetupConfig
         }
         else if (_args.Contains("--cloud") || _args.Contains("-c"))
         {
+            // TODO Implement cloud setup
             // SettingUpCloud();
         }
         else
@@ -57,7 +57,6 @@ class SetupConfig
 
                 for (int i = 0; i < chunks; i++)
                 {
-                    Console.WriteLine($"Launching container {i + 1}...");
                     dockerSystem.LaunchContainer().Wait();
                 }
             }
