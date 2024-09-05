@@ -63,18 +63,18 @@ class DockerSystem
 
     public async Task ShutdownContainer()
     {
-        Console.WriteLine("Shutting down the master...");
         if (_containerIds.Count > 0)
         {
             foreach (var containerIds in _containerIds)
             {
                 // delete the container
-                await _client.Containers.RemoveContainerAsync(
+                _client.Containers.RemoveContainerAsync(
                     containerIds,
                     new ContainerRemoveParameters
                     {
                         Force = true
                     });
+                Console.WriteLine($"Container {containerIds} deleted.");
             }
         }
     }

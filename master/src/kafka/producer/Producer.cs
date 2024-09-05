@@ -6,7 +6,7 @@ class KFKProducer : IDisposable
     private readonly ProducerConfig _config;
     private readonly IProducer<Null, string> _producer;
     private bool _disposed = false;
-    private UUIDProducerService _uuidProducerService;
+    public UUIDProducerService _uuidProducerService;
 
     public KFKProducer()
     {
@@ -25,7 +25,6 @@ class KFKProducer : IDisposable
 
             _producer = new ProducerBuilder<Null, string>(_config).Build();
             _uuidProducerService = new UUIDProducerService("UUID");
-            _uuidProducerService.StartAsync();
         }
         catch (Exception e)
         {
@@ -34,26 +33,50 @@ class KFKProducer : IDisposable
     }
 
 
+    /// <summary>
+    /// Send message without key
+    /// </summary>
+    public async Task SendMessageAsync(string topic, string message)
+    {
+        Console.WriteLine("Sending message...");
+        try
+        {
+            var result = await _producer.ProduceAsync(topic, new Message<Null, string>
+            {
+                Value = message
+            });
 
-    public void Send(string topic, string message)
+            Console.WriteLine($"Message sent to {result.TopicPartitionOffset}");
+        }
+        catch (ProduceException<Null, string> e)
+        {
+            Console.WriteLine($"Delivery failed: {e.Error.Reason}");
+        }
+    }
+
+    /// <summary>
+    /// Send message with key
+    /// </summary>
+    /// <param name="topic"></param>
+    /// <param name="key"></param>
+    /// <param name="message"></param>
+    /// <returns></returns>
+    public async Task SendMessageAsync(string topic, string key, string message)
     {
         try
         {
-            _producer.Produce(topic, new Message<Null, string> { Value = message }, deliveryReport =>
+            var producerWithKey = new ProducerBuilder<string, string>(_config).Build();
+            var result = await producerWithKey.ProduceAsync(topic, new Message<string, string>
             {
-                if (deliveryReport.Error.IsError)
-                {
-                    Console.WriteLine($"Delivery Error: {deliveryReport.Error.Reason}");
-                }
-                else
-                {
-                    Console.WriteLine($"Delivered '{deliveryReport.Value}' to '{deliveryReport.TopicPartitionOffset}'");
-                }
+                Key = key,
+                Value = message
             });
+
+            Console.WriteLine($"Message sent to {result.TopicPartitionOffset}");
         }
-        catch (ProduceException<Null, string> ex)
+        catch (ProduceException<string, string> e)
         {
-            Console.WriteLine($"Failed to produce message: {ex.Error.Reason}");
+            Console.WriteLine($"Delivery failed: {e.Error.Reason}");
         }
     }
 
@@ -64,8 +87,6 @@ class KFKProducer : IDisposable
             if (disposing)
             {
                 // Dispose managed resources
-                _producer?.Flush(TimeSpan.FromSeconds(10));
-                _producer?.Dispose();
             }
             _disposed = true;
         }

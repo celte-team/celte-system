@@ -1,82 +1,52 @@
 using Confluent.Kafka;
 using System;
-using System.Threading;
-using System.Threading.Tasks;
+
 class UUIDConsumerService : IDisposable
 {
-    private ConsumerConfig _config;
-    private Master _master;
-    private string _topic;
+    private readonly ConsumerConfig _config;
 
-    public UUIDConsumerService(Config config, string topic)
+    public UUIDConsumerService(ConsumerConfig config)
     {
-        _master = Master.GetInstance();
-        var configObject = _master._setupConfig.GetYamlObjectConfig();
-
-        var kafkaConfig = configObject["kafka_brokers"];
-        string kafka_brokers = kafkaConfig.ToString();
-        _config = new ConsumerConfig
-        {
-            BootstrapServers = kafka_brokers,
-            GroupId = "UUID",
-            AutoOffsetReset = AutoOffsetReset.Earliest
-        };
-
-        _topic = topic;
-        _master = Master.GetInstance();
+        // Initialize Kafka consumer configuration
+        _config = config;
     }
 
-public async Task<int> GetUUIDCountAsync()
-{
-    int totalMessages = 0;
-
-    try
+    public void WelcomeNewEntry()
     {
-        using (var consumer = new ConsumerBuilder<Ignore, Ignore>(_config).Build())
+        Console.WriteLine("Welcome!!!!!!!!!!!!!! new entry.");
+
+        using (var consumer = new ConsumerBuilder<string, string>(_config).Build())
         {
-            Console.WriteLine($"topic: {_topic}");
-            consumer.Subscribe(_topic); // Subscribe to the topic
+            Console.WriteLine("Waiting for new entry...");
+            consumer.Subscribe("NewEntry");
 
-            await Task.Delay(1000); // Give some time for partitions to be assigned
-
-            var partitions = consumer.Assignment;
-            Console.WriteLine($"Partitions: {partitions.Count}");
-            if (partitions.Count == 0)
+            try
             {
-                partitions = consumer.Assignment;
-                consumer.Assign(partitions);
+                while (true)
+                {
+                    var cr = consumer.Consume();
+                    Console.WriteLine($"Consumed event from topic NewEntry: value = {cr.Message.Value}");
+                }
             }
-
-            foreach (var partition in partitions)
+            catch (OperationCanceledException)
             {
-                var watermarkOffsets = consumer.QueryWatermarkOffsets(new TopicPartition(_topic, partition.Partition), TimeSpan.FromSeconds(10));
-                Console.WriteLine($"Watermark offsets for partition {partition.Partition}: {watermarkOffsets.Low} - {watermarkOffsets.High}");
-                var earliestOffset = watermarkOffsets.Low;
-                Console.WriteLine($"Earliest offset: {earliestOffset}");
-                var latestOffset = watermarkOffsets.High;
-                Console.WriteLine($"Latest offset: {latestOffset}");
-
-                int messageCount = (int)(latestOffset - earliestOffset);
-                totalMessages += messageCount;
+                // Handle cancellation, such as Ctrl-C
+            }
+            finally
+            {
+                consumer.Close(); // Ensure the consumer is closed properly
             }
         }
-    }
-    catch (Exception e)
-    {
-        Console.WriteLine($"Error counting UUIDs: {e.Message}");
-    }
-
-    return totalMessages;
-}
-
-
-    ~UUIDConsumerService()
-    {
-        Dispose();
     }
 
     public void Dispose()
     {
         Console.WriteLine("Kafka consumer disposed.");
+        GC.SuppressFinalize(this);
+    }
+
+    ~UUIDConsumerService()
+    {
+        Dispose();
     }
 }

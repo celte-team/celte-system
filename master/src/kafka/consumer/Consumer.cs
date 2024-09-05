@@ -5,41 +5,25 @@ using System.Collections.Generic;
 class KFKConsumer : IDisposable
 {
     private ConsumerConfig _config;
-
+    public UUIDConsumerService _uuidConsumerService;
+    private Thread _uuidConsumerThread;
     public KFKConsumer()
     {
-        Master master = Master.GetInstance();
         try
         {
-            var configObject = master._setupConfig.GetYamlObjectConfig();
-
-            var kafkaConfig = configObject["kafka_brokers"];
-            string kafka_brokers = kafkaConfig.ToString();
-
             _config = new ConsumerConfig
             {
-                BootstrapServers = kafka_brokers,
                 GroupId = "test-consumer-group",
+                BootstrapServers = "localhost:80",
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
 
-            using (var consumer = new ConsumerBuilder<Ignore, string>(_config).Build())
-            {
-                consumer.Subscribe("test-topic");
-
-                try
-                {
-                    while (true)
-                    {
-                        var consumeResult = consumer.Consume();
-                        Console.WriteLine($"Consumed message '{consumeResult.Value}' at: '{consumeResult.TopicPartitionOffset}'.");
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    consumer.Close();
-                }
-            }
+            _uuidConsumerService = new UUIDConsumerService(_config);
+            // _uuidConsumerService.WelcomeNewEntry();
+            Console.WriteLine("UUIDConsumerService initialized.");
+            // _uuidConsumerThread = new Thread(_uuidConsumerService.WelcomeNewEntry);
+            // _uuidConsumerThread.Start();
+            // _uuidConsumerService.WelcomeNewEntry();
         }
         catch (Exception e)
         {
@@ -54,6 +38,8 @@ class KFKConsumer : IDisposable
 
     public void Dispose()
     {
+        _uuidConsumerService?.Dispose();
+        // _uuidConsumerThread?.Join();
         Console.WriteLine("Kafka consumer disposed.");
     }
 }
