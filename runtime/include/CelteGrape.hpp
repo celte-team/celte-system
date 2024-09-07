@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <memory>
 #include <glm/vec3.hpp>
+#include <vector>
 
 namespace celte {
     namespace chunks {
@@ -28,6 +29,12 @@ namespace celte {
             const glm::vec3 forward;
             // The up vector of the object holding the grape in the engine.
             const glm::vec3 up;
+        };
+
+        struct GrapeStatistics {
+            const std::string grapeId;
+            const size_t numberOfChunks;
+            std::vector<std::string> chunksIds;
         };
 
         /**
@@ -54,6 +61,30 @@ namespace celte {
             Grape(Grape& grape, std::vector<std::string> chunksIds);
             ~Grape();
 
+            /**
+             * @brief Returns statistics and informations about the Grape.
+             * This method is used to display information about the grape in the
+             * engine's editor or for debugging purposes.
+             */
+            GrapeStatistics GetStatistics() const;
+
+            /**
+             * @brief Returns true if the given position is inside the grape.
+             */
+            bool ContainsPosition(float x, float y, float z) const;
+
+            /**
+             * @brief Returns the id of the grape.
+             */
+            inline const std::string& GetGrapeId() const { return _options.grapeId; }
+
+            /**
+             * @brief Returns the chunk at the given position.
+             * This method is used to forward entities to the correct chunk
+             * when they are spawned.
+             */
+            Chunk& GetChunkByPosition(float x, float y, float z);
+
         private:
             /**
              * Subdivide the grape bounding box into options.subdivision chunks.
@@ -62,6 +93,12 @@ namespace celte {
 
             const GrapeOptions _options;
             std::unordered_map<std::string, std::shared_ptr<Chunk>> _chunks;
+
+            glm::vec3 _start;
+            glm::vec3 _end;
+            glm::vec3 _forward;
+            glm::vec3 _right;
+            glm::vec3 _up;
         };
     } // namespace chunks
 } // namespace celte

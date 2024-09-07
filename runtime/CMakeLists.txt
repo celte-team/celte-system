@@ -9,7 +9,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 find_package(glm CONFIG REQUIRED)
 
-include_directories(include)
+find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
 
 # Add pkg-config flags for glib-2.0
 link_directories(${GLIB_LIBRARY_DIRS})
@@ -18,18 +18,21 @@ add_definitions(${GLIB_CFLAGS_OTHER})
 set(COMMON_SOURCES
     src/CelteRuntime.cpp
     src/CelteEntity.cpp
-    src/Grape.cpp
+    src/CelteGrape.cpp
     src/CelteChunk.cpp
+    src/CelteRPC.cpp
+    src/CelteGrapeManagementSystem.cpp
+    src/CelteHooks.cpp
 )
 
 # Runtime for server
 add_library(celtesystems_runtime_server SHARED ${COMMON_SOURCES})
 target_compile_definitions(celtesystems_runtime_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(celtesystems_runtime_server PRIVATE KafkaLink CelteServer glm::glm)
+target_link_libraries(celtesystems_runtime_server PRIVATE KafkaLink CelteServer glm::glm msgpack-cxx)
 
 # # Runtime for client
 add_library(celtesystems_runtime_client SHARED ${COMMON_SOURCES})
-target_link_libraries(celtesystems_runtime_client PRIVATE KafkaLink CelteClient glm::glm)
+target_link_libraries(celtesystems_runtime_client PRIVATE KafkaLink CelteClient glm::glm msgpack-cxx)
 
 
 

@@ -22,20 +22,20 @@ void KLDisconnected::react(EConnectToCluster const& event)
 
     // Copying the defaults to add some custom settings
     auto props = AKafkaLink::kDefaultProps;
-    props.put("delivery.timeout.ms", "10000");
+    // props.put("delivery.timeout.ms", "10000");
 
     // Writting to master's welcome channel to signal our arrival
-    const kafka::Topic topic = "mas.welcome";
     kafka::clients::producer::KafkaProducer producer(props);
 
     // This object is used to send the message
+    const kafka::Topic topic = "mas.welcome";
     kafka::clients::producer::ProducerRecord record(topic, kafka::NullKey,
         kafka::Value(event.message->c_str(), event.message->size()));
 
     auto message = std::move(event.message);
 
     // This callback gets called when the message has been successfully
-    // delivered to Kakfa.
+    // delivered to kafka.
     auto deliveryCb
         = [this, message](
               const kafka::clients::producer::RecordMetadata& metadata,

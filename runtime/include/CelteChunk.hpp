@@ -18,6 +18,8 @@ namespace celte {
             const float sizeUp;
             // The forward vector of the object holding the chunk in the engine.
             const glm::vec3 forward;
+            // The up vector of the object holding the chunk in the engine.
+            const glm::vec3 up;
         };
 
         /**
@@ -52,7 +54,24 @@ namespace celte {
              */
             void OnEntityDespawn(CelteEntity& celteEntity);
 
+            /**
+             * @brief Returns true if the given position is inside the chunk.
+             */
+            bool ContainsPosition(float x, float y, float z) const;
+
         private:
+            /**
+             * @brief Registers all consumers for the chunk.
+             * The consumers listen for events in the chunk's topic and react to them.
+             */
+            void __registerConsumers();
+
+            glm::vec3 _start;
+            glm::vec3 _end;
+            glm::vec3 _forward;
+            glm::vec3 _right;
+            glm::vec3 _up;
+
             const ChunkConfig _config;
             const std::string _combinedId;
         };

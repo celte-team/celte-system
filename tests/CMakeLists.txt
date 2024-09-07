@@ -14,10 +14,11 @@ enable_testing()
 
 FetchContent_MakeAvailable(googletest)
 
-add_subdirectory(single_node_poc)
 
 find_package(RdKafka CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
+find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
+
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 
 include_directories(include
@@ -33,5 +34,5 @@ set(SOURCES
 
 add_executable(test_server ${SOURCES})
 target_compile_definitions(test_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(test_server gtest gtest_main)
+target_link_libraries(test_server gtest gtest_main msgpack-cxx)
 target_link_libraries(test_server celtesystems_runtime_server)

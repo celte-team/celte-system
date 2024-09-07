@@ -16,6 +16,9 @@
 #include "BasicMovementGame.cpp"
 #include "CelteRuntime.hpp"
 #include <iostream>
+#include "CelteGrapeManagementSystem.hpp"
+#include "CelteGrape.hpp"
+#include "CelteRPC.hpp"
 
 int main()
 {

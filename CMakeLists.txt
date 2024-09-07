@@ -32,6 +32,7 @@ add_subdirectory(client)
 add_subdirectory(server)
 add_subdirectory(runtime)
 add_subdirectory(tests)
+add_subdirectory(tests/single_node_poc)
 
 
 # Install header files

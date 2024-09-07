@@ -1,6 +1,7 @@
 #include "KafkaFSM.hpp"
 #include "KafkaLinkStatesDeclaration.hpp"
 #include "kafka/Properties.h"
+#include <kafka/AdminClient.h>
 
 namespace tinyfsm {
     template <> void Fsm<celte::nl::AKafkaLink>::set_initial_state()
@@ -16,7 +17,7 @@ std::unordered_map<std::string, AKafkaLink::Consumer> AKafkaLink::_consumers
     = {};
 
 kafka::Properties AKafkaLink::kDefaultProps = kafka::Properties(
-    kafka::Properties::PropertiesMap({ { "enable.idempotence", { "true" } } }));
+    kafka::Properties::PropertiesMap({ { "enable.idempotence", { "true" } }}));
 
 AKafkaLink::KCelteConfig AKafkaLink::kCelteConfig { .pollingIntervalMs
     = std::chrono::milliseconds(5),
@@ -79,4 +80,21 @@ void AKafkaLink::ClearAllConsumers()
         consumer.consumer->unsubscribe();
     }
     _consumers.clear();
+}
+
+void AKafkaLink::CreateTopicIfNotExists(const std::string& topic, int numPartitions, int replicaFactor)
+{
+    kafka::clients::admin::AdminClient adminClient(kDefaultProps);
+
+    auto topics = adminClient.listTopics();
+    for (auto& topicName : topics.topics) {
+        if (topicName == topic)
+            return;
+    }
+
+    auto createResult = adminClient.createTopics({topic}, numPartitions, replicaFactor);
+    if (!createResult.error || createResult.error.value() == RD_KAFKA_RESP_ERR_TOPIC_ALREADY_EXISTS)
+    {
+        return;
+    }
 }

@@ -93,6 +93,11 @@ namespace celte {
                 CustomPropsUpdater customPropsUpdater = nullptr);
 
             /**
+             * Creates a topic in kafka if it does not exist yet.
+             */
+            static void CreateTopicIfNotExists(const std::string& topic, int numPartitions=1, int replicaFactor=1);
+
+            /**
              * @brief Removes a consumer from the list of consumers using its
              * topic as the key.
              */

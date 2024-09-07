@@ -16,6 +16,8 @@
 #include "CelteRuntime.hpp"
 #include "KafkaLinkStatesDeclaration.hpp"
 #include "tinyfsm.hpp"
+#include "KafkaFSM.hpp"
+#include "CelteGrapeManagementSystem.hpp"
 
 namespace tinyfsm {
 // This registers the initial state of the FSM for
@@ -53,13 +55,21 @@ namespace celte {
         void CelteRuntime::Tick()
         {
             for (auto& callback : _tickCallbacks) {
-                callback();
+                // callback.first is the uuid of the callback
+                callback.second();
             }
         }
 
-        void CelteRuntime::RegisterTickCallback(std::function<void()> callback)
+        int CelteRuntime::RegisterTickCallback(std::function<void()> callback)
         {
-            _tickCallbacks.push_back(callback);
+            _tickCallbacks.insert(std::make_pair(++_tickCallbackId, callback));
+            return _tickCallbackId;
+        }
+
+        void CelteRuntime::UnregisterTickCallback(int id)
+        {
+            // documentation says that no exception is thrown if the key is not found
+            _tickCallbacks.erase(id);
         }
 
         CelteRuntime& CelteRuntime::GetInstance()
@@ -71,17 +81,37 @@ namespace celte {
         // =================================================================================================
         // CELTE PRIVATE METHODS
         // =================================================================================================
+        #ifdef CELTE_SERVER_MODE_ENABLED
+        void CelteRuntime::__initServerRPC()
+        {
+
+        }
 
         void CelteRuntime::__initServer()
         {
-            // TODO
+            __initServerRPC();
+        }
+
+        #endif
+
+        #ifndef CELTE_SERVER_MODE_ENABLED
+
+        void CelteRuntime::__initClientRPC()
+        {
+
         }
 
         void CelteRuntime::__initClient()
         {
-            std::cout << "Starting client services" << std::endl;
-            // celte::client::Services::start();
+            __initClientRPC();
         }
+
+        void CelteRuntime::RequestSpawn(const std::string& clientId)
+        {
+
+        }
+
+        #endif
 
         void CelteRuntime::__initNetworkLayer(RuntimeMode mode)
         {
@@ -89,10 +119,14 @@ namespace celte {
 
             switch (mode) {
             case SERVER:
+            #ifdef CELTE_SERVER_MODE_ENABLED
                 __initServer();
+            #endif
                 break;
             case CLIENT:
+            #ifndef CELTE_SERVER_MODE_ENABLED
                 __initClient();
+            #endif
                 break;
             default:
                 break;

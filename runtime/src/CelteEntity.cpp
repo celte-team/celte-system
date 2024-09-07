@@ -1,16 +1,18 @@
 #include "CelteEntity.hpp"
+#include "CelteGrapeManagementSystem.hpp"
+#include "CelteHooks.hpp"
+#include <iostream>
 
 namespace celte {
-    CelteEntity::CelteEntity(double x, double y, double z)
+    void CelteEntity::OnSpawn(float x, float y, float z)
     {
-        __onSpawn(x, y, z);
+        try {
+        auto chunk = chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
+            .GetGrapeByPosition(x, y, z)
+            .GetChunkByPosition(x, y, z);
+        chunk.OnEntitySpawn(*this);
+        } catch (std::out_of_range &e) {
+            // Entity is not in any grape
+            std::cerr << "Entity is not in any grape: " << e.what() << std::endl;
+        }
     }
-
-    CelteEntity::CelteEntity(const std::string& chunkId) { __onSpawn(chunkId); }
-
-    CelteEntity::~CelteEntity() { }
-
-    void CelteEntity::__onSpawn(double x, double y, double z) { }
-
-    void CelteEntity::__onSpawn(const std::string& chunkId) { }
-}
