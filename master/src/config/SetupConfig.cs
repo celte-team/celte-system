@@ -22,11 +22,17 @@ class SetupConfig
 
     public Dictionary<string, object>? GetYamlObjectConfig()
     {
+        if (_yamlObject == null)
+        {
+            Console.WriteLine("Yaml object is null.");
+            return null;
+        }
         return _yamlObject;
     }
 
     public void SettingUpMaster()
     {
+        GetConfigFile();
         if (_args.Contains("--local") || _args.Contains("-l"))
         {
             SettingUpLocal();
@@ -38,36 +44,29 @@ class SetupConfig
         }
         else
         {
-            Usage usage = new Usage();
-            usage.UsageMessage();
-            return;
+            // for the moment I allow the non usage of the flags for testing purposes
+
+            // Usage usage = new Usage();
+            // usage.UsageMessage();
+            // return;
         }
     }
 
     public void SettingUpLocal()
     {
-        if (_args.Contains("--config") || _args.Contains("-f"))
+        if (_yamlObject != null)
         {
-            GetConfigFile();
+            int chunks = GetNumberOfChunks();
+            Console.WriteLine($"Launching {chunks} containers...");
 
-            if (_yamlObject != null)
+            for (int i = 0; i < chunks; i++)
             {
-                int chunks = GetNumberOfChunks();
-                Console.WriteLine($"Launching {chunks} containers...");
-
-                for (int i = 0; i < chunks; i++)
-                {
-                    dockerSystem.LaunchContainer().Wait();
-                }
-            }
-            else
-            {
-                Console.WriteLine("Failed to load the configuration file.");
+                dockerSystem.LaunchContainer().Wait();
             }
         }
         else
         {
-            Console.WriteLine("Usage: --config <configFile.yml>");
+            Console.WriteLine("Failed to load the configuration file.");
         }
     }
 
@@ -84,7 +83,8 @@ class SetupConfig
 
     public async Task Shutdown()
     {
-        await dockerSystem.ShutdownContainer();
+        if (dockerSystem != null)
+            await dockerSystem.ShutdownContainer();
     }
 
     private void GetConfigFile()
@@ -114,6 +114,7 @@ class SetupConfig
 
                     _yamlObject = deserializer.Deserialize<Dictionary<string, object>>(fileContents);
                     dockerSystem = new DockerSystem(_yamlObject);
+                    Console.WriteLine("Configuration file loaded successfully.");
                 }
                 else
                 {
