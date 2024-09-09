@@ -32,7 +32,6 @@ class KFKProducer : IDisposable
         }
     }
 
-
     /// <summary>
     /// Send message without key
     /// </summary>

@@ -11,7 +11,6 @@ class DockerSystem
     private List<string> _containerIds = new List<string>();
     private Dictionary<string, object>? _yamlObject;
 
-
     public DockerSystem(Dictionary<string, object>? yamlObject)
     {
         _yamlObject = yamlObject;
