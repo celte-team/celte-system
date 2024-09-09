@@ -17,7 +17,6 @@ class UUIDConsumerService : IDisposable
     public void WelcomeNewEntry(string message)
     {
         Console.WriteLine("Welcome!!!!!!!!!!!!!! new entry.");
-
     }
 
     public void Dispose()

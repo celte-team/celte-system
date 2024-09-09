@@ -37,7 +37,7 @@ class UUIDProducerService : IDisposable
         {
             string uuid = Guid.NewGuid().ToString();
 
-            _master.KFKProducer.SendMessageAsync(_topic, uuid);
+            _master.kFKProducer.SendMessageAsync(_topic, uuid);
         }
     }
 

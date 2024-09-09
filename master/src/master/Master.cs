@@ -6,7 +6,7 @@ class Master
     public SetupConfig? _setupConfig;
     public KafkaManager? kafkaManager;
     private static Master? _master;
-    public KFKProducer KFKProducer;
+    public KFKProducer kFKProducer;
     public CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
     // public KfkConsumerListener kfkConsumerListener = new KfkConsumerListener("localhost:80", "kafka-dotnet-getting-started");
     public KfkConsumerListener kfkConsumerListener;
@@ -39,7 +39,6 @@ class Master
     /// </summary>
     public void StartKafkaSystem()
     {
-
         var consumerThread = new Thread(() => kfkConsumerListener.StartConsuming(cancellationTokenSource.Token));
         consumerThread.Start();
         var StartExecuteBufferThread = new Thread(() => kfkConsumerListener.StartExecuteBuffer(cancellationTokenSource.Token));
@@ -49,7 +48,13 @@ class Master
         //from UUIDConsumer.cs
         UUIDConsumerService uuidConsumerService = new UUIDConsumerService();
         kfkConsumerListener.AddTopic("UUID", uuidConsumerService.WelcomeNewEntry);
+
+        //from UUIDProducer.cs
+        kFKProducer = new KFKProducer();
+        // produce 100 UUIDs.
+        kFKProducer._uuidProducerService.ProduceUUID(10);
     }
+
 
     public static Master GetInstance()
     {

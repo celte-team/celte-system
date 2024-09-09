@@ -37,7 +37,6 @@ class KFKProducer : IDisposable
     /// </summary>
     public async Task SendMessageAsync(string topic, string message)
     {
-        Console.WriteLine("Sending message...");
         try
         {
             var result = await _producer.ProduceAsync(topic, new Message<Null, string>
