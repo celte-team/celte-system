@@ -1,0 +1,45 @@
+# Ignore build output folders
+bin/*
+obj/*
+
+# Ignore NuGet package folders
+packages/
+
+# Ignore Visual Studio files
+.vs/
+*.suo
+*.user
+*.userprefs
+*.vscode
+
+# Ignore build artifacts
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+*.bak
+
+# Ignore project-specific files
+*.csproj.user
+*.csproj.vspscc
+*.sln.docstates
+
+# Ignore ReSharper files
+_ReSharper*/
+
+# Ignore test results
+TestResults/
+
+# Ignore publish profiles
+*.pubxml
+*.publishsettings
+
+# Ignore local application settings
+appsettings.json
+appsettings.Development.json
+
+# Ignore Visual Studio Code settings
+.vscode/
+*.DS_Store
+*.skn
