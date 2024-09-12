@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.30)
 project(celte-systems)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
 # Set default installation prefix
 set( "${CMAKE_BINARY_DIR}/install" CACHE PATH "Installation prefix")
@@ -27,7 +28,7 @@ message(STATUS "Headers will be installed to ${INSTALL_INCLUDE_DIR}")
 message(STATUS "Libraries will be installed to ${INSTALL_LIBRARY_DIR}")
 
 # Add subdirectories
-add_subdirectory(kafka/cpp)
+# add_subdirectory(kafka/cpp)
 add_subdirectory(client)
 add_subdirectory(server)
 add_subdirectory(runtime)

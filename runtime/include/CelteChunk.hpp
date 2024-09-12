@@ -1,25 +1,19 @@
 #pragma once
+#include "RotatedBoundingBox.hpp"
+#include "CelteEntity.hpp"
 #include <string>
 #include <glm/vec3.hpp>
-#include "CelteEntity.hpp"
 
 namespace celte {
     namespace chunks {
         struct ChunkConfig {
             const std::string chunkId;
             const std::string grapeId;
-            // The origin position of the chunk (ie the center of the box)
             const glm::vec3 position;
-            // The size of the box in direction of the forward vector of the object holding the chunk in the engine.
-            const float sizeForward;
-            // The size of the box in direction of the right vector of the object holding the chunk in the engine.
-            const float sizeRight;
-            // The size of the box in direction of the up vector of the object holding the chunk in the engine.
-            const float sizeUp;
-            // The forward vector of the object holding the chunk in the engine.
-            const glm::vec3 forward;
-            // The up vector of the object holding the chunk in the engine.
-            const glm::vec3 up;
+            const glm::vec3 localX;
+            const glm::vec3 localY;
+            const glm::vec3 localZ;
+            const glm::vec3 size;
         };
 
         /**
@@ -59,6 +53,12 @@ namespace celte {
              */
             bool ContainsPosition(float x, float y, float z) const;
 
+            inline const std::string& GetChunkId() const { return _config.chunkId; }
+
+            inline const std::string& GetGrapeId() const { return _config.grapeId; }
+
+            inline const std::string& GetCombinedId() const { return _combinedId; }
+
         private:
             /**
              * @brief Registers all consumers for the chunk.
@@ -66,11 +66,7 @@ namespace celte {
              */
             void __registerConsumers();
 
-            glm::vec3 _start;
-            glm::vec3 _end;
-            glm::vec3 _forward;
-            glm::vec3 _right;
-            glm::vec3 _up;
+           RotatedBoundingBox _boundingBox;
 
             const ChunkConfig _config;
             const std::string _combinedId;

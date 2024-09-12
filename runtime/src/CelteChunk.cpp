@@ -1,48 +1,39 @@
 #include "CelteChunk.hpp"
-#include "KafkaFSM.hpp"
 #include "CelteRuntime.hpp"
 #include "glm/glm.hpp"
 
 namespace celte {
-    namespace chunks {
-        Chunk::Chunk(const ChunkConfig &config)
-            : _config(config),
-            _combinedId(config.grapeId + "-" + config.chunkId)
-        {
-            _forward = glm::normalize(config.forward);
-            _right = glm::normalize(glm::cross(_forward, config.up));
-            _up = glm::normalize(config.up);
-            _start = config.position - config.forward * config.sizeForward / 2.0f - _right * config.sizeRight / 2.0f - _up * config.sizeUp / 2.0f;
-            _end = config.position + config.forward * config.sizeForward / 2.0f + _right * config.sizeRight / 2.0f + _up * config.sizeUp / 2.0f;
+namespace chunks {
+Chunk::Chunk(const ChunkConfig &config)
+    : _config(config), _combinedId(config.grapeId + "-" + config.chunkId),
+      _boundingBox(config.position, config.size, config.localX, config.localY,
+                   config.localZ) {
+  __registerConsumers();
+}
 
-            __registerConsumers();
-        }
+Chunk::~Chunk() {}
 
-        Chunk::~Chunk() { }
+void Chunk::OnEntityEnter(CelteEntity &celteEntity) {}
 
-        void Chunk::OnEntityEnter(CelteEntity &celteEntity) { }
+void Chunk::OnEntityExit(CelteEntity &celteEntity) {}
 
-        void Chunk::OnEntityExit(CelteEntity &celteEntity) { }
+void Chunk::OnEntitySpawn(CelteEntity &celteEntity) {
+  std::cout << "Entity spawned in chunk " << _combinedId << std::endl;
+}
 
-        void Chunk::OnEntitySpawn(CelteEntity &celteEntity) {
-            std::cout << "Entity spawned in chunk " << _combinedId << std::endl;
-        }
+void Chunk::OnEntityDespawn(CelteEntity &celteEntity) {}
 
-        void Chunk::OnEntityDespawn(CelteEntity &celteEntity) { }
+void Chunk::__registerConsumers() {
+  // A consumer to listen for Chunk scope RPCs and execute them
+  runtime::CelteRuntime::GetInstance().KPool().Subscribe(
+      _combinedId + ".rpc",
+      [this](kafka::clients::consumer::ConsumerRecord record) {
+        runtime::CelteRuntime::GetInstance().GetRPC().InvokeLocal(record);
+      });
+}
 
-        void Chunk::__registerConsumers() {
-            // A consumer to listen for Chunk scope RPCs and execute them
-            nl::AKafkaLink::CreateTopicIfNotExists(_combinedId + ".rpc");
-            nl::AKafkaLink::RegisterConsumer(_combinedId + ".rpc",
-                [this](kafka::clients::consumer::ConsumerRecord record) {
-                    rpc::TABLE().InvokeLocal(record);
-                });
-        }
-
-        bool Chunk::ContainsPosition(float x, float y, float z) const {
-            return x >= _start.x && x <= _end.x
-                && y >= _start.y && y <= _end.y
-                && z >= _start.z && z <= _end.z;
-        }
-    } // namespace chunks
+bool Chunk::ContainsPosition(float x, float y, float z) const {
+  return _boundingBox.ContainsPosition(x, y, z);
+}
+} // namespace chunks
 } // namespace celte

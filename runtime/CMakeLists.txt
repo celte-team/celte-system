@@ -9,7 +9,14 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 find_package(glm CONFIG REQUIRED)
 
+include_directories(include ${GLIB_INCLUDE_DIRS} ${RDKAFKA_INCLUDE_DIRS})
+
+# Add pkg-config flags for glib-2.0
+link_directories(${GLIB_LIBRARY_DIRS})
+add_definitions(${GLIB_CFLAGS_OTHER})
+
 find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
+find_package(Boost REQUIRED COMPONENTS thread)
 
 # Add pkg-config flags for glib-2.0
 link_directories(${GLIB_LIBRARY_DIRS})
@@ -23,16 +30,20 @@ set(COMMON_SOURCES
     src/CelteRPC.cpp
     src/CelteGrapeManagementSystem.cpp
     src/CelteHooks.cpp
+    src/RotatedBoundingBox.cpp
+    src/KafkaPool.cpp
 )
 
 # Runtime for server
 add_library(celtesystems_runtime_server SHARED ${COMMON_SOURCES})
 target_compile_definitions(celtesystems_runtime_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(celtesystems_runtime_server PRIVATE KafkaLink CelteServer glm::glm msgpack-cxx)
+# target_link_libraries(celtesystems_runtime_server PRIVATE KafkaLink CelteServer glm::glm msgpack-cxx Boost::thread)
+target_link_libraries(celtesystems_runtime_server PRIVATE CelteServer glm::glm msgpack-cxx Boost::thread  RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES})
 
 # # Runtime for client
 add_library(celtesystems_runtime_client SHARED ${COMMON_SOURCES})
-target_link_libraries(celtesystems_runtime_client PRIVATE KafkaLink CelteClient glm::glm msgpack-cxx)
+# target_link_libraries(celtesystems_runtime_client PRIVATE KafkaLink CelteClient glm::glm msgpack-cxx Boost::thread)
+target_link_libraries(celtesystems_runtime_client PRIVATE CelteClient glm::glm msgpack-cxx Boost::thread  RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES})
 
 
 

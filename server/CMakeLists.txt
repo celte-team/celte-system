@@ -21,7 +21,8 @@ add_library(CelteServer SHARED
     src/StateDisconnected.cpp
 )
 
-target_link_libraries(CelteServer PRIVATE KafkaLink  ${GLIB_LIBRARIES})
+target_link_libraries(CelteServer PRIVATE ${GLIB_LIBRARIES})
+# target_link_libraries(CelteServer PRIVATE KafkaLink  ${GLIB_LIBRARIES})
 
 install(TARGETS CelteServer
     LIBRARY DESTINATION celte-libraries

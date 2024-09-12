@@ -1,5 +1,6 @@
 #pragma once
 #include "CelteChunk.hpp"
+#include "RotatedBoundingBox.hpp"
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -17,18 +18,16 @@ namespace celte {
         struct GrapeOptions {
             const std::string grapeId;
             const int subdivision;
-            // The origin position of the grape (ie the center of the box)
+            // The center of the grape
             const glm::vec3 position;
-            // The size of the box in direction of the forward vector of the object holding the grape in the engine.
-            const float sizeForward;
-            // The size of the box in direction of the right vector of the object holding the grape in the engine.
-            const float sizeRight;
-            // The size of the box in direction of the up vector of the object holding the grape in the engine.
-            const float sizeUp;
-            // The forward vector of the object holding the grape in the engine.
-            const glm::vec3 forward;
-            // The up vector of the object holding the grape in the engine.
-            const glm::vec3 up;
+            // The size of the grape along each axis
+            glm::vec3 size;
+            // Local x axis of the grape
+            glm::vec3 localX;
+            // Local y axis of the grape
+            glm::vec3 localY;
+            // Local z axis of the grape
+            glm::vec3 localZ;
         };
 
         struct GrapeStatistics {
@@ -93,12 +92,6 @@ namespace celte {
 
             const GrapeOptions _options;
             std::unordered_map<std::string, std::shared_ptr<Chunk>> _chunks;
-
-            glm::vec3 _start;
-            glm::vec3 _end;
-            glm::vec3 _forward;
-            glm::vec3 _right;
-            glm::vec3 _up;
         };
     } // namespace chunks
 } // namespace celte

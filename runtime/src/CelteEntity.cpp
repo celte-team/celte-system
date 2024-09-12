@@ -16,3 +16,4 @@ namespace celte {
             std::cerr << "Entity is not in any grape: " << e.what() << std::endl;
         }
     }
+} // namespace celte

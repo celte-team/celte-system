@@ -5,7 +5,7 @@
  * Created Date: Tuesday, September 3rd 2024, 12:43:51 pm
  * Author: Eliot Janvier
  *
- * Copyright (c) 2024 Your Company
+ * Copyright (c) 2024 Celte
  *
  * Description:
  * This file uses the runtime to test the client's relationship with the server.
@@ -13,41 +13,55 @@
  */
 
 #include "BasicMovementGame.cpp"
+#include "CelteGrape.hpp"
+#include "CelteGrapeManagementSystem.hpp"
+#include "CelteRPC.hpp"
 #include "CelteRuntime.hpp"
 #include <iostream>
-#include "CelteGrape.hpp"
-#include "CelteRPC.hpp"
-#include "CelteGrapeManagementSystem.hpp"
 #include <string>
+#include <thread>
 
-// TODO create celte chunk wrapper
+void registerClientHooks(dummy::Engine &engine) {}
 
-int main(int ac, char **av)
-{
-    if (ac < 2) {
-        throw std::runtime_error("Client id is required");
-    }
+void registerClientRPC(dummy::Engine &engine) {
+  celte::runtime::CelteRuntime::GetInstance().GetRPC().RegisterRPC(
+      "spawnAuthorized",
+      std::function<void(std::string)>([&engine](std::string clientId) {
+        std::cout << "Client " << clientId << " is authorized to spawn"
+                  << std::endl;
+        // engine.SpawnPlayer(clientId);
+      }));
+}
 
-    std::string clientId = av[1];
+int main(int ac, char **av) {
+  // argv 1 is the id of the client
+  if (ac < 2) {
+    throw std::runtime_error("Client id is required");
+  }
 
-    auto runtime = celte::runtime::CelteRuntime::GetInstance();
-    runtime.Start(celte::runtime::RuntimeMode::CLIENT);
-    runtime.ConnectToCluster("127.0.0.1", 80);
+  std::string clientId = av[1];
 
-    if (not runtime.IsConnectedToCluster()) {
-        throw std::runtime_error("Client should be connected to the cluster");
-    }
+  // waiting for the server to start
+  std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    dummy::Engine engine;
+  auto &runtime = celte::runtime::CelteRuntime::GetInstance();
+  runtime.Start(celte::runtime::RuntimeMode::CLIENT);
+  runtime.ConnectToCluster("127.0.0.1", 80);
+
+  if (not runtime.IsConnectedToCluster()) {
+    throw std::runtime_error("Client should be connected to the cluster");
+  }
 
 #include "COMMON_SETUP.cpp"
 
+  dummy::Engine engine;
+  registerClientRPC(engine);
+  registerClientHooks(engine);
 
-    runtime.RequestSpawn(clientId);
+  runtime.Start(celte::runtime::RuntimeMode::SERVER);
 
+  runtime.RequestSpawn(clientId);
 
-
-
-    // Updating the celte runtime each frame
-    engine.RegisterGameLoopStep([&runtime](float deltaTime) { runtime.Tick(); });
+  // Updating the celte runtime each frame
+  engine.RegisterGameLoopStep([&runtime](float deltaTime) { runtime.Tick(); });
 }
