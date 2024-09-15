@@ -25,11 +25,18 @@ void Chunk::OnEntityDespawn(CelteEntity &celteEntity) {}
 
 void Chunk::__registerConsumers() {
   // A consumer to listen for Chunk scope RPCs and execute them
-  runtime::CelteRuntime::GetInstance().KPool().Subscribe(
-      _combinedId + ".rpc",
-      [this](kafka::clients::consumer::ConsumerRecord record) {
-        runtime::CelteRuntime::GetInstance().GetRPC().InvokeLocal(record);
-      });
+  // runtime::CelteRuntime::GetInstance().KPool().Subscribe(
+  //     _combinedId + ".rpc",
+  //     [this](kafka::clients::consumer::ConsumerRecord record) {
+  //       runtime::CelteRuntime::GetInstance().GetRPC().InvokeLocal(record);
+  //     });
+  RUNTIME.KPool().Subscribe({
+      .topic = _combinedId + ".rpc",
+      .groupId = _combinedId + ".rpc",
+      .autoCreateTopic = true,
+      .autoPoll = true,
+      .callback = [this](auto r) { RUNTIME.GetRPC().InvokeLocal(r); },
+  });
 }
 
 bool Chunk::ContainsPosition(float x, float y, float z) const {

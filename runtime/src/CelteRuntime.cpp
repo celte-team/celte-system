@@ -129,10 +129,9 @@ void CelteRuntime::ConnectToCluster(const std::string &ip, int port) {
 }
 
 bool CelteRuntime::IsConnectedToCluster() {
-  if (_pool) { // TODO: improve test with UUID check or something
+  if (_pool and not _uuid.empty()) {
     return true;
   }
-  std::cout << "CelteRuntime is not connected to kafka cluster" << std::endl;
   return false;
 }
 

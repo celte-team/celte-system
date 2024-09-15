@@ -29,8 +29,8 @@ message(STATUS "Libraries will be installed to ${INSTALL_LIBRARY_DIR}")
 
 # Add subdirectories
 # add_subdirectory(kafka/cpp)
-add_subdirectory(client)
-add_subdirectory(server)
+# add_subdirectory(client)
+# add_subdirectory(server)
 add_subdirectory(runtime)
 add_subdirectory(tests)
 add_subdirectory(tests/single_node_poc)

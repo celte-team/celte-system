@@ -48,8 +48,15 @@ int main(int ac, char **av) {
   runtime.Start(celte::runtime::RuntimeMode::CLIENT);
   runtime.ConnectToCluster("127.0.0.1", 80);
 
-  if (not runtime.IsConnectedToCluster()) {
-    throw std::runtime_error("Client should be connected to the cluster");
+  // wait 10 ms for the connection to be established, and a uuid to be available
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+  // waiting for the client to be connected to the cluster, the Tick() call
+  // would be done in the game loop
+  std::cout << "now waiting for connection" << std::endl;
+  while (not runtime.IsConnectedToCluster()) {
+    // throw std::runtime_error("Client should be connected to the cluster");
+    runtime.Tick();
   }
 
 #include "COMMON_SETUP.cpp"

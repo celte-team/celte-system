@@ -45,6 +45,8 @@ using Services =
     tinyfsm::FsmList<celte::client::AClient>;
 #endif
 
+#define RUNTIME celte::runtime::CelteRuntime::GetInstance()
+
 /**
  * @brief This class contains all the logic necessary
  * for Celte to run in a Godot project.
@@ -174,6 +176,18 @@ public:
    */
   nl::KafkaPool &KPool();
 
+  /**
+   * @brief Returns the UUID of this peer in the network.
+   *
+   * @return std::string
+   */
+  inline std::string GetUUID() const { return _uuid; }
+
+  /**
+   * @brief Sets the UUID of this peer in the network.
+   */
+  inline void SetUUID(const std::string &uuid) { _uuid = uuid; }
+
 private:
   // =================================================================================================
   // PRIVATE METHODS
@@ -206,6 +220,9 @@ private:
 
   // Kafka producer / consumer pool used to send and receive messages from kafka
   std::shared_ptr<nl::KafkaPool> _pool;
+
+  // UUID to identify this peer in the network.
+  std::string _uuid;
 };
 } // namespace runtime
 } // namespace celte

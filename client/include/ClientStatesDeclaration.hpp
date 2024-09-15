@@ -1,6 +1,7 @@
 #pragma once
 #include "CelteClient.hpp"
 #include "ClientEvents.hpp"
+#include "KafkaPool.hpp"
 #include "tinyfsm.hpp"
 
 namespace celte {
@@ -33,10 +34,25 @@ class Connecting : public AClient {
   void exit() override;
 
   /**
-   * When the connection to the server succeeds, the client will
+   * @brief When the connection to the server succeeds, the client will
    * transit to the Connected state.
    */
   void react(EConnectionSuccess const &event) override;
+
+  /**
+   * @brief When the client receives a UUID from the server, it will consume one
+   * UUID from the UUID topic, and call _onHelloDelivered to send the uuid to
+   * the topic 'master.hello.client'
+   */
+  void __onUUIDReceived(const kafka::clients::consumer::ConsumerRecord &record);
+
+  /**
+   * @brief Upon successfully delivering the hello message to the server, the
+   * client will transit to the Connected state.
+   */
+  void
+  __onHelloDelivered(const kafka::clients::producer::RecordMetadata &metadata,
+                     kafka::Error error);
 };
 
 /**
