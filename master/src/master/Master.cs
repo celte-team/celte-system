@@ -17,7 +17,8 @@ class Master
         {
             throw new Exception("Cannot create another instance of Master");
         }
-        try {
+        try
+        {
             if (_master == null)
             {
                 _master = this;
@@ -29,7 +30,9 @@ class Master
             , "kafka-dotnet-getting-started");
 
             StartKafkaSystem();
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Console.WriteLine($"Error initializing Master: {e.Message}");
         }
     }
@@ -47,7 +50,7 @@ class Master
 
         //from UUIDConsumer.cs
         UUIDConsumerService uuidConsumerService = new UUIDConsumerService();
-        kfkConsumerListener.AddTopic("UUID", uuidConsumerService.WelcomeNewEntry);
+        // kfkConsumerListener.AddTopic("UUID", uuidConsumerService.WelcomeNewEntry);
 
         //from UUIDProducer.cs
         kFKProducer = new KFKProducer();

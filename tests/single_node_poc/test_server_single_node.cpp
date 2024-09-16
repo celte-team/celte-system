@@ -20,54 +20,97 @@
 #include "CelteRuntime.hpp"
 #include <iostream>
 
-void registerServerRPC(celte::runtime::CelteRuntime &runtime,
-                       dummy::Engine &engine) {
-  celte::runtime::CelteRuntime::GetInstance().RPCTable().Register(
-      "spawnAuthorized", std::function<void(int)>([&engine](int clientId) {
-        std::cout << "Client " << clientId << " is authorized to spawn"
-                  << std::endl;
-        // engine.SpawnPlayer(clientId);
-      }),
-      celte::rpc::Table::Scope::CHUNK);
+void registerServerHooks()
+{
+    HOOKS.server.connection.onConnectionProcedureInitiated = []() {
+        std::cout << "Connection procedure initiated" << std::endl;
+        return true;
+    };
+    HOOKS.server.connection.onConnectionSuccess = []() {
+        std::cout << "Connection procedure success" << std::endl;
+        return true;
+    };
+    HOOKS.server.connection.onConnectionError = []() {
+        std::cout << "Connection procedure failure" << std::endl;
+        return true;
+    };
+    HOOKS.server.connection.onServerDisconnected = []() {
+        std::cout << "Client disconnected" << std::endl;
+        return true;
+    };
+    // HOOKS.server.player.onAuthorizeSpawn = [](std::string id, int x, int y,
+    //                                            int z) {
+    //     std::cout << "Client " << id << " is authorized to spawn" << std::endl;
+    //     return true;
+    // };
 }
 
-void authorizeSpawn(celte::runtime::CelteRuntime &runtime, int clientId) {
-  auto &chunk = celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
-                    .GetGrape("leChateauDuMechant")
-                    .GetChunkByPosition(0, 0, 0);
-  std::cout << "chunk id is " << chunk.GetCombinedId() << std::endl;
-  celte::runtime::CelteRuntime::GetInstance().RPCTable().InvokeChunk(
-      chunk.GetCombinedId(), "spawnAuthorized", clientId);
+void registerServerRPC(celte::runtime::CelteRuntime& runtime,
+    dummy::Engine& engine)
+{
+    celte::runtime::CelteRuntime::GetInstance().RPCTable().Register(
+        "spawnAuthorized", std::function<void(int)>([&engine](int clientId) {
+            std::cout << "Client " << clientId << " is authorized to spawn"
+                      << std::endl;
+            // engine.SpawnPlayer(clientId);
+        }),
+        celte::rpc::Table::Scope::CHUNK);
 }
 
-int main(int ac, char **av) {
-  // argv 1 and 2 are ids of the clients
-  if (ac < 3) {
-    throw std::runtime_error("Client ids are required");
-  }
+void authorizeSpawn(celte::runtime::CelteRuntime& runtime, int clientId)
+{
+    auto& chunk = celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
+                      .GetGrape("leChateauDuMechant")
+                      .GetChunkByPosition(0, 0, 0);
+    std::cout << "chunk id is " << chunk.GetCombinedId() << std::endl;
+    celte::runtime::CelteRuntime::GetInstance().RPCTable().InvokeChunk(
+        chunk.GetCombinedId(), "spawnAuthorized", clientId);
+}
 
-  int clientId1 = std::atoi(av[1]);
-  int clientId2 = std::atoi(av[2]);
+int main(int ac, char** av)
+{
+    // argv 1 and 2 are ids of the clients
+    if (ac < 3) {
+        throw std::runtime_error("Client ids are required");
+    }
 
-  auto &runtime = celte::runtime::CelteRuntime::GetInstance();
-  runtime.Start(celte::runtime::RuntimeMode::SERVER);
-  runtime.ConnectToCluster("127.0.0.1", 80);
+    int clientId1 = std::atoi(av[1]);
+    int clientId2 = std::atoi(av[2]);
 
-  if (not runtime.WaitForClusterConnection(5000)) {
-    throw std::runtime_error("Server should be connected to the cluster");
-  }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    registerServerHooks();
+
+    auto& runtime = celte::runtime::CelteRuntime::GetInstance();
+    runtime.Start(celte::runtime::RuntimeMode::SERVER);
+    runtime.ConnectToCluster("127.0.0.1", 80);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    std::cout << "now waiting for connection" << std::endl;
+    // if (not runtime.WaitForClusterConnection(5000)) {
+    //     throw std::runtime_error("Server should be connected to the cluster");
+    // }
+    while (not runtime.IsConnectedToCluster()) {
+        // throw std::runtime_error("Client should be connected to the cluster");
+        runtime.Tick();
+    }
 
 #include "COMMON_SETUP.cpp"
 
-  dummy::Engine engine;
-  registerServerRPC(runtime, engine);
+    dummy::Engine engine;
+    registerServerRPC(runtime, engine);
 
-  // This would be done by the master server
-  authorizeSpawn(runtime, clientId1);
-  authorizeSpawn(runtime, clientId2);
+    runtime.Start(celte::runtime::RuntimeMode::SERVER);
 
-  // Ctrl+C to stop the server
-  while (true) {
-    runtime.Tick();
-  }
+    // This would be done by the master server
+    authorizeSpawn(runtime, clientId1);
+    authorizeSpawn(runtime, clientId2);
+
+    // Ctrl+C to stop the server
+    // std::cout << "now waiting for connection" << std::endl;
+    // while (true) {
+    //     runtime.Tick();
+    // }
+    engine.RegisterGameLoopStep([&runtime](float deltaTime) { runtime.Tick(); });
 }
