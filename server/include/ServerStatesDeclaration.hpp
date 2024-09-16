@@ -2,6 +2,7 @@
 #include "CelteServer.hpp"
 #include "ServerEvents.hpp"
 #include "tinyfsm.hpp"
+#include <set>
 
 namespace celte {
 namespace server {
@@ -74,15 +75,46 @@ class Connected : public AServer {
    * # Hooks:
    * This RPC refers to the following hooks:
    * - celte::api::HooksTable::server::newPlayerConnected::accept
-   * - celte::api::HooksTable::server::newPlayerConnected::spawnPlayer
    *
+   *
+   * @param clientId The UUID of the client that connected to the server.
+   * @param grapeId The UUID of the grape that the client is spawning in.
+   * @param x The x coordinate where the player should spawn.
+   * @param y The y coordinate where the player should spawn.
+   * @param z The z coordinate where the player should spawn.
+   */
+  void __rp_acceptNewClient(std::string clientId, std::string grapeId, int x,
+                            int y, int z);
+
+  /**
+   * @brief This RPC will be called by clients when they want to spawn their
+   * player in the game world.
+   *
+   * # Hooks:
+   * This RPC refers to the following hooks:
+   * - celte::api::HooksTable::server::newPlayerConnected::spawnPlayer
    *
    * @param clientId The UUID of the client that connected to the server.
    * @param x The x coordinate where the player should spawn.
    * @param y The y coordinate where the player should spawn.
    * @param z The z coordinate where the player should spawn.
    */
-  void __rp_acceptNewPlayer(std::string clientId, int x, int y, int z);
+  void __rp_spawnPlayer(std::string clientId, int x, int y, int z);
+
+  /**
+   * @brief This RPC will be called when a player leaves the area of authority
+   * of this node.
+   *
+   */
+  void __rp_dropPlayerAuhority(std::string clientId);
+
+  /**
+   * @brief stores the clients that are under this node's authority.
+   * Clients are added using the __rp_acceptNewClient RPC and removed
+   * using the __rp_disconnectPlayer RPC. Disconnection happends when they
+   * leave this node's chunk grape.
+   */
+  std::set<std::string> m_clients;
 };
 } // namespace states
 } // namespace server

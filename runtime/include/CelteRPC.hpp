@@ -11,11 +11,12 @@
 #include <unordered_map>
 #include <vector>
 
-#define REGISTER_RPC(name, ...)                                                \
+#define REGISTER_RPC(name, scope, ...)                                         \
   RUNTIME.RPCTable().Register(                                                 \
       #name, std::function<void(__VA_ARGS__)>([this](auto &&...args) {         \
         name(std::forward<decltype(args)>(args)...);                           \
-      }))
+      }),                                                                      \
+      scope)
 namespace celte {
 namespace rpc {
 

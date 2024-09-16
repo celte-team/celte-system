@@ -25,14 +25,9 @@ void Chunk::OnEntityDespawn(CelteEntity &celteEntity) {}
 
 void Chunk::__registerConsumers() {
   // A consumer to listen for Chunk scope RPCs and execute them
-  // runtime::CelteRuntime::GetInstance().KPool().Subscribe(
-  //     _combinedId + ".rpc",
-  //     [this](kafka::clients::consumer::ConsumerRecord record) {
-  //       runtime::CelteRuntime::GetInstance().RPCTable().InvokeLocal(record);
-  //     });
   RUNTIME.KPool().Subscribe({
       .topic = _combinedId + ".rpc",
-      .groupId = _combinedId + ".rpc",
+      .groupId = "", // no group, all consumers receive the message
       .autoCreateTopic = true,
       .autoPoll = true,
       .callback = [this](auto r) { RUNTIME.RPCTable().InvokeLocal(r); },
@@ -42,5 +37,11 @@ void Chunk::__registerConsumers() {
 bool Chunk::ContainsPosition(float x, float y, float z) const {
   return _boundingBox.ContainsPosition(x, y, z);
 }
+
+void Chunk::TakeAuthority(const std::string &entityId) {
+  std::cout << "Taking authority of entity " << entityId << " in chunk "
+            << _combinedId << std::endl;
+}
+
 } // namespace chunks
 } // namespace celte

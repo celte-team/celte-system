@@ -104,6 +104,8 @@ public:
     _producer.send(record, onDeliveryError);
   }
 
+  // void Send(const std::string &message)
+
   /**
    * @brief Executes all the callbacks associated with all the messages received
    * since the last time this method was called.
