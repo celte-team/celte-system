@@ -44,6 +44,22 @@ namespace celte {
                  * @brief Unregisters the basic consumers of this node's grape.
                  */
                 void __unregisterGrapeConsumers();
+
+                /**
+                 * @brief This method will be called when the server receives a UUID
+                 * from the cluster. It will set the UUID in the runtime and send a
+                 * message to the master node to signal that the server is ready.
+                 */
+
+                void __onUUIDReceived(const kafka::clients::consumer::ConsumerRecord& record);
+
+                /**
+                 * @brief This method will be called when the server sends a message to
+                 * the master node to signal that the server is ready.
+                 */
+
+                void __onHelloDelivered(const kafka::clients::producer::RecordMetadata& metadata,
+                    kafka::Error error);
             };
 
             /**
@@ -94,8 +110,8 @@ namespace celte {
                  * @param y The y coordinate where the player should spawn.
                  * @param z The z coordinate where the player should spawn.
                  */
-                void __rp_acceptNewClient(std::string clientId, std::string grapeId, int x,
-                    int y, int z);
+                void __rp_acceptNewClient(std::string clientId, std::string grapeId, float x,
+                    float y, float z);
 
                 /**
                  * @brief This RPC will be called by clients when they want to spawn their
@@ -110,7 +126,7 @@ namespace celte {
                  * @param y The y coordinate where the player should spawn.
                  * @param z The z coordinate where the player should spawn.
                  */
-                void __rp_spawnPlayer(std::string clientId, int x, int y, int z);
+                void __rp_spawnPlayer(std::string clientId, float x, float y, float z);
 
                 /**
                  * @brief This RPC will be called when a player leaves the area of authority
