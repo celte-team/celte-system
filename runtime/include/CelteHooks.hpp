@@ -58,7 +58,7 @@ public:
        * @brief This hook is called when a new player connects to the server,
        * and must be instantiated in the game world.
        */
-      std::function<bool(std::string, int, int, int)> spawnPlayer =
+      std::function<bool(std::string, int, int, int)> execPlayerSpawn =
           [](std::string clientId, int x, int y, int z) { return true; };
     } newPlayerConnected;
   } server;
@@ -91,6 +91,22 @@ public:
        * kafka cluster for any reason.
        */
       std::function<bool()> onClientDisconnected = []() { return true; };
+
+      /**
+       * @brief This hook is called when the server has informed the client of
+       * which chunk it should be spawning in, and the client has already
+       * subscribed to all the required topics of this chunk. The client is now
+       * able to spawn and should request the server to do so using
+       * RUNTIME.RequestSpawn(clientId) when it is ready.
+       *
+       * @note The game dev does not have to call RequestSpawn right away, but
+       * this hook being called indicates that everything is ready for him / her
+       * to do so.
+       *
+       */
+      std::function<bool(const std::string &grapeId, float x, float y, float z)>
+          onReadyToSpawn = [](const std::string &grapeId, float x, float y,
+                              float z) { return true; };
     } connection;
 
     struct {
@@ -98,7 +114,7 @@ public:
        * @brief This hook is called when the client is authorized to spawn a new
        * entity. It should implement the logic to spawn the entity in the game.
        */
-      std::function<bool(std::string, int x, int y, int z)> onAuthorizeSpawn =
+      std::function<bool(std::string, int x, int y, int z)> execPlayerSpawn =
           [](std::string clientId, int x, int y, int z) { return true; };
     } player;
   } client;

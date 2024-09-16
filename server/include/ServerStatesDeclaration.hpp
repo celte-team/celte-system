@@ -36,19 +36,14 @@ namespace celte {
                 void react(EConnectionSuccess const& event) override;
 
                 /**
-                 * This method will be called when the server receives a UUID from
-                 * the server. It will store the UUID and send a message to the
-                 * server to say hello.
+                 * @brief Registers the basic consumers of this node's grape.
                  */
-                void __onUUIDReceived(const kafka::clients::consumer::ConsumerRecord& record);
+                void __registerGrapeConsumers();
 
                 /**
-                 * This method will be called when the server receives a response
-                 * from the server after sending a hello message.
+                 * @brief Unregisters the basic consumers of this node's grape.
                  */
-
-                void __onHelloDelivered(
-                    const kafka::clients::producer::RecordMetadata& metadata, kafka::Error error);
+                void __unregisterGrapeConsumers();
             };
 
             /**
@@ -123,6 +118,15 @@ namespace celte {
                  *
                  */
                 void __rp_dropPlayerAuhority(std::string clientId);
+
+                /**
+                 * @brief This RPC will be called when a player requests to spawn in the game.
+                 * It will instantiate the player in all peers listening to the chunk the
+                 * player is spawning in by calling a __rp_spawnPlayer RPC to the chunk's rpc
+                 * channel
+                 */
+                void __rp_onSpawnRequested(const std::string& clientId, float x, float y,
+                    float z);
 
                 /**
                  * @brief stores the clients that are under this node's authority.

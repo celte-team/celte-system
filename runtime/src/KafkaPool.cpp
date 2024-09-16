@@ -30,6 +30,35 @@ void KafkaPool::__init() {
   _consumerThread = boost::thread(&KafkaPool::__consumerJob, this);
 }
 
+void KafkaPool::Send(const KafkaPool::SendOptions &options) {
+  // wrapping the options in a shared ptr to avoid copying or dangling
+  // references
+  auto opts = std::make_shared<SendOptions>(options);
+  auto record = kafka::clients::producer::ProducerRecord(
+      opts->topic, kafka::NullKey,
+      kafka::Value(opts->value.c_str(), opts->value.size()));
+
+  // wrapping the error callback to capture the shared ptr and keep it alive
+  auto deliveryCb =
+      [opts](const kafka::clients::producer::RecordMetadata &metadata,
+             const kafka::Error &error) {
+        if (opts->onDeliveryError) {
+          opts->onDeliveryError(metadata, error);
+        }
+      };
+
+  // Set the headers of the record to hold the name of the remote procedure
+  std::vector<kafka::Header> headers;
+  for (auto &header : opts->headers) {
+    headers.push_back(kafka::Header{
+        kafka::Header::Key{header.first},
+        kafka::Header::Value{header.second.c_str(), header.second.size()}});
+  }
+  record.headers() = headers;
+
+  _producer.send(record, deliveryCb);
+}
+
 void KafkaPool::__consumerJob() {
   while (_running) {
     for (auto &consumer : _consumers) {

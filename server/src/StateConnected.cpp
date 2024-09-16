@@ -19,15 +19,18 @@ void Connected::react(EDisconnectFromServer const &event) {
 
 void Connected::__registerRPCs() {
   REGISTER_RPC(__rp_acceptNewClient, celte::rpc::Table::Scope::GRAPPE,
-               std::string, std::string, int, int, int);
-  REGISTER_RPC(__rp_spawnPlayer, celte::rpc::Table::Scope::GRAPPE, std::string,
+               std::string, std::string, float, float, float);
+  REGISTER_RPC(__rp_onSpawnRequested, celte::rpc::Table::Scope::GRAPPE,
+               std::string, float, float, float);
+  // spawns a player in the game world. Clients also have this rpc.
+  REGISTER_RPC(__rp_spawnPlayer, celte::rpc::Table::Scope::CHUNK, std::string,
                int, int, int);
 }
 
 void Connected::__unregisterRPCs() {}
 
 void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
-                                     int x, int y, int z) {
+                                     float x, float y, float z) {
   // TODO: add client to correct chunk's authority
   HOOKS.server.newPlayerConnected.accept(clientId);
   try {
@@ -37,12 +40,23 @@ void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
     std::cerr << "Error in __rp_acceptNewClient: " << e.what() << std::endl;
   }
 
-  //   TODO: send chunk id and position to client via its id
-  //   RUNTIME.KPool().Send()
+  RPC.InvokeByTopic(clientId, "__rp_forceConnectToChunk", grapeId, x, y, z);
 }
 
-void Connected::__rp_spawnPlayer(std::string clientId, int x, int y, int z) {
-  HOOKS.server.newPlayerConnected.spawnPlayer(clientId, x, y, z);
+void Connected::__rp_onSpawnRequested(const std::string &clientId, float x,
+                                      float y, float z) {
+  // TODO: check if this spawn is legal
+  auto chunkId = GRAPES.GetGrapeByPosition(x, y, z)
+                     .GetChunkByPosition(x, y, z)
+                     .GetCombinedId();
+  RPC.InvokeChunk(chunkId, "__rp_spawnPlayer", clientId, x, y, z);
+}
+
+void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
+                                 float z) {
+  std::cout << "Spawning player " << clientId << " at " << x << ", " << y
+            << ", " << z << std::endl;
+  HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId, x, y, z);
 }
 
 } // namespace states
