@@ -48,6 +48,8 @@ using Services =
 
 #define RUNTIME celte::runtime::CelteRuntime::GetInstance()
 #define HOOKS celte::runtime::CelteRuntime::GetInstance().Hooks()
+#define RPC celte::runtime::CelteRuntime::GetInstance().RPCTable()
+#define KPOOL celte::runtime::CelteRuntime::GetInstance().KPool()
 
 /**
  * @brief This class contains all the logic necessary
@@ -106,7 +108,8 @@ public:
    * The client should have an RPC defined called onAuthorizeSpawn that will
    * call a user defined hook responsible for spawning the entity.
    */
-  void RequestSpawn(const std::string &clientId);
+  void RequestSpawn(const std::string &clientId, const std::string &grapeId,
+                    float x, float y, float z);
 #endif
 
 private:

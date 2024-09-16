@@ -33,6 +33,7 @@ public:
   using RemoteProcedure = std::function<void(std::string serializedArguments)>;
 
   enum Scope {
+    PEER, // targets a specific peer from its uuid
     CHUNK,
     GRAPPE, // not implemented yet
     GLOBAL  // not implemented yet
@@ -77,6 +78,18 @@ public:
   }
 
   /**
+   * @brief Invokes a remote procedure by name, for the given peer.
+   *
+   * @param name
+   * @param args
+   */
+  template <typename... Args>
+  void InvokePeer(const std::string &peerId, const std::string &rpName,
+                  Args... args) {
+    InvokeByTopic(peerId + ".rpc", rpName, args...);
+  }
+
+  /**
    * @brief Invokes a remote procedure by name, for the given scope.
    *
    * @param name
@@ -85,16 +98,6 @@ public:
   template <typename... Args>
   void InvokeChunk(const std::string &chunkId, const std::string &rpName,
                    Args... args) {
-    if (rpcs.find(rpName) == rpcs.end()) {
-      std::cerr << "No RPC registered with name " << rpName << std::endl;
-      return;
-    }
-
-    if (rpcs[rpName].scope != Scope::CHUNK) {
-      std::cerr << "RPC " << chunkId << " is not a chunk RPC" << std::endl;
-      return;
-    }
-
     InvokeByTopic(chunkId + ".rpc", rpName, args...);
   }
 
@@ -104,16 +107,6 @@ public:
   template <typename... Args>
   void InvokeGrape(const std::string &grapeId, const std::string &rpName,
                    Args... args) {
-    if (rpcs.find(rpName) == rpcs.end()) {
-      std::cerr << "No RPC registered with name " << grapeId << std::endl;
-      return;
-    }
-
-    if (rpcs[rpName].scope != Scope::GRAPPE) {
-      std::cerr << "RPC " << grapeId << " is not a grape RPC" << std::endl;
-      return;
-    }
-
     InvokeByTopic(grapeId + ".rpc", rpName, args...);
   }
 
@@ -122,16 +115,6 @@ public:
    */
   template <typename... Args>
   void InvokeGlobal(const std::string &name, Args... args) {
-    if (rpcs.find(name) == rpcs.end()) {
-      std::cerr << "No RPC registered with name " << name << std::endl;
-      return;
-    }
-
-    if (rpcs[name].scope != Scope::GLOBAL) {
-      std::cerr << "RPC " << name << " is not a global RPC" << std::endl;
-      return;
-    }
-
     InvokeByTopic("global.rpc", name, args...);
   }
 

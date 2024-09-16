@@ -33,6 +33,16 @@ class Connecting : public AServer {
    * transit to the Connected state.
    */
   void react(EConnectionSuccess const &event) override;
+
+  /**
+   * @brief Registers the basic consumers of this node's grape.
+   */
+  void __registerGrapeConsumers();
+
+  /**
+   * @brief Unregisters the basic consumers of this node's grape.
+   */
+  void __unregisterGrapeConsumers();
 };
 
 /**
@@ -83,8 +93,8 @@ class Connected : public AServer {
    * @param y The y coordinate where the player should spawn.
    * @param z The z coordinate where the player should spawn.
    */
-  void __rp_acceptNewClient(std::string clientId, std::string grapeId, int x,
-                            int y, int z);
+  void __rp_acceptNewClient(std::string clientId, std::string grapeId, float x,
+                            float y, float z);
 
   /**
    * @brief This RPC will be called by clients when they want to spawn their
@@ -99,7 +109,7 @@ class Connected : public AServer {
    * @param y The y coordinate where the player should spawn.
    * @param z The z coordinate where the player should spawn.
    */
-  void __rp_spawnPlayer(std::string clientId, int x, int y, int z);
+  void __rp_spawnPlayer(std::string clientId, float x, float y, float z);
 
   /**
    * @brief This RPC will be called when a player leaves the area of authority
@@ -107,6 +117,15 @@ class Connected : public AServer {
    *
    */
   void __rp_dropPlayerAuhority(std::string clientId);
+
+  /**
+   * @brief This RPC will be called when a player requests to spawn in the game.
+   * It will instantiate the player in all peers listening to the chunk the
+   * player is spawning in by calling a __rp_spawnPlayer RPC to the chunk's rpc
+   * channel
+   */
+  void __rp_onSpawnRequested(const std::string &clientId, float x, float y,
+                             float z);
 
   /**
    * @brief stores the clients that are under this node's authority.

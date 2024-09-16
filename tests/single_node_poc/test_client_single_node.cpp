@@ -23,7 +23,7 @@
 
 static dummy::Engine engine;
 
-void registerClientHooks() {
+void registerClientHooks(const std::string &clientId) {
   HOOKS.client.connection.onConnectionProcedureInitiated = []() {
     std::cout << "Connection procedure initiated" << std::endl;
     return true;
@@ -40,11 +40,12 @@ void registerClientHooks() {
     std::cout << "Client disconnected" << std::endl;
     return true;
   };
-  HOOKS.client.player.onAuthorizeSpawn = [](std::string id, int x, int y,
-                                            int z) {
-    std::cout << "Client " << id << " is authorized to spawn" << std::endl;
-    return true;
-  };
+  HOOKS.client.connection.onReadyToSpawn =
+      [clientId](const std::string &grapeId, float x, float y, float z) {
+        std::cout << "Client is ready to spawn" << std::endl;
+        RUNTIME.RequestSpawn(clientId, grapeId, x, y, z);
+        return true;
+      };
 }
 
 void registerClientRPC() {
@@ -70,7 +71,7 @@ int main(int ac, char **av) {
 
   // Registering the hooks for the client. This would be done by the game dev
   // through api bindings.
-  registerClientHooks();
+  registerClientHooks(clientId);
 
   auto &runtime = celte::runtime::CelteRuntime::GetInstance();
   runtime.Start(celte::runtime::RuntimeMode::CLIENT);
@@ -94,10 +95,6 @@ int main(int ac, char **av) {
   registerClientRPC();
 
   runtime.Start(celte::runtime::RuntimeMode::SERVER);
-
-  // Client should be ready by now so we'll request the server to spawn the
-  // player
-  runtime.RequestSpawn(clientId);
 
   // Updating the celte runtime each frame
   engine.RegisterGameLoopStep([&runtime](float deltaTime) { runtime.Tick(); });

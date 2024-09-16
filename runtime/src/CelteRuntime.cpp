@@ -92,7 +92,15 @@ void CelteRuntime::__initClientRPC() {}
 
 void CelteRuntime::__initClient() { __initClientRPC(); }
 
-void CelteRuntime::RequestSpawn(const std::string &clientId) {}
+void CelteRuntime::RequestSpawn(const std::string &clientId,
+                                const std::string &grapeId, float x, float y,
+                                float z) {
+  // TODO: check if spawn is authorized
+  // HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId);
+  // RUNTIME.GetRPCTable().InvokeByTopic(clientId, "__rp_spawnPlayer",
+  // clientId);
+  RPC.InvokeGrape(grapeId, "__rp_onSpawnRequested", clientId, x, y, z);
+}
 
 #endif
 

@@ -104,6 +104,20 @@ public:
     _producer.send(record, onDeliveryError);
   }
 
+  struct SendOptions {
+    std::string topic = "";
+    std::map<std::string, std::string> headers = {};
+    std::string value = "";
+    std::function<void(const kafka::clients::producer::RecordMetadata &,
+                       kafka::Error)>
+        onDeliveryError = nullptr;
+  };
+
+  /**
+   * @brief Sends a message to Kafka.
+   */
+  void Send(const SendOptions &options);
+
   // void Send(const std::string &message)
 
   /**

@@ -32,6 +32,19 @@ void Connecting::react(EConnectionSuccess const &event) {
   // TODO initialize basic client consumers and producers here
   transit<Connected>();
 }
+
+void Connecting::__registerGrapeConsumers() {
+  // Listen to all RPCs produced on this grape
+  KPOOL.Subscribe({
+      .topic = RUNTIME.GetUUID(),
+      .autoCreateTopic = true,
+      .autoPoll = true,
+      .callback = [this](auto r) { RPC.InvokeLocal(r); },
+  });
+}
+
+void Connecting::__unregisterGrapeConsumers() {}
+
 } // namespace states
 } // namespace server
 } // namespace celte
