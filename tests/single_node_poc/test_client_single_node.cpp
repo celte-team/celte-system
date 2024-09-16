@@ -28,24 +28,37 @@ void registerClientHooks(const std::string &clientId) {
     std::cout << "Connection procedure initiated" << std::endl;
     return true;
   };
+
   HOOKS.client.connection.onConnectionSuccess = []() {
     std::cout << "Connection procedure success" << std::endl;
     return true;
   };
+
   HOOKS.client.connection.onConnectionError = []() {
     std::cout << "Connection procedure failure" << std::endl;
     return true;
   };
+
   HOOKS.client.connection.onClientDisconnected = []() {
     std::cout << "Client disconnected" << std::endl;
     return true;
   };
+
   HOOKS.client.connection.onReadyToSpawn =
       [clientId](const std::string &grapeId, float x, float y, float z) {
         std::cout << "Client is ready to spawn" << std::endl;
+        // This could be done later if needed, but not earlier.
         RUNTIME.RequestSpawn(clientId, grapeId, x, y, z);
         return true;
       };
+
+  HOOKS.client.player.execPlayerSpawn = [](std::string clientId, int x, int y,
+                                           int z) {
+    std::cout << "Spawning player " << clientId << " at " << x << ", " << y
+              << ", " << z << std::endl;
+    // engine.SpawnPlayer(clientId); ~ or something equivalent
+    return true;
+  };
 }
 
 void registerClientRPC() {

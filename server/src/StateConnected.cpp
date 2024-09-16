@@ -40,8 +40,7 @@ void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
     std::cerr << "Error in __rp_acceptNewClient: " << e.what() << std::endl;
   }
 
-  RUNTIME.RPCTable().InvokeByTopic(clientId, "__rp_forceConnectToChunk",
-                                   grapeId, x, y, z);
+  RPC.InvokeByTopic(clientId, "__rp_forceConnectToChunk", grapeId, x, y, z);
 }
 
 void Connected::__rp_onSpawnRequested(const std::string &clientId, float x,
