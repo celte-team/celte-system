@@ -47,6 +47,7 @@ using Services =
 #endif
 
 #define RUNTIME celte::runtime::CelteRuntime::GetInstance()
+#define HOOKS celte::runtime::CelteRuntime::GetInstance().Hooks()
 
 /**
  * @brief This class contains all the logic necessary

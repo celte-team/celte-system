@@ -23,40 +23,43 @@ public:
        * @brief This hook is called when the server starts trying to reach for
        * the kafka cluster.
        */
-      std::function<bool()> onConnectionProcedureInitiated;
+      std::function<bool()> onConnectionProcedureInitiated = []() {
+        return true;
+      };
 
       /**
        * @brief This hook is called when the server successfully connects to the
        * kafka cluster.
        */
-      std::function<bool()> onConnectionSuccess;
+      std::function<bool()> onConnectionSuccess = []() { return true; };
 
       /**
        * @brief This hook is called when the server fails to connect to the
        * kafka cluster.
        */
-      std::function<bool()> onConnectionError;
+      std::function<bool()> onConnectionError = []() { return true; };
 
       /**
        * @brief This hook is called when the server is disconnected from the
        * kafka cluster for any reason.
        */
-      std::function<bool()> onServerDisconnected;
+      std::function<bool()> onServerDisconnected = []() { return true; };
     } connection;
 
     struct {
       /**
        * @brief This hook is called when a new player connects to the server.
        */
-      std::function<bool(int x, int y, int z)> accept;
+      std::function<bool(std::string)> accept = [](std::string clientId) {
+        return true;
+      };
 
       /**
-       * @brief This hook is called when a new player connects to the server and
-       * should spawn. The hook should instantiate the player into the game
-       * world, on the server side. An equivalent RPC will be called by celte on
-       * the client side to instantiate the player locally.
+       * @brief This hook is called when a new player connects to the server,
+       * and must be instantiated in the game world.
        */
-      std::function<bool(int x, int y, int z)> spawnPlayer;
+      std::function<bool(std::string, int, int, int)> spawnPlayer =
+          [](std::string clientId, int x, int y, int z) { return true; };
     } newPlayerConnected;
   } server;
 
@@ -67,26 +70,37 @@ public:
        * @brief This hook is called when the Client starts trying to reach for
        * the kafka cluster.
        */
-      std::function<bool()> onConnectionProcedureInitiated;
+      std::function<bool()> onConnectionProcedureInitiated = []() {
+        return true;
+      };
 
       /**
        * @brief This hook is called when the Client successfully connects to
        * the kafka cluster.
        */
-      std::function<bool()> onConnectionSuccess;
+      std::function<bool()> onConnectionSuccess = []() { return true; };
 
       /**
        * @brief This hook is called when the Client fails to connect to the
        * kafka cluster.
        */
-      std::function<bool()> onConnectionError;
+      std::function<bool()> onConnectionError = []() { return true; };
 
       /**
        * @brief This hook is called when the Client is disconnected from the
        * kafka cluster for any reason.
        */
-      std::function<bool()> onClientDisconnected;
+      std::function<bool()> onClientDisconnected = []() { return true; };
     } connection;
+
+    struct {
+      /**
+       * @brief This hook is called when the client is authorized to spawn a new
+       * entity. It should implement the logic to spawn the entity in the game.
+       */
+      std::function<bool(std::string, int x, int y, int z)> onAuthorizeSpawn =
+          [](std::string clientId, int x, int y, int z) { return true; };
+    } player;
   } client;
 #endif
   /**

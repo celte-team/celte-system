@@ -151,11 +151,10 @@ bool KafkaPool::Poll(const std::string &groupId, unsigned int pollTimeoutMs) {
     auto &consumer = _manualConsumers.at(groupId);
     auto records = consumer.poll(std::chrono::milliseconds(pollTimeoutMs));
     for (auto &record : records) {
-      std::cout << "manual poll record" << std::endl;
       _records.push(record);
     }
   } catch (const std::out_of_range &e) {
-    std::cout << "Group ID " << groupId << " not found" << std::endl;
+    std::cerr << "Group ID " << groupId << " not found" << std::endl;
     return false;
   }
   return true;

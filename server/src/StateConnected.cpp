@@ -9,16 +9,14 @@ void Connected::entry() { __registerRPCs(); }
 void Connected::exit() { __unregisterRPCs(); }
 
 void Connected::react(EDisconnectFromServer const &event) {
-  std::cerr << "Disconnecting from server" << std::endl;
+  // this hook is called here and not in Disconnected::entry because do not want
+  // to call this at the start of the program. (and the server starts in
+  // disconnected state)
+  HOOKS.server.connection.onServerDisconnected();
   transit<Disconnected>();
 }
 
 void Connected::__registerRPCs() {
-  //   RUNTIME.RPCTable().Register(
-  //       "__rp_acceptNewPlayer",
-  //       std::function([this](std::string clientId, int x, int y, int z) {
-  //         __rp_acceptNewPlayer(clientId, x, y, z);
-  //       }));
   REGISTER_RPC(__rp_acceptNewPlayer, std::string, int, int, int);
 }
 
@@ -26,7 +24,8 @@ void Connected::__unregisterRPCs() {}
 
 void Connected::__rp_acceptNewPlayer(std::string clientId, int x, int y,
                                      int z) {
-  std::cerr << "Player " << clientId << " connected to the server" << std::endl;
+  HOOKS.server.newPlayerConnected.accept(clientId);
+  HOOKS.server.newPlayerConnected.spawnPlayer(clientId, x, y, z);
 }
 
 } // namespace states

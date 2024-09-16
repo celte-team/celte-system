@@ -8,10 +8,12 @@ namespace client {
 namespace states {
 
 void Connecting::entry() {
-  // CALL_HOOKS(api::HooksTable::client::connection::onClientConnecting);
-  // CALL_HOOKS(client.connection.onConnectionProcedureInitiated);
-  RUNTIME.Hooks().Call(
-      RUNTIME.Hooks().client.connection.onConnectionProcedureInitiated);
+  if (not HOOKS.client.connection.onConnectionProcedureInitiated()) {
+    std::cerr << "Connection procedure hook failed" << std::endl;
+    HOOKS.client.connection.onConnectionError();
+    transit<Disconnected>();
+  }
+
   auto &kfk = RUNTIME.KPool();
   kfk.Subscribe({
       .topic = "UUID",
@@ -31,7 +33,12 @@ void Connecting::entry() {
 void Connecting::exit() { std::cerr << "Exiting StateConnecting" << std::endl; }
 
 void Connecting::react(EConnectionSuccess const &event) {
-  // CALL_HOOKS(api::HooksTable::client::connection::onConnectionSuccess);
+  if (not HOOKS.client.connection.onConnectionSuccess()) {
+    std::cerr << "Connection success hook failed" << std::endl;
+    HOOKS.client.connection.onConnectionError();
+    transit<Disconnected>();
+    return;
+  }
   transit<Connected>();
 }
 
@@ -54,8 +61,8 @@ void Connecting::__onUUIDReceived(
 
     // this will transit all services to Connected
   } catch (const std::exception &e) {
-    std::cerr << "Error in Connecting::entry: " << e.what() << std::endl;
-    // CALL_HOOKS(api::HooksTable::client::connection::onConnectionError);
+    HOOKS.client.connection.onConnectionError();
+    HOOKS.client.connection.onClientDisconnected();
     transit<Disconnected>();
   }
 }
@@ -64,18 +71,15 @@ void Connecting::__onHelloDelivered(
     const kafka::clients::producer::RecordMetadata &metadata,
     kafka::Error error) {
   if (error) {
-    std::cerr << "Error delivering hello message" << std::endl;
     RUNTIME.KPool().Unsubscribe("UUID", "UUID", true);
-    // CALL_HOOKS(api::HooksTable::client::connection::onConnectionError);
-    // CALL_HOOKS(api::HooksTable::client::connection::onClientDisconnected);
+    HOOKS.client.connection.onConnectionError();
+    HOOKS.client.connection.onClientDisconnected();
     transit<Disconnected>();
     return;
   }
   RUNTIME.KPool().Unsubscribe("UUID", "UUID", true);
   dispatch(EConnectionSuccess());
 }
-
-// this will transit all services to Connected
 
 } // namespace states
 } // namespace client

@@ -21,7 +21,29 @@
 #include <string>
 #include <thread>
 
-void registerClientHooks(dummy::Engine &engine) {}
+void registerClientHooks() {
+  HOOKS.client.connection.onConnectionProcedureInitiated = []() {
+    std::cout << "Connection procedure initiated" << std::endl;
+    return true;
+  };
+  HOOKS.client.connection.onConnectionSuccess = []() {
+    std::cout << "Connection procedure success" << std::endl;
+    return true;
+  };
+  HOOKS.client.connection.onConnectionError = []() {
+    std::cout << "Connection procedure failure" << std::endl;
+    return true;
+  };
+  HOOKS.client.connection.onClientDisconnected = []() {
+    std::cout << "Client disconnected" << std::endl;
+    return true;
+  };
+  HOOKS.client.player.onAuthorizeSpawn = [](std::string id, int x, int y,
+                                            int z) {
+    std::cout << "Client " << id << " is authorized to spawn" << std::endl;
+    return true;
+  };
+}
 
 void registerClientRPC(dummy::Engine &engine) {
   celte::runtime::CelteRuntime::GetInstance().RPCTable().Register(
@@ -44,6 +66,8 @@ int main(int ac, char **av) {
   // waiting for the server to start
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
+  registerClientHooks();
+
   auto &runtime = celte::runtime::CelteRuntime::GetInstance();
   runtime.Start(celte::runtime::RuntimeMode::CLIENT);
   runtime.ConnectToCluster("127.0.0.1", 80);
@@ -63,7 +87,6 @@ int main(int ac, char **av) {
 
   dummy::Engine engine;
   registerClientRPC(engine);
-  registerClientHooks(engine);
 
   runtime.Start(celte::runtime::RuntimeMode::SERVER);
 
