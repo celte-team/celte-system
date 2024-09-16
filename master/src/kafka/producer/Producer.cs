@@ -28,7 +28,7 @@ class KFKProducer : IDisposable
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Error initializing Kafka producer: {e.Message}");
+        Console.WriteLine($"Error initializing Kafka producer: {e.Message}");
         }
     }
 

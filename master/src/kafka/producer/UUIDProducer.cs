@@ -14,7 +14,6 @@ class UUIDProducerService : IDisposable
     // store all the UUID that we have produced
     public Dictionary<string, string> _uuids = new Dictionary<string, string>();
 
-
     public UUIDProducerService(string topic)
     {
         Console.WriteLine("UUIDProducerService initialized.");
@@ -62,7 +61,6 @@ class UUIDProducerService : IDisposable
                     new TopicSpecification { Name = uuid, NumPartitions = 1, ReplicationFactor = 1 } });
 
             // subscribe to the topic
-
             }
             catch (CreateTopicsException e)
             {

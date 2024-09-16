@@ -24,7 +24,6 @@ class Master
             }
             _setupConfig = new SetupConfig(Environment.GetCommandLineArgs());
             _setupConfig.SettingUpMaster();
-
             kfkConsumerListener = new KfkConsumerListener(_setupConfig.GetYamlObjectConfig()["kafka_brokers"].ToString()
             , "kafka-dotnet-getting-started");
 
@@ -49,9 +48,11 @@ class Master
         UUIDConsumerService uuidConsumerService = new UUIDConsumerService();
         ConnectNode connectNode = new ConnectNode();
         ConnectClient connectClient = new ConnectClient();
-        kfkConsumerListener.AddTopic("UUID", uuidConsumerService.WelcomeNewEntry);
+
         kfkConsumerListener.AddTopic("master.hello.sn", connectNode.connectNewNode);
+
         kfkConsumerListener.AddTopic("master.hello.client", connectClient.connectNewClient);
+
         //from UUIDProducer.cs
         kFKProducer = new KFKProducer();
         // produce 100 UUIDs.
