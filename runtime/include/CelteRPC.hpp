@@ -11,6 +11,11 @@
 #include <unordered_map>
 #include <vector>
 
+#define REGISTER_RPC(name, ...)                                                \
+  RUNTIME.RPCTable().Register(                                                 \
+      #name, std::function<void(__VA_ARGS__)>([this](auto &&...args) {         \
+        name(std::forward<decltype(args)>(args)...);                           \
+      }))
 namespace celte {
 namespace rpc {
 
@@ -19,6 +24,7 @@ namespace rpc {
  * The invoke method takes a topic and a list of arguments, serializes them
  * and sends them to the specified topic.
  *
+ * @warning This is not thread safe!
  *
  */
 class Table {
@@ -41,8 +47,8 @@ public:
   Table();
 
   template <typename... Args>
-  void RegisterRPC(std::string name, std::function<void(Args...)> rpc,
-                   Scope scope = Scope::GLOBAL) {
+  void Register(std::string name, std::function<void(Args...)> rpc,
+                Scope scope = Scope::GLOBAL) {
     // Create the callback to be invoked upon receiving a message
     RemoteProcedure call = [rpc](std::string serializedArguments) {
       try {
@@ -88,7 +94,7 @@ public:
       return;
     }
 
-    __invokeByTopic(chunkId + ".rpc", rpName, args...);
+    InvokeByTopic(chunkId + ".rpc", rpName, args...);
   }
 
   /**
@@ -107,7 +113,7 @@ public:
       return;
     }
 
-    __invokeByTopic(grapeId + ".rpc", rpName, args...);
+    InvokeByTopic(grapeId + ".rpc", rpName, args...);
   }
 
   /**
@@ -125,7 +131,7 @@ public:
       return;
     }
 
-    __invokeByTopic("global.rpc", name, args...);
+    InvokeByTopic("global.rpc", name, args...);
   }
 
   /**
@@ -135,7 +141,6 @@ public:
    */
   void InvokeLocal(kafka::clients::consumer::ConsumerRecord record);
 
-private:
   /**
    * @brief Invokes a remote procedure by serializing the arguments and sending
    * them to the specified topic. The concerned entity should be listening to
@@ -146,8 +151,8 @@ private:
    * the remote procedure To see if this has any impact on performance.
    */
   template <typename... Args>
-  void __invokeByTopic(const std::string &topic, const std::string &rpName,
-                       Args... args) {
+  void InvokeByTopic(const std::string &topic, const std::string &rpName,
+                     Args... args) {
     // Serialize the arguments
     msgpack::type::tuple<Args...> arguments(args...);
     std::stringstream buffer;
@@ -179,11 +184,12 @@ private:
         };
 
     // Send the message
-    // nl::AKafkaLink::POOL->Send(record, deliveryCb);
-    // runtime::CelteRuntime::GetInstance().KPool().Send(record, deliveryCb);
     __send(record, deliveryCb);
   }
 
+  void ForgetRPC(const std::string &name) { rpcs.erase(name); }
+
+private:
   std::unordered_map<std::string, RPCBucket> rpcs;
 
   void __send(

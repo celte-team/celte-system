@@ -22,7 +22,7 @@
 
 void registerServerRPC(celte::runtime::CelteRuntime &runtime,
                        dummy::Engine &engine) {
-  celte::runtime::CelteRuntime::GetInstance().GetRPC().RegisterRPC(
+  celte::runtime::CelteRuntime::GetInstance().RPCTable().Register(
       "spawnAuthorized", std::function<void(int)>([&engine](int clientId) {
         std::cout << "Client " << clientId << " is authorized to spawn"
                   << std::endl;
@@ -36,7 +36,7 @@ void authorizeSpawn(celte::runtime::CelteRuntime &runtime, int clientId) {
                     .GetGrape("leChateauDuMechant")
                     .GetChunkByPosition(0, 0, 0);
   std::cout << "chunk id is " << chunk.GetCombinedId() << std::endl;
-  celte::runtime::CelteRuntime::GetInstance().GetRPC().InvokeChunk(
+  celte::runtime::CelteRuntime::GetInstance().RPCTable().InvokeChunk(
       chunk.GetCombinedId(), "spawnAuthorized", clientId);
 }
 

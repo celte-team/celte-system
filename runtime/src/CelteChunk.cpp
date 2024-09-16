@@ -28,14 +28,14 @@ void Chunk::__registerConsumers() {
   // runtime::CelteRuntime::GetInstance().KPool().Subscribe(
   //     _combinedId + ".rpc",
   //     [this](kafka::clients::consumer::ConsumerRecord record) {
-  //       runtime::CelteRuntime::GetInstance().GetRPC().InvokeLocal(record);
+  //       runtime::CelteRuntime::GetInstance().RPCTable().InvokeLocal(record);
   //     });
   RUNTIME.KPool().Subscribe({
       .topic = _combinedId + ".rpc",
       .groupId = _combinedId + ".rpc",
       .autoCreateTopic = true,
       .autoPoll = true,
-      .callback = [this](auto r) { RUNTIME.GetRPC().InvokeLocal(r); },
+      .callback = [this](auto r) { RUNTIME.RPCTable().InvokeLocal(r); },
   });
 }
 

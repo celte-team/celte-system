@@ -9,7 +9,7 @@
 
 // Dummy RPC call to test the RPC system
 
-celte::runtime::CelteRuntime::GetInstance().GetRPC().RegisterRPC(
+celte::runtime::CelteRuntime::GetInstance().RPCTable().Register(
     "PlayerShouted", std::function<void(std::string)>([](std::string message) {
       std::cout << "[TEST RPC] Player shouted: " << message << std::endl;
     }));

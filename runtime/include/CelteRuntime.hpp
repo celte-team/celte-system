@@ -23,6 +23,7 @@
 #include "ClientStatesDeclaration.hpp"
 #endif
 #include "CelteGrape.hpp"
+#include "CelteHooks.hpp"
 #include "CelteRPC.hpp"
 #include "KafkaPool.hpp"
 #include "tinyfsm.hpp"
@@ -167,7 +168,7 @@ public:
    *
    * @return rpc::Table&
    */
-  rpc::Table &GetRPC();
+  rpc::Table &RPCTable();
 
   /**
    * @brief Returns a reference to the KafkaPool used to send and receive
@@ -187,6 +188,11 @@ public:
    * @brief Sets the UUID of this peer in the network.
    */
   inline void SetUUID(const std::string &uuid) { _uuid = uuid; }
+
+  /**
+   * @brief Returns a reference to the hook table.
+   */
+  inline api::HooksTable &Hooks() { return _hooks; }
 
 private:
   // =================================================================================================
@@ -223,6 +229,9 @@ private:
 
   // UUID to identify this peer in the network.
   std::string _uuid;
+
+  // Hooks table
+  api::HooksTable _hooks;
 };
 } // namespace runtime
 } // namespace celte

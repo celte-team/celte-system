@@ -1,3 +1,4 @@
+#include "CelteHooks.hpp"
 #include "CelteRuntime.hpp"
 #include "ClientStatesDeclaration.hpp"
 #include <kafka/KafkaProducer.h>
@@ -5,7 +6,12 @@
 namespace celte {
 namespace client {
 namespace states {
+
 void Connecting::entry() {
+  // CALL_HOOKS(api::HooksTable::client::connection::onClientConnecting);
+  // CALL_HOOKS(client.connection.onConnectionProcedureInitiated);
+  RUNTIME.Hooks().Call(
+      RUNTIME.Hooks().client.connection.onConnectionProcedureInitiated);
   auto &kfk = RUNTIME.KPool();
   kfk.Subscribe({
       .topic = "UUID",
@@ -25,7 +31,7 @@ void Connecting::entry() {
 void Connecting::exit() { std::cerr << "Exiting StateConnecting" << std::endl; }
 
 void Connecting::react(EConnectionSuccess const &event) {
-  // TODO initialize basic client consumers and producers here
+  // CALL_HOOKS(api::HooksTable::client::connection::onConnectionSuccess);
   transit<Connected>();
 }
 
@@ -49,6 +55,7 @@ void Connecting::__onUUIDReceived(
     // this will transit all services to Connected
   } catch (const std::exception &e) {
     std::cerr << "Error in Connecting::entry: " << e.what() << std::endl;
+    // CALL_HOOKS(api::HooksTable::client::connection::onConnectionError);
     transit<Disconnected>();
   }
 }
@@ -59,12 +66,13 @@ void Connecting::__onHelloDelivered(
   if (error) {
     std::cerr << "Error delivering hello message" << std::endl;
     RUNTIME.KPool().Unsubscribe("UUID", "UUID", true);
+    // CALL_HOOKS(api::HooksTable::client::connection::onConnectionError);
+    // CALL_HOOKS(api::HooksTable::client::connection::onClientDisconnected);
     transit<Disconnected>();
     return;
   }
-  std::cerr << "Hello message delivered" << std::endl;
   RUNTIME.KPool().Unsubscribe("UUID", "UUID", true);
-  transit<Connected>();
+  dispatch(EConnectionSuccess());
 }
 
 // this will transit all services to Connected

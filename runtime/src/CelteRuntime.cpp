@@ -44,7 +44,7 @@ CelteRuntime::CelteRuntime() : _pool(nullptr) {}
 
 CelteRuntime::~CelteRuntime() {}
 
-rpc::Table &CelteRuntime::GetRPC() { return _rpcTable; }
+rpc::Table &CelteRuntime::RPCTable() { return _rpcTable; }
 
 void CelteRuntime::Start(RuntimeMode mode) {
   _mode = mode;

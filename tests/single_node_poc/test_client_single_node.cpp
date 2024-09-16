@@ -24,7 +24,7 @@
 void registerClientHooks(dummy::Engine &engine) {}
 
 void registerClientRPC(dummy::Engine &engine) {
-  celte::runtime::CelteRuntime::GetInstance().GetRPC().RegisterRPC(
+  celte::runtime::CelteRuntime::GetInstance().RPCTable().Register(
       "spawnAuthorized",
       std::function<void(std::string)>([&engine](std::string clientId) {
         std::cout << "Client " << clientId << " is authorized to spawn"

@@ -279,7 +279,7 @@
                                     Registration
                                 </h1>
                                 <div>
-                                    The available remote procedures are registered to the RPC table singleton using celte::rpc::TABLE().RegisterRPC
+                                    The available remote procedures are registered to the RPC table singleton using celte::rpc::TABLE().Register
                                 </div>
                             </div>
                         </div>

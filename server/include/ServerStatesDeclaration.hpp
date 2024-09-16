@@ -43,6 +43,46 @@ class Connected : public AServer {
   void exit() override;
 
   void react(EDisconnectFromServer const &event) override;
+
+  /**
+   * @brief This method will registered the RPCs required for the server to
+   * function normally when is is connected to the cluster and ready to manage
+   * the game loop.
+   *
+   * This is called by celte::server::states::Connected::entry.
+   */
+  void __registerRPCs();
+
+  /**
+   * @brief This method will unregister the RPCs registered by the
+   * __registerRPCs method.
+   *
+   * This is called by celte::server::states::Connected::exit.
+   */
+  void __unregisterRPCs();
+
+  /* --------------------------------------------------------------------------
+   */
+  /*                                    RPCs */
+  /* --------------------------------------------------------------------------
+   */
+
+  /**
+   * @brief This RPC will be called when a new player connects to the server.
+   * It will be called by the client when it connects to the server.
+   *
+   * # Hooks:
+   * This RPC refers to the following hooks:
+   * - celte::api::HooksTable::server::newPlayerConnected::accept
+   * - celte::api::HooksTable::server::newPlayerConnected::spawnPlayer
+   *
+   *
+   * @param clientId The UUID of the client that connected to the server.
+   * @param x The x coordinate where the player should spawn.
+   * @param y The y coordinate where the player should spawn.
+   * @param z The z coordinate where the player should spawn.
+   */
+  void __rp_acceptNewPlayer(std::string clientId, int x, int y, int z);
 };
 } // namespace states
 } // namespace server
