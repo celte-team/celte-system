@@ -132,7 +132,7 @@ void CelteRuntime::ConnectToCluster(const std::string &ip, int port) {
       .ip = ip,
       .port = port,
       .message = std::make_shared<std::string>("hello")});
-  std::cout << "CelteRuntime is connected to kafka cluster at " << ip << ":"
+  std::cout << "CelteRuntime is connecting to kafka cluster at " << ip << ":"
             << port << std::endl;
 }
 
