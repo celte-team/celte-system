@@ -152,6 +152,19 @@ def generate_docker_compose(num_kafka_nodes):
     depends_on:
 """
 
+    kafdrop = """
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    container_name: kafdrop
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: "{brokers}"
+      JVM_OPTS: "-Xms32M -Xmx64M"
+    depends_on:
+      - haproxy
+"""
+
     for i in range(1, num_kafka_nodes + 1):
         kafka_service = template.format(index=i, port=9092 + (i - 1))
         docker_compose += kafka_service
@@ -159,6 +172,9 @@ def generate_docker_compose(num_kafka_nodes):
     docker_compose += haproxy
     for i in range(1, num_kafka_nodes + 1):
         docker_compose += f"      - kafka{i}\n"
+
+    brockers = ",".join([f"kafka{i}:1{9092 + (i - 1)}" for i in range(1, num_kafka_nodes + 1)])
+    docker_compose += kafdrop.format(brokers=brockers)
 
     return docker_compose
 
