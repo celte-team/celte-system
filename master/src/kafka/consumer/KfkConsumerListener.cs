@@ -67,6 +67,19 @@ public class KfkConsumerListener : IDisposable
             {
                 Console.WriteLine($"An error occurred creating topic {topic}: {e.Results[0].Error.Reason}");
             }
+
+            lock (_lock)
+            {
+                if (!_topicHandlers.ContainsKey(topic))
+                {
+                    // use an admin client to create the topic
+                    _topicHandlers[topic] = handler;
+                    var newSubscription = _consumer.Subscription.ToList();
+                    newSubscription.Add(topic);
+                    _consumer.Subscribe(newSubscription);
+                    Console.WriteLine($"Registered handler for topic {topic}, newSubscription = {string.Join(",", newSubscription)}");
+                }
+            }
         }
     }
 
@@ -149,7 +162,9 @@ public class KfkConsumerListener : IDisposable
                 {
                     _buffer.Enqueue((consumeResult.Topic, consumeResult.Message.Value));
                     Console.WriteLine($"Consumed event from topic {consumeResult.Topic}: value = {consumeResult.Message.Value}");
-                } else {
+                }
+                else
+                {
                     Console.WriteLine("No message consumed");
                     Thread.Sleep(100);
                 }
