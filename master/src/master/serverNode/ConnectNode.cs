@@ -9,14 +9,14 @@ class ConnectNode
     {
         public string uuid;
     }
-    private Dictionary<string, Node> _nodes = new Dictionary<string, Node>();
+    public static Dictionary<string, Node> _nodes = new Dictionary<string, Node>();
 
     public void connectNewNode(string message)
     {
-        // message = uuid
-        Console.WriteLine("Welcome!!!!!!!!!!!!!! new entry.");
-        Console.WriteLine($"Message: {message}");
-        _master.kFKProducer._uuidProducerService.ProduceUUID(1);
+        Console.WriteLine("New node connected to the cluster: " + message);
+        // ? TODO:  @Clement does the commented line below create a new uuid ? thought the message was the uuid
+        // _master.kFKProducer._uuidProducerService.ProduceUUID(1);
+
         // create a topic form the UUID and assign the node to the topic
         _master.kFKProducer._uuidProducerService.OpenTopic(message);
         // link node with the server

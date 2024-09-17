@@ -43,7 +43,7 @@ class UUIDProducerService : IDisposable
             string uuid = Guid.NewGuid().ToString();
             _uuids.Add(uuid, uuid);
             _master.kFKProducer.SendMessageAsync(_topic, uuid);
-            OpenTopic(uuid);
+            // OpenTopic(uuid);
         }
     }
 
@@ -60,7 +60,7 @@ class UUIDProducerService : IDisposable
                 await adminClient.CreateTopicsAsync(new TopicSpecification[] {
                     new TopicSpecification { Name = uuid, NumPartitions = 1, ReplicationFactor = 1 } });
 
-            // subscribe to the topic
+                // subscribe to the topic
             }
             catch (CreateTopicsException e)
             {
