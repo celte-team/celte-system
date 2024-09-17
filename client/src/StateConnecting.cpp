@@ -48,18 +48,14 @@ void Connecting::__onUUIDReceived(
     std::string uuid(static_cast<const char *>(record.value().data()),
                      record.value().size());
     RUNTIME.SetUUID(uuid);
-    std::cerr << "Received UUID: " << uuid << std::endl;
-
-    auto pUuid = std::shared_ptr<std::string>(new std::string(uuid));
-    const kafka::clients::producer::ProducerRecord record(
-        "master.hello.client", kafka::NullKey,
-        kafka::Value(pUuid->c_str(), pUuid->size()));
-
-    RUNTIME.KPool().Send(record, [this](auto metadata, auto error) {
-      __onHelloDelivered(metadata, error);
+    KPOOL.Send({
+        .topic = "master.hello.client",
+        .value = uuid,
+        .onDeliveryError =
+            [this](auto metadata, auto error) {
+              __onHelloDelivered(metadata, error);
+            },
     });
-
-    // this will transit all services to Connected
   } catch (const std::exception &e) {
     HOOKS.client.connection.onConnectionError();
     HOOKS.client.connection.onClientDisconnected();

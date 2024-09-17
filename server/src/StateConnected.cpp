@@ -27,7 +27,11 @@ void Connected::__registerRPCs() {
                int, int, int);
 }
 
-void Connected::__unregisterRPCs() {}
+void Connected::__unregisterRPCs() {
+  UNREGISTER_RPC(__rp_acceptNewClient);
+  UNREGISTER_RPC(__rp_onSpawnRequested);
+  UNREGISTER_RPC(__rp_spawnPlayer);
+}
 
 void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
                                      float x, float y, float z) {

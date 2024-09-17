@@ -17,6 +17,8 @@
         name(std::forward<decltype(args)>(args)...);                           \
       }),                                                                      \
       scope)
+
+#define UNREGISTER_RPC(name) RUNTIME.RPCTable().ForgetRPC(#name)
 namespace celte {
 namespace rpc {
 
