@@ -7,9 +7,10 @@ namespace nl {
 KafkaPool::KafkaPool(const Options &options)
     : _options(options), _running(false), _records(100),
       _mutex(new boost::mutex),
-      _consumerProps({
-          {"bootstrap.servers", {options.bootstrapServers}},
-          {"enable.auto.commit", {"true"}},
+      _consumerProps({{"bootstrap.servers", {options.bootstrapServers}},
+                      {"enable.auto.commit", {"true"}},
+                      {"request.timeout.ms", {"90000"}}
+
       }),
       _producerProps(kafka::Properties({
           {"bootstrap.servers", {options.bootstrapServers}},
@@ -111,15 +112,23 @@ void KafkaPool::Subscribe(const SubscribeOptions &ops) {
     }
   }
 
+  std::cout << "before emplace" << std::endl;
   __emplaceConsumerIfNotExists(ops.groupId, props, ops.autoPoll);
+  std::cout << "after emplace" << std::endl;
 
   auto &consumer = (ops.autoPoll) ? _consumers.at(ops.groupId)
                                   : _manualConsumers.at(ops.groupId);
 
+  // Get the current subscription list
   auto subscriptions = consumer.subscription();
+
+  // Add the new topic to the subscription list
   subscriptions.insert(ops.topic);
-  consumer.unsubscribe(); // TODO: check if this is necessary
+
+  // Subscribe with the updated subscription list
   consumer.subscribe(subscriptions);
+
+  std::cout << "subscribed" << std::endl;
 }
 
 void KafkaPool::Unsubscribe(const std::string &topic,

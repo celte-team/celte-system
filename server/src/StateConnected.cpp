@@ -25,6 +25,16 @@ void Connected::__registerRPCs() {
   // spawns a player in the game world. Clients also have this rpc.
   REGISTER_RPC(__rp_spawnPlayer, celte::rpc::Table::Scope::CHUNK, std::string,
                int, int, int);
+
+  // creating a listener for RPCs related to this server node as a whole
+  KPOOL.Subscribe({.topic = RUNTIME.GetUUID() + ".rpc",
+                   .autoCreateTopic = true,
+                   .autoPoll = true,
+                   .callback = [this](auto r) {
+                     std::cout << "INVOKE LOCAL IN SERVER RPC LISTENER"
+                               << std::endl;
+                     RPC.InvokeLocal(r);
+                   }});
 }
 
 void Connected::__unregisterRPCs() {

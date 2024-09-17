@@ -20,6 +20,18 @@ void Connected::__registerRPCs() {
                std::string, float, float, float);
   REGISTER_RPC(__rp_spawnPlayer, celte::rpc::Table::Scope::CHUNK, std::string,
                float, float, float);
+
+  // creating a listener for RPCs related to this client as a whole
+  KPOOL.Subscribe({
+      .topic = RUNTIME.GetUUID() + ".rpc",
+      .autoCreateTopic = true,
+      .autoPoll = false,
+      .callback =
+          [this](auto r) {
+            std::cout << "INVOKE LOCAL IN CLIENT RPC LISTENER" << std::endl;
+            RPC.InvokeLocal(r);
+          },
+  });
 }
 
 void Connected::__rp_forceConnectToChunk(std::string grapeId, float x, float y,

@@ -65,14 +65,6 @@ void authorizeSpawn(celte::runtime::CelteRuntime &runtime, int clientId) {
 }
 
 int main(int ac, char **av) {
-  // argv 1 and 2 are ids of the clients
-  if (ac < 3) {
-    throw std::runtime_error("Client ids are required");
-  }
-
-  int clientId1 = std::atoi(av[1]);
-  int clientId2 = std::atoi(av[2]);
-
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
   registerServerHooks();
@@ -93,16 +85,12 @@ int main(int ac, char **av) {
   dummy::Engine engine;
   registerServerRPC(runtime, engine);
 
-  runtime.Start(celte::runtime::RuntimeMode::SERVER);
-
-  // This would be done by the master server
-  authorizeSpawn(runtime, clientId1);
-  authorizeSpawn(runtime, clientId2);
-
   // Ctrl+C to stop the server
   // std::cout << "now waiting for connection" << std::endl;
   // while (true) {
   //     runtime.Tick();
   // }
   engine.RegisterGameLoopStep([&runtime](float deltaTime) { runtime.Tick(); });
+
+  engine.Run();
 }

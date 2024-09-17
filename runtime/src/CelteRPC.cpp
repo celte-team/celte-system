@@ -18,6 +18,8 @@ void Table::InvokeLocal(kafka::clients::consumer::ConsumerRecord record) {
   if (rpcs.find(rpcName) == rpcs.end()) {
     std::cerr << "Error in InvokeLocal : ";
     std::cerr << "No RPC registered with name: " << rpcName << std::endl;
+    std::cerr << "Message topic: " << record.topic() << std::endl;
+    std::cerr << "Message contents: " << record.value().toString() << std::endl;
 
     std::cerr << "Available RPCs: " << std::endl;
     for (auto &rpc : rpcs) {

@@ -72,12 +72,7 @@ void registerClientRPC() {
 }
 
 int main(int ac, char **av) {
-  // argv 1 is the id of the client
-  if (ac < 2) {
-    throw std::runtime_error("Client id is required");
-  }
-
-  std::string clientId = av[1];
+  std::string clientId;
 
   // waiting for the server to start
   std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -100,6 +95,7 @@ int main(int ac, char **av) {
     // throw std::runtime_error("Client should be connected to the cluster");
     runtime.Tick();
   }
+  clientId = runtime.GetUUID();
 
 // here we setup the grapes and chunks. This is common between server and
 // clients, and would be done by the game dev directly in the engine.
@@ -107,8 +103,9 @@ int main(int ac, char **av) {
 
   registerClientRPC();
 
-  runtime.Start(celte::runtime::RuntimeMode::SERVER);
-
   // Updating the celte runtime each frame
   engine.RegisterGameLoopStep([&runtime](float deltaTime) { runtime.Tick(); });
+
+  // Running the game loop
+  engine.Run();
 }
