@@ -40,10 +40,6 @@ namespace celte {
 namespace runtime {
 enum RuntimeMode { SERVER, CLIENT };
 
-static const std::string PEER_UUID = boost::uuids::to_string(
-    boost::uuids::random_generator()()); // random uuid for the peer to identify
-                                         // itself to the master
-
 #ifdef CELTE_SERVER_MODE_ENABLED
 using Services =
     // tinyfsm::FsmList<celte::server::AServer, celte::nl::AKafkaLink>;
@@ -193,6 +189,27 @@ public:
    * @brief Returns a reference to the hook table.
    */
   inline api::HooksTable &Hooks() { return _hooks; }
+
+  /**
+   * @brief Returns the UUID of the peer.
+   */
+  std::string GetUUID() const {
+#ifdef CELTE_SERVER_MODE_ENABLED
+    static const std::string PEER_UUID =
+        "sn." + boost::uuids::to_string(
+                    boost::uuids::random_generator()()); // random uuid for the
+                                                         // peer to identify
+                                                         // itself to the master
+#else
+    static const std::string PEER_UUID =
+        "client." +
+        boost::uuids::to_string(
+            boost::uuids::random_generator()()); // random uuid for the peer to
+                                                 // identify itself to the
+                                                 // master
+#endif
+    return PEER_UUID;
+  }
 
 private:
   // =================================================================================================

@@ -76,6 +76,12 @@ class Connected : public AClient {
    */
   void __registerRPCs();
 
+  /**
+   * @brief This method will unregister the RPCs registered by the
+   * __registerRPCs method.
+   */
+  void __unregisterRPCs();
+
   /* --------------------------------------------------------------------------
    */
   /*                                    RPCs */

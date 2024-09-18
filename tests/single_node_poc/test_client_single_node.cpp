@@ -95,11 +95,12 @@ int main(int ac, char **av) {
     // throw std::runtime_error("Client should be connected to the cluster");
     runtime.Tick();
   }
-  clientId = celte::runtime::PEER_UUID;
+  clientId = RUNTIME.GetUUID();
 
-// here we setup the grapes and chunks. This is common between server and
-// clients, and would be done by the game dev directly in the engine.
-#include "COMMON_SETUP.cpp"
+  // here we setup the grapes and chunks. This is common between server and
+  // clients, and would be done by the game dev directly in the engine.
+  // #include "COMMON_SETUP.cpp" // done later in fact, when registered by the
+  // server to a chunk and loading the map in game
 
   registerClientRPC();
 

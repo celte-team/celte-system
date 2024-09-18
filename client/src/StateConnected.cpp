@@ -5,9 +5,15 @@
 namespace celte {
 namespace client {
 namespace states {
-void Connected::entry() { std::cerr << "Entering StateConnected" << std::endl; }
+void Connected::entry() {
+  std::cerr << "Entering StateConnected" << std::endl;
+  __registerRPCs();
+}
 
-void Connected::exit() { std::cerr << "Exiting StateConnected" << std::endl; }
+void Connected::exit() {
+  std::cerr << "Exiting StateConnected" << std::endl;
+  __unregisterRPCs();
+}
 
 void Connected::react(EDisconnectFromServer const &event) {
   std::cerr << "Disconnecting from server" << std::endl;
@@ -20,18 +26,12 @@ void Connected::__registerRPCs() {
                std::string, float, float, float);
   REGISTER_RPC(__rp_spawnPlayer, celte::rpc::Table::Scope::CHUNK, std::string,
                float, float, float);
+}
 
-  // creating a listener for RPCs related to this client as a whole
-  KPOOL.Subscribe({
-      .topic = runtime::PEER_UUID + "." + celte::tp::RPCs,
-      .autoCreateTopic = true,
-      .autoPoll = false,
-      .callback =
-          [this](auto r) {
-            std::cout << "INVOKE LOCAL IN CLIENT RPC LISTENER" << std::endl;
-            RPC.InvokeLocal(r);
-          },
-  });
+void Connected::__unregisterRPCs() {
+  std::cerr << "Unregistering RPCs" << std::endl;
+  UNREGISTER_RPC(__rp_forceConnectToChunk);
+  UNREGISTER_RPC(__rp_spawnPlayer);
 }
 
 void Connected::__rp_forceConnectToChunk(std::string grapeId, float x, float y,

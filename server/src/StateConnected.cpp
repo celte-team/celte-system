@@ -26,16 +26,6 @@ void Connected::__registerRPCs() {
   // spawns a player in the game world. Clients also have this rpc.
   REGISTER_RPC(__rp_spawnPlayer, celte::rpc::Table::Scope::CHUNK, std::string,
                int, int, int);
-
-  // creating a listener for RPCs related to this server node as a whole
-  KPOOL.Subscribe({.topic = runtime::PEER_UUID + "." + celte::tp::RPCs,
-                   .autoCreateTopic = true,
-                   .autoPoll = true,
-                   .callback = [this](auto r) {
-                     std::cout << "INVOKE LOCAL IN SERVER RPC LISTENER"
-                               << std::endl;
-                     RPC.InvokeLocal(r);
-                   }});
 }
 
 void Connected::__unregisterRPCs() {
@@ -55,7 +45,9 @@ void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
     std::cerr << "Error in __rp_acceptNewClient: " << e.what() << std::endl;
   }
 
-  RPC.InvokeByTopic(clientId, "__rp_forceConnectToChunk", grapeId, x, y, z);
+  // RPC.InvokeByTopic(clientId + "." + celte::tp::RPCs,
+  //                   "__rp_forceConnectToChunk", grapeId, x, y, z);
+  RPC.InvokePeer(clientId, "__rp_forceConnectToChunk", grapeId, x, y, z);
 }
 
 void Connected::__rp_onSpawnRequested(const std::string &clientId, float x,

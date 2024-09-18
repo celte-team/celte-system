@@ -14,8 +14,7 @@ KafkaPool::KafkaPool(const Options &options)
       _consumerProps({
           {"bootstrap.servers", {options.bootstrapServers}},
           {"enable.auto.commit", {"true"}},
-          {"session.timeout.ms", {"60000"}},
-
+          {"session.timeout.ms", {"10000"}},
       }),
       _producerProps(kafka::Properties({
           {"bootstrap.servers", {options.bootstrapServers}},
@@ -71,8 +70,8 @@ void KafkaPool::__send(
                              kafka::Error)> &onDelivered) {
   record.headers().push_back(
       kafka::Header{kafka::Header::Key{celte::tp::HEADER_PEER_UUID},
-                    kafka::Header::Value{runtime::PEER_UUID.c_str(),
-                                         runtime::PEER_UUID.size()}});
+                    kafka::Header::Value{RUNTIME.GetUUID().c_str(),
+                                         RUNTIME.GetUUID().size()}});
   _producer.send(record, onDelivered);
 }
 
@@ -83,6 +82,8 @@ void KafkaPool::__consumerJob() {
       auto records = consumer.second.poll(std::chrono::milliseconds(100));
       for (auto &record : records) {
         std::cout << "auto poll record" << std::endl;
+        std::cout << record.value().toString() << std::endl;
+        std::cout << record.topic() << std::endl;
         _records.push(record);
       }
     }
@@ -144,8 +145,13 @@ void KafkaPool::Subscribe(const SubscribeOptions &ops) {
   // Add the new topic to the subscription list
   subscriptions.insert(ops.topic);
 
-  // Subscribe with the updated subscription list
-  consumer.subscribe(subscriptions);
+  try {
+    // Subscribe with the updated subscription list
+    consumer.subscribe(subscriptions);
+  } catch (kafka::KafkaException &e) {
+    std::cerr << "Error subscribing to topic " << ops.topic << std::endl;
+    std::cerr << e.what() << std::endl;
+  }
 
   std::cout << "subscribed" << std::endl;
 }

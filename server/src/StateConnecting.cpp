@@ -13,9 +13,22 @@ void Connecting::entry() {
     transit<Disconnected>();
   }
 
+  // creating a listener for RPCs related to this server node as a whole
+  std::cout << "Creating RPC listener for " << RUNTIME.GetUUID() << std::endl;
+  KPOOL.Subscribe({.topic = RUNTIME.GetUUID() + "." + celte::tp::RPCs,
+                   .autoCreateTopic = true,
+                   .autoPoll = true,
+                   .extraProps = {{"auto.offset.reset", "earliest"}},
+                   .callback = [this](auto r) {
+                     std::cout << "INVOKE LOCAL IN SERVER RPC LISTENER"
+                               << std::endl;
+                     RPC.InvokeLocal(r);
+                   }});
+
+  std::cout << "Registersing self as " << RUNTIME.GetUUID() << std::endl;
   KPOOL.Send({
       .topic = celte::tp::MASTER_HELLO_SN,
-      .value = runtime::PEER_UUID,
+      .value = RUNTIME.GetUUID(),
       .onDelivered =
           [this](auto metadata, auto error) {
             if (error) {
