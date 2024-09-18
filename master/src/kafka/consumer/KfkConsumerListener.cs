@@ -23,7 +23,7 @@ public class KfkConsumerListener : IDisposable
         var config = new ConsumerConfig
         {
             BootstrapServers = bootstrapServers, // "localhost:80",
-            GroupId = groupId, // "test-consumer-group",
+            GroupId = groupId,
             AutoOffsetReset = AutoOffsetReset.Earliest // "earliest"
         };
 
@@ -48,6 +48,7 @@ public class KfkConsumerListener : IDisposable
                 var metadata = adminClient.GetMetadata(TimeSpan.FromSeconds(10));
                 if (!metadata.Topics.Any(t => t.Topic == topic))
                 {
+
                     var topicSpecification = new TopicSpecification
                     {
                         Name = topic,
@@ -82,73 +83,6 @@ public class KfkConsumerListener : IDisposable
             }
         }
     }
-
-
-    // public void AddTopic(string topic, Action<string> handler)
-    // {
-    //     lock (_lock)
-    //     {
-    //         if (!_topicHandlers.ContainsKey(topic))
-    //         {
-    //             // use an admin client to create the topic
-    //             _topicHandlers[topic] = handler;
-    //             var newSubscription = _consumer.Subscription.ToList();
-    //             newSubscription.Add(topic);
-    //             _consumer.Subscribe(newSubscription);
-    //             Console.WriteLine($"Registered handler for topic {topic}, newSubscription = {string.Join(",", newSubscription)}");
-    //         }
-    //     }
-    // }
-    // public void AddTopic(string topic, Action<string> handler)
-    // {
-    //     lock (_lock)
-    //     {
-    //         if (!_topicHandlers.ContainsKey(topic))
-    //         {
-    //             // Create the admin client to manage topics
-    //             var config = new AdminClientConfig
-    //             {
-    //                 BootstrapServers = "your_kafka_broker"
-    //             };
-
-    //             using (var adminClient = new AdminClientBuilder(config).Build())
-    //             {
-    //                 try
-    //                 {
-    //                     // Check if the topic exists and create it if it doesn't
-    //                     var metadata = adminClient.GetMetadata(TimeSpan.FromSeconds(10));
-    //                     if (!metadata.Topics.Any(t => t.Topic == topic))
-    //                     {
-    //                         var topicSpecification = new TopicSpecification
-    //                         {
-    //                             Name = topic,
-    //                             NumPartitions = 3, // Specify the number of partitions
-    //                             ReplicationFactor = 1 // Specify replication factor
-    //                         };
-
-    //                         adminClient.CreateTopicsAsync(new List<TopicSpecification> { topicSpecification }).Wait();
-    //                         Console.WriteLine($"Topic {topic} created successfully.");
-    //                     }
-    //                     else
-    //                     {
-    //                         Console.WriteLine($"Topic {topic} already exists.");
-    //                     }
-    //                 }
-    //                 catch (CreateTopicsException e)
-    //                 {
-    //                     Console.WriteLine($"An error occurred creating topic {topic}: {e.Results[0].Error.Reason}");
-    //                 }
-    //             }
-
-    //             // Register the handler and subscribe to the new topic
-    //             _topicHandlers[topic] = handler;
-    //             var newSubscription = _consumer.Subscription.ToList();
-    //             newSubscription.Add(topic);
-    //             _consumer.Subscribe(newSubscription);
-    //             Console.WriteLine($"Registered handler for topic {topic}, newSubscription = {string.Join(",", newSubscription)}");
-    //         }
-    //     }
-    // }
 
     public void StartConsuming(CancellationToken cancellationToken)
     {

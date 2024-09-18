@@ -25,11 +25,12 @@ class Master
             _setupConfig = new SetupConfig(Environment.GetCommandLineArgs());
             _setupConfig.SettingUpMaster();
             kfkConsumerListener = new KfkConsumerListener(_setupConfig.GetYamlObjectConfig()["kafka_brokers"].ToString()
-            , "kafka-dotnet-getting-started");
+            , "kafka-dotnet");
 
             StartKafkaSystem();
         } catch (Exception e) {
             Console.WriteLine($"Error initializing Master: {e.Message}");
+            
         }
     }
 
