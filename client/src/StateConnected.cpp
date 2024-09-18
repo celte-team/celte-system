@@ -23,7 +23,7 @@ void Connected::__registerRPCs() {
 
   // creating a listener for RPCs related to this client as a whole
   KPOOL.Subscribe({
-      .topic = runtime::PEER_UUID + ".rpc",
+      .topic = runtime::PEER_UUID + "." + celte::tp::RPCs,
       .autoCreateTopic = true,
       .autoPoll = false,
       .callback =

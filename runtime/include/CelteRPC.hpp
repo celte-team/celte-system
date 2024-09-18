@@ -4,6 +4,7 @@
 #include "kafka/KafkaProducer.h"
 #include "kafka/Properties.h"
 #include "kafka/Types.h"
+#include "topics.hpp"
 #include <functional>
 #include <memory>
 #include <msgpack.hpp>
@@ -88,7 +89,7 @@ public:
   template <typename... Args>
   void InvokePeer(const std::string &peerId, const std::string &rpName,
                   Args... args) {
-    InvokeByTopic(peerId + ".rpc", rpName, args...);
+    InvokeByTopic(peerId + "." + celte::tp::RPCs, rpName, args...);
   }
 
   /**
@@ -100,7 +101,7 @@ public:
   template <typename... Args>
   void InvokeChunk(const std::string &chunkId, const std::string &rpName,
                    Args... args) {
-    InvokeByTopic(chunkId + ".rpc", rpName, args...);
+    InvokeByTopic(chunkId + "." + celte::tp::RPCs, rpName, args...);
   }
 
   /**
@@ -109,7 +110,7 @@ public:
   template <typename... Args>
   void InvokeGrape(const std::string &grapeId, const std::string &rpName,
                    Args... args) {
-    InvokeByTopic(grapeId + ".rpc", rpName, args...);
+    InvokeByTopic(grapeId + "." + celte::tp::RPCs, rpName, args...);
   }
 
   /**
@@ -117,7 +118,7 @@ public:
    */
   template <typename... Args>
   void InvokeGlobal(const std::string &name, Args... args) {
-    InvokeByTopic("global.rpc", name, args...);
+    InvokeByTopic(celte::tp::GLOBAL + "." + celte::tp::RPCs, name, args...);
   }
 
   /**

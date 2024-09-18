@@ -1,5 +1,6 @@
 #include "CelteRuntime.hpp"
 #include "KafkaPool.hpp"
+#include "topics.hpp"
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <chrono>
@@ -69,7 +70,7 @@ void KafkaPool::__send(
     const std::function<void(const kafka::clients::producer::RecordMetadata &,
                              kafka::Error)> &onDelivered) {
   record.headers().push_back(
-      kafka::Header{kafka::Header::Key{"peer.uuid"},
+      kafka::Header{kafka::Header::Key{celte::tp::HEADER_PEER_UUID},
                     kafka::Header::Value{runtime::PEER_UUID.c_str(),
                                          runtime::PEER_UUID.size()}});
   _producer.send(record, onDelivered);

@@ -1,6 +1,7 @@
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteRuntime.hpp"
 #include "ServerStatesDeclaration.hpp"
+#include "topics.hpp"
 
 namespace celte {
 namespace server {
@@ -27,7 +28,7 @@ void Connected::__registerRPCs() {
                int, int, int);
 
   // creating a listener for RPCs related to this server node as a whole
-  KPOOL.Subscribe({.topic = runtime::PEER_UUID + ".rpc",
+  KPOOL.Subscribe({.topic = runtime::PEER_UUID + "." + celte::tp::RPCs,
                    .autoCreateTopic = true,
                    .autoPoll = true,
                    .callback = [this](auto r) {

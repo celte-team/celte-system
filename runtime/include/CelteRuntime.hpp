@@ -27,6 +27,7 @@
 #include "CelteRPC.hpp"
 #include "KafkaPool.hpp"
 #include "tinyfsm.hpp"
+#include "topics.hpp"
 #include <atomic>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>

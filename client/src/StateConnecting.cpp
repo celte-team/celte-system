@@ -1,6 +1,7 @@
 #include "CelteHooks.hpp"
 #include "CelteRuntime.hpp"
 #include "ClientStatesDeclaration.hpp"
+#include "topics.hpp"
 #include <kafka/KafkaProducer.h>
 
 namespace celte {
@@ -15,7 +16,7 @@ void Connecting::entry() {
   }
 
   KPOOL.Send({
-      .topic = "master.hello.client",
+      .topic = celte::tp::MASTER_HELLO_CLIENT,
       .value = runtime::PEER_UUID,
       .onDelivered =
           [this](auto metadata, auto error) {

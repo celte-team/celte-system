@@ -26,7 +26,7 @@ void Chunk::OnEntityDespawn(CelteEntity &celteEntity) {}
 void Chunk::__registerConsumers() {
   // A consumer to listen for Chunk scope RPCs and execute them
   KPOOL.Subscribe({
-      .topic = _combinedId + ".rpc",
+      .topic = _combinedId + "." + celte::tp::RPCs,
       .groupId = "", // no group, all consumers receive the message
       .autoCreateTopic = true,
       .autoPoll = true,

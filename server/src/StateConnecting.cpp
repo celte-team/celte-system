@@ -1,9 +1,11 @@
 #include "CelteRuntime.hpp"
 #include "ServerStatesDeclaration.hpp"
+#include "topics.hpp"
 
 namespace celte {
 namespace server {
 namespace states {
+
 void Connecting::entry() {
   if (not HOOKS.server.connection.onConnectionProcedureInitiated()) {
     std::cerr << "Connection procedure hook failed" << std::endl;
@@ -12,7 +14,7 @@ void Connecting::entry() {
   }
 
   KPOOL.Send({
-      .topic = "master.hello.sn",
+      .topic = celte::tp::MASTER_HELLO_SN,
       .value = runtime::PEER_UUID,
       .onDelivered =
           [this](auto metadata, auto error) {
