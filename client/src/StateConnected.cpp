@@ -23,7 +23,7 @@ void Connected::__registerRPCs() {
 
   // creating a listener for RPCs related to this client as a whole
   KPOOL.Subscribe({
-      .topic = RUNTIME.GetUUID() + ".rpc",
+      .topic = runtime::PEER_UUID + ".rpc",
       .autoCreateTopic = true,
       .autoPoll = false,
       .callback =

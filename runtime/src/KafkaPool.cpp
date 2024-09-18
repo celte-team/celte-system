@@ -1,4 +1,7 @@
+#include "CelteRuntime.hpp"
 #include "KafkaPool.hpp"
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <chrono>
 
 namespace celte {
@@ -7,9 +10,10 @@ namespace nl {
 KafkaPool::KafkaPool(const Options &options)
     : _options(options), _running(false), _records(100),
       _mutex(new boost::mutex),
-      _consumerProps({{"bootstrap.servers", {options.bootstrapServers}},
-                      {"enable.auto.commit", {"true"}},
-                      {"request.timeout.ms", {"90000"}}
+      _consumerProps({
+          {"bootstrap.servers", {options.bootstrapServers}},
+          {"enable.auto.commit", {"true"}},
+          {"session.timeout.ms", {"60000"}},
 
       }),
       _producerProps(kafka::Properties({
@@ -43,8 +47,8 @@ void KafkaPool::Send(const KafkaPool::SendOptions &options) {
   auto deliveryCb =
       [opts](const kafka::clients::producer::RecordMetadata &metadata,
              const kafka::Error &error) {
-        if (opts->onDeliveryError) {
-          opts->onDeliveryError(metadata, error);
+        if (opts->onDelivered) {
+          opts->onDelivered(metadata, error);
         }
       };
 
@@ -57,7 +61,18 @@ void KafkaPool::Send(const KafkaPool::SendOptions &options) {
   }
   record.headers() = headers;
 
-  _producer.send(record, deliveryCb);
+  __send(record, deliveryCb);
+}
+
+void KafkaPool::__send(
+    kafka::clients::producer::ProducerRecord &record,
+    const std::function<void(const kafka::clients::producer::RecordMetadata &,
+                             kafka::Error)> &onDelivered) {
+  record.headers().push_back(
+      kafka::Header{kafka::Header::Key{"peer.uuid"},
+                    kafka::Header::Value{runtime::PEER_UUID.c_str(),
+                                         runtime::PEER_UUID.size()}});
+  _producer.send(record, onDelivered);
 }
 
 void KafkaPool::__consumerJob() {
@@ -111,6 +126,9 @@ void KafkaPool::Subscribe(const SubscribeOptions &ops) {
       props.put(prop.first, prop.second);
     }
   }
+  std::string uuid =
+      boost::uuids::to_string(boost::uuids::random_generator()());
+  props.put("client.id", uuid);
 
   std::cout << "before emplace" << std::endl;
   __emplaceConsumerIfNotExists(ops.groupId, props, ops.autoPoll);

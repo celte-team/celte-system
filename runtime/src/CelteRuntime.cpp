@@ -37,6 +37,7 @@ template <> void Fsm<celte::client::AClient>::set_initial_state() {
 
 namespace celte {
 namespace runtime {
+
 // =================================================================================================
 // CELTE PUBLIC METHODS
 // =================================================================================================
@@ -137,10 +138,13 @@ void CelteRuntime::ConnectToCluster(const std::string &ip, int port) {
 }
 
 bool CelteRuntime::IsConnectedToCluster() {
-  if (_pool and not _uuid.empty()) {
-    return true;
-  }
-  return false;
+#ifdef CELTE_SERVER_MODE_ENABLED
+  return tinyfsm::Fsm<celte::server::AServer>::is_in_state<
+      celte::server::states::Connected>();
+#else
+  return tinyfsm::Fsm<celte::client::AClient>::is_in_state<
+      celte::client::states::Connected>();
+#endif
 }
 
 bool CelteRuntime::WaitForClusterConnection(int timeoutMs) {

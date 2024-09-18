@@ -98,10 +98,10 @@ public:
    * @brief Asynchronously sends a message to kafka.
    */
   inline void Send(
-      const kafka::clients::producer::ProducerRecord &record,
+      kafka::clients::producer::ProducerRecord &record,
       const std::function<void(const kafka::clients::producer::RecordMetadata &,
-                               kafka::Error)> &onDeliveryError) {
-    _producer.send(record, onDeliveryError);
+                               kafka::Error)> &onDelivered) {
+    __send(record, onDelivered);
   }
 
   struct SendOptions {
@@ -110,7 +110,7 @@ public:
     std::string value = "";
     std::function<void(const kafka::clients::producer::RecordMetadata &,
                        kafka::Error)>
-        onDeliveryError = nullptr;
+        onDelivered = nullptr;
   };
 
   /**
@@ -173,6 +173,15 @@ private:
   void __emplaceConsumerIfNotExists(const std::string &groupId,
                                     const kafka::Properties &props,
                                     bool autoPoll);
+
+  /**
+   * @brief Sends a message to Kafka, but updates the headers to include the
+   * UUID of the runtime in the headers.
+   */
+  void __send(
+      kafka::clients::producer::ProducerRecord &record,
+      const std::function<void(const kafka::clients::producer::RecordMetadata &,
+                               kafka::Error)> &onDelivered);
 
   Options _options;
   kafka::Properties _consumerProps;

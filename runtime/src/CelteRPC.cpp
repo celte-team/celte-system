@@ -37,10 +37,10 @@ void Table::InvokeLocal(kafka::clients::consumer::ConsumerRecord record) {
 }
 
 void Table::__send(
-    const kafka::clients::producer::ProducerRecord &record,
+    kafka::clients::producer::ProducerRecord &record,
     const std::function<void(const kafka::clients::producer::RecordMetadata &,
-                             kafka::Error)> &onDeliveryError) {
-  runtime::CelteRuntime::GetInstance().KPool().Send(record, onDeliveryError);
+                             kafka::Error)> &onDelivered) {
+  KPOOL.Send(record, onDelivered);
 }
 
 } // namespace rpc

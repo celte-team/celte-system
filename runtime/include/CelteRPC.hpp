@@ -179,9 +179,9 @@ private:
   std::unordered_map<std::string, RPCBucket> rpcs;
 
   void __send(
-      const kafka::clients::producer::ProducerRecord &record,
+      kafka::clients::producer::ProducerRecord &record,
       const std::function<void(const kafka::clients::producer::RecordMetadata &,
-                               kafka::Error)> &onDeliveryError);
+                               kafka::Error)> &onDelivered);
 };
 
 } // namespace rpc

@@ -27,6 +27,9 @@
 #include "CelteRPC.hpp"
 #include "KafkaPool.hpp"
 #include "tinyfsm.hpp"
+#include <atomic>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <functional>
 #include <iostream>
 #include <optional>
@@ -35,6 +38,10 @@
 namespace celte {
 namespace runtime {
 enum RuntimeMode { SERVER, CLIENT };
+
+static const std::string PEER_UUID = boost::uuids::to_string(
+    boost::uuids::random_generator()()); // random uuid for the peer to identify
+                                         // itself to the master
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 using Services =
@@ -182,18 +189,6 @@ public:
   nl::KafkaPool &KPool();
 
   /**
-   * @brief Returns the UUID of this peer in the network.
-   *
-   * @return std::string
-   */
-  inline std::string GetUUID() const { return _uuid; }
-
-  /**
-   * @brief Sets the UUID of this peer in the network.
-   */
-  inline void SetUUID(const std::string &uuid) { _uuid = uuid; }
-
-  /**
    * @brief Returns a reference to the hook table.
    */
   inline api::HooksTable &Hooks() { return _hooks; }
@@ -230,9 +225,6 @@ private:
 
   // Kafka producer / consumer pool used to send and receive messages from kafka
   std::shared_ptr<nl::KafkaPool> _pool;
-
-  // UUID to identify this peer in the network.
-  std::string _uuid;
 
   // Hooks table
   api::HooksTable _hooks;
