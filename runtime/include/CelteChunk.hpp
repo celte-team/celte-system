@@ -1,6 +1,7 @@
 #pragma once
 #include "CelteEntity.hpp"
 #include "RotatedBoundingBox.hpp"
+#include "topics.hpp"
 #include <glm/vec3.hpp>
 #include <string>
 
@@ -17,10 +18,10 @@ struct ChunkConfig {
 };
 
 /**
- * @brief A chunk is a region of the world which is under a unique server node's
- * control. All entities or the same chunk are replicated together: a chunk is
- * the smallest container of entities that can be moved from one server node to
- * another.
+ * @brief A chunk is a region of the world which is under a unique server
+ * node's control. All entities or the same chunk are replicated together: a
+ * chunk is the smallest container of entities that can be moved from one
+ * server node to another.
  *
  * Chunks handle entity replication and authority over entities.
  */

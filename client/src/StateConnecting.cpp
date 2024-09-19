@@ -28,6 +28,19 @@ void Connecting::entry() {
           },
   });
 
+  // creating a listener for RPCs related to the client as a whole
+  std::cout << "Creating RPC listener for " << RUNTIME.GetUUID() << "."
+            << celte::tp::RPCs << std::endl;
+  KPOOL.Subscribe({.topic = RUNTIME.GetUUID() + "." + celte::tp::RPCs,
+                   .autoCreateTopic = true,
+                   .autoPoll = true,
+                   .extraProps = {{"auto.offset.reset", "earliest"}},
+                   .callback = [this](auto r) {
+                     std::cout << "INVOKE LOCAL IN SERVER RPC LISTENER"
+                               << std::endl;
+                     RPC.InvokeLocal(r);
+                   }});
+
   KPOOL.Send({
       .topic = celte::tp::MASTER_HELLO_CLIENT,
       .value = RUNTIME.GetUUID(),

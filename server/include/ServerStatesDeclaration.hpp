@@ -35,16 +35,6 @@ class Connecting : public AServer {
    */
   void react(EConnectionSuccess const &event) override;
 
-  /**
-   * @brief Registers the basic consumers of this node's grape.
-   */
-  void __registerGrapeConsumers();
-
-  /**
-   * @brief Unregisters the basic consumers of this node's grape.
-   */
-  void __unregisterGrapeConsumers();
-
   // /**
   //  * @brief This method will be called when the server receives a UUID
   //  * from the cluster. It will set the UUID in the runtime and send a
@@ -147,12 +137,34 @@ class Connected : public AServer {
                              float z);
 
   /**
+   * @brief The master can call on to this method to assign a grape to this
+   * node. No other node should be actively listening to this grape's private
+   * channels.
+   */
+  void __rp_assignGrape(std::string grapeId);
+
+  /**
+   * @brief Registers the basic consumers of this node's grape.
+   * This method is called by __rp_assignGrape.
+   */
+  void __registerGrapeConsumers(const std::string &grapeId);
+
+  /**
+   * @brief Unregisters the basic consumers of this node's grape.
+   * This method is called when the server transits to the Disconnected state.
+   */
+  void __unregisterGrapeConsumers();
+
+  /**
    * @brief stores the clients that are under this node's authority.
    * Clients are added using the __rp_acceptNewClient RPC and removed
    * using the __rp_disconnectPlayer RPC. Disconnection happends when they
    * leave this node's chunk grape.
    */
   std::set<std::string> m_clients;
+
+  // the id of the assigned grape. Invalid if empty.
+  std::string _grapeId = "";
 };
 } // namespace states
 } // namespace server

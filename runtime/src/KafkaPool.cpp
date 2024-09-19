@@ -16,6 +16,7 @@ KafkaPool::KafkaPool(const Options &options)
           {"enable.auto.commit", {"true"}},
           {"session.timeout.ms", {"10000"}},
       }),
+      // {"debug", {"all"}}}),
       _producerProps(kafka::Properties({
           {"bootstrap.servers", {options.bootstrapServers}},
           {"enable.idempotence", {"true"}},
@@ -43,7 +44,8 @@ void KafkaPool::Send(const KafkaPool::SendOptions &options) {
       opts->topic, kafka::NullKey,
       kafka::Value(opts->value.c_str(), opts->value.size()));
 
-  // wrapping the error callback to capture the shared ptr and keep it alive
+  // wrapping the error callback to capture the shared ptr and keep it
+  // alive
   auto deliveryCb =
       [opts](const kafka::clients::producer::RecordMetadata &metadata,
              const kafka::Error &error) {
@@ -52,7 +54,8 @@ void KafkaPool::Send(const KafkaPool::SendOptions &options) {
         }
       };
 
-  // Set the headers of the record to hold the name of the remote procedure
+  // Set the headers of the record to hold the name of the remote
+  // procedure
   std::vector<kafka::Header> headers;
   for (auto &header : opts->headers) {
     headers.push_back(kafka::Header{
@@ -77,14 +80,18 @@ void KafkaPool::__send(
 
 void KafkaPool::__consumerJob() {
   while (_running) {
+    // avoid busy waiting
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     for (auto &consumer : _consumers) {
-
-      auto records = consumer.second.poll(std::chrono::milliseconds(100));
-      for (auto &record : records) {
-        std::cout << "auto poll record" << std::endl;
-        std::cout << record.value().toString() << std::endl;
-        std::cout << record.topic() << std::endl;
-        _records.push(record);
+      {
+        boost::lock_guard<boost::mutex> lock(*_mutex);
+        auto records = consumer.second.poll(std::chrono::milliseconds(100));
+        for (auto &record : records) {
+          std::cout << "auto poll record" << std::endl;
+          std::cout << record.value().toString() << std::endl;
+          std::cout << record.topic() << std::endl;
+          _records.push(record);
+        }
       }
     }
   }
@@ -146,6 +153,7 @@ void KafkaPool::Subscribe(const SubscribeOptions &ops) {
   subscriptions.insert(ops.topic);
 
   try {
+    boost::lock_guard<boost::mutex> lock(*_mutex);
     // Subscribe with the updated subscription list
     consumer.subscribe(subscriptions);
   } catch (kafka::KafkaException &e) {

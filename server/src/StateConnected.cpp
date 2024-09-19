@@ -1,6 +1,7 @@
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteRuntime.hpp"
 #include "ServerStatesDeclaration.hpp"
+#include "kafka/KafkaException.h"
 #include "topics.hpp"
 
 namespace celte {
@@ -15,6 +16,7 @@ void Connected::react(EDisconnectFromServer const &event) {
   // to call this at the start of the program. (and the server starts in
   // disconnected state)
   HOOKS.server.connection.onServerDisconnected();
+  __unregisterGrapeConsumers();
   transit<Disconnected>();
 }
 
@@ -26,12 +28,19 @@ void Connected::__registerRPCs() {
   // spawns a player in the game world. Clients also have this rpc.
   REGISTER_RPC(__rp_spawnPlayer, celte::rpc::Table::Scope::CHUNK, std::string,
                int, int, int);
+  REGISTER_RPC(__rp_assignGrape, celte::rpc::Table::Scope::GRAPPE, std::string);
 }
 
 void Connected::__unregisterRPCs() {
   UNREGISTER_RPC(__rp_acceptNewClient);
   UNREGISTER_RPC(__rp_onSpawnRequested);
   UNREGISTER_RPC(__rp_spawnPlayer);
+  UNREGISTER_RPC(__rp_assignGrape);
+}
+
+void Connected::__rp_assignGrape(std::string grapeId) {
+  std::cout << "Node taking authority of grape " << grapeId << std::endl;
+  __registerGrapeConsumers(grapeId);
 }
 
 void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
@@ -44,9 +53,6 @@ void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
   } catch (const std::out_of_range &e) {
     std::cerr << "Error in __rp_acceptNewClient: " << e.what() << std::endl;
   }
-
-  // RPC.InvokeByTopic(clientId + "." + celte::tp::RPCs,
-  //                   "__rp_forceConnectToChunk", grapeId, x, y, z);
   RPC.InvokePeer(clientId, "__rp_forceConnectToChunk", grapeId, x, y, z);
 }
 
@@ -66,6 +72,25 @@ void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
   HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId, x, y, z);
 }
 
+void Connected::__registerGrapeConsumers(const std::string &grapeId) {
+  try {
+    KPOOL.Subscribe({
+        .topic = grapeId + "." + tp::RPCs,
+        .autoCreateTopic = false,
+        .autoPoll = true,
+        .extraProps = {{"auto.offset.reset", "earliest"}},
+        .callback =
+            [this](auto r) {
+              std::cout << "INVOKE LOCAL IN SERVER RPC LISTENER" << std::endl;
+              RPC.InvokeLocal(r);
+            },
+    });
+  } catch (kafka::KafkaException &e) {
+    std::cerr << "Error in __registerGrapeConsumers: " << e.what() << std::endl;
+  }
+}
+
+void Connected::__unregisterGrapeConsumers() {}
 } // namespace states
 } // namespace server
 } // namespace celte
