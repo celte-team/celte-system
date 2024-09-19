@@ -40,6 +40,7 @@ void Connected::__unregisterRPCs() {
 
 void Connected::__rp_assignGrape(std::string grapeId) {
   std::cout << "Node taking authority of grape " << grapeId << std::endl;
+  HOOKS.server.grape.loadGrape(grapeId);
   __registerGrapeConsumers(grapeId);
 }
 

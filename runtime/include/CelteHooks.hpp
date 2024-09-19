@@ -61,6 +61,21 @@ public:
       std::function<bool(std::string, int, int, int)> execPlayerSpawn =
           [](std::string clientId, int x, int y, int z) { return true; };
     } newPlayerConnected;
+
+    /**
+     * @brief This collection of hooks regroups all hooks related to
+     * managing the lifecycle of a grape, and instantiating it into the game
+     * world.
+     */
+    struct {
+      /**
+       * @brief This hook is called when the server is informed that a new grape
+       * has been assigned to it.
+       */
+      std::function<bool(std::string)> loadGrape = [](std::string grapeId) {
+        return true;
+      };
+    } grape;
   } server;
 
 #else
@@ -117,6 +132,17 @@ public:
       std::function<bool(std::string, int x, int y, int z)> execPlayerSpawn =
           [](std::string clientId, int x, int y, int z) { return true; };
     } player;
+
+    struct {
+      /**
+       * @brief This hook is called to load the map on client side.
+       * The part of the map that must be loaded is that related to the space
+       * under the authority of the grape whose id is passed as a parameter.
+       */
+      std::function<bool(std::string)> loadGrape = [](std::string) {
+        return true;
+      };
+    } grape;
   } client;
 #endif
   /**
