@@ -12,7 +12,7 @@ public class Scope
 
     private Scope(string id)
     {
-        this.id = id;
+        this.id = id + ".rpc";
     }
 
     public string Id => id;

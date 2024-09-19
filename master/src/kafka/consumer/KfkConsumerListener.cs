@@ -52,7 +52,7 @@ public class KfkConsumerListener : IDisposable
                     var topicSpecification = new TopicSpecification
                     {
                         Name = topic,
-                        NumPartitions = 3, // Specify the number of partitions
+                        NumPartitions = 1, // Specify the number of partitions
                         ReplicationFactor = 1 // Specify replication factor
                     };
 
@@ -94,6 +94,8 @@ public class KfkConsumerListener : IDisposable
                 var consumeResult = _consumer.Consume(cancellationToken);
                 if (consumeResult != null)
                 {
+                    // print the client id of the producer who produced the message
+                    // Console.WriteLine($"Client Id: {consumeResult.Message.Headers.Last().GetValueBytes()}");
                     _buffer.Enqueue((consumeResult.Topic, consumeResult.Message.Value));
                     Console.WriteLine($"Consumed event from topic {consumeResult.Topic}: value = {consumeResult.Message.Value}");
                 }
