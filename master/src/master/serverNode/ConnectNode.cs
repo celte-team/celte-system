@@ -19,6 +19,8 @@ class ConnectNode
 
         // create a topic form the UUID and assign the node to the topic
         _master.kFKProducer._uuidProducerService.OpenTopic(message);
+        RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "LeChateauDuMechant");// only one grape and one node for now but TODO: assign a grape to the node using some actual logic
+
         // link node with the server
         if (!_nodes.ContainsKey(message))
             _nodes.Add(message, new Node { uuid = message });
