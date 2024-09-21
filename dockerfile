@@ -1,3 +1,17 @@
+# /////////////////////////////////////////
+# This is a Dockerfile for building a container image able to use :
+    # - vcpkg
+    # - c++
+
+    # please for ARM64, use the following command:
+        # Docker buildx build -t [NAMEOFTHEIMAGE]_x86 --platform=linux/amd64 . --output type=docker
+        # Docker run -p 8080-8100:8080-8100 -p 35729:35729 -v $(pwd):/workdir -it [NAMEOFTHEIMAGE]_x86 /bin/bash
+        # Then cd /workdir and run the following command:
+        # cd build, etc...
+
+# ////////////////////////////////////////
+
+
 # Use Fedora as the base image
 FROM fedora:38
 
