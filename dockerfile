@@ -51,7 +51,8 @@ RUN dnf update -y && \
     python3-pip \
     pacman
 
-RUN dnf install -y glib2-devel
+RUN dnf install -y glib2-devel \
+        libfl-devel
 
 RUN dnf install -y openssl openssl-devel
 
@@ -61,8 +62,22 @@ RUN dnf install openssl-devel openssl -y
 RUN dnf install libcurl-devel -y
 RUN dnf install perl-IPC-Cmd -y
 
+
+
 # ÷///
 RUN dnf install kernel-devel -y
+# RUN dnf groupinstall "Development Tools"
+RUN dnf install -y kernel-devel\
+    openssl-devel \
+    librdkafka-devel \
+    librdkafka
+
+RUN dnf install perl-FindBin -y \
+    perl-IPC-Cmd \
+    perl-core
+
+RUN sudo dnf install autoconf automake autoconf-archive -y
+
 # RUN dnf install linux-libc-dev -y
 
 # RUN pacman -Sy base-devel --noconfirm
@@ -79,7 +94,11 @@ RUN git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT && \
 # Example: RUN $VCPKG_ROOT/vcpkg install boost
 
 # Set the default work directory
-WORKDIR /workspace
+# WORKDIR /workdir
 
-# Display vcpkg help when starting the container
-CMD ["vcpkg", "--help"]
+# RUN ls -la
+# RUN vcpkg install --triplet x64-linux
+# RUN cd /workdir && vcpkg install
+
+# CMD ["vcpkg", "--help"]
+# CMD ["cd /workdir && vcpkg install"]

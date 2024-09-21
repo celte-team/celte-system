@@ -18,9 +18,16 @@ std::unordered_map<std::string, AKafkaLink::Consumer> AKafkaLink::_consumers
 kafka::Properties AKafkaLink::kDefaultProps = kafka::Properties(
     kafka::Properties::PropertiesMap({ { "enable.idempotence", { "true" } } }));
 
-AKafkaLink::KCelteConfig AKafkaLink::kCelteConfig { .pollingIntervalMs
-    = std::chrono::milliseconds(5),
-    .pollTimeout = std::chrono::milliseconds(10) };
+// AKafkaLink::KCelteConfig AKafkaLink::kCelteConfig { .pollingIntervalMs
+//     = std::chrono::milliseconds(5),
+//     .pollTimeout = std::chrono::milliseconds(10) };
+
+AKafkaLink::KCelteConfig AKafkaLink::kCelteConfig {
+    .pollTimeout = std::chrono::milliseconds(10),
+    .pollingIntervalMs = std::chrono::milliseconds(5)
+};
+
+
 
 void AKafkaLink::RegisterConsumer(const std::string& topic,
     AKafkaLink::ScheduledKCTask callback,

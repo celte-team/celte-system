@@ -15,6 +15,8 @@ enable_testing()
 FetchContent_MakeAvailable(googletest)
 
 add_subdirectory(single_node_poc)
+# here
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(RdKafka CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
