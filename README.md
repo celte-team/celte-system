@@ -13,5 +13,6 @@ If you wish to build Celte manually, make sure that:
 - `VCPKG_TARGET_TRIPLET` is defined to the value corresponding to your os (arm64-osx, linux-x84...)
 - you call cmake with `-DCMAKE_PREFIX_PATH=path/to/gdproj`
 - you do all this from a `build` folder (in source build is disabled)
+- 
 Then run the following command:
 mkdir build && cd build && cmake --preset default .. -DCMAKE_PREFIX_PATH=path/to/gdproj
