@@ -1,3 +1,5 @@
+Check out the [official documentation](https://celte-team.github.io/)!
+
 # How to build
 
 The build system uses CMake and VCPKG. Make sure you have those two installed before proceeding. Additionally, make sure that the env variable VCPKG_ROOT is defined in your environment, and that it points to the install folder of VCPKG.
