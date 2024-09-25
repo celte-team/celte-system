@@ -19,17 +19,10 @@ FROM fedora:38
 ENV VCPKG_ROOT=/opt/vcpkg
 ENV PATH=$PATH:/opt/vcpkg
 ENV VCPKG_FORCE_SYSTEM_BINARIES=1
-
-# //
 ENV CC=/usr/bin/gcc
 ENV CXX=/usr/bin/g++
 ENV VCPKG_TARGET_TRIPLET="x64-linux"
 RUN echo "export VCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}" >> ~/.bashrc
-
-# // not sure if this is needed
-#   CMAKE_PREFIX_PATH:STRING="/opt/vcpkg/installed/x64-linux"
-#   CMAKE_TOOLCHAIN_FILE:FILEPATH="/opt/vcpkg/scripts/buildsystems/vcpkg.cmake"
-# //
 
 # Update the system and install required packages
 RUN dnf update -y && \
@@ -51,54 +44,24 @@ RUN dnf update -y && \
     python3-pip \
     pacman
 
-RUN dnf install -y glib2-devel \
-        libfl-devel
-
-RUN dnf install -y openssl openssl-devel
-
-RUN dnf install perl -y
-
-RUN dnf install openssl-devel openssl -y
-RUN dnf install libcurl-devel -y
-RUN dnf install perl-IPC-Cmd -y
-
-
-
-# ÷///
-RUN dnf install kernel-devel -y
-# RUN dnf groupinstall "Development Tools"
-RUN dnf install -y kernel-devel\
+# Additional dependencies
+RUN dnf install -y \
+    glib2-devel \
+    libfl-devel \
+    openssl \
     openssl-devel \
-    librdkafka-devel \
-    librdkafka
-
-RUN dnf install perl-FindBin -y \
+    perl \
+    libcurl-devel \
     perl-IPC-Cmd \
-    perl-core
+    kernel-devel \
+    librdkafka-devel \
+    librdkafka \
+    perl-FindBin \
+    autoconf \
+    automake \
+    autoconf-archive
 
-RUN sudo dnf install autoconf automake autoconf-archive -y
-
-# RUN dnf install linux-libc-dev -y
-
-# RUN pacman -Sy base-devel --noconfirm
-
-#  autoconf automake autoconf-archive
-RUN dnf install autoconf automake autoconf-archive -y
-
-# Clone vcpkg and bootstrap it
+# Clone vcpkg
 RUN git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT && \
     cd $VCPKG_ROOT && \
     ./bootstrap-vcpkg.sh -useSystemBinaries
-
-# Optionally, you can install some common packages using vcpkg
-# Example: RUN $VCPKG_ROOT/vcpkg install boost
-
-# Set the default work directory
-# WORKDIR /workdir
-
-# RUN ls -la
-# RUN vcpkg install --triplet x64-linux
-# RUN cd /workdir && vcpkg install
-
-# CMD ["vcpkg", "--help"]
-# CMD ["cd /workdir && vcpkg install"]
