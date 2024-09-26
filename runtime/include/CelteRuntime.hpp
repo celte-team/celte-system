@@ -164,6 +164,13 @@ public:
    */
   bool IsConnectedToCluster();
 
+
+  /**
+   * @brief Returns true if the runtime is currently connecting to
+   * kafka
+   */
+  bool IsConnectingToCluster();
+
   /**
    * @brief Waits until the runtime is connected to the cluster. If timeout is
    * reached, returns false.

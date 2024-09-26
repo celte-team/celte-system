@@ -43,7 +43,7 @@
 # install(DIRECTORY server/include/ DESTINATION ${INSTALL_INCLUDE_DIR}/server)
 # install(DIRECTORY runtime/include/ DESTINATION ${INSTALL_INCLUDE_DIR}/runtime)
 
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.20)
 project(celte-systems)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -106,11 +106,22 @@ if(NOT RDKAFKA++_LIBRARY)
     message(FATAL_ERROR "rdkafka++ library not found")
 endif()
 # Install header files
+
 message(STATUS "Installing headers")
-install(DIRECTORY "build/vcpkg_installed/arm64-osx/include/librdkafka" DESTINATION ${INSTALL_INCLUDE_DIR})
-install(DIRECTORY "build/vcpkg_installed/arm64-osx/include/glm" DESTINATION ${INSTALL_INCLUDE_DIR})
-install(DIRECTORY "build/vcpkg_installed/arm64-osx/include/msgpack" DESTINATION ${INSTALL_INCLUDE_DIR})
-install(FILES "build/vcpkg_installed/arm64-osx/include/msgpack.hpp" DESTINATION ${INSTALL_INCLUDE_DIR})
+if (APPLE)
+    # Include directories for librdkafka
+    install(DIRECTORY "build/vcpkg_installed/arm64-osx/include/librdkafka" DESTINATION ${INSTALL_INCLUDE_DIR})
+    install(DIRECTORY "build/vcpkg_installed/arm64-osx/include/glm" DESTINATION ${INSTALL_INCLUDE_DIR})
+    install(DIRECTORY "build/vcpkg_installed/arm64-osx/include/msgpack" DESTINATION ${INSTALL_INCLUDE_DIR})
+    install(FILES "build/vcpkg_installed/arm64-osx/include/msgpack.hpp" DESTINATION ${INSTALL_INCLUDE_DIR})
+else()
+    # Include directories for librdkafka
+    install(DIRECTORY "build/vcpkg_installed/x64-linux/include/librdkafka" DESTINATION ${INSTALL_INCLUDE_DIR})
+    install(DIRECTORY "build/vcpkg_installed/x64-linux/include/glm" DESTINATION ${INSTALL_INCLUDE_DIR})
+    install(DIRECTORY "build/vcpkg_installed/x64-linux/include/msgpack" DESTINATION ${INSTALL_INCLUDE_DIR})
+    install(FILES "build/vcpkg_installed/x64-linux/include/msgpack.hpp" DESTINATION ${INSTALL_INCLUDE_DIR})
+endif()
+
 install(DIRECTORY client/include/ DESTINATION ${INSTALL_INCLUDE_DIR}/client)
 install(DIRECTORY server/include/ DESTINATION ${INSTALL_INCLUDE_DIR}/server)
 install(DIRECTORY runtime/include/ DESTINATION ${INSTALL_INCLUDE_DIR}/runtime)
