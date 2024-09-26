@@ -143,6 +143,13 @@ public:
    * {'answer': rpcUUID} where rpcUUID is the uuid of the rpc that was sent.
    * The scope cannot be something else that PEER.
    */
+  /**
+   * @brief Registers an rpc that can return a value.
+   * The return value is published to the .rpc topic of the peer that sent the
+   * rpc. There is no rpc name associated to it, instead it has the key value
+   * {'answer': rpcUUID} where rpcUUID is the uuid of the rpc that was sent.
+   * The scope cannot be something else that PEER.
+   */
   template <typename Ret, typename... Args>
   void RegisterAwaitable(std::string name, std::function<Ret(Args...)> rpc) {
     // Create the callback to be invoked upon receiving a message
@@ -150,39 +157,20 @@ public:
         [this, rpc](kafka::clients::consumer::ConsumerRecord consumerRecord,
                     std::string serializedArguments) {
           try {
-            auto serializedResult =
-                __serialize__(__invoke__<Ret, decltype(rpc), Args...>(
-                    rpc, serializedArguments));
-            auto rpcUUID = std::make_shared<std::string>(
-                __getHdrValue__(consumerRecord, celte::tp::HEADER_RPC_UUID));
-            auto peerUUID = std::make_shared<std::string>(
-                __getHdrValue__(consumerRecord, celte::tp::HEADER_PEER_UUID));
-            auto record = kafka::clients::producer::ProducerRecord(
-                *peerUUID + "." + celte::tp::RPCs, kafka::NullKey,
-                kafka::Value(serializedResult->data(),
-                             serializedResult->size()));
+            auto result = __invokeRPC<Ret, Args...>(rpc, serializedArguments);
+            auto rpcUUID = __getHdrValueSharedPtr(consumerRecord,
+                                                  celte::tp::HEADER_RPC_UUID);
+            auto peerUUID = __getHdrValueSharedPtr(consumerRecord,
+                                                   celte::tp::HEADER_PEER_UUID);
+            auto record =
+                __createResultProducerRecord(*peerUUID, *rpcUUID, result);
 
-            record.headers() = {{kafka::Header{
-                kafka::Header::Key{"answer"},
-                kafka::Header::Value{rpcUUID->c_str(), rpcUUID->size()}}}};
-
-            __send(record, [rpcUUID, peerUUID, serializedResult](
-                               const kafka::clients::producer::RecordMetadata &,
-                               kafka::Error err) {
-              if (err) {
-                std::cerr << "Error in RPC return: " << err.message()
-                          << std::endl;
-                std::cerr << "Failed to send message: " << rpcUUID << " to "
-                          << *peerUUID << std::endl;
-              }
-            });
+            sendRecord(record, rpcUUID, peerUUID, result);
 
           } catch (const msgpack::type_error &e) {
-            std::cerr << "Type error during deserialization: " << e.what()
-                      << std::endl;
+            __handleDeserializationError(e);
           } catch (const std::exception &e) {
-            std::cerr << "Exception during deserialization: " << e.what()
-                      << std::endl;
+            __handleException(e);
           }
         };
 
@@ -326,14 +314,109 @@ public:
 private:
   std::unordered_map<std::string, RPCBucket> rpcs;
 
+  /**
+   * @brief Invokes an rpc using the serialized arguments passed as a string,
+   * and returns the serialized result as a shared pointer.
+   *
+   * @param rpc the lambda expression to invoke
+   * @param serializedArguments the binary data of all the arguments to pass to
+   * the lambda, packed as a string.
+   *
+   * @return std::shared_ptr<std::string> the result serialized as a string. The
+   * shared pointer is used to send the result over kafka whilst avoiding memory
+   * leaks.
+   */
+  template <typename Ret, typename... Args>
+  std::shared_ptr<std::string>
+  __invokeRPC(std::function<Ret(Args...)> rpc,
+              const std::string &serializedArguments) {
+    return __serialize__(
+        __invoke__<Ret, decltype(rpc), Args...>(rpc, serializedArguments));
+  }
+
+  /**
+   * @brief Retruns the header value for the given key of a consumer record,
+   * and wraps it into a shared pointer to be sent over kafka.
+   */
+  inline std::shared_ptr<std::string>
+  __getHdrValueSharedPtr(const kafka::clients::consumer::ConsumerRecord &record,
+                         const std::string &key) {
+    return std::make_shared<std::string>(__getHdrValue__(record, key));
+  }
+
+  /**
+   * @brief Creates a producer record to be used to send the result of an rpc.
+   *
+   * @param peerUUID : the UUID of the peer the response shall be sent too.
+   * @param rpcUUID : the UUID corresponding to the request that we are
+   * responding to.
+   */
+  kafka::clients::producer::ProducerRecord __createResultProducerRecord(
+      const std::string &peerUUID, const std::string &rpcUUID,
+      const std::shared_ptr<std::string> &serializedResult) {
+    auto record = kafka::clients::producer::ProducerRecord(
+        peerUUID + "." + celte::tp::RPCs, kafka::NullKey,
+        kafka::Value(serializedResult->data(), serializedResult->size()));
+
+    record.headers() = {
+        {kafka::Header{kafka::Header::Key{"answer"},
+                       kafka::Header::Value{rpcUUID.c_str(), rpcUUID.size()}}}};
+    return record;
+  }
+
+  /**
+   * @brief Sends a record to kafka to return the result of an rpc call, whilst
+   * ensuring that all the relevant data is captured in the delivery callback to
+   * avoid memory leaks.
+   */
+  inline void sendRecord(kafka::clients::producer::ProducerRecord &record,
+                         std::shared_ptr<std::string> &rpcUUID,
+                         std::shared_ptr<std::string> &peerUUID,
+                         std::shared_ptr<std::string> &serializedResult) {
+    __send(record, [rpcUUID, peerUUID, serializedResult](
+                       const kafka::clients::producer::RecordMetadata &,
+                       kafka::Error err) {
+      if (err) {
+        std::cerr << "Error in RPC return: " << err.message() << std::endl;
+      }
+    });
+  }
+
+  /**
+   * @brief Logs the error to stderr.
+   */
+  inline void __handleDeserializationError(const msgpack::type_error &e) {
+    std::cerr << "Type error during deserialization: " << e.what() << std::endl;
+  }
+
+  /**
+   * @brief Logs the error to stderr.
+   */
+  inline void __handleException(const std::exception &e) {
+    std::cerr << "Exception during deserialization: " << e.what() << std::endl;
+  }
+
+  /**
+   * @brief Sends a record for invoking an rpc.
+   */
   void __send(
       kafka::clients::producer::ProducerRecord &record,
       const std::function<void(const kafka::clients::producer::RecordMetadata &,
                                kafka::Error)> &onDelivered);
 
+  /**
+   * @brief Tries to call an rpc locally (invoked by a remote peer) from its
+   * name. If no such rpc is found, a log is produced to stderr and this method
+   * returns.
+   */
   void __tryInvokeRPC(kafka::clients::consumer::ConsumerRecord record,
                       const std::string &rpName);
 
+  /**
+   * @brief This method is called by InvokeLocal when the message
+   * does not contain an rpc but instead contains the return value of a
+   * previously invoked rpc.
+   */
   void __handleRPCReturnedValue(kafka::clients::consumer::ConsumerRecord record,
                                 const std::string &rpcUUId);
 

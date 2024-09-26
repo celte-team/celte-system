@@ -29,10 +29,7 @@ void Connecting::entry() {
                    .autoCreateTopic = true,
                    .autoPoll = true,
                    .extraProps = {{"auto.offset.reset", "earliest"}},
-                   .callback = [this](auto r) {
-                     << std::endl;
-                     RPC.InvokeLocal(r);
-                   }});
+                   .callback = [this](auto r) { RPC.InvokeLocal(r); }});
 
   KPOOL.Send({
       .topic = celte::tp::MASTER_HELLO_CLIENT,
