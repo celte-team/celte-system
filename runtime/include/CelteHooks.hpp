@@ -44,6 +44,20 @@ public:
        * kafka cluster for any reason.
        */
       std::function<bool()> onServerDisconnected = []() { return true; };
+
+      /**
+       * @brief This hook is called when the master receives a new connection
+       * and must decide where to redirect the player. The game dev is expected
+       * to look up the player's last known position and data, and return it so
+       * that it can be forwarded to the server node.
+       *
+       * @return A tuple containing the clientId, the x, y, z coordinates of the
+       * spawn, and a blob of data to be sent to the client.s
+       */
+      // std::function<std::tuple<std::string, float, float, float,
+      // std::string>>
+      //     onSpawnLocationRequest =
+      //         []() { return std::make_tuple("", 0, 0, 0, ""); };
     } connection;
 
     struct {

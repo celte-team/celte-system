@@ -87,9 +87,6 @@ void KafkaPool::__consumerJob() {
         boost::lock_guard<boost::mutex> lock(*_mutex);
         auto records = consumer.second.poll(std::chrono::milliseconds(100));
         for (auto &record : records) {
-          std::cout << "auto poll record" << std::endl;
-          std::cout << record.value().toString() << std::endl;
-          std::cout << record.topic() << std::endl;
           _records.push(record);
         }
       }
@@ -139,9 +136,7 @@ void KafkaPool::Subscribe(const SubscribeOptions &ops) {
       boost::uuids::to_string(boost::uuids::random_generator()());
   props.put("client.id", uuid);
 
-  std::cout << "before emplace" << std::endl;
   __emplaceConsumerIfNotExists(ops.groupId, props, ops.autoPoll);
-  std::cout << "after emplace" << std::endl;
 
   auto &consumer = (ops.autoPoll) ? _consumers.at(ops.groupId)
                                   : _manualConsumers.at(ops.groupId);
@@ -160,8 +155,6 @@ void KafkaPool::Subscribe(const SubscribeOptions &ops) {
     std::cerr << "Error subscribing to topic " << ops.topic << std::endl;
     std::cerr << e.what() << std::endl;
   }
-
-  std::cout << "subscribed" << std::endl;
 }
 
 void KafkaPool::Unsubscribe(const std::string &topic,

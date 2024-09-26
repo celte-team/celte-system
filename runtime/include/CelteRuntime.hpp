@@ -1,17 +1,17 @@
 /*
-** CELTE, 2024
-** server-side
-**
-** Team members:
-** Eliot Janvier
-** Clement Toni
-** Ewen Briand
-** Laurent Jiang
-** Thomas Laprie
-**
-** File description:
-** CelteRuntime.hpp
-*/
+ ** CELTE, 2024
+ ** server-side
+ **
+ ** Team members:
+ ** Eliot Janvier
+ ** Clement Toni
+ ** Ewen Briand
+ ** Laurent Jiang
+ ** Thomas Laprie
+ **
+ ** File description:
+ ** CelteRuntime.hpp
+ */
 
 #ifndef CELTE_RUNTIME_HPP
 #define CELTE_RUNTIME_HPP
@@ -193,7 +193,7 @@ public:
   /**
    * @brief Returns the UUID of the peer.
    */
-  std::string GetUUID() const {
+  const std::string &GetUUID() const {
 #ifdef CELTE_SERVER_MODE_ENABLED
     static const std::string PEER_UUID =
         "sn." + boost::uuids::to_string(

@@ -30,11 +30,7 @@ void Chunk::__registerConsumers() {
       .groupId = "", // no group, all consumers receive the message
       .autoCreateTopic = true,
       .autoPoll = true,
-      .callback =
-          [this](auto r) {
-            std::cout << "INVOKE LOCAL IN CHUNK RPC LISTENER" << std::endl;
-            RUNTIME.RPCTable().InvokeLocal(r);
-          },
+      .callback = [this](auto r) { RUNTIME.RPCTable().InvokeLocal(r); },
   });
 }
 

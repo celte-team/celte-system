@@ -16,5 +16,7 @@ static const std::string AUTHORITY = "a";
 static const std::string TAKE = "t";
 static const std::string DROP = "d";
 static const std::string GHOSTS = "g";
+static const std::string HEADER_RPC_UUID = "rpcUUID";
+static const std::string answer = "answer";
 } // namespace tp
 } // namespace celte
