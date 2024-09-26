@@ -164,7 +164,6 @@ public:
    */
   bool IsConnectedToCluster();
 
-
   /**
    * @brief Returns true if the runtime is currently connecting to
    * kafka
@@ -195,7 +194,7 @@ public:
   /**
    * @brief Returns a reference to the hook table.
    */
-  inline api::HooksTable &Hooks() { return _hooks; }
+  api::HooksTable &Hooks();
 
   /**
    * @brief Returns the UUID of the peer.
