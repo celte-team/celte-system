@@ -23,12 +23,19 @@
       }),                                                                      \
       scope)
 
+#define REGISTER_AWAITABLE_RPC(name, ...)                                      \
+  RPC.RegisterAwaitable(#name,                                                 \
+                        std::function<__VA_ARGS__>([this](auto &&...args) {    \
+                          return name(std::forward<decltype(args)>(args)...);  \
+                        }))
+
 #define UNREGISTER_RPC(name) RUNTIME.RPCTable().ForgetRPC(#name)
 namespace celte {
 namespace rpc {
 
 /**
  * @brief Deserializes the string to the values passed by reference.
+ * Values are passed in place to the dump variadic arguments.
  */
 template <typename... Args>
 void unpack(const std::string &data, Args &...dump) {

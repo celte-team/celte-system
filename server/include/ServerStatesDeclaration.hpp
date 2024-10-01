@@ -156,6 +156,13 @@ class Connected : public AServer {
   void __unregisterGrapeConsumers();
 
   /**
+   * @brief This method is called by the server to ask the server node to find
+   * out where the player should be spawning in the map.
+   */
+  std::tuple<std::string, float, float, float>
+  __rp_getPlayerSpawnPosition(const std::string &clientInfo);
+
+  /**
    * @brief stores the clients that are under this node's authority.
    * Clients are added using the __rp_acceptNewClient RPC and removed
    * using the __rp_disconnectPlayer RPC. Disconnection happends when they
