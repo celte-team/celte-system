@@ -51,13 +51,17 @@ public:
        * to look up the player's last known position and data, and return it so
        * that it can be forwarded to the server node.
        *
-       * @return A tuple containing the clientId, the x, y, z coordinates of the
-       * spawn, and a blob of data to be sent to the client.s
+       * The hook is called by the impolementation of
+       * celte::server::states::Connected::__rp_getPlayerSpawnPosition.
+       *
+       * @return A tuple containing the grape id, the x, y, z coordinates of the
+       * spawn for the client that has been requested
        */
-      // std::function<std::tuple<std::string, float, float, float,
-      // std::string>>
-      //     onSpawnLocationRequest =
-      //         []() { return std::make_tuple("", 0, 0, 0, ""); };
+      std::function<std::tuple<std::string, float, float, float>(std::string)>
+          onSpawnPositionRequest = [](std::string clientId) {
+            return std::make_tuple(
+                "hook onSpawnPositionRequest not implemented", 0, 0, 0);
+          };
     } connection;
 
     struct {

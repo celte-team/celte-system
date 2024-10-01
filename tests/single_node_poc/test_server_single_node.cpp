@@ -37,11 +37,6 @@ void registerServerHooks() {
     std::cout << "Client disconnected" << std::endl;
     return true;
   };
-  // HOOKS.server.player.onAuthorizeSpawn = [](std::string id, int x, int y,
-  //                                            int z) {
-  //     std::cout << "Client " << id << " is authorized to spawn" << std::endl;
-  //     return true;
-  // };
 }
 
 void registerServerRPC(celte::runtime::CelteRuntime &runtime,
