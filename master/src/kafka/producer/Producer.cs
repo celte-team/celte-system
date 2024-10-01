@@ -10,9 +10,10 @@ class KFKProducer : IDisposable
     private bool _disposed = false;
     public UUIDProducerService _uuidProducerService;
 
+    private Master master = Master.GetInstance();
+
     public KFKProducer()
     {
-        Master master = Master.GetInstance();
         try
         {
             var configObject = master._setupConfig.GetYamlObjectConfig();
@@ -52,6 +53,13 @@ class KFKProducer : IDisposable
         {
             Console.WriteLine($"Delivery failed: {e.Error.Reason}");
         }
+    }
+
+    public async Task SendMessageAwaitResponseAsyncRpc(string topic, byte[] message, Headers headers, Action<string> callBackFunction)
+    {
+        var masterUUID = headers.GetLastBytes("peer.uuid").ToString();
+        await SendMessageAsync(topic, message, headers);
+        master.kfkConsumerListener.AddTopic(masterUUID, callBackFunction);
     }
 
     /// <summary>

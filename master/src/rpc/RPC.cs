@@ -27,7 +27,7 @@ public class Scope
         return new Scope(id);
     }
 
-    public static Scope Grappe(string id)
+    public static Scope Grape(string id)
     {
         return new Scope(id);
     }
@@ -46,9 +46,16 @@ public class Scope
 /// </summary>
 class RPC
 {
-    private static byte[] __str2bytes(string str)
+
+
+    public static byte[] __str2bytes(string str)
     {
         return System.Text.Encoding.UTF8.GetBytes(str);
+    }
+
+    public static string __deserialize(byte[] bytes)
+    {
+        return MessagePackSerializer.Deserialize<string>(bytes);
     }
 
     public static void InvokeRemote(string rpcName, Scope scope, params object[] args)
@@ -60,5 +67,19 @@ class RPC
         Master.GetInstance().kFKProducer.SendMessageAsync(scope.Id, data, headers);
     }
 
-    // Add more Register methods for different numbers of arguments as needed
+    /// <summary>
+    /// this function is used to call a remote procedure on a specific node or client and wait for the response.
+    /// </summary>
+    /// <param name="rpcName"></param>
+    /// <param name="scope"></param>
+    /// <param name="args"></param>
+    /// <param name="headers"></param>
+    /// <returns></returns>
+    public static async Task Call(string rpcName, Scope scope, Headers headers, Action<string> callBackFunction, params object[]? args)
+    {
+        byte[] data = MessagePackSerializer.Serialize(args);
+        // faire une variable global de master uuid
+        await Master.GetInstance().kFKProducer.SendMessageAwaitResponseAsyncRpc(scope.Id, data, headers, callBackFunction);
+    }
+
 }

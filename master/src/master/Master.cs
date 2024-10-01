@@ -30,7 +30,7 @@ class Master
             StartKafkaSystem();
         } catch (Exception e) {
             Console.WriteLine($"Error initializing Master: {e.Message}");
-            
+
         }
     }
 
@@ -46,7 +46,6 @@ class Master
         StartExecuteBufferThread.Start();
 
         //from UUIDConsumer.cs
-        UUIDConsumerService uuidConsumerService = new UUIDConsumerService();
         ConnectNode connectNode = new ConnectNode();
         ConnectClient connectClient = new ConnectClient();
 

@@ -18,9 +18,14 @@ public class KfkConsumerListener : IDisposable
     // AdminClientBuilder
     private readonly AdminClientConfig _adminClientConfig;
 
+    public ConsumerConfig config;
+
+    // map with uuid and function
+    private Dictionary<string, Action<string>> _rpcFunctions = new Dictionary<string, Action<string>>();
+
     public KfkConsumerListener(string bootstrapServers, string groupId)
     {
-        var config = new ConsumerConfig
+        config = new ConsumerConfig
         {
             BootstrapServers = bootstrapServers, // "localhost:80",
             GroupId = groupId,
@@ -36,7 +41,8 @@ public class KfkConsumerListener : IDisposable
             BootstrapServers = bootstrapServers
         };
     }
-
+    //rpc [uuid1: mapetiteFunction, uuid2: mapetiteFunction2]
+    // open master.rpc change handler function
     public void AddTopic(string topic, Action<string> handler)
     {
         // use the _adminClientConfig
@@ -48,7 +54,6 @@ public class KfkConsumerListener : IDisposable
                 var metadata = adminClient.GetMetadata(TimeSpan.FromSeconds(10));
                 if (!metadata.Topics.Any(t => t.Topic == topic))
                 {
-
                     var topicSpecification = new TopicSpecification
                     {
                         Name = topic,

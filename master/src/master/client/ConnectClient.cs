@@ -1,3 +1,6 @@
+using Confluent.Kafka;
+using System;
+
 class ConnectClient
 {
     private Master _master = Master.GetInstance();
@@ -9,7 +12,7 @@ class ConnectClient
 
     public static Dictionary<string, Client> _clients = new Dictionary<string, Client>();
 
-    public void connectNewClient(string message)
+    public async void connectNewClient(string message)
     {
         Console.WriteLine("New client connected to the cluster: " + message);
 
@@ -22,22 +25,32 @@ class ConnectClient
         // send to the server that a client will spawn in the node 0
         try
         {
-            string nodeId = ConnectNode._nodes.ElementAt(0).Value.uuid; // TODO: @Laurent, this is temporary, we need to implement the logic to assign the client to the node
+            // select a random node from the list of nodes
+            int rand = new Random().Next(0, ConnectNode._nodes.Count);
+            string nodeId = ConnectNode._nodes.ElementAt(rand).Value.uuid;
 
-            Console.WriteLine("Available nodes are:");
-            foreach (var node in ConnectNode._nodes)
-            {
-                Console.WriteLine(node.Value.uuid);
-            }
-
+            // call the function to compute the grapeId then return the values
             string clientId = message;
-            string grapeId = "leChateauDuMechant"; // tmp, Laurent will implement the logic
-            float x = 0.0f;
-            float y = 0.0f;
-            float z = 0.0f;
+            var uuidProcess = Guid.NewGuid().ToString();
+            const string rpcName = "__rp_getPlayerSpawnPosition";
+            const string masterRPC = "master";
+            Headers headers = new Headers();
+            headers.Add("rpcName", RPC.__str2bytes(rpcName));
+            headers.Add("rpcUUID", RPC.__str2bytes(uuidProcess));
+            headers.Add("peer.uuid", RPC.__str2bytes(masterRPC));
 
-
-            RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(nodeId), clientId, grapeId, x, y, z);
+            RPC.Call(rpcName, Scope.Peer(nodeId), headers, async (value) =>
+                {
+                    // Handle the result in the callback function
+                    Console.WriteLine("Callback executed with result: " + value);
+                        string valueString = RPC.__deserialize(value);
+                        string grapeId = valueString["grapeId"];
+                        float x = valueString["x"];
+                        float y = valueString["y"];
+                        float z = valueString["z"];
+                        // value["answer"]
+                        RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer("answer"), clientId, grapeId, x, y, z);
+                }, clientId);
         }
         catch (Exception e)
         {
