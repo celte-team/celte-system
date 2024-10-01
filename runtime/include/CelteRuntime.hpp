@@ -154,6 +154,12 @@ private:
   // =================================================================================================
 public:
   /**
+   * @brief Attempts to connect to a kafka cluster using the environment
+   * CELTE_CLUSTER_HOST, which must be under the format "host:port".
+   */
+  void ConnectToCluster();
+
+  /**
    * @brief Attemps a connection to a kafka cluster.
    */
   void ConnectToCluster(const std::string &ip, int port);

@@ -17,6 +17,7 @@
 #include "CelteRuntime.hpp"
 #include "tinyfsm.hpp"
 #include <chrono>
+#include <cstdlib>
 #include <stdexcept>
 
 namespace tinyfsm {
@@ -122,6 +123,21 @@ void CelteRuntime::__initNetworkLayer(RuntimeMode mode) {
   default:
     break;
   }
+}
+
+void CelteRuntime::ConnectToCluster() {
+  std::string ip = std::getenv("CELTE_CLUSTER_HOST");
+  if (ip.empty()) {
+    throw std::runtime_error("CELTE_CLUSTER_HOST not set");
+  }
+  std::size_t pos = ip.find(':');
+  if (pos == std::string::npos) {
+    throw std::runtime_error("CELTE_CLUSTER_HOST must be in the format "
+                             "host:port");
+  }
+  std::string host = ip.substr(0, pos);
+  int port = std::stoi(ip.substr(pos + 1));
+  ConnectToCluster(host, port);
 }
 
 void CelteRuntime::ConnectToCluster(const std::string &ip, int port) {
