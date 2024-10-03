@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+import os
+import platform
+import socket
+import subprocess
+import sys
+def get_ip_address():
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    print(s.getsockname()[0])
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
+
+def run_docker_container(ip_address):
+    env = os.environ.copy()
+    env['DOCKER_HOST_IP'] = ip_address
+    subprocess.run(['docker', 'compose', 'down'])
+    subprocess.run(['docker', 'compose', 'up'], env=env)
+
+if __name__ == "__main__":
+    ip_address = get_ip_address()
+    # if --ip is passed, use that instead
+    if len(sys.argv) > 1:
+        exit(0)
+    print(f"Current IP Address: {ip_address}")
+    run_docker_container(ip_address)
