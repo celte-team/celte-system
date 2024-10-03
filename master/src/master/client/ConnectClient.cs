@@ -39,17 +39,18 @@ class ConnectClient
             headers.Add("rpcUUID", RPC.__str2bytes(uuidProcess));
             headers.Add("peer.uuid", RPC.__str2bytes(masterRPC));
 
-            RPC.Call(rpcName, Scope.Peer(nodeId), headers, async (value) =>
+            await RPC.Call(rpcName, Scope.Peer(nodeId), headers, async (value) =>
                 {
                     // Handle the result in the callback function
                     Console.WriteLine("Callback executed with result: " + value);
-                        string valueString = RPC.__deserialize(value);
-                        string grapeId = valueString["grapeId"];
-                        float x = valueString["x"];
-                        float y = valueString["y"];
-                        float z = valueString["z"];
-                        // value["answer"]
-                        RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer("answer"), clientId, grapeId, x, y, z);
+                    object[] outputObjects = new object[4];
+                    RPC.__deserialize(value, outputObjects);
+                    string grapeId = (string)outputObjects[0];
+                    float x = (float)outputObjects[1];
+                    float y = (float)outputObjects[2];
+                    float z = (float)outputObjects[3];
+
+                    RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer("answer"), clientId, grapeId, x, y, z);
                 }, clientId);
         }
         catch (Exception e)

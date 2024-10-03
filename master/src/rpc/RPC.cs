@@ -53,9 +53,25 @@ class RPC
         return System.Text.Encoding.UTF8.GetBytes(str);
     }
 
-    public static string __deserialize(byte[] bytes)
+    // public static string __deserialize(byte[] bytes)
+    // {
+    //     return MessagePackSerializer.Deserialize<string>(bytes);
+    // }
+
+    public static void __deserialize(string str, params object[] outObjects)
     {
-        return MessagePackSerializer.Deserialize<string>(bytes);
+        var bytes = __str2bytes(str);
+        var deserializedObjects = MessagePackSerializer.Deserialize<object[]>(bytes);
+
+        if (deserializedObjects.Length != outObjects.Length)
+        {
+            throw new ArgumentException("The number of deserialized objects does not match the number of output objects.");
+        }
+
+        for (int i = 0; i < outObjects.Length; i++)
+        {
+            outObjects[i] = deserializedObjects[i];
+        }
     }
 
     public static void InvokeRemote(string rpcName, Scope scope, params object[] args)
