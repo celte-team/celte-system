@@ -39,6 +39,7 @@ class KFKProducer : IDisposable
     {
         try
         {
+            Console.WriteLine($"Sending message to topic: {topic}");
             var producer = new ProducerBuilder<TKey, byte[]>(_config).Build();
             var result = await producer.ProduceAsync(topic, new Message<TKey, byte[]>
             {
@@ -57,9 +58,10 @@ class KFKProducer : IDisposable
 
     public async Task SendMessageAwaitResponseAsyncRpc(string topic, byte[] message, Headers headers, Action<string> callBackFunction)
     {
-        var masterUUID = headers.GetLastBytes("peer.uuid").ToString();
+        string masterRPC = M.Global.MasterRPC;
+        Console.WriteLine("Master UUID: " + masterRPC + " Topic: " + topic + " Message: " + message + " Headers: " + headers);
         await SendMessageAsync(topic, message, headers);
-        master.kfkConsumerListener.AddTopic(masterUUID, callBackFunction);
+        master.kfkConsumerListener.AddTopic(masterRPC, callBackFunction);
     }
 
     /// <summary>

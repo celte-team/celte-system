@@ -12,6 +12,10 @@ public class Scope
 
     private Scope(string id)
     {
+        if (string.IsNullOrEmpty(id))
+        {
+            throw new ArgumentException("Scope ID cannot be null or empty.");
+        }
         this.id = id + ".rpc";
     }
 
@@ -46,17 +50,10 @@ public class Scope
 /// </summary>
 class RPC
 {
-
-
     public static byte[] __str2bytes(string str)
     {
         return System.Text.Encoding.UTF8.GetBytes(str);
     }
-
-    // public static string __deserialize(byte[] bytes)
-    // {
-    //     return MessagePackSerializer.Deserialize<string>(bytes);
-    // }
 
     public static void __deserialize(string str, params object[] outObjects)
     {
@@ -76,6 +73,10 @@ class RPC
 
     public static void InvokeRemote(string rpcName, Scope scope, params object[] args)
     {
+        if (string.IsNullOrEmpty(scope.Id))
+        {
+            throw new ArgumentException("Scope ID cannot be null or empty.");
+        }
         byte[] data = MessagePackSerializer.Serialize(args);
         // var headers = new List<Header> { new Header("rpName", __str2bytes(rpcName)) };
         Headers headers;
@@ -95,6 +96,7 @@ class RPC
     {
         byte[] data = MessagePackSerializer.Serialize(args);
         // faire une variable global de master uuid
+        Console.WriteLine("Calling RPC: " + rpcName);
         await Master.GetInstance().kFKProducer.SendMessageAwaitResponseAsyncRpc(scope.Id, data, headers, callBackFunction);
     }
 

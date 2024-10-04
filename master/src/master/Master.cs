@@ -8,7 +8,6 @@ class Master
     private static Master? _master;
     public KFKProducer kFKProducer;
     public CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-    // public KfkConsumerListener kfkConsumerListener = new KfkConsumerListener("localhost:80", "kafka-dotnet-getting-started");
     public KfkConsumerListener kfkConsumerListener;
 
     private Master()
@@ -49,14 +48,10 @@ class Master
         ConnectNode connectNode = new ConnectNode();
         ConnectClient connectClient = new ConnectClient();
 
-        kfkConsumerListener.AddTopic("master.hello.sn", connectNode.connectNewNode);
+        kfkConsumerListener.AddTopic(M.Global.MasterHelloSn, connectNode.connectNewNode);
+        kfkConsumerListener.AddTopic(M.Global.MasterHelloClient, connectClient.connectNewClient);
 
-        kfkConsumerListener.AddTopic("master.hello.client", connectClient.connectNewClient);
-
-        //from UUIDProducer.cs
         kFKProducer = new KFKProducer();
-        // produce 100 UUIDs.
-        kFKProducer._uuidProducerService.ProduceUUID(10);
     }
 
     public static Master GetInstance()

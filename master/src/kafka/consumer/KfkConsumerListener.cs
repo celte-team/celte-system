@@ -27,7 +27,7 @@ public class KfkConsumerListener : IDisposable
     {
         config = new ConsumerConfig
         {
-            BootstrapServers = bootstrapServers, // "localhost:80",
+            BootstrapServers = bootstrapServers,
             GroupId = groupId,
             AutoOffsetReset = AutoOffsetReset.Earliest // "earliest"
         };
