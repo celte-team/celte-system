@@ -57,10 +57,11 @@ public:
        * @return A tuple containing the grape id, the x, y, z coordinates of the
        * spawn for the client that has been requested
        */
-      std::function<std::tuple<std::string, float, float, float>(std::string)>
+      std::function<std::tuple<std::string, std::string, float, float, float>(
+          std::string)>
           onSpawnPositionRequest = [](std::string clientId) {
             return std::make_tuple(
-                "hook onSpawnPositionRequest not implemented", 0, 0, 0);
+                "hook onSpawnPositionRequest not implemented", "null", 0, 0, 0);
           };
     } connection;
 

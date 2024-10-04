@@ -37,10 +37,10 @@ void registerServerHooks() {
     std::cout << "Client disconnected" << std::endl;
     return true;
   };
-  HOOKS.server.connection.onSpawnPositionRequest = []() {
+  HOOKS.server.connection.onSpawnPositionRequest = [](std::string clientId) {
     std::cout << "Client is requesting spawn position" << std::endl;
-    return std::make_tuple("leChateauDuMechant", 0, 0, 0);
-  }
+    return std::make_tuple("leChateauDuMechant", clientId, 0, 0, 0);
+  };
 }
 
 void registerServerRPC(celte::runtime::CelteRuntime &runtime,

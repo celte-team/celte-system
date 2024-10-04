@@ -159,7 +159,7 @@ class Connected : public AServer {
    * @brief This method is called by the server to ask the server node to find
    * out where the player should be spawning in the map.
    */
-  std::tuple<std::string, float, float, float>
+  std::tuple<std::string, std::string, float, float, float>
   __rp_getPlayerSpawnPosition(const std::string &clientInfo);
 
   /**

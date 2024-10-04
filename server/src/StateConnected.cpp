@@ -32,10 +32,10 @@ void Connected::__registerRPCs() {
 
   REGISTER_AWAITABLE_RPC(
       __rp_getPlayerSpawnPosition,
-      std::tuple<std::string, float, float, float>(std::string));
+      std::tuple<std::string, std::string, float, float, float>(std::string));
 }
 
-std::tuple<std::string, float, float, float>
+std::tuple<std::string, std::string, float, float, float>
 Connected::__rp_getPlayerSpawnPosition(const std::string &clientInfo) {
   return HOOKS.server.connection.onSpawnPositionRequest(clientInfo);
 }
