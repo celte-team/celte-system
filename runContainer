@@ -7,7 +7,6 @@ import socket
 import subprocess
 import sys
 
-
 env = os.environ.copy()
 ip_address = None
 # get the ip address of the host machine
