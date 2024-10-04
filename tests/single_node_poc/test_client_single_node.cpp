@@ -82,8 +82,9 @@ int main(int ac, char **av) {
   registerClientHooks(clientId);
 
   auto &runtime = celte::runtime::CelteRuntime::GetInstance();
+  std::string ip = std::getenv("CELTE_CLUSTER_HOST");
   runtime.Start(celte::runtime::RuntimeMode::CLIENT);
-  runtime.ConnectToCluster("127.0.0.1", 80);
+  runtime.ConnectToCluster(ip, 80);
 
   // wait 10 ms for the connection to be established, and a uuid to be available
   std::this_thread::sleep_for(std::chrono::milliseconds(10));

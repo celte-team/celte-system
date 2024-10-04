@@ -67,10 +67,11 @@ int main(int ac, char **av) {
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
   registerServerHooks();
-
+  std::string ip = std::getenv("CELTE_CLUSTER_HOST");
   auto &runtime = celte::runtime::CelteRuntime::GetInstance();
   runtime.Start(celte::runtime::RuntimeMode::SERVER);
-  runtime.ConnectToCluster("127.0.0.1", 80);
+  runtime.ConnectToCluster(ip, 80);
+
 
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
