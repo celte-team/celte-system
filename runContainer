@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+
+# This script is used to run all the docker containers for the project
+import os
+import platform
+import socket
+import subprocess
+import sys
+
+
+env = os.environ.copy()
+ip_address = None
+# get the ip address of the host machine
+def get_ip_address():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    print(s.getsockname()[0])
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
+
+# kafka is running in a docker container, so we need to set the DOCKER_HOST_IP
+def run_docker_kafka():
+    env['DOCKER_HOST_IP'] = ip_address
+    # cd into the kafka directory
+    os.chdir('kafka')
+    subprocess.run(['docker', 'compose', 'down'])
+    subprocess.run(['docker', 'compose', 'up'], env=env)
+    os.chdir('..')
+
+# run the cpp docker container
+def run_docker_cpp():
+    # only [a-zA-Z0-9][a-zA-Z0-9_.-]
+    uuid = subprocess.run(['uuidgen'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+    uuid = uuid.replace('-', '_')
+    name = 'celte_cpp_' + uuid
+    print(f'Creating container {name}')
+    export_env_vars("CELTE_CPP_CONTAINER", name)
+    subprocess.run(['docker', 'run', '-v', f'{os.getcwd()}:/workdir', '--name', name, '-e', 'CELTE_CLUSTER_HOST=' + ip_address, '-it', 'celte_cpp_x86', '/bin/bash'])
+
+# join the cpp docker container
+def join_docker_cpp():
+    env = get_env_vars()
+    container_name = env['CELTE_CPP_CONTAINER']
+    container_name = container_name[:-1] #remove the newline
+    print(f'Joining container [{container_name}]')
+    subprocess.run(['docker', 'exec', '-it', container_name, '/bin/bash'])
+
+# export the env vars to a file
+def export_env_vars(key, value):
+    if os.path.exists('.env'):
+        # Read the current contents of the file
+        with open('.env', 'r') as f:
+            lines = f.readlines()
+        with open('.env', 'w') as f:
+            found = False
+            for line in lines:
+                if line.startswith(f"{key}="):
+                    found = True
+                    f.write(f'{key}={value}\n')
+                else:
+                    f.write(line)
+            if not found:
+                f.write(f'{key}={value}\n')
+    else:
+        with open('.env', 'w') as f:
+            f.write(f'{key}={value}\n')
+
+# get the env vars from the .env file
+def get_env_vars():
+    with open('.env', 'r') as f:
+        for line in f:
+            key, value = line.split('=')
+            env[key] = value
+    return env
+
+if __name__ == "__main__":
+    ip_address = get_ip_address()
+    # if --ip is passed, use that instead
+    export_env_vars('DOCKER_HOST_IP', ip_address)
+    launcher = {
+        '--kafka': run_docker_kafka,
+        '--cpp': run_docker_cpp,
+        '--join-cpp': join_docker_cpp
+    }
+    if len(sys.argv) < 2 or len(sys.argv) > 2:
+        print("Usage: runDocker [command], where command is one of the following:")
+        for key in launcher:
+            print("\t" + key)
+        sys.exit(1)
+
+    command = sys.argv[1]
+    if command in launcher:
+        launcher[command]()
