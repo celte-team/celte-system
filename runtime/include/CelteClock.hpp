@@ -66,12 +66,11 @@ private:
   struct TaskComparator {
     bool operator()(const std::pair<int, std::function<void()>> &lhs,
                     const std::pair<int, std::function<void()>> &rhs) const {
-      return lhs.first >
-             rhs.first; // Min-heap behavior (earlier tick has higher priority)
+      return lhs.first > rhs.first; //  (earlier tick has higher priority)
     }
   };
 
-  // Priority queue with custom comparator
+  // Tasks to be executed in the future, sorted by tick
   std::priority_queue<std::pair<int, std::function<void()>>,
                       std::vector<std::pair<int, std::function<void()>>>,
                       TaskComparator>

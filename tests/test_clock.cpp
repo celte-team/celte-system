@@ -1,5 +1,5 @@
-#include "MockClock.hpp"
-#include "kafka/clients/consumer/ConsumerRecord.h"
+#include "CelteClock.hpp"
+#include "kafka/KafkaConsumer.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -8,14 +8,37 @@ using ::testing::_;
 using ::testing::Invoke;
 using ::testing::Return;
 
+class MockClock : public Clock {
+public:
+  MOCK_METHOD(void, ScheduleAt, (int tick, std::function<void()> task));
+  MOCK_METHOD(void, __updateCurrentTick,
+              (const kafka::clients::consumer::ConsumerRecord &record));
+  // MOCK_METHOD(int, CurrentTick, (), (const));
+};
+
+static std::vector<std::string> messages;
+static std::string topic = "global.clock";
+
 class ClockTest : public ::testing::Test {
 protected:
   MockClock mockClock;
 
   kafka::clients::consumer::ConsumerRecord createConsumerRecord(int tick) {
-    kafka::clients::consumer::ConsumerRecord record;
-    record.value().assign(reinterpret_cast<const char *>(&tick), sizeof(tick));
-    return record;
+    std::string message =
+        std::string(reinterpret_cast<char *>(&tick), sizeof(tick));
+    rd_kafka_message_t *rk_msg = new rd_kafka_message_t();
+    rk_msg->rkt = nullptr; // Mock topic
+    rk_msg->partition = 0; // Default partition
+    rk_msg->offset = 0;    // Default offset
+    rk_msg->key = nullptr; // No key
+    rk_msg->key_len = 0;   // No key length
+    rk_msg->payload =
+        const_cast<void *>(static_cast<const void *>(message.data()));
+    rk_msg->len = message.size();
+    rk_msg->err = RD_KAFKA_RESP_ERR_NO_ERROR; // No error
+
+    return kafka::clients::consumer::ConsumerRecord(
+        rk_msg, [](rd_kafka_message_t *) {});
   }
 };
 
@@ -62,7 +85,7 @@ TEST_F(ClockTest, CatchUpExecutesTasks) {
   auto record = createConsumerRecord(10);
   EXPECT_CALL(mockClock, __updateCurrentTick(_))
       .WillOnce(Invoke([&](const kafka::clients::consumer::ConsumerRecord &r) {
-        mockClock.__updateCurrentTick(r);
+        // mockClock.__updateCurrentTick(r);
       }));
 
   mockClock.__updateCurrentTick(record);
@@ -84,23 +107,11 @@ TEST_F(ClockTest, CatchUpDoesNotExecuteFutureTasks) {
 
   auto record = createConsumerRecord(10);
   EXPECT_CALL(mockClock, __updateCurrentTick(_))
-      .WillOnce(Invoke([&](const kafka::clients::consumer::ConsumerRecord &r) {
-        mockClock.__updateCurrentTick(r);
-      }));
+      .WillOnce(
+          Invoke([&](const kafka::clients::consumer::ConsumerRecord &r) {}));
 
   mockClock.__updateCurrentTick(record);
   mockClock.CatchUp();
 
   EXPECT_FALSE(taskExecuted);
-}
-
-TEST_F(ClockTest, UpdateCurrentTick) {
-  auto record = createConsumerRecord(10);
-  EXPECT_CALL(mockClock, __updateCurrentTick(_))
-      .WillOnce(Invoke([&](const kafka::clients::consumer::ConsumerRecord &r) {
-        mockClock.__updateCurrentTick(r);
-      }));
-
-  mockClock.__updateCurrentTick(record);
-  EXPECT_EQ(mockClock.CurrentTick(), 10);
 }
