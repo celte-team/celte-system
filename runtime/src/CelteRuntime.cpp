@@ -54,9 +54,12 @@ void CelteRuntime::Start(RuntimeMode mode) {
 }
 
 void CelteRuntime::Tick() {
+  // Executing tasks received from the network
   if (_pool) [[likely]] {
     _pool->CatchUp();
   }
+  // Executing tasks that have been scheduled for delayed execution
+  _clock.CatchUp();
   for (auto &callback : _tickCallbacks) {
     // callback.first is the uuid of the callback
     callback.second();

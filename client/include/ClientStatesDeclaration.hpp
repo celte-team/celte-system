@@ -40,19 +40,10 @@ class Connecting : public AClient {
   void react(EConnectionSuccess const &event) override;
 
   /**
-   * @brief When the client receives a UUID from the server, it will consume one
-   * UUID from the UUID topic, and call _onHelloDelivered to send the uuid to
-   * the topic 'master.hello.client'
+   * @brief Subscribes to the basic topics required for the client to
+   * operate normally.
    */
-  void __onUUIDReceived(const kafka::clients::consumer::ConsumerRecord &record);
-
-  /**
-   * @brief Upon successfully delivering the hello message to the server, the
-   * client will transit to the Connected state.
-   */
-  void
-  __onHelloDelivered(const kafka::clients::producer::RecordMetadata &metadata,
-                     kafka::Error error);
+  void __subscribeToTopics();
 };
 
 /**

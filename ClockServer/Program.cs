@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
+using MessagePack;
 
 namespace GlobalClockService
 {
@@ -9,10 +10,9 @@ namespace GlobalClockService
     {
         static async Task Main(string[] args)
         {
-
             var config = new ProducerConfig
             {
-                BootstrapServers = System.Environment.GetEnvironmentVariable("CELTE_HOST_CLUSTER") ?? "localhost:80"
+                BootstrapServers = System.Environment.GetEnvironmentVariable("CELTE_HOST_CLUSTER") ?? "localhost:9092"
             };
 
             int deltaMs = int.TryParse(System.Environment.GetEnvironmentVariable("CELTE_CLOCK_DELTA_MS"), out var result) ? result : 1000 / 10; // defaults at 10 fps
@@ -31,39 +31,45 @@ namespace GlobalClockService
 
             try
             {
-
                 await StartClockTicks(producer, topic, deltaMs, cts.Token);
             }
             catch (OperationCanceledException)
             {
                 Console.WriteLine("Global clock stopped.");
             }
+        }
 
-            static async Task StartClockTicks(IProducer<string, string> producer, string topic, int deltaMs, CancellationToken cancellationToken)
+        static async Task StartClockTicks(IProducer<string, string> producer, string topic, int deltaMs, CancellationToken cancellationToken)
+        {
+            long tickId = 0;
+
+            while (!cancellationToken.IsCancellationRequested)
             {
-                long tickId = 0;
-
-                while (!cancellationToken.IsCancellationRequested)
+                var timestamp = DateTime.UtcNow;
+                var headers = new Headers
                 {
-                    var timestamp = DateTime.UtcNow;
-                    var message = new Message<string, string>
-                    {
-                        Key = tickId.ToString(),
-                        Value = $"{tickId},{timestamp:O}"
-                    };
+                    new Header("deltaMs", MessagePackSerializer.Serialize(deltaMs))
+                };
 
-                    try
-                    {
-                        var deliveryResult = await producer.ProduceAsync(topic, message, cancellationToken);
-                    }
-                    catch (ProduceException<string, string> e)
-                    {
-                        Console.WriteLine($"Failed to deliver message: {e.Message} [{e.Error.Code}]");
-                    }
+                var message = new Message<string, string>
+                {
+                    Key = tickId.ToString(),
+                    Value = Convert.ToBase64String(MessagePackSerializer.Serialize(tickId)),
+                    Headers = headers
+                };
 
-                    tickId++;
-                    await Task.Delay(deltaMs, cancellationToken); // 1-second interval between ticks
+                try
+                {
+                    var deliveryResult = await producer.ProduceAsync(topic, message, cancellationToken);
+                    Console.WriteLine($"Tick {tickId} sent at {timestamp:O}");
                 }
+                catch (ProduceException<string, string> e)
+                {
+                    Console.WriteLine($"Failed to deliver message: {e.Message} [{e.Error.Code}]");
+                }
+
+                tickId++;
+                await Task.Delay(deltaMs, cancellationToken); // Interval between ticks
             }
         }
     }

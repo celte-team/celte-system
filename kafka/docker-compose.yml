@@ -98,14 +98,14 @@ services:
       - haproxy
 
 
-  globalclock:
-    build:
-      context: ../
-      dockerfile: ClockServer/Dockerfile
-    container_name: globalclock
-    restart: always
-    environment:
-      CELTE_HOST_CLUSTER: haproxy:80
-      CELTE_CLOCK_DELTA_MS: 100
-    depends_on:
-      - haproxy
+  # globalclock:
+  #   build:
+  #     context: ../
+  #     dockerfile: ClockServer/Dockerfile
+  #   container_name: globalclock
+  #   restart: always
+  #   environment:
+  #     CELTE_HOST_CLUSTER: haproxy:80
+  #     CELTE_CLOCK_DELTA_MS: 100
+  #   depends_on:
+  #     - haproxy

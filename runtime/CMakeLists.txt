@@ -28,6 +28,7 @@ set(COMMON_SOURCES
     src/CelteHooks.cpp
     src/RotatedBoundingBox.cpp
     src/KafkaPool.cpp
+    src/CelteClock.cpp
 )
 
 set(SERVER_SOURCES

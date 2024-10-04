@@ -22,6 +22,7 @@
 #include "CelteClient.hpp"
 #include "ClientStatesDeclaration.hpp"
 #endif
+#include "CelteClock.hpp"
 #include "CelteGrape.hpp"
 #include "CelteHooks.hpp"
 #include "CelteRPC.hpp"
@@ -223,6 +224,11 @@ public:
     return PEER_UUID;
   }
 
+  /**
+   * @brief Returns a reference to the global clock.
+   */
+  inline Clock &GetClock() { return _clock; }
+
 private:
   // =================================================================================================
   // PRIVATE METHODS
@@ -258,6 +264,9 @@ private:
 
   // Hooks table
   api::HooksTable _hooks;
+
+  // Global Clock manager
+  Clock _clock;
 };
 } // namespace runtime
 } // namespace celte
