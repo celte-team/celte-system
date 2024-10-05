@@ -1,4 +1,6 @@
 #include "CelteChunk.hpp"
+#include "CelteEntityManagementSystem.hpp"
+#include "CelteRPC.hpp"
 #include "CelteRuntime.hpp"
 #include "glm/glm.hpp"
 
@@ -12,16 +14,6 @@ Chunk::Chunk(const ChunkConfig &config)
 }
 
 Chunk::~Chunk() {}
-
-void Chunk::OnEntityEnter(CelteEntity &celteEntity) {}
-
-void Chunk::OnEntityExit(CelteEntity &celteEntity) {}
-
-void Chunk::OnEntitySpawn(CelteEntity &celteEntity) {
-  std::cout << "Entity spawned in chunk " << _combinedId << std::endl;
-}
-
-void Chunk::OnEntityDespawn(CelteEntity &celteEntity) {}
 
 void Chunk::__registerConsumers() {
   // A consumer to listen for Chunk scope RPCs and execute them
@@ -38,9 +30,28 @@ bool Chunk::ContainsPosition(float x, float y, float z) const {
   return _boundingBox.ContainsPosition(x, y, z);
 }
 
-void Chunk::TakeAuthority(const std::string &entityId) {
-  std::cout << "Taking authority of entity " << entityId << " in chunk "
-            << _combinedId << std::endl;
+void Chunk::__registerRPCs() {
+  REGISTER_RPC(__rp_scheduleEntityAuthorityTransfer,
+               celte::rpc::Table::Scope::CHUNK, std::string, bool, int);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                    RPCS                                    */
+/* -------------------------------------------------------------------------- */
+
+void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
+                                                 bool take, int tick) {
+  if (take) {
+    CLOCK.ScheduleAt(tick, [this, entityUUID]() {
+      try {
+        ENTITIES.GetEntity(entityUUID).OnChunkTakeAuthority(*this);
+      } catch (std::out_of_range &e) {
+        std::cerr << "Entity not found: " << e.what() << std::endl;
+      }
+    });
+  }
+  // nothing to do (yet) for the chunk loosing the authority... more will come
+  // in the future
 }
 
 } // namespace chunks

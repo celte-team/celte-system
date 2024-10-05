@@ -1,5 +1,4 @@
 #pragma once
-#include "CelteEntity.hpp"
 #include "RotatedBoundingBox.hpp"
 #include "topics.hpp"
 #include <glm/vec3.hpp>
@@ -31,26 +30,6 @@ public:
   ~Chunk();
 
   /**
-   * @brief Called when an entity enters the chunk.
-   */
-  void OnEntityEnter(CelteEntity &celteEntity);
-
-  /**
-   * @brief Called when an entity exits the chunk.
-   */
-  void OnEntityExit(CelteEntity &celteEntity);
-
-  /**
-   * @brief Called when an entity spawns in the chunk.
-   */
-  void OnEntitySpawn(CelteEntity &celteEntity);
-
-  /**
-   * @brief Called when an entity despawns in the chunk.
-   */
-  void OnEntityDespawn(CelteEntity &celteEntity);
-
-  /**
    * @brief Returns true if the given position is inside the chunk.
    */
   bool ContainsPosition(float x, float y, float z) const;
@@ -61,21 +40,43 @@ public:
 
   inline const std::string &GetCombinedId() const { return _combinedId; }
 
-  /**
-   * @brief Takes authority of an entity by its id.
-   * The provided id must be registered in with CelteEntity.
-   * If that is not the case, this action will be buffered until an entity
-   * with this id is registered in the game.
-   *
-   */
-  void TakeAuthority(const std::string &entityId);
-
 private:
   /**
    * @brief Registers all consumers for the chunk.
    * The consumers listen for events in the chunk's topic and react to them.
    */
   void __registerConsumers();
+
+  /**
+   * @brief Registers RPCs for the available actions of the chunk.
+   * The RPCs are registered in the global RPC table.
+   */
+  void __registerRPCs();
+
+  /* --------------------------------------------------------------------------
+   */
+  /*                                    RPCS */
+  /* --------------------------------------------------------------------------
+   */
+
+  /**
+   * @brief Schedules an entity authority transfer.
+   * The entity will be transferred to the new authority at the given global
+   * clock tick.
+   *
+   * @param entityId the id of the entity to transfer
+   * @param takeAuthority true if the chunk should take authority, false if it
+   * should drop it
+   * @param atTick the global clock tick at which the transfer should occur
+   */
+  void __rp_scheduleEntityAuthorityTransfer(std::string entityId,
+                                            bool takeAuthority, int atTick);
+
+  /* --------------------------------------------------------------------------
+   */
+  /*                                   Members */
+  /* --------------------------------------------------------------------------
+   */
 
   RotatedBoundingBox _boundingBox;
 

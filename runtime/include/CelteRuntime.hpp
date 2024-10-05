@@ -23,6 +23,7 @@
 #include "ClientStatesDeclaration.hpp"
 #endif
 #include "CelteClock.hpp"
+#include "CelteEntityManagementSystem.hpp"
 #include "CelteGrape.hpp"
 #include "CelteHooks.hpp"
 #include "CelteRPC.hpp"
@@ -55,6 +56,8 @@ using Services =
 #define HOOKS celte::runtime::CelteRuntime::GetInstance().Hooks()
 #define RPC celte::runtime::CelteRuntime::GetInstance().RPCTable()
 #define KPOOL celte::runtime::CelteRuntime::GetInstance().KPool()
+#define CLOCK celte::runtime::CelteRuntime::GetInstance().GetClock()
+#define ENTITIES celte::runtime::CelteRuntime::GetInstance().GetEntityManager()
 
 /**
  * @brief This class contains all the logic necessary
@@ -229,6 +232,13 @@ public:
    */
   inline Clock &GetClock() { return _clock; }
 
+  /**
+   * @brief returns a reference to the entity manager.
+   */
+  inline CelteEntityManagementSystem &GetEntityManager() {
+    return _entityManager;
+  }
+
 private:
   // =================================================================================================
   // PRIVATE METHODS
@@ -259,7 +269,8 @@ private:
   // The RPC table
   rpc::Table _rpcTable;
 
-  // Kafka producer / consumer pool used to send and receive messages from kafka
+  // Kafka producer / consumer pool used to send and receive messages from
+  // kafka
   std::shared_ptr<nl::KafkaPool> _pool;
 
   // Hooks table
@@ -267,6 +278,9 @@ private:
 
   // Global Clock manager
   Clock _clock;
+
+  // Entity manager
+  CelteEntityManagementSystem _entityManager;
 };
 } // namespace runtime
 } // namespace celte

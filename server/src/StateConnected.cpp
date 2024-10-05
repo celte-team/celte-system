@@ -57,12 +57,6 @@ void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
                                      float x, float y, float z) {
   // TODO: add client to correct chunk's authority
   HOOKS.server.newPlayerConnected.accept(clientId);
-  try {
-    auto &chunk = GRAPES.GetGrape(grapeId).GetChunkByPosition(x, y, z);
-    chunk.TakeAuthority(clientId);
-  } catch (const std::out_of_range &e) {
-    std::cerr << "Error in __rp_acceptNewClient: " << e.what() << std::endl;
-  }
   RPC.InvokePeer(clientId, "__rp_forceConnectToChunk", grapeId, x, y, z);
 }
 

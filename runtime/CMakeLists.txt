@@ -25,6 +25,7 @@ set(COMMON_SOURCES
     src/CelteChunk.cpp
     src/CelteRPC.cpp
     src/CelteGrapeManagementSystem.cpp
+    src/CelteEntityManagementSystem.cpp
     src/CelteHooks.cpp
     src/RotatedBoundingBox.cpp
     src/KafkaPool.cpp

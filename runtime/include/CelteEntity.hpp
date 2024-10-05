@@ -1,4 +1,5 @@
 #pragma once
+#include "CelteChunk.hpp"
 #include <string>
 
 namespace celte {
@@ -22,6 +23,32 @@ public:
    */
   void OnSpawn(float x, float y, float z);
 
+  /**
+   * @brief This method is called when an entity is destroyed in the game.
+   * It will unregister the entity from all systems and notify all peers of the
+   * event.
+   */
+  void OnDestroy();
+
+  /**
+   * @brief When a chunk takes ownership of the entity, this method is called.
+   * It will register the chunk as the owner of the entity so that the entity
+   * can send its data to it when it changes.
+   *
+   * The chunk will then send the data to kafka.
+   *
+   * Entites are active in the sending of their data to avoid chunks having to
+   * keep track entites being destroyed, etc...
+   */
+  void OnChunkTakeAuthority(const celte::chunks::Chunk &chunkId);
+
+  /**
+   * @brief Returns the uuid of the entity.
+   */
+  inline const std::string &GetUUID() const { return _uuid; }
+
 private:
+  std::string _uuid;
+  celte::chunks::Chunk *_ownerChunk = nullptr;
 };
 } // namespace celte
