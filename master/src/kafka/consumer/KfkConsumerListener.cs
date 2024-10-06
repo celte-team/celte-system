@@ -2,6 +2,7 @@ using Confluent.Kafka;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka.Admin;
@@ -21,7 +22,7 @@ public class KfkConsumerListener : IDisposable
     public ConsumerConfig config;
 
     // map with uuid and function
-    private Dictionary<string, Action<string>> _rpcFunctions = new Dictionary<string, Action<string>>();
+    private Dictionary<string, Dictionary<string, Action<string>>> _rpcFunctions;
 
     public KfkConsumerListener(string bootstrapServers, string groupId)
     {
@@ -36,29 +37,41 @@ public class KfkConsumerListener : IDisposable
         _buffer = new ConcurrentQueue<(string, string)>();
         _topicHandlers = new Dictionary<string, Action<string>>();
         _cancellationTokenSource = new CancellationTokenSource();
+
+        // RPC function map
+        _rpcFunctions = new Dictionary<string, Dictionary<string, Action<string>>>();
+
         _adminClientConfig = new AdminClientConfig
         {
             BootstrapServers = bootstrapServers
         };
     }
-    //rpc [uuid1: mapetiteFunction, uuid2: mapetiteFunction2]
-    // open master.rpc change handler function
+
+    // Method to register functions under a specific RPC topic
+    public void RegisterRPCFunction(string topic, string requestId, Action<string> function)
+    {
+        if (!_rpcFunctions.ContainsKey(topic))
+        {
+            _rpcFunctions[topic] = new Dictionary<string, Action<string>>();
+        }
+        _rpcFunctions[topic][requestId] = function;
+        Console.WriteLine($"Registered RPC function for topic {topic}, request ID {requestId}");
+    }
+
     public void AddTopic(string topic, Action<string> handler)
     {
-        // use the _adminClientConfig
         using (var adminClient = new AdminClientBuilder(_adminClientConfig).Build())
         {
             try
             {
-                // Check if the topic exists and create it if it doesn't
                 var metadata = adminClient.GetMetadata(TimeSpan.FromSeconds(10));
                 if (!metadata.Topics.Any(t => t.Topic == topic))
                 {
                     var topicSpecification = new TopicSpecification
                     {
                         Name = topic,
-                        NumPartitions = 1, // Specify the number of partitions
-                        ReplicationFactor = 1 // Specify replication factor
+                        NumPartitions = 1,
+                        ReplicationFactor = 1
                     };
 
                     adminClient.CreateTopicsAsync(new List<TopicSpecification> { topicSpecification }).Wait();
@@ -78,7 +91,6 @@ public class KfkConsumerListener : IDisposable
             {
                 if (!_topicHandlers.ContainsKey(topic))
                 {
-                    // use an admin client to create the topic
                     _topicHandlers[topic] = handler;
                     var newSubscription = _consumer.Subscription.ToList();
                     newSubscription.Add(topic);
@@ -89,24 +101,21 @@ public class KfkConsumerListener : IDisposable
         }
     }
 
+    // Start consuming Kafka messages
     public void StartConsuming(CancellationToken cancellationToken)
     {
         try
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                Console.WriteLine("StartConsuming");
                 var consumeResult = _consumer.Consume(cancellationToken);
                 if (consumeResult != null)
                 {
-                    // print the client id of the producer who produced the message
-                    // Console.WriteLine($"Client Id: {consumeResult.Message.Headers.Last().GetValueBytes()}");
                     _buffer.Enqueue((consumeResult.Topic, consumeResult.Message.Value));
                     Console.WriteLine($"Consumed event from topic {consumeResult.Topic}: value = {consumeResult.Message.Value}");
                 }
                 else
                 {
-                    Console.WriteLine("No message consumed");
                     Thread.Sleep(100);
                 }
             }
@@ -125,6 +134,7 @@ public class KfkConsumerListener : IDisposable
         }
     }
 
+    // Execute buffered messages
     public void StartExecuteBuffer(CancellationToken cancellationToken)
     {
         try
@@ -135,7 +145,13 @@ public class KfkConsumerListener : IDisposable
                 {
                     var (topic, message) = item;
                     Console.WriteLine($"Processing message from topic {topic}: value = {message}");
-                    if (_topicHandlers.ContainsKey(topic))
+
+                    // check if the 4 last characters are ".rpc"
+                    if (topic.EndsWith(".rpc"))
+                    {
+                        ProcessRPCMessage(topic, message);
+                    }
+                    else if (_topicHandlers.ContainsKey(topic))
                     {
                         _topicHandlers[topic]?.Invoke(message);
                     }
@@ -152,6 +168,19 @@ public class KfkConsumerListener : IDisposable
         }
     }
 
+    // Method to process RPC messages
+    private void ProcessRPCMessage(string topic, string requestId)
+    {
+        if (_rpcFunctions.ContainsKey(topic) && _rpcFunctions[topic].ContainsKey(requestId))
+        {
+            _rpcFunctions[topic][requestId]?.Invoke(requestId); // Pass requestId as argument
+            Console.WriteLine($"Invoked RPC function for request ID {requestId}");
+        }
+        else
+        {
+            Console.WriteLine($"No RPC function found for request ID {requestId}");
+        }
+    }
 
     public void Dispose()
     {

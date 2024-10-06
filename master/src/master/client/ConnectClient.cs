@@ -31,7 +31,7 @@ class ConnectClient
 
             // call the function to compute the grapeId then return the values
             string clientId = message;
-            var uuidProcess = Guid.NewGuid().ToString();
+            string uuidProcess = Guid.NewGuid().ToString();
             const string rpcName = "__rp_getPlayerSpawnPosition";
             string masterRPC = M.Global.MasterRPC;
             Headers headers = new Headers();
@@ -40,7 +40,7 @@ class ConnectClient
             headers.Add("peer.uuid", RPC.__str2bytes(masterRPC));
             // answer
             headers.Add("answer", RPC.__str2bytes(clientId));
-            await RPC.Call(rpcName, Scope.Peer(nodeId), headers, async (value) =>
+            await RPC.Call(rpcName, Scope.Peer(nodeId), headers, uuidProcess, async (value) =>
                 {
                     // Handle the result in the callback function
                     object[] outputObjects = new object[4];

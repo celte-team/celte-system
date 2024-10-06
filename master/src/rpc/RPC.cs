@@ -80,7 +80,7 @@ class RPC
         byte[] data = MessagePackSerializer.Serialize(args);
         // var headers = new List<Header> { new Header("rpName", __str2bytes(rpcName)) };
         Headers headers;
-        headers = new Headers { new Header("rpName", __str2bytes(rpcName)) };
+        headers = new Headers { new Header("rpcName", __str2bytes(rpcName)) };
         Master.GetInstance().kFKProducer.SendMessageAsync(scope.Id, data, headers);
     }
 
@@ -92,12 +92,11 @@ class RPC
     /// <param name="args"></param>
     /// <param name="headers"></param>
     /// <returns></returns>
-    public static async Task Call(string rpcName, Scope scope, Headers headers, Action<string> callBackFunction, params object[]? args)
+    public static async Task Call(string rpcName, Scope scope, Headers headers, string uuidProcess, Action<string> callBackFunction, params object[]? args)
     {
         byte[] data = MessagePackSerializer.Serialize(args);
         // faire une variable global de master uuid
         Console.WriteLine("Calling RPC: " + rpcName);
-        await Master.GetInstance().kFKProducer.SendMessageAwaitResponseAsyncRpc(scope.Id, data, headers, callBackFunction);
+        await Master.GetInstance().kFKProducer.SendMessageAwaitResponseAsyncRpc(scope.Id, data, headers, uuidProcess, callBackFunction);
     }
-
 }

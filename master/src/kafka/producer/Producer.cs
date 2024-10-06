@@ -56,12 +56,12 @@ class KFKProducer : IDisposable
         }
     }
 
-    public async Task SendMessageAwaitResponseAsyncRpc(string topic, byte[] message, Headers headers, Action<string> callBackFunction)
+    public async Task SendMessageAwaitResponseAsyncRpc(string topic, byte[] message, Headers headers, string uuidProcess, Action<string> callBackFunction)
     {
         string masterRPC = M.Global.MasterRPC;
         Console.WriteLine("Master UUID: " + masterRPC + " Topic: " + topic + " Message: " + message + " Headers: " + headers);
         await SendMessageAsync(topic, message, headers);
-        master.kfkConsumerListener.AddTopic(masterRPC, callBackFunction);
+        master.kfkConsumerListener.RegisterRPCFunction(masterRPC, uuidProcess, callBackFunction);
     }
 
     /// <summary>
