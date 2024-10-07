@@ -80,7 +80,7 @@ class RPC
         byte[] data = MessagePackSerializer.Serialize(args);
         // var headers = new List<Header> { new Header("rpName", __str2bytes(rpcName)) };
         Headers headers;
-        headers = new Headers { new Header("rpcName", __str2bytes(rpcName)) };
+        headers = new Headers { new Header("rpName", __str2bytes(rpcName)) };
         Master.GetInstance().kFKProducer.SendMessageAsync(scope.Id, data, headers);
     }
 

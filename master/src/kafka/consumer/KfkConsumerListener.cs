@@ -10,7 +10,7 @@ using Confluent.Kafka.Admin;
 public class KfkConsumerListener : IDisposable
 {
     private readonly IConsumer<string, string> _consumer;
-    private readonly ConcurrentQueue<(string Topic, string Message)> _buffer;
+    private readonly ConcurrentQueue<(string Topic, string Message, Headers)> _buffer;
     private readonly Dictionary<string, Action<string>> _topicHandlers;
     private CancellationTokenSource _cancellationTokenSource;
 
@@ -34,7 +34,7 @@ public class KfkConsumerListener : IDisposable
         };
 
         _consumer = new ConsumerBuilder<string, string>(config).Build();
-        _buffer = new ConcurrentQueue<(string, string)>();
+        _buffer = new ConcurrentQueue<(string, string, Headers)>();
         _topicHandlers = new Dictionary<string, Action<string>>();
         _cancellationTokenSource = new CancellationTokenSource();
 
@@ -58,7 +58,7 @@ public class KfkConsumerListener : IDisposable
         Console.WriteLine($"Registered RPC function for topic {topic}, request ID {requestId}");
     }
 
-    public void AddTopic(string topic, Action<string> handler)
+    public void AddTopic(string topic, Action<string>? handler)
     {
         using (var adminClient = new AdminClientBuilder(_adminClientConfig).Build())
         {
@@ -87,11 +87,16 @@ public class KfkConsumerListener : IDisposable
                 Console.WriteLine($"An error occurred creating topic {topic}: {e.Results[0].Error.Reason}");
             }
 
+
             lock (_lock)
             {
                 if (!_topicHandlers.ContainsKey(topic))
                 {
-                    _topicHandlers[topic] = handler;
+                    if (handler != null)
+                    {
+                        _topicHandlers[topic] = handler;
+                    }
+
                     var newSubscription = _consumer.Subscription.ToList();
                     newSubscription.Add(topic);
                     _consumer.Subscribe(newSubscription);
@@ -111,7 +116,7 @@ public class KfkConsumerListener : IDisposable
                 var consumeResult = _consumer.Consume(cancellationToken);
                 if (consumeResult != null)
                 {
-                    _buffer.Enqueue((consumeResult.Topic, consumeResult.Message.Value));
+                    _buffer.Enqueue((consumeResult.Topic, consumeResult.Message.Value, consumeResult.Message.Headers));
                     Console.WriteLine($"Consumed event from topic {consumeResult.Topic}: value = {consumeResult.Message.Value}");
                 }
                 else
@@ -143,17 +148,17 @@ public class KfkConsumerListener : IDisposable
             {
                 if (_buffer.TryDequeue(out var item))
                 {
-                    var (topic, message) = item;
+                    var (topic, message, headers) = item;
                     Console.WriteLine($"Processing message from topic {topic}: value = {message}");
 
                     // check if the 4 last characters are ".rpc"
                     if (topic.EndsWith(".rpc"))
                     {
-                        ProcessRPCMessage(topic, message);
+                        ProcessRPCMessage(topic, message, headers);
                     }
                     else if (_topicHandlers.ContainsKey(topic))
                     {
-                        _topicHandlers[topic]?.Invoke(message);
+                        _topicHandlers[topic]?.Invoke(message); // TODO pass headers
                     }
                 }
                 else
@@ -169,17 +174,21 @@ public class KfkConsumerListener : IDisposable
     }
 
     // Method to process RPC messages
-    private void ProcessRPCMessage(string topic, string requestId)
+    private void ProcessRPCMessage(string topic, string message, Headers headers)
     {
-        if (_rpcFunctions.ContainsKey(topic) && _rpcFunctions[topic].ContainsKey(requestId))
+        try
         {
-            _rpcFunctions[topic][requestId]?.Invoke(requestId); // Pass requestId as argument
-            Console.WriteLine($"Invoked RPC function for request ID {requestId}");
+            // string answerId = headers.GetLastBytes("answer").ToString() ?? "";
+            string answerId = System.Text.Encoding.UTF8.GetString(headers.GetLastBytes("answer"));
+            Console.WriteLine($"Processing RPC message: topic = {topic}, message = {message}, answerId = {answerId}");
+            _rpcFunctions[topic][answerId]?.Invoke(answerId);
         }
-        else
+        catch (Exception e)
         {
-            Console.WriteLine($"No RPC function found for request ID {requestId}");
+            Console.WriteLine($"Error processing RPC message: {e.Message}");
         }
+
+
     }
 
     public void Dispose()

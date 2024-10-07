@@ -16,7 +16,8 @@ class Master
         {
             throw new Exception("Cannot create another instance of Master");
         }
-        try {
+        try
+        {
             if (_master == null)
             {
                 _master = this;
@@ -27,7 +28,9 @@ class Master
             , "kafka-dotnet");
 
             StartKafkaSystem();
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Console.WriteLine($"Error initializing Master: {e.Message}");
 
         }
@@ -50,8 +53,15 @@ class Master
 
         kfkConsumerListener.AddTopic(M.Global.MasterHelloSn, connectNode.connectNewNode);
         kfkConsumerListener.AddTopic(M.Global.MasterHelloClient, connectClient.connectNewClient);
+        kfkConsumerListener.AddTopic(M.Global.MasterRPC, null);
+
 
         kFKProducer = new KFKProducer();
+    }
+
+    private void __handleRPC(string message)
+    {
+        Console.WriteLine($"Received RPC message: {message}");
     }
 
     public static Master GetInstance()

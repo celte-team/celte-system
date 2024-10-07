@@ -35,14 +35,14 @@ class ConnectClient
             const string rpcName = "__rp_getPlayerSpawnPosition";
             string masterRPC = M.Global.MasterRPC;
             Headers headers = new Headers();
-            headers.Add("rpcName", RPC.__str2bytes(rpcName));
+            headers.Add("rpName", RPC.__str2bytes(rpcName));
             headers.Add("rpcUUID", RPC.__str2bytes(uuidProcess));
-            headers.Add("peer.uuid", RPC.__str2bytes(masterRPC));
-            // answer
-            headers.Add("answer", RPC.__str2bytes(clientId));
+            headers.Add("peer.uuid", RPC.__str2bytes(M.Global.MasterUUID));
+
             await RPC.Call(rpcName, Scope.Peer(nodeId), headers, uuidProcess, async (value) =>
                 {
                     // Handle the result in the callback function
+                    Console.WriteLine($">>>>>>>>>>> Received response from getPlayerSpawnPosition: {value} <<<<<<<<<<<");
                     object[] outputObjects = new object[4];
                     RPC.__deserialize(value, outputObjects);
                     string grapeId = (string)outputObjects[0];
@@ -50,7 +50,7 @@ class ConnectClient
                     float y = (float)outputObjects[2];
                     float z = (float)outputObjects[3];
 
-                    RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer("answer"), clientId, grapeId, x, y, z);
+                    RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(nodeId), clientId, grapeId, x, y, z);
                 }, clientId);
         }
         catch (Exception e)
