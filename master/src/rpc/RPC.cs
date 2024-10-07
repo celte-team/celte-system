@@ -57,19 +57,81 @@ class RPC
 
     public static void __deserialize(string str, params object[] outObjects)
     {
-        var bytes = __str2bytes(str);
-        var deserializedObjects = MessagePackSerializer.Deserialize<object[]>(bytes);
-
-        if (deserializedObjects.Length != outObjects.Length)
+        try
         {
-            throw new ArgumentException("The number of deserialized objects does not match the number of output objects.");
+            // Convert the string to a byte array, assuming it's in Base64 format.
+            byte[] bytes = Convert.FromBase64String(str);
+
+            var deserializedObjects = MessagePackSerializer.Deserialize<object[]>(bytes);
+            for (int i = 0; i < deserializedObjects.Length; i++)
+            {
+                if (deserializedObjects[i] is int)
+                {
+                    outObjects[i] = (int)deserializedObjects[i];
+                }
+                else if (deserializedObjects[i] is string)
+                {
+                    outObjects[i] = (string)deserializedObjects[i];
+                }
+                else if (deserializedObjects[i] is float)
+                {
+                    outObjects[i] = (float)deserializedObjects[i];
+                }
+                else
+                {
+                    outObjects[i] = deserializedObjects[i];
+                }
+            }
+            Console.WriteLine($"Deserialized objects: {deserializedObjects}");
         }
-
-        for (int i = 0; i < outObjects.Length; i++)
+        catch (Exception ex)
         {
-            outObjects[i] = deserializedObjects[i];
+            Console.WriteLine($"Deserialization error: {ex.Message}");
+            throw;
         }
     }
+
+    public static void __deserialize(byte[] data, params object[] outObjects)
+    {
+        try
+        {
+            // Deserialize the byte array into an array of objects using MessagePack
+            var deserializedObjects = MessagePackSerializer.Deserialize<object[]>(data);
+
+            // Loop through the deserialized objects and assign them to the output parameters
+            for (int i = 0; i < deserializedObjects.Length; i++)
+            {
+                if (deserializedObjects[i] is int)
+                {
+                    outObjects[i] = (int)deserializedObjects[i];
+                }
+                else if (deserializedObjects[i] is string)
+                {
+                    outObjects[i] = (string)deserializedObjects[i];
+                }
+                else if (deserializedObjects[i] is float)
+                {
+                    outObjects[i] = (float)deserializedObjects[i];
+                }
+                else if (deserializedObjects[i] is double)
+                {
+                    outObjects[i] = Convert.ToSingle(deserializedObjects[i]); // Handling possible double to float conversion
+                }
+                else
+                {
+                    outObjects[i] = deserializedObjects[i];
+                }
+            }
+
+            Console.WriteLine($"Deserialized objects: {string.Join(", ", deserializedObjects)}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Deserialization error: {ex.Message}");
+            throw;
+        }
+    }
+
 
     public static void InvokeRemote(string rpcName, Scope scope, params object[] args)
     {
@@ -81,6 +143,8 @@ class RPC
         // var headers = new List<Header> { new Header("rpName", __str2bytes(rpcName)) };
         Headers headers;
         headers = new Headers { new Header("rpName", __str2bytes(rpcName)) };
+        // display scope.id
+        Console.WriteLine("Invoking RPC: " + rpcName + " on scope: " + scope.Id);
         Master.GetInstance().kFKProducer.SendMessageAsync(scope.Id, data, headers);
     }
 
@@ -92,7 +156,7 @@ class RPC
     /// <param name="args"></param>
     /// <param name="headers"></param>
     /// <returns></returns>
-    public static async Task Call(string rpcName, Scope scope, Headers headers, string uuidProcess, Action<string> callBackFunction, params object[]? args)
+    public static async Task Call(string rpcName, Scope scope, Headers headers, string uuidProcess, Action<byte[]> callBackFunction, params object[]? args)
     {
         byte[] data = MessagePackSerializer.Serialize(args);
         // faire une variable global de master uuid

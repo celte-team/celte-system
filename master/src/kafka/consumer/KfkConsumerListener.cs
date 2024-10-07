@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka.Admin;
+using MessagePack;
 
 public class KfkConsumerListener : IDisposable
 {
@@ -22,7 +23,7 @@ public class KfkConsumerListener : IDisposable
     public ConsumerConfig config;
 
     // map with uuid and function
-    private Dictionary<string, Dictionary<string, Action<string>>> _rpcFunctions;
+    private Dictionary<string, Dictionary<string, Action<byte[]>>> _rpcFunctions;
 
     public KfkConsumerListener(string bootstrapServers, string groupId)
     {
@@ -39,7 +40,7 @@ public class KfkConsumerListener : IDisposable
         _cancellationTokenSource = new CancellationTokenSource();
 
         // RPC function map
-        _rpcFunctions = new Dictionary<string, Dictionary<string, Action<string>>>();
+        _rpcFunctions = new Dictionary<string, Dictionary<string, Action<byte[]>>>();
 
         _adminClientConfig = new AdminClientConfig
         {
@@ -48,11 +49,21 @@ public class KfkConsumerListener : IDisposable
     }
 
     // Method to register functions under a specific RPC topic
-    public void RegisterRPCFunction(string topic, string requestId, Action<string> function)
+    // public void RegisterRPCFunction(string topic, string requestId, Action<string> function)
+    // {
+    //     if (!_rpcFunctions.ContainsKey(topic))
+    //     {
+    //         _rpcFunctions[topic] = new Dictionary<string, Action<string>>();
+    //     }
+    //     _rpcFunctions[topic][requestId] = function;
+    //     Console.WriteLine($"Registered RPC function for topic {topic}, request ID {requestId}");
+    // }
+
+    public void RegisterRPCFunction(string topic, string requestId, Action<byte[]> function)
     {
         if (!_rpcFunctions.ContainsKey(topic))
         {
-            _rpcFunctions[topic] = new Dictionary<string, Action<string>>();
+            _rpcFunctions[topic] = new Dictionary<string, Action<byte[]>>();
         }
         _rpcFunctions[topic][requestId] = function;
         Console.WriteLine($"Registered RPC function for topic {topic}, request ID {requestId}");
@@ -154,7 +165,7 @@ public class KfkConsumerListener : IDisposable
                     // check if the 4 last characters are ".rpc"
                     if (topic.EndsWith(".rpc"))
                     {
-                        ProcessRPCMessage(topic, message, headers);
+                        ProcessRPCMessage(topic, System.Text.Encoding.UTF8.GetBytes(message), headers);
                     }
                     else if (_topicHandlers.ContainsKey(topic))
                     {
@@ -174,21 +185,31 @@ public class KfkConsumerListener : IDisposable
     }
 
     // Method to process RPC messages
-    private void ProcessRPCMessage(string topic, string message, Headers headers)
+    private void ProcessRPCMessage(string topic, byte[] message, Headers headers)
     {
         try
         {
-            // string answerId = headers.GetLastBytes("answer").ToString() ?? "";
             string answerId = System.Text.Encoding.UTF8.GetString(headers.GetLastBytes("answer"));
             Console.WriteLine($"Processing RPC message: topic = {topic}, message = {message}, answerId = {answerId}");
-            _rpcFunctions[topic][answerId]?.Invoke(answerId);
+
+            // byte[] messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
+            try
+            {
+                // var deserializedData = MessagePackSerializer.Deserialize<object[]>(message);
+                // Console.WriteLine($"Deserialized RPC message: {string.Join(", ", deserializedData)}");
+            }
+            catch (MessagePackSerializationException ex)
+            {
+                Console.WriteLine($"Deserialization error: {ex.Message}");
+            }
+            // Console.WriteLine($"RPC function: ------------------------>>>>{_rpcFunctions[topic][answerId]}");
+            _rpcFunctions[topic][answerId]?.Invoke(message);
+
         }
         catch (Exception e)
         {
             Console.WriteLine($"Error processing RPC message: {e.Message}");
         }
-
-
     }
 
     public void Dispose()
