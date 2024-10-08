@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using MessagePack;
 
 class ConnectNode
 {
@@ -11,18 +12,33 @@ class ConnectNode
     }
     public static Dictionary<string, Node> _nodes = new Dictionary<string, Node>();
 
-    public void connectNewNode(string message)
+    public void connectNewNode(byte[] messageByte)
     {
-        Console.WriteLine("New node connected to the cluster: " + message);
-        // ? TODO:  @Clement does the commented line below create a new uuid ? thought the message was the uuid
-        // _master.kFKProducer._uuidProducerService.ProduceUUID(1);
+        try
+        {
+            // Deserialize the message
+            string message = System.Text.Encoding.UTF8.GetString(messageByte);
+            Console.WriteLine("Deserialized message: " + message);
 
-        // create a topic form the UUID and assign the node to the topic
-        _master.kFKProducer._uuidProducerService.OpenTopic(message);
-        RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "LeChateauDuMechant");// only one grape and one node for now but TODO: assign a grape to the node using some actual logic
+            // Assuming message is supposed to be a UUID or similar identifier
+            _master.kFKProducer._uuidProducerService.OpenTopic(message);
+            RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "LeChateauDuMechant");
 
-        // link node with the server
-        if (!_nodes.ContainsKey(message))
-            _nodes.Add(message, new Node { uuid = message });
+            // Link node with the server
+            if (!_nodes.ContainsKey(message))
+            {
+                _nodes.Add(message, new Node { uuid = message });
+                Console.WriteLine("Node added: " + message);
+            }
+            else
+            {
+                Console.WriteLine("Node already exists: " + message);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Error deserializing message: " + e.Message);
+            Console.WriteLine("Inner exception: " + e.InnerException?.Message);
+        }
     }
 }

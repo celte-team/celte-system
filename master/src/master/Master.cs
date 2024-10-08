@@ -47,7 +47,6 @@ class Master
 
         StartExecuteBufferThread.Start();
 
-        //from UUIDConsumer.cs
         ConnectNode connectNode = new ConnectNode();
         ConnectClient connectClient = new ConnectClient();
 

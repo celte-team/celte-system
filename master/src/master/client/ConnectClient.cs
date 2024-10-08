@@ -12,8 +12,9 @@ class ConnectClient
 
     public static Dictionary<string, Client> _clients = new Dictionary<string, Client>();
 
-    public async void connectNewClient(string message)
+    public async void connectNewClient(byte[] messageByte)
     {
+        string message = System.Text.Encoding.UTF8.GetString(messageByte);
         Console.WriteLine("New client connected to the cluster: " + message);
 
         // if _clients do not already contain the message, add the message to the _clients
@@ -21,8 +22,6 @@ class ConnectClient
             _clients.Add(message, new Client { uuid = message });
 
         _master.kFKProducer._uuidProducerService.OpenTopic(message);
-        // send message to the client, that he will go to the node 0, send uuid chunk
-        // send to the server that a client will spawn in the node 0
         try
         {
             // select a random node from the list of nodes
@@ -34,10 +33,6 @@ class ConnectClient
             string uuidProcess = Guid.NewGuid().ToString();
             const string rpcName = "__rp_getPlayerSpawnPosition";
             string masterRPC = M.Global.MasterRPC;
-            // Headers headers = new Headers();
-            // headers.Add("rpName", RPC.__str2bytes(rpcName));
-            // headers.Add("rpcUUID", RPC.__str2bytes(uuidProcess));
-            // headers.Add("peer.uuid", RPC.__str2bytes(M.Global.MasterUUID));
             Headers headers = new Headers
             {
                 { "rpName", RPC.__str2bytes(rpcName) },
@@ -45,43 +40,7 @@ class ConnectClient
                 { "peer.uuid", RPC.__str2bytes(M.Global.MasterUUID) }
             };
 
-        //     await RPC.Call(rpcName, Scope.Peer(nodeId), headers, uuidProcess, async (value) =>
-        //         {
-        //             // Handle the result in the callback function
-        //             Console.WriteLine($">>>>>>>>>>> Received response from getPlayerSpawnPosition: {value} <<<<<<<<<<<");
-        //             try {
-        //                 object[] outputObjects = new object[4];
-
-        //                 Console.WriteLine($"Received response from getPlayerSpawnPosition: {value}");
-        //                 // return std::make_tuple("leChateauDuMechant", clientId, 0, 0, 0);
-        //                 // ���leChateauDuMechant�+client.ceb076cf-1ccc-4f55-a370-8eaf0220ca13
-        //                 // RPC.__deserialize(value, outputObjects);
-        //                 string grapeId = string.Empty;
-        //                 string clientId = string.Empty;
-        //                 float x = 0, y = 0, z = 0;
-        //                 string grapeId = string.Empty; // ou autre type approprié
-
-        //                 // Appel de la méthode de désérialisation
-        //                 // byte[] data = /* Les données reçues depuis C++ */;
-        //                 DeserializeSpawnPosition(value, out grapeId, out clientId, out x, out y, out z);
-        //                 // string grapeId = "leChateauDuMechant";
-        //                 // string clientId = "ceb076cf-1ccc-4f55-a370-8eaf0220ca13";
-        //                 // float x = 0;
-        //                 // float y = 0;
-        //                 // float z = 0;
-        //                 Console.WriteLine($"Sending response to acceptNewClient: {clientId}, {grapeId}, {x}, {y}, {z}");
-        //                 RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(nodeId), clientId, grapeId, x, y, z);
-        //             } catch (Exception e) {
-        //                 Console.WriteLine($"Error handling response from getPlayerSpawnPosition: {e.Message}");
-        //             }
-
-        //         }, clientId);
-        // }
-        // catch (Exception e)
-        // {
-        //     Console.WriteLine($"Error connecting new client: {e.Message}");
-        // }
-        await RPC.Call(rpcName, Scope.Peer(nodeId), headers, uuidProcess, async (value) =>
+        await RPC.Call(rpcName, Scope.Peer(nodeId), headers, uuidProcess, async (byte[] value) =>
             {
                 Console.WriteLine($">>>>>>>>>>> Received response from getPlayerSpawnPosition: {value} <<<<<<<<<<<");
                 try
@@ -91,9 +50,12 @@ class ConnectClient
                     string receivedClientId = string.Empty;
                     float x = 0, y = 0, z = 0;
 
-                    // Appel de la méthode de désérialisation
-                    DeserializeSpawnPosition(value, out grapeId, out receivedClientId, out x, out y, out z);
-
+                    var result = UnpackAny(value, typeof(string), typeof(string), typeof(int), typeof(int), typeof(int));
+                    grapeId = (string)result.Item1[0];
+                    receivedClientId = (string)result.Item1[1];
+                    x = (int)result.Item1[2];
+                    y = (int)result.Item1[3];
+                    z = (int)result.Item1[4];
                     Console.WriteLine($"Sending response to acceptNewClient: {receivedClientId}, {grapeId}, {x}, {y}, {z}");
                     RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(nodeId), receivedClientId, grapeId, x, y, z);
                 }
@@ -109,6 +71,29 @@ class ConnectClient
             Console.WriteLine($"Error connecting new client: {e.Message}");
         }
     }
+
+    static Tuple<object[]> UnpackAny(byte[] serializedData, params Type[] types)
+    {
+        var deserializedData = MessagePackSerializer.Deserialize<object>(serializedData);
+        Console.WriteLine($"Deserialized data: {deserializedData}");
+        if (deserializedData is object[] array && array.Length == 1 && array[0] is object[] innerArray)
+        {
+            Console.WriteLine($"Inner array: {innerArray}");
+            if (innerArray.Length != types.Length)
+            {
+                throw new InvalidOperationException("The number of types provided does not match the number of elements in the serialized data.");
+            }
+
+            object[] result = new object[types.Length];
+            for (int i = 0; i < types.Length; i++)
+            {
+                result[i] = Convert.ChangeType(innerArray[i], types[i]);
+            }
+            return Tuple.Create(result);
+        }
+        throw new InvalidOperationException("Invalid serialized data format.");
+    }
+
 
     private void DeserializeSpawnPosition(byte[] value, out string grapeId, out string clientId, out float x, out float y, out float z)
     {

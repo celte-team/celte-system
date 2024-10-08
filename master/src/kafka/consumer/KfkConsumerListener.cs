@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using System;
+using System.Text;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,9 +11,9 @@ using MessagePack;
 
 public class KfkConsumerListener : IDisposable
 {
-    private readonly IConsumer<string, string> _consumer;
-    private readonly ConcurrentQueue<(string Topic, string Message, Headers)> _buffer;
-    private readonly Dictionary<string, Action<string>> _topicHandlers;
+    private readonly IConsumer<string, byte[]> _consumer;
+    private readonly ConcurrentQueue<(string Topic, byte[] Message, Headers)> _buffer;
+    private readonly Dictionary<string, Action<byte[]>> _topicHandlers;
     private CancellationTokenSource _cancellationTokenSource;
 
     private readonly object _lock = new object();
@@ -34,9 +35,9 @@ public class KfkConsumerListener : IDisposable
             AutoOffsetReset = AutoOffsetReset.Earliest // "earliest"
         };
 
-        _consumer = new ConsumerBuilder<string, string>(config).Build();
-        _buffer = new ConcurrentQueue<(string, string, Headers)>();
-        _topicHandlers = new Dictionary<string, Action<string>>();
+        _consumer = new ConsumerBuilder<string, byte[]>(config).Build();
+        _buffer = new ConcurrentQueue<(string, byte[], Headers)>();
+        _topicHandlers = new Dictionary<string, Action<byte[]>>();
         _cancellationTokenSource = new CancellationTokenSource();
 
         // RPC function map
@@ -48,17 +49,6 @@ public class KfkConsumerListener : IDisposable
         };
     }
 
-    // Method to register functions under a specific RPC topic
-    // public void RegisterRPCFunction(string topic, string requestId, Action<string> function)
-    // {
-    //     if (!_rpcFunctions.ContainsKey(topic))
-    //     {
-    //         _rpcFunctions[topic] = new Dictionary<string, Action<string>>();
-    //     }
-    //     _rpcFunctions[topic][requestId] = function;
-    //     Console.WriteLine($"Registered RPC function for topic {topic}, request ID {requestId}");
-    // }
-
     public void RegisterRPCFunction(string topic, string requestId, Action<byte[]> function)
     {
         if (!_rpcFunctions.ContainsKey(topic))
@@ -69,7 +59,7 @@ public class KfkConsumerListener : IDisposable
         Console.WriteLine($"Registered RPC function for topic {topic}, request ID {requestId}");
     }
 
-    public void AddTopic(string topic, Action<string>? handler)
+    public void AddTopic(string topic, Action<byte[]>? handler)
     {
         using (var adminClient = new AdminClientBuilder(_adminClientConfig).Build())
         {
@@ -128,7 +118,9 @@ public class KfkConsumerListener : IDisposable
                 if (consumeResult != null)
                 {
                     _buffer.Enqueue((consumeResult.Topic, consumeResult.Message.Value, consumeResult.Message.Headers));
-                    Console.WriteLine($"Consumed event from topic {consumeResult.Topic}: value = {consumeResult.Message.Value}");
+                    // _buffer.Enqueue((consumeResult.Topic, Encoding.ASCII.GetBytes(consumeResult.Message.Value), consumeResult.Message.Headers));
+                    string messageString = System.Text.Encoding.UTF8.GetString(consumeResult.Message.Value);
+                    Console.WriteLine($"Consumed event from topic {consumeResult.Topic}: value = {messageString}");
                 }
                 else
                 {
@@ -159,13 +151,25 @@ public class KfkConsumerListener : IDisposable
             {
                 if (_buffer.TryDequeue(out var item))
                 {
-                    var (topic, message, headers) = item;
-                    Console.WriteLine($"Processing message from topic {topic}: value = {message}");
+                    // var (topic, message, headers) = item;
+                    // give the good type to the variables
+                    (string topic, byte[] message, Headers headers) = item;
+                    string messageString = System.Text.Encoding.UTF8.GetString(message);
+                    Console.WriteLine($"Processing message from topic {topic}: value = {messageString}");
 
                     // check if the 4 last characters are ".rpc"
                     if (topic.EndsWith(".rpc"))
                     {
-                        ProcessRPCMessage(topic, System.Text.Encoding.UTF8.GetBytes(message), headers);
+                        Console.WriteLine($"Processing RPC message123: topic = {topic}, message = {messageString}");
+                        // byte[] messageBytes = Encoding.ASCII.GetBytes(message);
+                        for (int i = 0; i < message.Length; i++)
+                        {
+                            Console.WriteLine($"Message byte {i}: {message[i]}");
+                        }
+                        Console.WriteLine($"Message in bytes: {string.Join(", ", message)}");
+
+
+                        ProcessRPCMessage(topic, message, headers);
                     }
                     else if (_topicHandlers.ContainsKey(topic))
                     {
@@ -191,7 +195,13 @@ public class KfkConsumerListener : IDisposable
         {
             string answerId = System.Text.Encoding.UTF8.GetString(headers.GetLastBytes("answer"));
             Console.WriteLine($"Processing RPC message: topic = {topic}, message = {message}, answerId = {answerId}");
-
+            // display the message in bytes
+            Console.WriteLine($"Message in bytes1: {BitConverter.ToString(message)}");
+            Console.WriteLine($"Message in bytes2: {string.Join(", ", message)}");
+            // Message in bytes: EF-BF-BD-EF-BF-BD-EF-BF-BD-61-EF-BF-BD-62-01-02-03
+            // I want { 0x91, 0x95, 0xA1, 0x61, 0xA1, 0x62, 0x01, 0x02, 0x03 };
+            string formattedMessage = "{ " + string.Join(", ", message.Select(b => $"0x{b:X2}")) + " }";
+            Console.WriteLine($"Message in bytes: {formattedMessage}");
             // byte[] messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
             try
             {
@@ -202,7 +212,6 @@ public class KfkConsumerListener : IDisposable
             {
                 Console.WriteLine($"Deserialization error: {ex.Message}");
             }
-            // Console.WriteLine($"RPC function: ------------------------>>>>{_rpcFunctions[topic][answerId]}");
             _rpcFunctions[topic][answerId]?.Invoke(message);
 
         }
