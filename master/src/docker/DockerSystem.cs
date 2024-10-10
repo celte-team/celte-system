@@ -57,6 +57,7 @@ class DockerSystem
             }
         } catch (Exception e) {
             Console.WriteLine($"Error launching container: {e.Message}");
+            Environment.Exit(1);
         }
     }
 

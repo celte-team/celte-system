@@ -1,64 +1,129 @@
 using Confluent.Kafka;
 using System;
+using System.Text;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Confluent.Kafka.Admin;
+using MessagePack;
 
 public class KfkConsumerListener : IDisposable
 {
-    private readonly IConsumer<string, string> _consumer;
-    private readonly ConcurrentQueue<(string Topic, string Message)> _buffer;
-    private readonly Dictionary<string, Action<string>> _topicHandlers;
+    private readonly IConsumer<string, byte[]> _consumer;
+    private readonly ConcurrentQueue<(string Topic, byte[] Message, Headers)> _buffer;
+    private readonly Dictionary<string, Action<byte[]>> _topicHandlers;
     private CancellationTokenSource _cancellationTokenSource;
 
     private readonly object _lock = new object();
 
+    // AdminClientBuilder
+    private readonly AdminClientConfig _adminClientConfig;
+
+    public ConsumerConfig config;
+
+    // map with uuid and function
+    private Dictionary<string, Dictionary<string, Action<byte[]>>> _rpcFunctions;
+
     public KfkConsumerListener(string bootstrapServers, string groupId)
     {
-        var config = new ConsumerConfig
+        config = new ConsumerConfig
         {
-            BootstrapServers = bootstrapServers, // "localhost:80",
-            GroupId = groupId, // "test-consumer-group",
+            BootstrapServers = bootstrapServers,
+            GroupId = groupId,
             AutoOffsetReset = AutoOffsetReset.Earliest // "earliest"
         };
 
-        _consumer = new ConsumerBuilder<string, string>(config).Build();
-        _buffer = new ConcurrentQueue<(string, string)>();
-        _topicHandlers = new Dictionary<string, Action<string>>();
+        _consumer = new ConsumerBuilder<string, byte[]>(config).Build();
+        _buffer = new ConcurrentQueue<(string, byte[], Headers)>();
+        _topicHandlers = new Dictionary<string, Action<byte[]>>();
         _cancellationTokenSource = new CancellationTokenSource();
+
+        // RPC function map
+        _rpcFunctions = new Dictionary<string, Dictionary<string, Action<byte[]>>>();
+
+        _adminClientConfig = new AdminClientConfig
+        {
+            BootstrapServers = bootstrapServers
+        };
     }
 
-    public void AddTopic(string topic, Action<string> handler)
+    public void RegisterRPCFunction(string topic, string requestId, Action<byte[]> function)
     {
-        lock (_lock)
+        if (!_rpcFunctions.ContainsKey(topic))
         {
-            if (!_topicHandlers.ContainsKey(topic))
+            _rpcFunctions[topic] = new Dictionary<string, Action<byte[]>>();
+        }
+        _rpcFunctions[topic][requestId] = function;
+        Console.WriteLine($"Registered RPC function for topic {topic}, request ID {requestId}");
+    }
+
+    public void AddTopic(string topic, Action<byte[]>? handler)
+    {
+        using (var adminClient = new AdminClientBuilder(_adminClientConfig).Build())
+        {
+            try
             {
-                // use an admin client to create the topic
-                _topicHandlers[topic] = handler;
-                var newSubscription = _consumer.Subscription.ToList();
-                newSubscription.Add(topic);
-                _consumer.Subscribe(newSubscription);
-                Console.WriteLine($"Registered handler for topic {topic}, newSubscription = {string.Join(",", newSubscription)}");
+                var metadata = adminClient.GetMetadata(TimeSpan.FromSeconds(10));
+                if (!metadata.Topics.Any(t => t.Topic == topic))
+                {
+                    var topicSpecification = new TopicSpecification
+                    {
+                        Name = topic,
+                        NumPartitions = 1,
+                        ReplicationFactor = 1
+                    };
+
+                    adminClient.CreateTopicsAsync(new List<TopicSpecification> { topicSpecification }).Wait();
+                    Console.WriteLine($"Topic {topic} created successfully.");
+                }
+                else
+                {
+                    Console.WriteLine($"Topic {topic} already exists.");
+                }
+            }
+            catch (CreateTopicsException e)
+            {
+                Console.WriteLine($"An error occurred creating topic {topic}: {e.Results[0].Error.Reason}");
+            }
+
+
+            lock (_lock)
+            {
+                if (!_topicHandlers.ContainsKey(topic))
+                {
+                    if (handler != null)
+                    {
+                        _topicHandlers[topic] = handler;
+                    }
+
+                    var newSubscription = _consumer.Subscription.ToList();
+                    newSubscription.Add(topic);
+                    _consumer.Subscribe(newSubscription);
+                    Console.WriteLine($"Registered handler for topic {topic}, newSubscription = {string.Join(",", newSubscription)}");
+                }
             }
         }
     }
 
+    // Start consuming Kafka messages
     public void StartConsuming(CancellationToken cancellationToken)
     {
         try
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                Console.WriteLine("StartConsuming");
                 var consumeResult = _consumer.Consume(cancellationToken);
                 if (consumeResult != null)
                 {
-                    _buffer.Enqueue((consumeResult.Topic, consumeResult.Message.Value));
-                    Console.WriteLine($"Consumed event from topic {consumeResult.Topic}: value = {consumeResult.Message.Value}");
-                } else {
-                    Console.WriteLine("No message consumed");
+                    _buffer.Enqueue((consumeResult.Topic, consumeResult.Message.Value, consumeResult.Message.Headers));
+                    // _buffer.Enqueue((consumeResult.Topic, Encoding.ASCII.GetBytes(consumeResult.Message.Value), consumeResult.Message.Headers));
+                    string messageString = System.Text.Encoding.UTF8.GetString(consumeResult.Message.Value);
+                    Console.WriteLine($"Consumed event from topic {consumeResult.Topic}: value = {messageString}");
+                }
+                else
+                {
                     Thread.Sleep(100);
                 }
             }
@@ -77,6 +142,7 @@ public class KfkConsumerListener : IDisposable
         }
     }
 
+    // Execute buffered messages
     public void StartExecuteBuffer(CancellationToken cancellationToken)
     {
         try
@@ -85,11 +151,29 @@ public class KfkConsumerListener : IDisposable
             {
                 if (_buffer.TryDequeue(out var item))
                 {
-                    var (topic, message) = item;
-                    Console.WriteLine($"Processing message from topic {topic}: value = {message}");
-                    if (_topicHandlers.ContainsKey(topic))
+                    // var (topic, message, headers) = item;
+                    // give the good type to the variables
+                    (string topic, byte[] message, Headers headers) = item;
+                    string messageString = System.Text.Encoding.UTF8.GetString(message);
+                    Console.WriteLine($"Processing message from topic {topic}: value = {messageString}");
+
+                    // check if the 4 last characters are ".rpc"
+                    if (topic.EndsWith(".rpc"))
                     {
-                        _topicHandlers[topic]?.Invoke(message);
+                        Console.WriteLine($"Processing RPC message123: topic = {topic}, message = {messageString}");
+                        // byte[] messageBytes = Encoding.ASCII.GetBytes(message);
+                        for (int i = 0; i < message.Length; i++)
+                        {
+                            Console.WriteLine($"Message byte {i}: {message[i]}");
+                        }
+                        Console.WriteLine($"Message in bytes: {string.Join(", ", message)}");
+
+
+                        ProcessRPCMessage(topic, message, headers);
+                    }
+                    else if (_topicHandlers.ContainsKey(topic))
+                    {
+                        _topicHandlers[topic]?.Invoke(message); // TODO pass headers
                     }
                 }
                 else
@@ -104,6 +188,38 @@ public class KfkConsumerListener : IDisposable
         }
     }
 
+    // Method to process RPC messages
+    private void ProcessRPCMessage(string topic, byte[] message, Headers headers)
+    {
+        try
+        {
+            string answerId = System.Text.Encoding.UTF8.GetString(headers.GetLastBytes("answer"));
+            Console.WriteLine($"Processing RPC message: topic = {topic}, message = {message}, answerId = {answerId}");
+            // display the message in bytes
+            Console.WriteLine($"Message in bytes1: {BitConverter.ToString(message)}");
+            Console.WriteLine($"Message in bytes2: {string.Join(", ", message)}");
+            // Message in bytes: EF-BF-BD-EF-BF-BD-EF-BF-BD-61-EF-BF-BD-62-01-02-03
+            // I want { 0x91, 0x95, 0xA1, 0x61, 0xA1, 0x62, 0x01, 0x02, 0x03 };
+            string formattedMessage = "{ " + string.Join(", ", message.Select(b => $"0x{b:X2}")) + " }";
+            Console.WriteLine($"Message in bytes: {formattedMessage}");
+            // byte[] messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
+            try
+            {
+                // var deserializedData = MessagePackSerializer.Deserialize<object[]>(message);
+                // Console.WriteLine($"Deserialized RPC message: {string.Join(", ", deserializedData)}");
+            }
+            catch (MessagePackSerializationException ex)
+            {
+                Console.WriteLine($"Deserialization error: {ex.Message}");
+            }
+            _rpcFunctions[topic][answerId]?.Invoke(message);
+
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error processing RPC message: {e.Message}");
+        }
+    }
 
     public void Dispose()
     {

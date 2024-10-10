@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Docker.DotNet" Version="3.125.15" />
+    <PackageReference Include="MessagePack" Version="2.5.172" />
     <PackageReference Include="YamlDotNet" Version="16.0.0" />
     <PackageReference Include="Confluent.Kafka" Version="2.3" />
   </ItemGroup>
