@@ -91,9 +91,8 @@ public:
        * @brief This hook is called when the server is informed that a new grape
        * has been assigned to it.
        */
-      std::function<bool(std::string)> loadGrape = [](std::string grapeId) {
-        return true;
-      };
+      std::function<bool(std::string, bool)> loadGrape =
+          [](std::string grapeId, bool isLocallyOwned) { return true; };
     } grape;
   } server;
 

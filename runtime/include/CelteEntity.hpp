@@ -1,5 +1,6 @@
 #pragma once
 #include "CelteChunk.hpp"
+#include "Replicator.hpp"
 #include <string>
 
 namespace celte {
@@ -20,8 +21,12 @@ public:
    *
    * @param x, y, z: The position of the entity in the world, necessary to
    * determine the chunk.
+   * @param uuid: The uuid of the entity. If empty, a random uuid will be
+   * generated. The uuid will typically be empty if the uuid is owned by the
+   * current peer, and filled if the entity is owned by another peer (and the
+   * spawn order is sent through the network).
    */
-  void OnSpawn(float x, float y, float z);
+  void OnSpawn(float x, float y, float z, const std::string &uuid = "");
 
   /**
    * @brief This method is called when an entity is destroyed in the game.
@@ -47,8 +52,23 @@ public:
    */
   inline const std::string &GetUUID() const { return _uuid; }
 
+  /**
+   * @brief This method is called as often as possible to udpate the
+   * internal logic of the entity.
+   */
+  void Tick();
+
 private:
+#ifdef CELTE_SERVER_MODE_ENABLED
+  /**
+   * @brief Calling the method will replicate the properties of this entity
+   * to the chunk channels of the chunk that owns this entity.
+   */
+  void __uploadReplicationData();
+#endif
+
   std::string _uuid;
   celte::chunks::Chunk *_ownerChunk = nullptr;
+  runtime::Replicator _replicator;
 };
 } // namespace celte

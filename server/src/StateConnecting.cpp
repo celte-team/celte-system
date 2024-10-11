@@ -25,7 +25,7 @@ void Connecting::entry() {
     // creating a listener for RPCs related to the server node as a whole
     std::cout << "Creating RPC listener for " << RUNTIME.GetUUID() << "."
               << celte::tp::RPCs << std::endl;
-    std::cout << "CREATED LISTENIER FOR RPC CHANNEL "
+    std::cout << "CREATED LISTENER FOR RPC CHANNEL "
               << RUNTIME.GetUUID() + "." + celte::tp::RPCs << std::endl;
     KPOOL.Subscribe({.topic = RUNTIME.GetUUID() + "." + celte::tp::RPCs,
                      .autoCreateTopic = true,

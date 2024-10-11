@@ -111,6 +111,7 @@ public:
     std::function<void(const kafka::clients::producer::RecordMetadata &,
                        kafka::Error)>
         onDelivered = nullptr;
+    bool autoCreateTopic = true;
   };
 
   /**

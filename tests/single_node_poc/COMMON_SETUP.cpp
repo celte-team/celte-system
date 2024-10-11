@@ -7,13 +7,6 @@
 #pragma region GAME_SETUP
 // Simulating the creation of the scene
 
-// Dummy RPC call to test the RPC system
-
-celte::runtime::CelteRuntime::GetInstance().RPCTable().Register(
-    "PlayerShouted", std::function<void(std::string)>([](std::string message) {
-      std::cout << "[TEST RPC] Player shouted: " << message << std::endl;
-    }));
-
 // Creating a grape as a cube of 10x10x10 centered at (0, 0, 0)
 celte::chunks::GrapeOptions grapeOptions{.grapeId = "leChateauDuMechant",
                                          .subdivision = 1,

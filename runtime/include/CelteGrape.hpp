@@ -28,6 +28,8 @@ struct GrapeOptions {
   glm::vec3 localY;
   // Local z axis of the grape
   glm::vec3 localZ;
+  // is this grape owned by the local node?
+  bool isLocallyOwned = false;
 };
 
 struct GrapeStatistics {
@@ -87,6 +89,11 @@ public:
    * std::out_of_range exception.
    */
   Chunk &GetChunkByPosition(float x, float y, float z);
+
+  /**
+   * @brief Returns the options used to create the grape.
+   */
+  inline const GrapeOptions &GetOptions() const { return _options; }
 
 private:
   /**

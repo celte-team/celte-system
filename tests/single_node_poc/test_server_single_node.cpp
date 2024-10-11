@@ -41,6 +41,10 @@ void registerServerHooks() {
     std::cout << "Client is requesting spawn position" << std::endl;
     return std::make_tuple("leChateauDuMechant", clientId, 0, 0, 0);
   };
+  HOOKS.server.grape.loadGrape = [](std::string grapeId, bool isLocallyOwned) {
+#include "COMMON_SETUP.cpp"
+    return true;
+  };
 }
 
 void registerServerRPC(celte::runtime::CelteRuntime &runtime,
@@ -72,7 +76,6 @@ int main(int ac, char **av) {
   runtime.Start(celte::runtime::RuntimeMode::SERVER);
   runtime.ConnectToCluster(ip, 80);
 
-
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   std::cout << "now waiting for connection" << std::endl;
@@ -80,7 +83,7 @@ int main(int ac, char **av) {
     runtime.Tick();
   }
 
-#include "COMMON_SETUP.cpp"
+  // #include "COMMON_SETUP.cpp"
 
   dummy::Engine engine;
   registerServerRPC(runtime, engine);

@@ -45,11 +45,14 @@ void Connected::__unregisterRPCs() {
   UNREGISTER_RPC(__rp_onSpawnRequested);
   UNREGISTER_RPC(__rp_spawnPlayer);
   UNREGISTER_RPC(__rp_assignGrape);
+  UNREGISTER_RPC(__rp_getPlayerSpawnPosition);
 }
 
 void Connected::__rp_assignGrape(std::string grapeId) {
+  std::cout << "DEBUG ASSIGN GRAPE" << std::endl;
   std::cout << "Node taking authority of grape " << grapeId << std::endl;
-  HOOKS.server.grape.loadGrape(grapeId);
+  HOOKS.server.grape.loadGrape(grapeId, true);
+  std::cout << "now registering consumers for grape" << std::endl;
   __registerGrapeConsumers(grapeId);
 }
 
@@ -66,6 +69,7 @@ void Connected::__rp_onSpawnRequested(const std::string &clientId, float x,
   auto chunkId = GRAPES.GetGrapeByPosition(x, y, z)
                      .GetChunkByPosition(x, y, z)
                      .GetCombinedId();
+  std::cout << "on spawn requested rp is being executed" << std::endl;
   RPC.InvokeChunk(chunkId, "__rp_spawnPlayer", clientId, x, y, z);
 }
 
@@ -78,9 +82,11 @@ void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
 
 void Connected::__registerGrapeConsumers(const std::string &grapeId) {
   try {
+    std::cout << "Registering grape consumers: " << grapeId + "." + tp::RPCs
+              << std::endl;
     KPOOL.Subscribe({
         .topic = grapeId + "." + tp::RPCs,
-        .autoCreateTopic = false,
+        .autoCreateTopic = true,
         .extraProps = {{"auto.offset.reset", "earliest"}},
         .autoPoll = true,
         .callback =
@@ -95,6 +101,7 @@ void Connected::__registerGrapeConsumers(const std::string &grapeId) {
 }
 
 void Connected::__unregisterGrapeConsumers() {}
+
 } // namespace states
 } // namespace server
 } // namespace celte

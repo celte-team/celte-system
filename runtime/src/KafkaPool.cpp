@@ -37,6 +37,10 @@ void KafkaPool::__init() {
 }
 
 void KafkaPool::Send(const KafkaPool::SendOptions &options) {
+  if (options.autoCreateTopic) {
+    __createTopicIfNotExists(options.topic, 1, 1);
+  }
+
   // wrapping the options in a shared ptr to avoid copying or dangling
   // references
   auto opts = std::make_shared<SendOptions>(options);
@@ -195,13 +199,13 @@ void KafkaPool::__createTopicIfNotExists(const std::string &topic,
                                          int numPartitions,
                                          int replicationFactor) {
   kafka::clients::admin::AdminClient adminClient(_consumerProps);
-
+  std::cout << "create topic " << topic << std::endl;
   auto topics = adminClient.listTopics();
   for (auto &topicName : topics.topics) {
     if (topicName == topic)
       return;
   }
-
+  std::cout << "topic created successfully" << std::endl;
   auto createResult =
       adminClient.createTopics({topic}, numPartitions, replicationFactor);
   if (!createResult.error ||
