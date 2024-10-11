@@ -14,7 +14,7 @@ endif()
 
 # Include directories
 include_directories(
-    kafka/cpp/include
+    # kafka/cpp/include
     client/include
     server/include
     runtime/include)
