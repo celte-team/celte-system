@@ -9,7 +9,8 @@ int main() {
                                     return x * x;
                                   }));
   RUNTIME.Start(celte::runtime::RuntimeMode::SERVER);
-  RUNTIME.ConnectToCluster("127.0.0.1", 80);
+  std::string ip = std::getenv("CELTE_CLUSTER_HOST");
+  RUNTIME.ConnectToCluster(ip, 80);
 
   std::cout << "runtime uuid is " << RUNTIME.GetUUID() << std::endl;
 
