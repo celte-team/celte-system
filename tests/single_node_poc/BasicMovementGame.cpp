@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include "CelteEntity.hpp"
 
 namespace dummy {
     class IComponent {
@@ -14,6 +15,8 @@ namespace dummy {
 
     class GameObject {
     public:
+        std::string Name = "GameObject";
+
         template <typename T> void AddComponent(std::shared_ptr<T> component)
         {
             _components.push_back(component);
@@ -170,4 +173,27 @@ namespace movement_game {
     private:
         std::shared_ptr<dummy::GameObject> _gameObject;
     };
+
+    class CelteEntityWrapper : public dummy::IComponent {
+    public:
+        CelteEntityWrapper(std::shared_ptr<dummy::GameObject> gameObject,
+            std::shared_ptr<celte::CelteEntity> celteEntity)
+            : _gameObject(gameObject)
+            , _celteEntity(celteEntity)
+        {
+        }
+
+        // This method should be called when the game object is spawned
+        void Start() {
+        }
+
+        void Update(float deltaTime) override
+        {
+
+        }
+
+        private:
+            std::shared_ptr<dummy::GameObject> _gameObject;
+            std::shared_ptr<celte::CelteEntity> _celteEntity;
+        };
 }

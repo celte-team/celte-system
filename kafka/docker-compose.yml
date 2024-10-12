@@ -85,3 +85,27 @@ services:
       - kafka1
       - kafka2
       - kafka3
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    container_name: kafdrop
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: "kafka1:19092,kafka2:19093,kafka3:19094"
+      JVM_OPTS: "-Xms32M -Xmx64M"
+    depends_on:
+      - haproxy
+
+
+  # globalclock:
+  #   build:
+  #     context: ../
+  #     dockerfile: ClockServer/Dockerfile
+  #   container_name: globalclock
+  #   restart: always
+  #   environment:
+  #     CELTE_HOST_CLUSTER: haproxy:80
+  #     CELTE_CLOCK_DELTA_MS: 100
+  #   depends_on:
+  #     - haproxy

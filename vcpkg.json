@@ -1,6 +1,8 @@
 {
   "dependencies": [
+    "boost",
+    "glm",
     "librdkafka",
-    "boost"
+    "msgpack"
   ]
 }

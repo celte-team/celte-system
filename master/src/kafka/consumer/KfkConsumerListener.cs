@@ -194,24 +194,6 @@ public class KfkConsumerListener : IDisposable
         try
         {
             string answerId = System.Text.Encoding.UTF8.GetString(headers.GetLastBytes("answer"));
-            Console.WriteLine($"Processing RPC message: topic = {topic}, message = {message}, answerId = {answerId}");
-            // display the message in bytes
-            Console.WriteLine($"Message in bytes1: {BitConverter.ToString(message)}");
-            Console.WriteLine($"Message in bytes2: {string.Join(", ", message)}");
-            // Message in bytes: EF-BF-BD-EF-BF-BD-EF-BF-BD-61-EF-BF-BD-62-01-02-03
-            // I want { 0x91, 0x95, 0xA1, 0x61, 0xA1, 0x62, 0x01, 0x02, 0x03 };
-            string formattedMessage = "{ " + string.Join(", ", message.Select(b => $"0x{b:X2}")) + " }";
-            Console.WriteLine($"Message in bytes: {formattedMessage}");
-            // byte[] messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
-            try
-            {
-                // var deserializedData = MessagePackSerializer.Deserialize<object[]>(message);
-                // Console.WriteLine($"Deserialized RPC message: {string.Join(", ", deserializedData)}");
-            }
-            catch (MessagePackSerializationException ex)
-            {
-                Console.WriteLine($"Deserialization error: {ex.Message}");
-            }
             _rpcFunctions[topic][answerId]?.Invoke(message);
 
         }

@@ -7,25 +7,56 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package(RdKafka CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
+find_package(glm CONFIG REQUIRED)
 
-include_directories(include)
+include_directories(include ${GLIB_INCLUDE_DIRS} ${RDKAFKA_INCLUDE_DIRS})
 
 # Add pkg-config flags for glib-2.0
 link_directories(${GLIB_LIBRARY_DIRS})
 add_definitions(${GLIB_CFLAGS_OTHER})
 
+find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
+find_package(Boost REQUIRED COMPONENTS thread)
+
 set(COMMON_SOURCES
     src/CelteRuntime.cpp
+    src/CelteEntity.cpp
+    src/CelteGrape.cpp
+    src/CelteChunk.cpp
+    src/CelteRPC.cpp
+    src/CelteGrapeManagementSystem.cpp
+    src/CelteEntityManagementSystem.cpp
+    src/CelteHooks.cpp
+    src/RotatedBoundingBox.cpp
+    src/KafkaPool.cpp
+    src/CelteClock.cpp
+    src/Replicator.cpp
+)
+
+set(SERVER_SOURCES
+    ../server/src/CelteServer.cpp
+    ../server/src/StateConnected.cpp
+    ../server/src/StateConnecting.cpp
+    ../server/src/StateDisconnected.cpp
+)
+
+set(CLIENT_SOURCES
+    ../client/src/CelteClient.cpp
+    ../client/src/StateConnected.cpp
+    ../client/src/StateConnecting.cpp
+    ../client/src/StateDisconnected.cpp
 )
 
 # Runtime for server
-add_library(celtesystems_runtime_server SHARED ${COMMON_SOURCES})
+add_library(celtesystems_runtime_server SHARED ${COMMON_SOURCES} ${SERVER_SOURCES})
 target_compile_definitions(celtesystems_runtime_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(celtesystems_runtime_server PRIVATE KafkaLink CelteServer)
+# target_link_libraries(celtesystems_runtime_server PRIVATE KafkaLink CelteServer glm::glm msgpack-cxx Boost::thread)
+target_link_libraries(celtesystems_runtime_server PRIVATE glm::glm msgpack-cxx Boost::thread  RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES})
 
 # # Runtime for client
-add_library(celtesystems_runtime_client SHARED ${COMMON_SOURCES})
-target_link_libraries(celtesystems_runtime_client PRIVATE KafkaLink CelteClient)
+add_library(celtesystems_runtime_client SHARED ${COMMON_SOURCES} ${CLIENT_SOURCES})
+# target_link_libraries(celtesystems_runtime_client PRIVATE KafkaLink CelteClient glm::glm msgpack-cxx Boost::thread)
+target_link_libraries(celtesystems_runtime_client PRIVATE glm::glm msgpack-cxx Boost::thread  RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES})
 
 
 
@@ -49,8 +80,8 @@ if(NOT RDKAFKA++_LIBRARY)
     message(FATAL_ERROR "rdkafka++ library not found")
 endif()
 
-install(FILES ${RDKAFKA_LIBRARY} ${RDKAFKA++_LIBRARY}
-        DESTINATION celte-libraries)
+# install(FILES ${RDKAFKA_LIBRARY} ${RDKAFKA++_LIBRARY}
+#         DESTINATION celte-libraries)
 
 # Glib
 

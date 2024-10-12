@@ -19,10 +19,10 @@
       args:
         chdir: ../build
 
-    - name: Up kafka cluster
-      command: docker-compose up -d
-      args:
-        chdir: ../kafka
+    # - name: Up kafka cluster
+    #   command: docker-compose up -d
+    #   args:
+    #     chdir: ../kafka
 
     - name: Up SN
       command: ./tests/single_node_poc/test_server_single_node
@@ -74,17 +74,17 @@
 
     - name: Show SN output
       debug:
-        msg: "{{ node_job_result.stdout_lines }}"
+        msg: "{{ node_job_result.stdout_lines | join('\n') }}"
 
     - name: Show Client 1 output
       debug:
-        msg: "{{ client_1_job_result.stdout_lines }}"
+        msg: "{{ client_1_job_result.stdout_lines | join('\n') }}"
 
     - name: Show Client 2 output
       debug:
-        msg: "{{ client_2_job_result.stdout_lines }}"
+        msg: "{{ client_2_job_result.stdout_lines | join('\n') }}"
 
-    - name: Down kafka cluster
-      command: docker-compose down
-      args:
-        chdir: ../kafka
+    # - name: Down kafka cluster
+    #   command: docker-compose down
+    #   args:
+    #     chdir: ../kafka

@@ -1,19 +1,17 @@
 #include "ServerStatesDeclaration.hpp"
 
 namespace celte {
-    namespace server {
-        namespace states {
-            void Disconnected::entry()
-            {
-                std::cerr << "Client is Disconnected" << std::endl;
-            }
+namespace server {
+namespace states {
+void Disconnected::entry() {
+  std::cerr << "Server is Disconnected" << std::endl;
+}
 
-            void Disconnected::exit() { }
+void Disconnected::exit() {}
 
-            void Disconnected::react(celte::nl::EConnectToCluster const& event)
-            {
-                transit<Connecting>();
-            }
-        } // namespace states
-    } // namespace client
+void Disconnected::react(EConnectToCluster const &event) {
+  transit<Connecting>();
+}
+} // namespace states
+} // namespace server
 } // namespace celte

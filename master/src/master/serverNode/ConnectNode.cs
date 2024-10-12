@@ -22,7 +22,7 @@ class ConnectNode
 
             // Assuming message is supposed to be a UUID or similar identifier
             _master.kFKProducer._uuidProducerService.OpenTopic(message);
-            RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "LeChateauDuMechant");
+            RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "leChateauDuMechant");
 
             // Link node with the server
             if (!_nodes.ContainsKey(message))

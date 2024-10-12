@@ -40,31 +40,31 @@ class ConnectClient
                 { "peer.uuid", RPC.__str2bytes(M.Global.MasterUUID) }
             };
 
-        await RPC.Call(rpcName, Scope.Peer(nodeId), headers, uuidProcess, async (byte[] value) =>
-            {
-                Console.WriteLine($">>>>>>>>>>> Received response from getPlayerSpawnPosition: {value} <<<<<<<<<<<");
-                try
+            await RPC.Call(rpcName, Scope.Peer(nodeId), headers, uuidProcess, async (byte[] value) =>
                 {
-                    // Initialiser les variables de sortie
-                    string grapeId = string.Empty;
-                    string receivedClientId = string.Empty;
-                    float x = 0, y = 0, z = 0;
+                    Console.WriteLine($">>>>>>>>>>> Received response from getPlayerSpawnPosition: {value} <<<<<<<<<<<");
+                    try
+                    {
+                        // Initialiser les variables de sortie
+                        string grapeId = string.Empty;
+                        string receivedClientId = string.Empty;
+                        float x = 0, y = 0, z = 0;
 
-                    var result = UnpackAny(value, typeof(string), typeof(string), typeof(int), typeof(int), typeof(int));
-                    grapeId = (string)result.Item1[0];
-                    receivedClientId = (string)result.Item1[1];
-                    x = (int)result.Item1[2];
-                    y = (int)result.Item1[3];
-                    z = (int)result.Item1[4];
-                    Console.WriteLine($"Sending response to acceptNewClient: {receivedClientId}, {grapeId}, {x}, {y}, {z}");
-                    RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(nodeId), receivedClientId, grapeId, x, y, z);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Error handling response from getPlayerSpawnPosition: {e.Message}");
-                }
+                        var result = UnpackAny(value, typeof(string), typeof(string), typeof(int), typeof(int), typeof(int));
+                        grapeId = (string)result.Item1[0];
+                        receivedClientId = (string)result.Item1[1];
+                        x = (int)result.Item1[2];
+                        y = (int)result.Item1[3];
+                        z = (int)result.Item1[4];
+                        Console.WriteLine($"Sending response to acceptNewClient: {receivedClientId}, {grapeId}, {x}, {y}, {z}");
+                        RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(nodeId), receivedClientId, grapeId, x, y, z);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Error handling response from getPlayerSpawnPosition: {e.Message}");
+                    }
 
-            }, clientId);
+                }, clientId);
         }
         catch (Exception e)
         {
