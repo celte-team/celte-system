@@ -28,6 +28,7 @@
 #include "CelteHooks.hpp"
 #include "CelteRPC.hpp"
 #include "KafkaPool.hpp"
+#include "Logger.hpp"
 #include "tinyfsm.hpp"
 #include "topics.hpp"
 #include <atomic>
@@ -205,6 +206,18 @@ public:
    * @brief Returns a reference to the hook table.
    */
   api::HooksTable &Hooks();
+
+  /**
+   * @brief Returns a reference to the logger info stream.
+   */
+  std::ostream &Info();
+
+  /**
+   * @brief Returns a reference to the logger error stream.
+   */
+  std::ostream &Err();
+
+  logs::Logger &Logger();
 
   /**
    * @brief Returns the UUID of the peer.

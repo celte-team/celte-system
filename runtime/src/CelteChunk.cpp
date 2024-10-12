@@ -2,6 +2,7 @@
 #include "CelteEntityManagementSystem.hpp"
 #include "CelteRPC.hpp"
 #include "CelteRuntime.hpp"
+#include "Logger.hpp"
 #include "glm/glm.hpp"
 
 namespace celte {
@@ -69,7 +70,8 @@ void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
       try {
         ENTITIES.GetEntity(entityUUID).OnChunkTakeAuthority(*this);
       } catch (std::out_of_range &e) {
-        std::cerr << "Entity not found: " << e.what() << std::endl;
+        logs::Logger::getInstance().err()
+            << "Entity not found: " << e.what() << std::endl;
       }
     });
   }

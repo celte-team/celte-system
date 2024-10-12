@@ -83,6 +83,9 @@ Chunk &Grape::GetChunkByPosition(float x, float y, float z) {
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 void Grape::ReplicateAllEntities() {
+  if (not _options.isLocallyOwned) {
+    return;
+  }
   for (auto &[chunkId, chunk] : _chunks) {
     chunk->SendReplicationData();
   }

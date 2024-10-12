@@ -1,6 +1,7 @@
 #include "CelteRPC.hpp"
 #include "CelteRuntime.hpp"
 #include "ClientStatesDeclaration.hpp"
+#include "Logger.hpp"
 
 namespace celte {
 namespace client {
@@ -10,7 +11,7 @@ void Connected::entry() { __registerRPCs(); }
 void Connected::exit() { __unregisterRPCs(); }
 
 void Connected::react(EDisconnectFromServer const &event) {
-  std::cerr << "Disconnecting from server" << std::endl;
+  logs::Logger::getInstance().err() << "Disconnecting from server" << std::endl;
   transit<Disconnected>();
 }
 
