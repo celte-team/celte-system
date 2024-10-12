@@ -1,5 +1,6 @@
 #pragma once
 #include "ClientEvents.hpp"
+#include "Logger.hpp"
 #include "tinyfsm.hpp"
 #include <functional>
 #include <iostream>
@@ -22,7 +23,8 @@ public:
   // Event reactions
   // ==========================================================================
   inline virtual void react(tinyfsm::Event const &) {
-    std::cerr << "Unhandled client fsm event" << std::endl;
+    logs::Logger::getInstance().err()
+        << "Unhandled client fsm event" << std::endl;
   };
 
   virtual void react(EConnectionSuccess const &event);
