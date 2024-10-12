@@ -56,6 +56,8 @@ cmake --preset default -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" ..
 echo "Building the project..."
 cd ..
 cmake --preset=default -S . -B build
+cd build && make -j
+cd ..
 
 if [ $? -ne 0 ]; then
     echo "Build failed. Exiting..."
