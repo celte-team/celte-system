@@ -1,5 +1,6 @@
 #include "CelteRPC.hpp"
 #include "CelteRuntime.hpp"
+#include "Logger.hpp"
 
 namespace celte {
 namespace rpc {
@@ -19,7 +20,7 @@ void Table::InvokeLocal(kafka::clients::consumer::ConsumerRecord record) {
       __handleRPCReturnedValue(record, rpcUUID);
     } catch (std::runtime_error &e) {
       // if this fails to, then it is an error.
-      std::cerr << e.what() << std::endl;
+      logs::Logger::getInstance().err() << e.what() << std::endl;
     }
   }
 }
@@ -28,7 +29,8 @@ void Table::__tryInvokeRPC(kafka::clients::consumer::ConsumerRecord record,
                            const std::string &rpName) {
   // Does the rpc exist?
   if (rpcs.find(rpName) == rpcs.end()) {
-    std::cerr << "No RPC registered with name: " << rpName << std::endl;
+    logs::Logger::getInstance().err()
+        << "No RPC registered with name: " << rpName << std::endl;
     return;
   }
 
@@ -51,8 +53,8 @@ void Table::__handleRPCReturnedValue(
     rpcPromises[rpcUUID]->set_value(resultSerialized);
     rpcPromises.erase(rpcUUID);
   } else {
-    std::cerr << "Invalid response to non existing query: " << rpcUUID
-              << std::endl;
+    logs::Logger::getInstance().err()
+        << "Invalid response to non existing query: " << rpcUUID << std::endl;
   }
 }
 

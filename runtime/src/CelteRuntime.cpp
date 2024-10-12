@@ -117,10 +117,12 @@ void CelteRuntime::__initNetworkLayer(RuntimeMode mode) {
   switch (mode) {
   case SERVER:
 #ifdef CELTE_SERVER_MODE_ENABLED
+    Info() << "CelteRuntime is starting in server mode" << std::endl;
     __initServer();
 #endif
     break;
   case CLIENT:
+    Info() << "CelteRuntime is starting in client mode" << std::endl;
 #ifndef CELTE_SERVER_MODE_ENABLED
     __initClient();
 #endif
@@ -201,6 +203,14 @@ nl::KafkaPool &CelteRuntime::KPool() {
 }
 
 api::HooksTable &CelteRuntime::Hooks() { return _hooks; }
+
+std::ostream &CelteRuntime::Info() {
+  return logs::Logger::getInstance().info();
+}
+
+std::ostream &CelteRuntime::Err() { return logs::Logger::getInstance().err(); }
+
+logs::Logger &CelteRuntime::Logger() { return logs::Logger::getInstance(); }
 
 } // namespace runtime
 } // namespace celte

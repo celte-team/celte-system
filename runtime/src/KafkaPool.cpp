@@ -1,5 +1,6 @@
 #include "CelteRuntime.hpp"
 #include "KafkaPool.hpp"
+#include "Logger.hpp"
 #include "topics.hpp"
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -156,8 +157,9 @@ void KafkaPool::Subscribe(const SubscribeOptions &ops) {
     // Subscribe with the updated subscription list
     consumer.subscribe(subscriptions);
   } catch (kafka::KafkaException &e) {
-    std::cerr << "Error subscribing to topic " << ops.topic << std::endl;
-    std::cerr << e.what() << std::endl;
+    logs::Logger::getInstance().err()
+        << "Error subscribing to topic " << ops.topic << std::endl;
+    logs::Logger::getInstance().err() << e.what() << std::endl;
   }
 }
 
@@ -222,7 +224,8 @@ bool KafkaPool::Poll(const std::string &groupId, unsigned int pollTimeoutMs) {
       _records.push(record);
     }
   } catch (const std::out_of_range &e) {
-    std::cerr << "Group ID " << groupId << " not found" << std::endl;
+    logs::Logger::getInstance().err()
+        << "Group ID " << groupId << " not found" << std::endl;
     return false;
   }
   return true;

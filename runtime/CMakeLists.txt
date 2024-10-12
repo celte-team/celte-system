@@ -31,6 +31,7 @@ set(COMMON_SOURCES
     src/KafkaPool.cpp
     src/CelteClock.cpp
     src/Replicator.cpp
+    src/Logger.cpp
 )
 
 set(SERVER_SOURCES

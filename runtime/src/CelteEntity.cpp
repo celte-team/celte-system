@@ -4,6 +4,7 @@
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteHooks.hpp"
 #include "CelteRuntime.hpp"
+#include "Logger.hpp"
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <iostream>
@@ -17,7 +18,7 @@ void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
     OnChunkTakeAuthority(chunk);
   } catch (std::out_of_range &e) {
     // Entity is not in any grape
-    std::cerr << "Entity is not in any grape: " << e.what() << std::endl;
+    RUNTIME.Err() << "Entity is not in any grape: " << e.what() << std::endl;
   }
 
   if (uuid.empty()) {
@@ -30,7 +31,8 @@ void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
 
 void CelteEntity::OnDestroy() {
   ENTITIES.UnregisterEntity(*this);
-  // TODO: Notify all peers of the destruction
+  // TODO: Notify all peers of the destruction if in server mode and entity is
+  // locally owned.
 }
 
 void CelteEntity::OnChunkTakeAuthority(const celte::chunks::Chunk &chunk) {
@@ -51,8 +53,8 @@ void CelteEntity::UploadReplicationData() {
   }
 
   if (not _ownerChunk) {
-    std::cerr << "Entity " << _uuid << " is not owned by any chunk."
-              << std::endl;
+    logs::Logger::getInstance().err()
+        << "Entity " << _uuid << " is not owned by any chunk." << std::endl;
     return;
   }
 

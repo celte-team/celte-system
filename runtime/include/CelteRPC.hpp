@@ -1,4 +1,5 @@
 #pragma once
+#include "Logger.hpp"
 #include "kafka/Header.h"
 #include "kafka/KafkaConsumer.h"
 #include "kafka/KafkaProducer.h"
@@ -133,11 +134,11 @@ public:
       try {
         __invoke__<void, decltype(rpc), Args...>(rpc, serializedArguments);
       } catch (const msgpack::type_error &e) {
-        std::cerr << "Type error during deserialization: " << e.what()
-                  << std::endl;
+        logs::Logger::getInstance().err()
+            << "Type error during deserialization: " << e.what() << std::endl;
       } catch (const std::exception &e) {
-        std::cerr << "Exception during deserialization: " << e.what()
-                  << std::endl;
+        logs::Logger::getInstance().err()
+            << "Exception during deserialization: " << e.what() << std::endl;
       }
     };
     rpcs.insert(std::make_pair(name, RPCBucket{call, scope}));
@@ -270,10 +271,12 @@ public:
          rpcUUID](const kafka::clients::producer::RecordMetadata &metadata,
                   const kafka::Error &error) {
           if (error) {
-            std::cerr << "An error occured (RPC invoke): " << error.message()
-                      << std::endl;
-            std::cerr << "Failed to send message: " << serializedArguments
-                      << std::endl;
+            logs::Logger::getInstance().err()
+                << "An error occured (RPC invoke): " << error.message()
+                << std::endl;
+            logs::Logger::getInstance().err()
+                << "Failed to send message: " << serializedArguments
+                << std::endl;
           }
         };
 
@@ -306,9 +309,10 @@ public:
                           const kafka::clients::producer::RecordMetadata &,
                           const kafka::Error &error) {
       if (error) {
-        std::cerr << "An error occured (RPC call): " << error.message()
-                  << std::endl;
-        std::cerr << "Failed to send message: " << *rpcUUID << std::endl;
+        logs::Logger::getInstance().err()
+            << "An error occured (RPC call): " << error.message() << std::endl;
+        logs::Logger::getInstance().err()
+            << "Failed to send message: " << *rpcUUID << std::endl;
       }
     };
 
@@ -384,7 +388,8 @@ private:
                        const kafka::clients::producer::RecordMetadata &,
                        kafka::Error err) {
       if (err) {
-        std::cerr << "Error in RPC return: " << err.message() << std::endl;
+        logs::Logger::getInstance().err()
+            << "Error in RPC return: " << err.message() << std::endl;
       }
     });
   }
@@ -393,14 +398,16 @@ private:
    * @brief Logs the error to stderr.
    */
   inline void __handleDeserializationError(const msgpack::type_error &e) {
-    std::cerr << "Type error during deserialization: " << e.what() << std::endl;
+    logs::Logger::getInstance().err()
+        << "Type error during deserialization: " << e.what() << std::endl;
   }
 
   /**
    * @brief Logs the error to stderr.
    */
   inline void __handleException(const std::exception &e) {
-    std::cerr << "Exception during deserialization: " << e.what() << std::endl;
+    logs::Logger::getInstance().err()
+        << "Exception during deserialization: " << e.what() << std::endl;
   }
 
   /**
