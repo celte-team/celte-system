@@ -8,7 +8,6 @@ class Master
     private static Master? _master;
     public KFKProducer kFKProducer;
     public CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-    // public KfkConsumerListener kfkConsumerListener = new KfkConsumerListener("localhost:80", "kafka-dotnet-getting-started");
     public KfkConsumerListener kfkConsumerListener;
 
     private Master()
@@ -25,15 +24,15 @@ class Master
             }
             _setupConfig = new SetupConfig(Environment.GetCommandLineArgs());
             _setupConfig.SettingUpMaster();
-
             kfkConsumerListener = new KfkConsumerListener(_setupConfig.GetYamlObjectConfig()["kafka_brokers"].ToString()
-            , "kafka-dotnet-getting-started");
+            , "kafka-dotnet");
 
             StartKafkaSystem();
         }
         catch (Exception e)
         {
             Console.WriteLine($"Error initializing Master: {e.Message}");
+
         }
     }
 
@@ -48,16 +47,21 @@ class Master
 
         StartExecuteBufferThread.Start();
 
-        //from UUIDConsumer.cs
-        UUIDConsumerService uuidConsumerService = new UUIDConsumerService();
-        // kfkConsumerListener.AddTopic("UUID", uuidConsumerService.WelcomeNewEntry);
+        ConnectNode connectNode = new ConnectNode();
+        ConnectClient connectClient = new ConnectClient();
 
-        //from UUIDProducer.cs
+        kfkConsumerListener.AddTopic(M.Global.MasterHelloSn, connectNode.connectNewNode);
+        kfkConsumerListener.AddTopic(M.Global.MasterHelloClient, connectClient.connectNewClient);
+        kfkConsumerListener.AddTopic(M.Global.MasterRPC, null);
+
+
         kFKProducer = new KFKProducer();
-        // produce 100 UUIDs.
-        kFKProducer._uuidProducerService.ProduceUUID(10);
     }
 
+    private void __handleRPC(string message)
+    {
+        Console.WriteLine($"Received RPC message: {message}");
+    }
 
     public static Master GetInstance()
     {

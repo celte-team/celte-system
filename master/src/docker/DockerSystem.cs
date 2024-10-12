@@ -24,7 +24,8 @@ class DockerSystem
 
     public async Task LaunchContainer()
     {
-        try {
+        try
+        {
             if (_yamlObject?["container_image"] == null)
             {
                 Console.WriteLine("No 'container_image' key found in the configuration file.");
@@ -55,8 +56,11 @@ class DockerSystem
             {
                 Console.WriteLine($"Container {UUID} started successfully.");
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Console.WriteLine($"Error launching container: {e.Message}");
+            Environment.Exit(1);
         }
     }
 

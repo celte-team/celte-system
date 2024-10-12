@@ -83,8 +83,6 @@ int main(int ac, char **av) {
     runtime.Tick();
   }
 
-  // #include "COMMON_SETUP.cpp"
-
   dummy::Engine engine;
   registerServerRPC(runtime, engine);
 
