@@ -30,11 +30,10 @@ public:
   /**
    * @brief ReplBlob is a structure that contains the data that needs to be
    * replicated, as well as the keys that have changed in the data.
+   * The contents of the new data serialized as {key: value, key: value,
+   *
    */
-  struct ReplBlob {
-    // the contents of the new data serialized as {key: value, key: value, ...}
-    std::string data;
-  };
+  using ReplBlob = std::string;
 
   /**
    * @brief Acknowledge that the value has chnaged and that it should be
@@ -46,7 +45,7 @@ public:
    * @brief Resets the flag that indicates that the data has changed for all
    * data.
    */
-  void resetDataChanged();
+  void ResetDataChanged();
 
   /**
    * @brief Returns the a serialized version of the data to be replicated.

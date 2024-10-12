@@ -1,3 +1,4 @@
+#pragma once
 #include "tinyfsm.hpp"
 #include <memory>
 #include <string>

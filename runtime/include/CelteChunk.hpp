@@ -1,7 +1,10 @@
 #pragma once
+#include "Replicator.hpp"
 #include "RotatedBoundingBox.hpp"
 #include "topics.hpp"
+#include <chrono>
 #include <glm/vec3.hpp>
+#include <map>
 #include <string>
 
 namespace celte {
@@ -14,6 +17,7 @@ struct ChunkConfig {
   const glm::vec3 localY;
   const glm::vec3 localZ;
   const glm::vec3 size;
+  const bool isLocallyOwned;
 };
 
 /**
@@ -39,6 +43,24 @@ public:
   inline const std::string &GetGrapeId() const { return _config.grapeId; }
 
   inline const std::string &GetCombinedId() const { return _combinedId; }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  /**
+   * @brief Adds the data of this entity to the list of data to
+   * be sent to the chunk's kafka replication topic.
+   */
+  void ScheduleReplicationDataToSend(const std::string &entityId,
+                                     const std::string &blob);
+
+  /**
+   * @brief Sends the data of the entities to the chunk's kafka replication
+   * topic if options.replicationIntervalMs has passed since the last time the
+   * data was sent.
+   *
+   */
+  void SendReplicationData();
+
+#endif
 
 private:
   /**
@@ -82,6 +104,10 @@ private:
 
   const ChunkConfig _config;
   const std::string _combinedId;
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  std::map<std::string, std::string> _nextScheduledReplicationData;
+#endif
 };
 } // namespace chunks
 } // namespace celte

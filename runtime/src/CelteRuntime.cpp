@@ -13,6 +13,7 @@
 ** CelteRuntime.cpp
 */
 
+#include "CelteEntityManagementSystem.hpp"
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteRuntime.hpp"
 #include "tinyfsm.hpp"
@@ -64,6 +65,7 @@ void CelteRuntime::Tick() {
     // callback.first is the uuid of the callback
     callback.second();
   }
+  ENTITIES.Tick();
 }
 
 int CelteRuntime::RegisterTickCallback(std::function<void()> callback) {

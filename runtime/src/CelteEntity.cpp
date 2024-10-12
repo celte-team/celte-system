@@ -38,19 +38,25 @@ void CelteEntity::OnChunkTakeAuthority(const celte::chunks::Chunk &chunk) {
 }
 
 void CelteEntity::Tick() {
-  // if the chunk where the entity is is locally owned, we upload the data of
-  // the current simulation's results.
-#ifdef CELTE_SERVER_MODE_ENABLED
-  if (_ownerChunk and
-      GRAPES.GetGrape(_ownerChunk->GetGrapeId()).GetOptions().isLocallyOwned) {
-    __uploadReplicationData();
-  }
-#endif
+  // nothing yet :)
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-void CelteEntity::__uploadReplicationData() {
-  // TODO
+void CelteEntity::UploadReplicationData() {
+
+  if (not(_ownerChunk and GRAPES.GetGrape(_ownerChunk->GetGrapeId())
+                              .GetOptions()
+                              .isLocallyOwned)) {
+    return;
+  }
+
+  if (not _ownerChunk) {
+    std::cerr << "Entity " << _uuid << " is not owned by any chunk."
+              << std::endl;
+    return;
+  }
+
+  _ownerChunk->ScheduleReplicationDataToSend(_uuid, _replicator.GetBlob());
 }
 #endif
 

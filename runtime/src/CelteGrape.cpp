@@ -46,7 +46,8 @@ void Grape::__subdivide() {
                           .localX = _options.localX,
                           .localY = _options.localY,
                           .localZ = _options.localZ,
-                          .size = _options.size / (float)_options.subdivision};
+                          .size = _options.size / (float)_options.subdivision,
+                          .isLocallyOwned = _options.isLocallyOwned};
     _chunks[chunkId.str()] = std::make_shared<Chunk>(config);
   }
 }
@@ -79,5 +80,14 @@ Chunk &Grape::GetChunkByPosition(float x, float y, float z) {
                           std::to_string(y) + ", " + std::to_string(z) +
                           ") is not in grape " + _options.grapeId);
 }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void Grape::ReplicateAllEntities() {
+  for (auto &[chunkId, chunk] : _chunks) {
+    chunk->SendReplicationData();
+  }
+}
+#endif
+
 } // namespace chunks
 } // namespace celte

@@ -149,6 +149,11 @@ public:
    */
   bool Poll(const std::string &groupId, unsigned int pollTimeoutMs = 100);
 
+  inline void CreateTopicIfNotExists(const std::string &topic,
+                                     int numPartitions, int replicationFactor) {
+    __createTopicIfNotExists(topic, numPartitions, replicationFactor);
+  }
+
 private:
   /**
    * @brief Initializes the KafkaPool's threads, consumers and producers.

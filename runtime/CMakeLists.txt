@@ -30,6 +30,7 @@ set(COMMON_SOURCES
     src/RotatedBoundingBox.cpp
     src/KafkaPool.cpp
     src/CelteClock.cpp
+    src/Replicator.cpp
 )
 
 set(SERVER_SOURCES

@@ -95,6 +95,13 @@ public:
    */
   inline const GrapeOptions &GetOptions() const { return _options; }
 
+#ifdef CELTE_SERVER_MODE_ENABLED
+  /**
+   * @brief Replicates all entities in the grape to their respective chunks.
+   */
+  void ReplicateAllEntities();
+#endif
+
 private:
   /**
    * Subdivide the grape bounding box into options.subdivision chunks.

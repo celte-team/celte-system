@@ -75,7 +75,7 @@ TEST_F(ReplicatorTest, ResetDataChanged) {
   replicator.notifyDataChanged("key1");
   replicator.notifyDataChanged("key2");
 
-  replicator.resetDataChanged();
+  replicator.ResetDataChanged();
 
   // Check if the hasChanged flag is reset (indirectly by checking GetBlob)
   Replicator::ReplBlob blob = replicator.GetBlob();

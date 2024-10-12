@@ -5,7 +5,9 @@
 namespace celte {
 namespace runtime {
 class CelteEntityManagementSystem {
+
 public:
+  friend class celte::CelteEntity;
   /**
    * @brief Registers an entity with the system, enabling quick access to it
    * until it is unregistered.
@@ -29,7 +31,20 @@ public:
    */
   celte::CelteEntity &GetEntity(const std::string &uuid) const;
 
+  /**
+   * @brief Performs the logic common to all entities once. Call this as often
+   * as possible.
+   */
+  void Tick();
+
 private:
+#ifdef CELTE_SERVER_MODE_ENABLED
+  /**
+   * @brief Replicates all entities to their respective chunks.
+   */
+  void __replicateAllEntities();
+#endif
+
   std::unordered_map<std::string, celte::CelteEntity *> _entities;
 };
 } // namespace runtime

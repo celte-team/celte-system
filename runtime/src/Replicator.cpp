@@ -12,7 +12,7 @@ void Replicator::notifyDataChanged(const std::string &name) {
   }
 }
 
-void Replicator::resetDataChanged() {
+void Replicator::ResetDataChanged() {
   for (auto &entry : _replicatedData) {
     entry.second.hasChanged = false;
   }
@@ -32,17 +32,17 @@ Replicator::ReplBlob Replicator::GetBlob() {
     }
   }
 
-  blob.data.assign(sbuf.data(),
-                   sbuf.size()); // Assign the serialized data to blob.data
+  blob.assign(sbuf.data(),
+              sbuf.size()); // Assign the serialized data to blob
   return blob;
 }
 
 void Replicator::Overwrite(const ReplBlob &blob) {
   size_t offset = 0;
   msgpack::unpacker unpacker;
-  unpacker.reserve_buffer(blob.data.size());
-  std::memcpy(unpacker.buffer(), blob.data.data(), blob.data.size());
-  unpacker.buffer_consumed(blob.data.size());
+  unpacker.reserve_buffer(blob.size());
+  std::memcpy(unpacker.buffer(), blob.data(), blob.size());
+  unpacker.buffer_consumed(blob.size());
 
   msgpack::object_handle oh;
   while (unpacker.next(oh)) {

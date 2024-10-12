@@ -58,15 +58,20 @@ public:
    */
   void Tick();
 
-private:
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Calling the method will replicate the properties of this entity
    * to the chunk channels of the chunk that owns this entity.
    */
-  void __uploadReplicationData();
+  void UploadReplicationData();
+
+  /**
+   * @brief Resets the data changed flag for all data.
+   */
+  inline void ResetDataChanged() { _replicator.ResetDataChanged(); }
 #endif
 
+private:
   std::string _uuid;
   celte::chunks::Chunk *_ownerChunk = nullptr;
   runtime::Replicator _replicator;

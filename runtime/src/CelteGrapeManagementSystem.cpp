@@ -32,5 +32,13 @@ Grape &CelteGrapeManagementSystem::GetGrapeByPosition(float x, float y,
                           std::to_string(x) + ", " + std::to_string(y) + ", " +
                           std::to_string(z) + ").");
 }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void CelteGrapeManagementSystem::ReplicateAllEntities() {
+  for (auto &[grapeId, grape] : _grapes) {
+    grape->ReplicateAllEntities();
+  }
+}
+#endif
 } // namespace chunks
 } // namespace celte

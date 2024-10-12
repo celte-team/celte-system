@@ -24,6 +24,9 @@ void Chunk::__registerConsumers() {
       .autoPoll = true,
       .callback = [this](auto r) { RUNTIME.RPCTable().InvokeLocal(r); },
   });
+
+  KPOOL.CreateTopicIfNotExists(_combinedId + "." + celte::tp::REPLICATION, 1,
+                               1);
 }
 
 bool Chunk::ContainsPosition(float x, float y, float z) const {
@@ -34,6 +37,26 @@ void Chunk::__registerRPCs() {
   REGISTER_RPC(__rp_scheduleEntityAuthorityTransfer,
                celte::rpc::Table::Scope::CHUNK, std::string, bool, int);
 }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void Chunk::ScheduleReplicationDataToSend(const std::string &entityId,
+                                          const std::string &blob) {
+  _nextScheduledReplicationData[entityId] = blob;
+}
+
+void Chunk::SendReplicationData() {
+  if (_nextScheduledReplicationData.empty() or not _config.isLocallyOwned) {
+    return;
+  }
+
+  // std::move will clear the local map, so no need to clear it manually
+  KPOOL.Send((const nl::KafkaPool::SendOptions){
+      .topic = _combinedId + "." + celte::tp::REPLICATION,
+      .headers = std::move(_nextScheduledReplicationData),
+      .value = std::string(),
+      .autoCreateTopic = false});
+}
+#endif
 
 /* -------------------------------------------------------------------------- */
 /*                                    RPCS                                    */

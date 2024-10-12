@@ -1,5 +1,6 @@
 #pragma once
 #include "CelteGrape.hpp"
+#include <chrono>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -12,6 +13,16 @@ class CelteGrapeManagementSystem {
 public:
   CelteGrapeManagementSystem() {}
   ~CelteGrapeManagementSystem() {}
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  /**
+   * @brief Sets the interval in milliseconds at which Celte should send updates
+   * for the state of the data that is being replicated.
+   */
+  inline void SetReplicationIntervalMs(int intervalMs) {
+    _replicationIntervalMs = intervalMs;
+  }
+#endif
 
   /**
    * @brief Register a grape with the grape management
@@ -47,8 +58,38 @@ public:
    */
   Grape &GetGrapeByPosition(float x, float y, float z);
 
+#ifdef CELTE_SERVER_MODE_ENABLED
+  /**
+   * @brief This method is called by the CelteEntityManagementSystem and will
+   * send the replication data of all entities.
+   */
+  void ReplicateAllEntities();
+
+  /**
+   * @brief Returns true if the chunk must send replication data (the timer
+   * has expired).
+   */
+  inline bool MustSendReplicationData() {
+    return std::chrono::high_resolution_clock::now() -
+               _lastReplicationDataSent >
+           std::chrono::milliseconds(_replicationIntervalMs);
+  }
+
+  /**
+   * @brief Resets the timer for the replication data.
+   */
+  inline void ResetReplicationDataTimer() {
+    _lastReplicationDataSent = std::chrono::high_resolution_clock::now();
+  }
+#endif
+
 private:
   std::unordered_map<std::string, std::shared_ptr<Grape>> _grapes;
+#ifdef CELTE_SERVER_MODE_ENABLED
+  std::chrono::time_point<std::chrono::high_resolution_clock>
+      _lastReplicationDataSent;
+  int _replicationIntervalMs = 10;
+#endif
 };
 } // namespace chunks
 } // namespace celte

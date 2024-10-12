@@ -19,5 +19,6 @@ static const std::string GHOSTS = "g";
 static const std::string HEADER_RPC_UUID = "rpcUUID";
 static const std::string answer = "answer";
 static const std::string GLOBAL_CLOCK = "global.clock";
+static const std::string REPLICATION = "repl";
 } // namespace tp
 } // namespace celte
