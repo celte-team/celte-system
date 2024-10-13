@@ -39,7 +39,7 @@ void registerServerHooks() {
   };
   HOOKS.server.connection.onSpawnPositionRequest = [](std::string clientId) {
     std::cout << "Client is requesting spawn position" << std::endl;
-    return std::make_tuple("leChateauDuMechant", clientId, 0, 0, 0);
+    return std::make_tuple("LeChateauDuMechant", clientId, 0, 0, 0);
   };
   HOOKS.server.grape.loadGrape = [](std::string grapeId, bool isLocallyOwned) {
 #include "COMMON_SETUP.cpp"
@@ -60,7 +60,7 @@ void registerServerRPC(celte::runtime::CelteRuntime &runtime,
 
 void authorizeSpawn(celte::runtime::CelteRuntime &runtime, int clientId) {
   auto &chunk = celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
-                    .GetGrape("leChateauDuMechant")
+                    .GetGrape("LeChateauDuMechant")
                     .GetChunkByPosition(0, 0, 0);
   std::cout << "chunk id is " << chunk.GetCombinedId() << std::endl;
   celte::runtime::CelteRuntime::GetInstance().RPCTable().InvokeChunk(

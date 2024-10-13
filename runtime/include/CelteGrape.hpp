@@ -16,8 +16,8 @@ namespace chunks {
  * wrapped by a class in the engine's celte api.
  */
 struct GrapeOptions {
-  const std::string grapeId;
-  const int subdivision;
+  std::string grapeId;
+  int subdivision = 1;
   // The center of the grape
   const glm::vec3 position;
   // The size of the grape along each axis

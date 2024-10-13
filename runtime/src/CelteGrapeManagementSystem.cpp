@@ -1,4 +1,5 @@
 #include "CelteGrapeManagementSystem.hpp"
+#include "Logger.hpp"
 #include <stdexcept>
 
 namespace celte {
@@ -23,6 +24,9 @@ Grape &CelteGrapeManagementSystem::GetGrape(std::string grapeId) {
 
 Grape &CelteGrapeManagementSystem::GetGrapeByPosition(float x, float y,
                                                       float z) {
+  logs::Logger::getInstance().info()
+      << "GetGrapeByPosition has " << _grapes.size() << " grapes" << std::endl;
+
   for (auto &[grapeId, grape] : _grapes) {
     if (grape->ContainsPosition(x, y, z)) {
       return *grape;

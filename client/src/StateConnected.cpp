@@ -29,6 +29,8 @@ void Connected::__unregisterRPCs() {
 
 void Connected::__rp_forceConnectToChunk(std::string grapeId, float x, float y,
                                          float z) {
+  logs::Logger::getInstance().info()
+      << "Force connect to chunk rp has been called" << std::endl;
   // loading the map will instantiate the chunks, thus subscribing to all the
   // required topics
   HOOKS.client.grape.loadGrape(grapeId);

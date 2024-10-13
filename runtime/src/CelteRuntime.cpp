@@ -212,5 +212,9 @@ std::ostream &CelteRuntime::Err() { return logs::Logger::getInstance().err(); }
 
 logs::Logger &CelteRuntime::Logger() { return logs::Logger::getInstance(); }
 
+celte::chunks::CelteGrapeManagementSystem &CelteRuntime::GetGrapeManager() {
+  return celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER();
+}
+
 } // namespace runtime
 } // namespace celte

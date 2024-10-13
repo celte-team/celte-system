@@ -16,6 +16,7 @@ KafkaPool::KafkaPool(const Options &options)
           {"bootstrap.servers", {options.bootstrapServers}},
           {"enable.auto.commit", {"true"}},
           {"session.timeout.ms", {"10000"}},
+          // {""}
       }),
       // {"debug", {"all"}}}),
       _producerProps(kafka::Properties({

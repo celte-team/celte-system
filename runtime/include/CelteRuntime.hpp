@@ -25,6 +25,7 @@
 #include "CelteClock.hpp"
 #include "CelteEntityManagementSystem.hpp"
 #include "CelteGrape.hpp"
+#include "CelteGrapeManagementSystem.hpp"
 #include "CelteHooks.hpp"
 #include "CelteRPC.hpp"
 #include "KafkaPool.hpp"
@@ -109,6 +110,11 @@ public:
    *
    */
   void Start(RuntimeMode mode);
+
+  /**
+   * @brief Returns a reference to the grape manager.
+   */
+  celte::chunks::CelteGrapeManagementSystem &GetGrapeManager();
 
 #ifndef CELTE_SERVER_MODE_ENABLED
   /**

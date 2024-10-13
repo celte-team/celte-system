@@ -8,7 +8,7 @@
 // Simulating the creation of the scene
 
 // Creating a grape as a cube of 10x10x10 centered at (0, 0, 0)
-celte::chunks::GrapeOptions grapeOptions{.grapeId = "leChateauDuMechant",
+celte::chunks::GrapeOptions grapeOptions{.grapeId = "LeChateauDuMechant",
                                          .subdivision = 1,
                                          .position = glm::vec3(0, 0, 0),
                                          .size = glm::vec3(10, 10, 10),
