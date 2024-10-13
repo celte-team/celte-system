@@ -12,9 +12,13 @@
 namespace celte {
 void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
   try {
-    auto chunk = chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
-                     .GetGrapeByPosition(x, y, z)
-                     .GetChunkByPosition(x, y, z);
+    auto &chunk = chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
+                      .GetGrapeByPosition(x, y, z)
+                      .GetChunkByPosition(x, y, z);
+    logs::Logger::getInstance().info()
+        << "Entity is spawning in chunk " << chunk.GetChunkId()
+        << " for coordinates " << x << ", " << y << ", " << z << " in grape "
+        << chunk.GetGrapeId() << std::endl;
     OnChunkTakeAuthority(chunk);
   } catch (std::out_of_range &e) {
     // Entity is not in any grape
@@ -35,8 +39,12 @@ void CelteEntity::OnDestroy() {
   // locally owned.
 }
 
-void CelteEntity::OnChunkTakeAuthority(const celte::chunks::Chunk &chunk) {
-  _ownerChunk = const_cast<celte::chunks::Chunk *>(&chunk);
+void CelteEntity::OnChunkTakeAuthority(celte::chunks::Chunk &chunk) {
+  // _ownerChunk = const_cast<celte::chunks::Chunk *>(&chunk);
+  _ownerChunk = &chunk;
+  logs::Logger::getInstance().info()
+      << "Entity " << _uuid << " is now owned by chunk " << chunk.GetChunkId()
+      << " in grape " << _ownerChunk->GetGrapeId() << std::endl;
 }
 
 void CelteEntity::Tick() {
@@ -45,7 +53,10 @@ void CelteEntity::Tick() {
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 void CelteEntity::UploadReplicationData() {
-
+  logs::Logger::getInstance().info()
+      << "Entity " << _uuid
+      << " is uploading replication data to grape with id "
+      << _ownerChunk->GetGrapeId() << std::endl;
   if (not(_ownerChunk and GRAPES.GetGrape(_ownerChunk->GetGrapeId())
                               .GetOptions()
                               .isLocallyOwned)) {
