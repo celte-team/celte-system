@@ -45,7 +45,7 @@ public:
    * Entites are active in the sending of their data to avoid chunks having to
    * keep track entites being destroyed, etc...
    */
-  void OnChunkTakeAuthority(const celte::chunks::Chunk &chunkId);
+  void OnChunkTakeAuthority(celte::chunks::Chunk &chunkId);
 
   /**
    * @brief Returns the uuid of the entity.

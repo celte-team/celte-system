@@ -54,7 +54,7 @@ class Connected : public AClient {
   void entry() override;
   void exit() override;
 
-  /**
+  /*
    * When the server disconnects, the client will transit to the
    * Disconnected state.
    */
