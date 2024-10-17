@@ -70,6 +70,10 @@ services:
     depends_on:
       - zoo1
 
+  clock:
+    image: clmt/clock-celte:latest
+    container_name: clock-celte
+
   haproxy:
     image: haproxy:2.9
     container_name: haproxy
