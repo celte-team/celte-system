@@ -12,10 +12,7 @@ ENV CXX=/usr/bin/g++
 ENV VCPKG_TARGET_TRIPLET="x64-linux"
 RUN echo "export VCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}" >> ~/.bashrc
 
-# // not sure if this is needed
-#   CMAKE_PREFIX_PATH:STRING="/opt/vcpkg/installed/x64-linux"
-#   CMAKE_TOOLCHAIN_FILE:FILEPATH="/opt/vcpkg/scripts/buildsystems/vcpkg.cmake"
-# //
+
 
 # Update the system and install required packages
 RUN dnf update -y && \
@@ -65,7 +62,7 @@ RUN git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT && \
 # Example: RUN $VCPKG_ROOT/vcpkg install boost
 
 # Set the default work directory
-WORKDIR /workspace
+WORKDIR /workdir
 
 # Display vcpkg help when starting the container
 CMD ["vcpkg", "--help"]

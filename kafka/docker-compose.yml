@@ -71,7 +71,9 @@ services:
       - zoo1
 
   clock:
-    image: clmt/clock-celte:latest
+    build:
+      context: ../
+      dockerfile: ClockServer/Dockerfile
     container_name: clock-celte
 
   haproxy:

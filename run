@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+
+# this script is used to run the docker container for the project
+
+# ⚠️
+# ./runDocker --requirements
+# ⚠️
+
+import os
+import platform
+import socket
+import subprocess
+import sys
+from colorama import Fore, Style
+
+CONTAINER_NAME = "celte_cpp"
+env = os.environ.copy()
+
+def check_dependencies():
+    """Check if Docker is installed and running."""
+    try:
+        result = subprocess.run(['docker', 'ps'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            raise FileNotFoundError("Docker command failed")
+    except FileNotFoundError:
+        print(f"{Fore.RED}Docker is not installed or not running. Please install or start Docker.{Style.RESET_ALL}")
+        sys.exit(1)
+
+def get_ip_address():
+    """Retrieve the IP address of the host machine."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        print(f"{Fore.GREEN}Host IP Address: {ip}{Style.RESET_ALL}")
+        s.close()
+        return ip
+    except Exception as e:
+        print(f"{Fore.RED}Failed to get IP address: {e}{Style.RESET_ALL}")
+        sys.exit(1)
+
+def run_docker_kafka():
+    env['DOCKER_HOST_IP'] = ip_address
+    # cd into the kafka directory
+    os.chdir('kafka')
+    subprocess.run(['docker', 'compose', 'down'])
+    subprocess.run(['docker', 'compose', 'up'], env=env)
+    os.chdir('..')
+
+def run_docker_cpp():
+    """Run the C++ Docker container."""
+    images = subprocess.run(['docker', 'images'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    images = images.split('\n')
+    # print("images", images)
+    for image in images:
+        if CONTAINER_NAME in image:
+            print(f"\n{Fore.GREEN}Docker image {CONTAINER_NAME} found{Style.RESET_ALL}")
+            break
+    else:
+        print(f"\n{Fore.YELLOW}Docker image {CONTAINER_NAME} not found...{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Building docker image{Style.RESET_ALL}\n")
+        build_docker_image()
+
+    uuid = subprocess.run(['uuidgen'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip().replace('-', '_')
+    name = 'celte_cpp_' + uuid
+    print(f'Creating container {name}')
+    export_env_vars("CELTE_CPP_CONTAINER", name)
+    subprocess.run(['docker', 'run', '-v', f'{os.getcwd()}:/workdir', '--name', name,
+                    '-e', f'CELTE_CLUSTER_HOST={ip_address}', '-it', CONTAINER_NAME, '/bin/bash'])
+
+def join_docker_cpp():
+    """Join an existing C++ Docker container."""
+    env_vars = get_env_vars()
+    container_name = env_vars.get('CELTE_CPP_CONTAINER')
+    if container_name:
+        print(f'Joining container [{container_name}]')
+        subprocess.run(['docker', 'exec', '-it', container_name, '/bin/bash'])
+    else:
+        print(f"{Fore.RED}No container found to join.{Style.RESET_ALL}")
+
+def export_env_vars(key, value):
+    """Export environment variables to a .env file."""
+    lines = []
+    if os.path.exists('.env'):
+        with open('.env', 'r') as f:
+            lines = f.readlines()
+
+    with open('.env', 'w') as f:
+        found = False
+        for line in lines:
+            if line.startswith(f"{key}="):
+                f.write(f'{key}={value}\n')
+                found = True
+            else:
+                f.write(line)
+        if not found:
+            f.write(f'{key}={value}\n')
+
+def get_env_vars():
+    """Get environment variables from the .env file."""
+    env_vars = {}
+    if os.path.exists('.env'):
+        with open('.env', 'r') as f:
+            for line in f:
+                key, value = line.strip().split('=', 1)
+                env_vars[key] = value
+    return env_vars
+
+def build_docker_image():
+    """Build the Docker image for the C++ project."""
+    build_command = ['docker', 'build', '-t', CONTAINER_NAME, '.']
+    if platform.system() == 'Darwin':
+        build_command = ['docker', 'buildx', 'build', '--platform', 'linux/amd64', '-t', CONTAINER_NAME, '.', '--output', 'type=docker']
+
+    result = subprocess.run(build_command)
+    if result.returncode != 0:
+        print(f"{Fore.RED}Failed to build Docker image{Style.RESET_ALL}")
+        sys.exit(1)
+
+launcher = {
+    '--kafka': run_docker_kafka,
+    '--cpp': run_docker_cpp,
+    '--join-cpp': join_docker_cpp,
+    '--build': build_docker_image,
+    '--requirements': lambda: subprocess.run(['pip3', 'install', 'colorama']),
+    '--help': lambda: usage()
+}
+
+def usage():
+    """Print the usage of the script."""
+    print("Usage: runDocker [command], where command is one of the following:")
+    for key in launcher:
+        print(f"\t{key}")
+
+if __name__ == "__main__":
+    try:
+        print(f"{Fore.GREEN}Checking dependencies{Style.RESET_ALL}")
+        check_dependencies()
+    except Exception as e:
+        print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
+        sys.exit(1)
+
+    ip_address = get_ip_address()
+    export_env_vars('DOCKER_HOST_IP', ip_address)
+
+
+    # if there is multiple commands, run them
+    for command in sys.argv[1:]:
+        if command in launcher:
+            launcher[command]()
+        else:
+            usage()
+            sys.exit(1)
