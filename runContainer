@@ -6,14 +6,19 @@ import platform
 import socket
 import subprocess
 import sys
+from colorama import init as colorama_init
+from colorama import Fore
+from colorama import Style
 
 env = os.environ.copy()
 ip_address = None
+CONTAINER_NAME = "clmt/celte_cpp"
+
 # get the ip address of the host machine
 def get_ip_address():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
-    print(s.getsockname()[0])
+    print(f"{Fore.GREEN}Host IP Address: {s.getsockname()[0]}{Style.RESET_ALL}")
     ip = s.getsockname()[0]
     s.close()
     return ip
@@ -35,13 +40,12 @@ def run_docker_cpp():
     name = 'celte_cpp_' + uuid
     print(f'Creating container {name}')
     export_env_vars("CELTE_CPP_CONTAINER", name)
-    subprocess.run(['docker', 'run', '-v', f'{os.getcwd()}:/workdir', '--name', name, '-e', 'CELTE_CLUSTER_HOST=' + ip_address, '-it', 'celte_cpp_x86', '/bin/bash'])
+    subprocess.run(['docker', 'run', '-v', f'{os.getcwd()}:/workdir', '--name', name, '-e', 'CELTE_CLUSTER_HOST=' + ip_address, '-it', CONTAINER_NAME, '/bin/bash'])
 
 # join the cpp docker container
 def join_docker_cpp():
     env = get_env_vars()
-    container_name = env['CELTE_CPP_CONTAINER']
-    container_name = container_name[:-1] #remove the newline
+    container_name = env['CELTE_CPP_CONTAINER'].strip()
     print(f'Joining container [{container_name}]')
     subprocess.run(['docker', 'exec', '-it', container_name, '/bin/bash'])
 
@@ -70,24 +74,47 @@ def get_env_vars():
     with open('.env', 'r') as f:
         for line in f:
             key, value = line.split('=')
-            env[key] = value
+            env[key] = value.strip()
     return env
 
+def build_docker_image():
+    # if os is mac, then we need to use buildx to build the image
+    if platform.system() == 'Darwin':
+        subprocess.run(['docker', 'buildx', 'build', '--platform', 'linux/amd64', '-t', CONTAINER_NAME, '.', '--output', 'type=docker'])
+    elif platform.system() == 'Linux':
+        subprocess.run(['docker', 'build', '-t', CONTAINER_NAME, '.'])
+    elif platform.system() == 'Windows':
+        subprocess.run(['docker', 'build', '-t', CONTAINER_NAME, '.'])
+    else:
+        print(f"{Fore.RED}Unsupported OS{platform.system()}{Style.RESET_ALL}")
+        sys.exit(1)
+
+launcher = {
+    '--kafka': run_docker_kafka,
+    '--cpp': run_docker_cpp,
+    '--join-cpp': join_docker_cpp,
+    '--build': build_docker_image,
+    '--requirements': lambda: subprocess.run(['pip', 'install', 'colorama']),
+    '--help': lambda: usage()
+}
+
+def usage():
+    print("Usage: runDocker [command], where command is one of the following:")
+    for key in launcher:
+        print("\t" + key)
+
 if __name__ == "__main__":
+    colorama_init()
     ip_address = get_ip_address()
-    # if --ip is passed, use that instead
     export_env_vars('DOCKER_HOST_IP', ip_address)
-    launcher = {
-        '--kafka': run_docker_kafka,
-        '--cpp': run_docker_cpp,
-        '--join-cpp': join_docker_cpp
-    }
+
     if len(sys.argv) < 2 or len(sys.argv) > 2:
-        print("Usage: runDocker [command], where command is one of the following:")
-        for key in launcher:
-            print("\t" + key)
+        usage()
         sys.exit(1)
 
     command = sys.argv[1]
     if command in launcher:
         launcher[command]()
+    else:
+        usage()
+        sys.exit(1)
