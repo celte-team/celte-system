@@ -12,9 +12,6 @@ Chunk::Chunk(const ChunkConfig &config)
       _boundingBox(config.position, config.size, config.localX, config.localY,
                    config.localZ) {
   __registerConsumers();
-  logs::Logger::getInstance().info()
-      << "Chunk " << _config.chunkId << " created. It's grape id is "
-      << _config.grapeId << std::endl;
 }
 
 Chunk::~Chunk() {}

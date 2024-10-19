@@ -49,10 +49,7 @@ void Connected::__unregisterRPCs() {
 }
 
 void Connected::__rp_assignGrape(std::string grapeId) {
-  std::cout << "DEBUG ASSIGN GRAPE" << std::endl;
-  std::cout << "Node taking authority of grape " << grapeId << std::endl;
   HOOKS.server.grape.loadGrape(grapeId, true);
-  std::cout << "now registering consumers for grape" << std::endl;
   __registerGrapeConsumers(grapeId);
 }
 
@@ -61,6 +58,8 @@ void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
   // TODO: add client to correct chunk's authority
   HOOKS.server.newPlayerConnected.accept(clientId);
   RPC.InvokePeer(clientId, "__rp_forceConnectToChunk", grapeId, x, y, z);
+  RPC.InvokePeer(clientId, "__rp_loadExistingEntities", grapeId,
+                 ENTITIES.GetRegisteredEntitiesSummary());
 }
 
 void Connected::__rp_onSpawnRequested(const std::string &clientId, float x,
@@ -69,14 +68,11 @@ void Connected::__rp_onSpawnRequested(const std::string &clientId, float x,
   auto chunkId = GRAPES.GetGrapeByPosition(x, y, z)
                      .GetChunkByPosition(x, y, z)
                      .GetCombinedId();
-  std::cout << "on spawn requested rp is being executed" << std::endl;
   RPC.InvokeChunk(chunkId, "__rp_spawnPlayer", clientId, x, y, z);
 }
 
 void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
                                  float z) {
-  std::cout << "Spawning player " << clientId << " at " << x << ", " << y
-            << ", " << z << std::endl;
   HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId, x, y, z);
 }
 
