@@ -12,7 +12,7 @@ namespace chunks {
 struct ChunkConfig {
   const std::string chunkId;
   const std::string grapeId;
-  const glm::vec3 position;
+  const glm::ivec3 position;
   const glm::vec3 localX;
   const glm::vec3 localY;
   const glm::vec3 localZ;
@@ -61,6 +61,8 @@ public:
   void SendReplicationData();
 
 #endif
+
+  inline ChunkConfig GetConfig() const { return _config; }
 
 private:
   /**

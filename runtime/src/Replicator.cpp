@@ -1,3 +1,4 @@
+#include "Logger.hpp"
 #include "Replicator.hpp"
 #include <cstring>
 #include <msgpack.hpp>
@@ -17,7 +18,6 @@ void Replicator::ResetDataChanged() {
     entry.second.hasChanged = false;
   }
 }
-
 Replicator::ReplBlob Replicator::GetBlob() {
   ReplBlob blob;
   msgpack::sbuffer sbuf;
@@ -32,12 +32,12 @@ Replicator::ReplBlob Replicator::GetBlob() {
     }
   }
 
-  blob.assign(sbuf.data(),
-              sbuf.size()); // Assign the serialized data to blob
+  blob.assign(sbuf.data(), sbuf.size()); // Assign the serialized data to blob
   return blob;
 }
 
 void Replicator::Overwrite(const ReplBlob &blob) {
+
   size_t offset = 0;
   msgpack::unpacker unpacker;
   unpacker.reserve_buffer(blob.size());

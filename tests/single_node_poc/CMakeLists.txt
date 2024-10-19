@@ -19,6 +19,7 @@ find_package(RdKafka CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
 find_package(glm CONFIG REQUIRED)
+find_package(Boost REQUIRED COMPONENTS thread json)
 
 
 # Add pkg-config flags for glib-2.0
@@ -45,7 +46,7 @@ set(SOURCES_RPC
 add_executable(test_server_single_node ${SOURCES})
 target_compile_definitions(test_server_single_node PRIVATE -DCELTE_SERVER_MODE_ENABLED)
 target_link_libraries(test_server_single_node gtest gtest_main)
-target_link_libraries(test_server_single_node celtesystems_runtime_server msgpack-cxx RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} glm::glm)
+target_link_libraries(test_server_single_node celtesystems_runtime_server msgpack-cxx RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} glm::glm Boost::thread Boost::json)
 
 set(SOURCES_SINGLE_NODE_CLIENT
     test_client_single_node.cpp

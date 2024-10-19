@@ -92,6 +92,18 @@ class Connected : public AClient {
    * TODO: generalize for handling other entities and other players
    */
   void __rp_spawnPlayer(std::string clientId, float x, float y, float z);
+
+  /**
+   * @brief This RPC is called by the server when the client connects to a
+   * grape. The arguments contain a list of all entites that are currently
+   * loaded in the grape. (see
+   * CelteEntityManagementSystem::GetRegisteredEntitiesSummary) This RPC will
+   * call a hook that should be used by the game dev to load the entities in the
+   * grape, assigning them to the correct chunks.
+   * There is no need to set the positions because the entities will be
+   * replicated anyway.
+   */
+  void __rp_loadExistingEntities(std::string grapeId, std::string summary);
 };
 } // namespace states
 } // namespace client
