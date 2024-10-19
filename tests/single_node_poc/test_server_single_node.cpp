@@ -95,3 +95,28 @@ int main(int ac, char **av) {
 
   engine.Run();
 }
+
+// #include <boost/json.hpp>
+// int main() {
+//   boost::json::array j;
+
+//   for (int i = 0; i < 3; ++i) {
+//     try {
+//       boost::json::object obj;
+
+//       obj["uuid"] = "uuid" + std::to_string(i);
+//       obj["chunk"] = "chunkCombinedId" + std::to_string(i);
+//       obj["info"] = "info" + std::to_string(i);
+
+//       // Add the object to the JSON array
+//       j.push_back(obj);
+//     } catch (std::out_of_range &e) {
+//     }
+//     std::cout << "packing entity " << i << " to json." << std::endl;
+//   }
+
+//   // Serialize the JSON array
+//   std::string json_str = boost::json::serialize(j);
+//   std::cout << json_str << std::endl;
+//   return 0;
+// }

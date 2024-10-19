@@ -12,19 +12,19 @@ namespace nl {
 KafkaPool::KafkaPool(const Options &options)
     : _options(options), _running(false), _records(100),
       _mutex(new boost::mutex),
-      _consumerProps({
-          {"bootstrap.servers", {options.bootstrapServers}},
-          {"enable.auto.commit", {"true"}},
-          {"session.timeout.ms", {"10000"}},
-          // {""}
-      }),
-      // {"debug", {"all"}}}),
+      _consumerProps({{"bootstrap.servers", {options.bootstrapServers}},
+                      {"enable.auto.commit", {"true"}},
+                      {"log_level", {"3"}}}),
       _producerProps(kafka::Properties({
           {"bootstrap.servers", {options.bootstrapServers}},
           {"enable.idempotence", {"true"}},
       })),
       _producer(_producerProps) {
-
+  // _consumerProps.put("log_cb", [](int /*level*/, const char * /*filename*/,
+  //                                 int /*lineno*/, const char *msg) {
+  //   std::cout << "[" << kafka::utility::getCurrentTime() << "]" << msg
+  //             << std::endl;
+  // });
   __init();
 }
 
@@ -202,13 +202,11 @@ void KafkaPool::__createTopicIfNotExists(const std::string &topic,
                                          int numPartitions,
                                          int replicationFactor) {
   kafka::clients::admin::AdminClient adminClient(_consumerProps);
-  std::cout << "create topic " << topic << std::endl;
   auto topics = adminClient.listTopics();
   for (auto &topicName : topics.topics) {
     if (topicName == topic)
       return;
   }
-  std::cout << "topic created successfully" << std::endl;
   auto createResult =
       adminClient.createTopics({topic}, numPartitions, replicationFactor);
   if (!createResult.error ||

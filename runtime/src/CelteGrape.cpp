@@ -47,13 +47,11 @@ void Grape::__subdivide() {
   // create a chunk for each point
   for (auto point : points) {
     std::stringstream chunkId;
-    logs::Logger::getInstance().info()
-        << "Creating chunk at position " << point.x << ", " << point.y << ", "
-        << point.z << " for grape with id " << _options.grapeId << std::endl;
-    chunkId << "." << point.x << "." << point.y << "." << point.z;
+    glm::ivec3 pointInt = glm::ivec3(point);
+    chunkId << "." << pointInt.x << "." << pointInt.y << "." << pointInt.z;
     ChunkConfig config = {.chunkId = chunkId.str(),
                           .grapeId = _options.grapeId,
-                          .position = point,
+                          .position = pointInt,
                           .localX = _options.localX,
                           .localY = _options.localY,
                           .localZ = _options.localZ,

@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/json.hpp>
 #include <functional>
 #include <kafka/KafkaConsumer.h>
 #include <string>
@@ -160,6 +161,16 @@ public:
       std::function<bool(std::string)> loadGrape = [](std::string) {
         return true;
       };
+
+      /**
+       * @brief This hook is called by __rp_loadExistingEntities to load the
+       * entities that are already registered to the server.
+       */
+      std::function<bool(std::string, boost::json::array)>
+          onLoadExistingEntities =
+              [](std::string grapeId, boost::json::array summary) {
+                return true;
+              };
     } grape;
   } client;
 #endif

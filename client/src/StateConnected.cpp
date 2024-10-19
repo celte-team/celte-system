@@ -20,11 +20,14 @@ void Connected::__registerRPCs() {
                std::string, float, float, float);
   REGISTER_RPC(__rp_spawnPlayer, celte::rpc::Table::Scope::CHUNK, std::string,
                float, float, float);
+  REGISTER_RPC(__rp_loadExistingEntities, celte::rpc::Table::Scope::PEER,
+               std::string, std::string);
 }
 
 void Connected::__unregisterRPCs() {
   UNREGISTER_RPC(__rp_forceConnectToChunk);
   UNREGISTER_RPC(__rp_spawnPlayer);
+  UNREGISTER_RPC(__rp_loadExistingEntities);
 }
 
 void Connected::__rp_forceConnectToChunk(std::string grapeId, float x, float y,
@@ -42,6 +45,18 @@ void Connected::__rp_forceConnectToChunk(std::string grapeId, float x, float y,
 void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
                                  float z) {
   HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
+}
+
+void Connected::__rp_loadExistingEntities(std::string grapeId,
+                                          std::string summary) {
+  try {
+    boost::json::array summaryJSON = boost::json::parse(summary).as_array();
+    HOOKS.client.grape.onLoadExistingEntities(grapeId, summaryJSON);
+  } catch (std::exception &e) {
+    logs::Logger::getInstance().err()
+        << "Error loading existing entities: " << e.what() << std::endl;
+    return;
+  }
 }
 
 } // namespace states

@@ -1,6 +1,8 @@
 #pragma once
 #include "CelteChunk.hpp"
 #include "Replicator.hpp"
+#include <memory>
+#include <stdexcept>
 #include <string>
 
 namespace celte {
@@ -11,7 +13,7 @@ namespace celte {
  *
  * It manages the entity's lifecycle as seen by Celte.
  */
-class CelteEntity {
+class CelteEntity : public std::enable_shared_from_this<CelteEntity> {
 public:
   /**
    * @brief Called when the entity is spawned.
@@ -58,6 +60,17 @@ public:
    */
   void Tick();
 
+  /**
+   * @brief Returns the chunk that owns this entity.
+   * @exception std::out_of_range if the entity is not owned by any chunk.
+   */
+  inline celte::chunks::Chunk &GetOwnerChunk() const {
+    if (_ownerChunk == nullptr) {
+      throw std::out_of_range("Entity is not owned by any chunk.");
+    }
+    return *_ownerChunk;
+  }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Calling the method will replicate the properties of this entity
@@ -71,9 +84,41 @@ public:
   inline void ResetDataChanged() { _replicator.ResetDataChanged(); }
 #endif
 
+  /**
+   * @brief Sets the information that should be used to load this entity by
+   * clients or other server nodes.
+   * This string should be set by the developer when the entity is first
+   * instantiated, and should contain enough information for the dev to load
+   * the entity on the client side.
+   */
+  inline void SetInformationToLoad(const std::string &info) {
+    _informationToLoad = info;
+  }
+
+  /**
+   * @brief Returns the information that should be used to load this entity by
+   * clients or other server nodes.
+   */
+  const std::string &GetInformationToLoad() const;
+
+  /**
+   * @brief Returns true if the OnSpawn method has been called without errort
+   * and the entity is active in the game.
+   */
+  inline bool IsSpawned() const { return _isSpawned; }
+
 private:
   std::string _uuid;
   celte::chunks::Chunk *_ownerChunk = nullptr;
+  bool _isSpawned = false;
+#ifdef CELTE_SERVER_MODE_ENABLED
   runtime::Replicator _replicator;
+
+#endif
+  // If a peer needs to spawn this entity, the server will send this
+  // information which should have been set by the developer when first
+  // instantiating the entity, using the SetInformationToLoad on server side.
+  // This is a string that can be used to load the entity.
+  std::string _informationToLoad;
 };
 } // namespace celte
