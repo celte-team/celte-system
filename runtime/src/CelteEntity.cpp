@@ -28,7 +28,8 @@ void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
   }
 
   logs::Logger::getInstance().info()
-      << "Registering entity " << _uuid << " in the entity management system."
+      << "Registering entity " << _uuid
+      << " in the entity management system, with info " << _informationToLoad
       << std::endl;
   logs::Logger::getInstance().info().flush();
   ENTITIES.RegisterEntity(shared_from_this());
