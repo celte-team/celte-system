@@ -14,6 +14,9 @@ void Replicator::notifyDataChanged(const std::string &name) {
 }
 
 void Replicator::ResetDataChanged() {
+  if (_replicatedData.size() == 0) { // plz rework this language wtf
+    return;
+  }
   for (auto &entry : _replicatedData) {
     entry.second.hasChanged = false;
   }
@@ -23,6 +26,9 @@ Replicator::ReplBlob Replicator::GetBlob() {
   msgpack::sbuffer sbuf;
   msgpack::packer<msgpack::sbuffer> packer(sbuf);
 
+  if (_replicatedData.size() == 0) { // wtf cpp why do i need that
+    return blob;
+  }
   for (const auto &entry : _replicatedData) {
     if (entry.second.hasChanged) {
       packer.pack(entry.first);
