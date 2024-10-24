@@ -15,6 +15,7 @@ KafkaPool::KafkaPool(const Options &options)
       _consumerProps({{"bootstrap.servers", {options.bootstrapServers}},
                       {"enable.auto.commit", {"true"}},
                       {"log_level", {"3"}}}),
+
       _producerProps(kafka::Properties({
           {"bootstrap.servers", {options.bootstrapServers}},
           {"enable.idempotence", {"true"}},

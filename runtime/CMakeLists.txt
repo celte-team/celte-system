@@ -13,6 +13,7 @@ pkg_check_modules(GLIB REQUIRED glib-2.0)
 find_package(glm CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread json)
 
+
 include_directories(include ${GLIB_INCLUDE_DIRS} ${RDKAFKA_INCLUDE_DIRS})
 
 # Add pkg-config flags for glib-2.0

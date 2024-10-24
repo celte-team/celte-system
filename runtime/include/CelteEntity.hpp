@@ -1,6 +1,7 @@
 #pragma once
 #include "CelteChunk.hpp"
 #include "Replicator.hpp"
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -92,7 +93,10 @@ public:
    * the entity on the client side.
    */
   inline void SetInformationToLoad(const std::string &info) {
+    std::cout << "LE GROS EGALE LA " << info << std::endl;
     _informationToLoad = info;
+    std::cout << "INFORMATION TO LOAD WOULAH " << _informationToLoad
+              << std::endl;
   }
 
   /**

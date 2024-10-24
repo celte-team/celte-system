@@ -17,7 +17,6 @@ void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
                       .GetChunkByPosition(x, y, z);
     OnChunkTakeAuthority(chunk);
   } catch (std::out_of_range &e) {
-    // Entity is not in any grape
     RUNTIME.Err() << "Entity is not in any grape: " << e.what() << std::endl;
   }
 
@@ -31,7 +30,7 @@ void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
       << "Registering entity " << _uuid
       << " in the entity management system, with info " << _informationToLoad
       << std::endl;
-  logs::Logger::getInstance().info().flush();
+  std::cout << "pointer to this (celte entity): " << this << std::endl;
   ENTITIES.RegisterEntity(shared_from_this());
   _isSpawned = true; // will cause errors if OnSpawn is called but the entity is
                      // not actually spawned in the game.
@@ -44,14 +43,7 @@ void CelteEntity::OnDestroy() {
 }
 
 void CelteEntity::OnChunkTakeAuthority(celte::chunks::Chunk &chunk) {
-  // _ownerChunk = const_cast<celte::chunks::Chunk *>(&chunk);
-  logs::Logger::getInstance().info() << "on chunk take authority" << std::endl;
-  logs::Logger::getInstance().info() << this << std::endl;
-  logs::Logger::getInstance().info() << &chunk << std::endl;
   _ownerChunk = &chunk;
-  logs::Logger::getInstance().info()
-      << "Entity " << _uuid << " is now owned by chunk " << chunk.GetChunkId()
-      << " in grape " << _ownerChunk->GetGrapeId() << std::endl;
 }
 
 void CelteEntity::Tick() {

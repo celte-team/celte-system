@@ -48,11 +48,11 @@ void CelteEntityManagementSystem::Tick() {
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 void CelteEntityManagementSystem::__replicateAllEntities() {
-  // for (auto &[uuid, entity] : _entities) {
-  //   entity->UploadReplicationData();
-  //   entity->ResetDataChanged();
-  // }
-  // GRAPES.ReplicateAllEntities();
+  for (auto &[uuid, entity] : _entities) {
+    entity->UploadReplicationData();
+    entity->ResetDataChanged();
+  }
+  GRAPES.ReplicateAllEntities();
 }
 
 std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
