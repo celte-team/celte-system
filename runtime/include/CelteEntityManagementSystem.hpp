@@ -55,6 +55,24 @@ public:
   FilterEntities(const std::vector<std::string> &entityIds,
                  const std::string &filter);
 
+  /**
+   * @brief This method will register the consumer meant to handle property
+   * replication handling. The server automatically sends the data to the
+   * chunk's repl topic when there is an update but the client needs to be able
+   * to receive the data and udpate it locally. This is achieved by registering
+   * a consumer dedicated to this task.
+   *
+   * @note a server is technically a client of other servers when it comes to
+   * other server's chunks.
+   *
+   * @param chunkId The id of the chunk to register the consumer for. Both
+   * server nodes and clients can register a consumer for a chunk if there are
+   * interested in the updates that are published in the chunk. A server node
+   * will tipically not create this consumer for the chunks it manages but will
+   * do so for chunks managed by other nodes.
+   */
+  void RegisterReplConsumer(const std::string &chunkId);
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Returns a summary of all the entities that are currently registered
@@ -90,6 +108,14 @@ private:
    */
   void __replicateAllEntities();
 #endif
+
+  /**
+   * @brief this method is called as a callback when an update is received from
+   * a chunk's replication data topic. It will iterate over the entities and
+   * update their properties to reflect the values dictated by the server node.
+   */
+  void __handleReplicationDataReceived(
+      std::unordered_map<std::string, std::string> &data);
 
   std::unordered_map<std::string, std::shared_ptr<CelteEntity>> _entities;
 

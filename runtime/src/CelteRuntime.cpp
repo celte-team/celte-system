@@ -85,7 +85,6 @@ CelteRuntime &CelteRuntime::GetInstance() {
 }
 
 const std::string &CelteRuntime::GetUUID() const {
-
 #ifdef CELTE_SERVER_MODE_ENABLED
   static const std::string PEER_UUID =
       "sn." + boost::uuids::to_string(

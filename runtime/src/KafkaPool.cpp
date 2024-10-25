@@ -124,6 +124,8 @@ void KafkaPool::__emplaceConsumerIfNotExists(const std::string &groupId,
 
 void KafkaPool::Subscribe(const SubscribeOptions &ops) {
   {
+    logs::Logger::getInstance().info()
+        << "Subscribing to topic " << ops.topic << std::endl;
     boost::lock_guard<boost::mutex> lock(*_mutex);
     _callbacks[ops.topic] = ops.callback;
   }
