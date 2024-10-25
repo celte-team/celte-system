@@ -50,6 +50,7 @@ CelteRuntime::~CelteRuntime() {}
 rpc::Table &CelteRuntime::RPCTable() { return _rpcTable; }
 
 void CelteRuntime::Start(RuntimeMode mode) {
+  std::cout << "Starting Celte runtime with uuid " << GetUUID() << std::endl;
   _mode = mode;
   __initNetworkLayer(mode);
 }
@@ -81,6 +82,25 @@ void CelteRuntime::UnregisterTickCallback(int id) {
 CelteRuntime &CelteRuntime::GetInstance() {
   static CelteRuntime instance;
   return instance;
+}
+
+const std::string &CelteRuntime::GetUUID() const {
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  static const std::string PEER_UUID =
+      "sn." + boost::uuids::to_string(
+                  boost::uuids::random_generator()()); // random uuid for the
+                                                       // peer to identify
+                                                       // itself to the master
+#else
+  static const std::string PEER_UUID =
+      "client." +
+      boost::uuids::to_string(
+          boost::uuids::random_generator()()); // random uuid for the peer to
+                                               // identify itself to the
+                                               // master
+#endif
+  return PEER_UUID;
 }
 
 // =================================================================================================
