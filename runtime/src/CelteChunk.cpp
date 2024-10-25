@@ -10,11 +10,17 @@ namespace chunks {
 Chunk::Chunk(const ChunkConfig &config)
     : _config(config), _combinedId(config.grapeId + "-" + config.chunkId),
       _boundingBox(config.position, config.size, config.localX, config.localY,
-                   config.localZ) {
-  __registerConsumers();
-}
+                   config.localZ) {}
 
 Chunk::~Chunk() {}
+
+void Chunk::Initialize() {
+  __registerConsumers();
+  __registerRPCs();
+  if (not _config.isLocallyOwned) {
+    ENTITIES.RegisterReplConsumer(_combinedId);
+  }
+}
 
 void Chunk::__registerConsumers() {
   // A consumer to listen for Chunk scope RPCs and execute them

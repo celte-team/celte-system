@@ -118,14 +118,26 @@ public:
    */
   inline bool IsSpawned() const { return _isSpawned; }
 
+  /**
+   * @brief This method is called when the entity receives data from the network
+   * and should update it in order to rollback to the changes made by the
+   * server that has authority over the entity.
+   */
+  void DownloadReplicationData(const std::string &blob);
+
 private:
   std::string _uuid;
   celte::chunks::Chunk *_ownerChunk = nullptr;
   bool _isSpawned = false;
-#ifdef CELTE_SERVER_MODE_ENABLED
+
+  /**
+   * @brief In server mode, this object is used to collect
+   * the data to be replicated so that it can later be sent to kafka.
+   * On the client side, this is used to overwrite data received from
+   * the network.
+   */
   runtime::Replicator _replicator;
 
-#endif
   // If a peer needs to spawn this entity, the server will send this
   // information which should have been set by the developer when first
   // instantiating the entity, using the SetInformationToLoad on server side.

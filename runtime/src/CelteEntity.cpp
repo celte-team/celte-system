@@ -84,4 +84,8 @@ const std::string &CelteEntity::GetInformationToLoad() const {
   return _informationToLoad;
 }
 
+void CelteEntity::DownloadReplicationData(const std::string &blob) {
+  _replicator.Overwrite(blob);
+}
+
 } // namespace celte
