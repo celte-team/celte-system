@@ -10,12 +10,26 @@
 #include <iostream>
 
 namespace celte {
+void CelteEntity::SetInformationToLoad(const std::string &info) {
+  std::cout << "LE GROS EGALE LA " << info << std::endl;
+  _informationToLoad = std::string();
+
+  for (int i = 0; i < info.size(); i++) {
+    std::cout << "copying " << info[i] << std::endl;
+    _informationToLoad += info[i];
+  }
+  // _informationToLoad = info;
+  std::cout << "INFORMATION TO LOAD WOULAH " << _informationToLoad << std::endl;
+}
+
 void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
   try {
     auto &chunk = chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
                       .GetGrapeByPosition(x, y, z)
                       .GetChunkByPosition(x, y, z);
     OnChunkTakeAuthority(chunk);
+    logs::Logger::getInstance().info() << "Entity " << _uuid << " is in chunk "
+                                       << chunk.GetCombinedId() << std::endl;
   } catch (std::out_of_range &e) {
     RUNTIME.Err() << "Entity is not in any grape: " << e.what() << std::endl;
   }
