@@ -228,23 +228,7 @@ public:
   /**
    * @brief Returns the UUID of the peer.
    */
-  const std::string &GetUUID() const {
-#ifdef CELTE_SERVER_MODE_ENABLED
-    static const std::string PEER_UUID =
-        "sn." + boost::uuids::to_string(
-                    boost::uuids::random_generator()()); // random uuid for the
-                                                         // peer to identify
-                                                         // itself to the master
-#else
-    static const std::string PEER_UUID =
-        "client." +
-        boost::uuids::to_string(
-            boost::uuids::random_generator()()); // random uuid for the peer to
-                                                 // identify itself to the
-                                                 // master
-#endif
-    return PEER_UUID;
-  }
+  const std::string &GetUUID() const;
 
   /**
    * @brief Returns a reference to the global clock.
