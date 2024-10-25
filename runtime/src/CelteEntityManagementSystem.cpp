@@ -3,6 +3,7 @@
 #include "CelteRPC.hpp"
 #include "CelteRuntime.hpp"
 #include <boost/json.hpp>
+#include <string>
 
 namespace celte {
 namespace runtime {
@@ -116,5 +117,48 @@ std::vector<std::string> CelteEntityManagementSystem::FilterEntities(
   }
   return result;
 }
+
+void CelteEntityManagementSystem::RegisterReplConsumer(
+    const std::string &chunkId) {
+  KPOOL.Subscribe({
+      .topic = chunkId + "." + celte::tp::REPLICATION,
+      .autoCreateTopic = true, // technically this could be false but this will
+                               // avoid bugs if the synch is bad
+      .autoPoll = true,
+      .callback =
+          [this](const kafka::clients::consumer::ConsumerRecord &record) {
+            std::unordered_map<std::string, std::string> replData;
+            for (const auto &header : record.headers()) {
+              auto value = std::string(
+                  reinterpret_cast<const char *>(header.value.data()),
+                  header.value.size());
+              replData[header.key] = value;
+            }
+            __handleReplicationDataReceived(replData);
+          },
+  });
+}
+
+void CelteEntityManagementSystem::__handleReplicationDataReceived(
+    std::unordered_map<std::string, std::string> &data) {
+  // dropping extra headers
+  try {
+    data.erase(celte::tp::HEADER_PEER_UUID);
+  } catch (std::out_of_range &e) {
+    // header wasn't here to begin with, all good
+  }
+  for (auto &[entityId, blob] : data) {
+    try {
+      CelteEntity &entity = GetEntity(entityId);
+      entity.DownloadReplicationData(blob);
+    } catch (std::out_of_range &e) {
+      logs::Logger::getInstance().err()
+          << "Entity " << entityId << " not found."
+          << std::endl; // TODO: better handling for this, entities may need to
+                        // spawn or smth
+    }
+  }
+}
+
 } // namespace runtime
 } // namespace celte
