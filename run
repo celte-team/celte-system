@@ -65,8 +65,17 @@ def run_docker_cpp():
     name = 'celte_cpp_' + uuid
     print(f'Creating container {name}')
     export_env_vars("CELTE_CPP_CONTAINER", name)
-    subprocess.run(['docker', 'run', '-v', f'{os.getcwd()}:/workdir', '--name', name,
-                    '-e', f'CELTE_CLUSTER_HOST={ip_address}', '-it', CONTAINER_NAME, '/bin/bash'])
+    # subprocess.run(['docker', 'run', '-v', f'{os.getcwd()}:/workdir', '--name', name,
+    #                 '-e', f'CELTE_CLUSTER_HOST={ip_address}', '-it', CONTAINER_NAME, '/bin/bash'])
+    subprocess.run(['docker', 'run',
+                    '-v', f'{os.getcwd()}:/workdir',
+                    '-v', '/tmp/.X11-unix:/tmp/.X11-unix',
+                    '-e', f'CELTE_CLUSTER_HOST={ip_address}',
+                    '-e', f'DISPLAY={os.environ["DISPLAY"]}',
+                    # '--device', '/dev/dri',
+                    '--name', name,
+                    '-it', CONTAINER_NAME,
+                    '/bin/bash'])
 
 def join_docker_cpp():
     """Join an existing C++ Docker container."""
@@ -108,9 +117,10 @@ def get_env_vars():
 
 def build_docker_image():
     """Build the Docker image for the C++ project."""
-    build_command = ['docker', 'build', '-t', CONTAINER_NAME, '.']
     if platform.system() == 'Darwin':
         build_command = ['docker', 'buildx', 'build', '--platform', 'linux/amd64', '-t', CONTAINER_NAME, '.', '--output', 'type=docker']
+    else:
+        build_command = ['docker', 'build', '-t', CONTAINER_NAME, '.']
 
     result = subprocess.run(build_command)
     if result.returncode != 0:
