@@ -28,11 +28,6 @@ add_definitions(${GLIB_CFLAGS_OTHER})
 
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 
-# include_directories(include
-#     ${GLIB_INCLUDE_DIRS}
-#     ${RDKAFKA_INCLUDE_DIRS}
-# )
-
 
 # Set the source files for the functional tests
 set(SOURCES

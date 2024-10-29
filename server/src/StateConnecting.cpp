@@ -7,6 +7,7 @@ namespace server {
 namespace states {
 
 void Connecting::entry() {
+  KPOOL.Connect();
   if (not HOOKS.server.connection.onConnectionProcedureInitiated()) {
     std::cerr << "Connection procedure hook failed" << std::endl;
     HOOKS.server.connection.onConnectionError();
@@ -23,10 +24,8 @@ void Connecting::entry() {
                      .callback = [this](auto r) { RPC.InvokeLocal(r); }});
 
     // creating a listener for RPCs related to the server node as a whole
-    std::cout << "Creating RPC listener for " << RUNTIME.GetUUID() << "."
+    std::cout << "Creating an RPC listener for " << RUNTIME.GetUUID() << "."
               << celte::tp::RPCs << std::endl;
-    std::cout << "CREATED LISTENER FOR RPC CHANNEL "
-              << RUNTIME.GetUUID() + "." + celte::tp::RPCs << std::endl;
     KPOOL.Subscribe({.topic = RUNTIME.GetUUID() + "." + celte::tp::RPCs,
                      .autoCreateTopic = true,
                      .extraProps = {{"auto.offset.reset", "earliest"}},
@@ -49,6 +48,12 @@ void Connecting::entry() {
             },
     });
   } catch (kafka::KafkaException &e) {
+    std::cerr << "Error in Connecting::entry: " << e.what() << std::endl;
+    HOOKS.server.connection.onConnectionError();
+    HOOKS.server.connection.onServerDisconnected();
+    transit<Disconnected>();
+    return;
+  } catch (std::exception &e) {
     std::cerr << "Error in Connecting::entry: " << e.what() << std::endl;
     HOOKS.server.connection.onConnectionError();
     HOOKS.server.connection.onServerDisconnected();

@@ -34,6 +34,7 @@ message(STATUS "Libraries will be installed to ${INSTALL_LIBRARY_DIR}")
 add_subdirectory(runtime)
 add_subdirectory(tests)
 add_subdirectory(tests/single_node_poc)
+add_subdirectory(tests/test_authority_transfer)
 
 # Find and configure RdKafka
 find_package(RdKafka CONFIG REQUIRED)

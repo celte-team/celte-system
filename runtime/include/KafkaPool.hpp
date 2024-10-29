@@ -7,6 +7,7 @@
 #include <kafka/AdminClient.h>
 #include <kafka/KafkaConsumer.h>
 #include <kafka/KafkaProducer.h>
+#include <optional>
 #include <unordered_map>
 
 namespace celte {
@@ -71,6 +72,7 @@ public:
     std::map<std::string, std::string> extraProps = {};
     bool autoPoll = true;
     MessageCallback callback = nullptr;
+    int timeoutMs = 1000;
   };
 
   KafkaPool(const Options &options);
@@ -94,6 +96,9 @@ public:
   void Unsubscribe(const std::string &topic, const std::string &groupId = "",
                    bool autoPoll = true);
 
+  kafka::clients::consumer::KafkaConsumer &
+  GetConsumer(const std::string &topic);
+
   /**
    * @brief Asynchronously sends a message to kafka.
    */
@@ -113,6 +118,11 @@ public:
         onDelivered = nullptr;
     bool autoCreateTopic = true;
   };
+
+  /**
+   * @brief Destroy all consumers.
+   */
+  void ResetConsumers();
 
   /**
    * @brief Sends a message to Kafka.
@@ -154,6 +164,8 @@ public:
     __createTopicIfNotExists(topic, numPartitions, replicationFactor);
   }
 
+  void Connect();
+
 private:
   /**
    * @brief Initializes the KafkaPool's threads, consumers and producers.
@@ -168,8 +180,9 @@ private:
 
   /**
    * @brief Creates a topic in kafka if it does not exist yet.
+   * Returns false if it failed.
    */
-  void __createTopicIfNotExists(const std::string &topic, int numPartitions,
+  bool __createTopicIfNotExists(const std::string &topic, int numPartitions,
                                 int replicationFactor);
 
   /**
@@ -201,7 +214,7 @@ private:
   std::unordered_map<std::string, kafka::clients::consumer::KafkaConsumer>
       _manualConsumers;
 
-  kafka::clients::producer::KafkaProducer _producer;
+  std::optional<kafka::clients::producer::KafkaProducer> _producer;
 
   std::unordered_map<std::string, MessageCallback> _callbacks;
   std::shared_ptr<boost::mutex> _mutex;

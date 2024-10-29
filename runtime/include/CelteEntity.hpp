@@ -92,18 +92,6 @@ public:
    * instantiated, and should contain enough information for the dev to load
    * the entity on the client side.
    */
-  // inline void SetInformationToLoad(const std::string &info) {
-  //   std::cout << "LE GROS EGALE LA " << info << std::endl;
-  //   _informationToLoad = std::string();
-
-  //   for (int i = 0; i < info.size(); i++) {
-  //     std::cout << "copying " << info[i] << std::endl;
-  //     _informationToLoad += info[i];
-  //   }
-  //   // _informationToLoad = info;
-  //   std::cout << "INFORMATION TO LOAD WOULAH " << _informationToLoad
-  //             << std::endl;
-  // }
   void SetInformationToLoad(const std::string &info);
 
   /**
