@@ -14,6 +14,7 @@ class ConnectClient
 
     public async void connectNewClient(byte[] messageByte)
     {
+        //
         string message = System.Text.Encoding.UTF8.GetString(messageByte);
         Console.WriteLine("New client connected to the cluster: " + message);
 

@@ -1,0 +1,66 @@
+services:
+  master1:
+    image: master
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: master1
+    environment:
+      - CONNECTION_STRING=redis://:eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81@cache:6379
+    depends_on:
+      - cache
+
+  master2:
+    image: master
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: master2
+    environment:
+      - CONNECTION_STRING=redis://:eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81@cache:6379
+    depends_on:
+      - cache
+
+  master3:
+    image: master
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: master3
+    environment:
+      - CONNECTION_STRING=redis://:eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81@cache:6379
+    depends_on:
+      - cache
+
+  cache:
+    image: redis:6.2-alpine
+    container_name: redis_cache
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes:
+      - cache:/data
+
+  # haproxy:
+  #   image: haproxy:2.9
+  #   container_name: haproxy_master
+  #   ports:
+  #     - "122:122"
+  #     - "444:444"
+  #     - "8406:8406"
+  #   ulimits:
+  #     nofile:
+  #       soft: 10000
+  #       hard: 30000
+  #   volumes:
+  #     - ./haproxy_master.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+  #     - ./certs/haproxy:/etc/haproxy/certs:ro
+  #   depends_on:
+  #     - master1
+  #     - master2
+  #     - master3
+
+volumes:
+  cache:
+    driver: local

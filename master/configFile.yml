@@ -2,4 +2,4 @@ chunks: 1
 cpu: 1
 memory: 512
 container_image: "masterceltearm"
-kafka_brokers: "localhost:80"
+kafka_brokers: "192.168.123.159:80"
