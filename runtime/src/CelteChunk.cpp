@@ -63,6 +63,26 @@ void Chunk::SendReplicationData() {
       .value = std::string(),
       .autoCreateTopic = false});
 }
+
+void Chunk::OnEnterEntity(const std::string &entityId) {
+  try {
+    auto &entity = ENTITIES.GetEntity(entityId);
+    if (entity.GetOwnerChunk().GetCombinedId() == _combinedId) {
+      return;
+    }
+  } catch (std::out_of_range &e) {
+    logs::Logger::getInstance().err()
+        << "Entity not found in OnEnterEntity: " << e.what() << std::endl;
+    return;
+  }
+
+  // the current method is only called when the entity enters the chunk in the
+  // server node, calling the RPC will trigger the behavior of transfering
+  // authority over to the chunk in all the peers listening to the chunk's
+  // topic.
+  RPC.InvokeChunk(_combinedId, "__rp_scheduleEntityAuthorityTransfer", entityId,
+                  true, CLOCK.CurrentTick() + 10);
+}
 #endif
 
 /* -------------------------------------------------------------------------- */

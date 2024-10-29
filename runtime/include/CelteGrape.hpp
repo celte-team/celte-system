@@ -95,6 +95,14 @@ public:
    */
   inline const GrapeOptions &GetOptions() const { return _options; }
 
+  inline const std::vector<std::string> GetChunksIds() const {
+    std::vector<std::string> chunksIds;
+    for (auto &[chunkId, _] : _chunks) {
+      chunksIds.push_back(chunkId);
+    }
+    return chunksIds;
+  }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Replicates all entities in the grape to their respective chunks.

@@ -12,21 +12,41 @@ namespace nl {
 KafkaPool::KafkaPool(const Options &options)
     : _options(options), _running(false), _records(100),
       _mutex(new boost::mutex),
-      _consumerProps({{"bootstrap.servers", {options.bootstrapServers}},
-                      {"enable.auto.commit", {"true"}},
-                      {"log_level", {"3"}}}),
+      _consumerProps({
+          {"bootstrap.servers", {options.bootstrapServers}},
+          {"enable.auto.commit", {"true"}},
+          {"log_level", {"3"}},
+      }), // Socket timeout
 
       _producerProps(kafka::Properties({
           {"bootstrap.servers", {options.bootstrapServers}},
           {"enable.idempotence", {"true"}},
       })),
-      _producer(_producerProps) {
-  // _consumerProps.put("log_cb", [](int /*level*/, const char * /*filename*/,
-  //                                 int /*lineno*/, const char *msg) {
-  //   std::cout << "[" << kafka::utility::getCurrentTime() << "]" << msg
+
+      _producer(std::nullopt) {
+
+  _producerProps.put("error_cb", [this](const kafka::Error &error) {
+    logs::Logger::getInstance().err()
+        << "Producer error: " << error.toString() << std::endl;
+  });
+
+  // _consumerProps.put("log_cb", [](int /*level*/, const char *
+  // /*filename*/,
+  //                                 int /*lineno*/, const char *msg)
+  //                                 {
+  //   std::cout << "[" << kafka::utility::getCurrentTime() << "]" <<
+  //   msg
   //             << std::endl;
   // });
+
   __init();
+}
+
+void KafkaPool::Connect() { _producer.emplace(_producerProps); }
+
+kafka::clients::consumer::KafkaConsumer &
+KafkaPool::GetConsumer(const std::string &topic) {
+  return _consumers.at(topic);
 }
 
 KafkaPool::~KafkaPool() {
@@ -40,19 +60,18 @@ void KafkaPool::__init() {
 }
 
 void KafkaPool::Send(const KafkaPool::SendOptions &options) {
-  if (options.autoCreateTopic) {
-    __createTopicIfNotExists(options.topic, 1, 1);
+  if (options.autoCreateTopic and
+      not __createTopicIfNotExists(options.topic, 1, 1)) {
+    logs::Logger::getInstance().err()
+        << "Failed to create topic " << options.topic << std::endl;
+    throw std::runtime_error("Failed to create topic");
   }
 
-  // wrapping the options in a shared ptr to avoid copying or dangling
-  // references
   auto opts = std::make_shared<SendOptions>(options);
   auto record = kafka::clients::producer::ProducerRecord(
       opts->topic, kafka::NullKey,
       kafka::Value(opts->value.c_str(), opts->value.size()));
 
-  // wrapping the error callback to capture the shared ptr and keep it
-  // alive
   auto deliveryCb =
       [opts](const kafka::clients::producer::RecordMetadata &metadata,
              const kafka::Error &error) {
@@ -61,8 +80,6 @@ void KafkaPool::Send(const KafkaPool::SendOptions &options) {
         }
       };
 
-  // Set the headers of the record to hold the name of the remote
-  // procedure
   std::vector<kafka::Header> headers;
   for (auto &header : opts->headers) {
     headers.push_back(kafka::Header{
@@ -82,7 +99,10 @@ void KafkaPool::__send(
       kafka::Header{kafka::Header::Key{celte::tp::HEADER_PEER_UUID},
                     kafka::Header::Value{RUNTIME.GetUUID().c_str(),
                                          RUNTIME.GetUUID().size()}});
-  _producer.send(record, onDelivered);
+  if (!_producer.has_value()) {
+    return;
+  }
+  _producer.value().send(record, onDelivered);
 }
 
 void KafkaPool::__consumerJob() {
@@ -130,8 +150,10 @@ void KafkaPool::Subscribe(const SubscribeOptions &ops) {
     _callbacks[ops.topic] = ops.callback;
   }
 
-  if (ops.autoCreateTopic) {
-    __createTopicIfNotExists(ops.topic, 1, 1);
+  if (ops.autoCreateTopic and not __createTopicIfNotExists(ops.topic, 1, 1)) {
+    logs::Logger::getInstance().err()
+        << "Failed to create topic " << ops.topic << std::endl;
+    throw std::runtime_error("Failed to create topic");
   }
 
   auto props = _consumerProps;
@@ -159,7 +181,8 @@ void KafkaPool::Subscribe(const SubscribeOptions &ops) {
   try {
     boost::lock_guard<boost::mutex> lock(*_mutex);
     // Subscribe with the updated subscription list
-    consumer.subscribe(subscriptions);
+    consumer.subscribe(subscriptions,
+                       kafka::clients::consumer::NullRebalanceCallback);
   } catch (kafka::KafkaException &e) {
     logs::Logger::getInstance().err()
         << "Error subscribing to topic " << ops.topic << std::endl;
@@ -187,6 +210,20 @@ void KafkaPool::Unsubscribe(const std::string &topic,
   }
 }
 
+void KafkaPool::ResetConsumers() {
+  _producer.value().close();
+  _producer = std::nullopt;
+  for (auto &consumer : _consumers) {
+    consumer.second.unsubscribe();
+    consumer.second.close();
+  }
+  {
+    // boost::lock_guard<boost::mutex> lock(*_mutex);
+    _callbacks.clear();
+  }
+  _consumers.clear();
+}
+
 void KafkaPool::CatchUp(unsigned int maxBlockingMs) {
   auto startMs = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::system_clock::now().time_since_epoch());
@@ -201,21 +238,34 @@ void KafkaPool::CatchUp(unsigned int maxBlockingMs) {
   }
 }
 
-void KafkaPool::__createTopicIfNotExists(const std::string &topic,
+bool KafkaPool::__createTopicIfNotExists(const std::string &topic,
                                          int numPartitions,
                                          int replicationFactor) {
-  kafka::clients::admin::AdminClient adminClient(_consumerProps);
-  auto topics = adminClient.listTopics();
+
+  kafka::Properties props;
+  props.put("bootstrap.servers", _options.bootstrapServers);
+  // stop the client from retrying after a fail
+  props.put("retries", "1");
+  kafka::clients::admin::AdminClient adminClient(props);
+  auto topics = adminClient.listTopics(std::chrono::milliseconds(1000));
+  if (topics.error) {
+    logs::Logger::getInstance().err()
+        << "Error listing topics: " << topics.error.value() << std::endl;
+    return false;
+  }
   for (auto &topicName : topics.topics) {
     if (topicName == topic)
-      return;
+      return true;
   }
-  auto createResult =
-      adminClient.createTopics({topic}, numPartitions, replicationFactor);
+  auto createResult = adminClient.createTopics(
+      {topic}, numPartitions, replicationFactor, kafka::Properties(),
+      std::chrono::milliseconds(1000));
   if (!createResult.error ||
       createResult.error.value() == RD_KAFKA_RESP_ERR_TOPIC_ALREADY_EXISTS) {
-    return;
+    std::cout << "created topic" << std::endl;
+    return true;
   }
+  return false;
 }
 
 bool KafkaPool::Poll(const std::string &groupId, unsigned int pollTimeoutMs) {
