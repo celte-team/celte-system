@@ -53,6 +53,15 @@ public:
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
+   * @brief Called when an entity enters the chunk. (This should be called by
+   * the in engine encapsulation of the chunk, on server side, by the server
+   * node owning the chunk). This will notify the chunk that an entity has
+   * entered it, and trigger the process of transfering authority over to the
+   * chunk.
+   */
+  void OnEnterEntity(const std::string &entityId);
+
+  /**
    * @brief Adds the data of this entity to the list of data to
    * be sent to the chunk's kafka replication topic.
    */

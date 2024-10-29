@@ -23,7 +23,6 @@ void Clock::__updateCurrentTick(
     return;
   }
   _tick = *reinterpret_cast<const int *>(r.value().data());
-  std::cout << "Current tick: " << _tick << std::endl;
 }
 
 void Clock::ScheduleAt(int tick, std::function<void()> task) {

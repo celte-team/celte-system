@@ -122,9 +122,6 @@ void CelteRuntime::RequestSpawn(const std::string &clientId,
                                 const std::string &grapeId, float x, float y,
                                 float z) {
   // TODO: check if spawn is authorized
-  // HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId);
-  // RUNTIME.GetRPCTable().InvokeByTopic(clientId, "__rp_spawnPlayer",
-  // clientId);
   RPC.InvokeGrape(grapeId, "__rp_onSpawnRequested", clientId, x, y, z);
 }
 
@@ -170,13 +167,11 @@ void CelteRuntime::ConnectToCluster(const std::string &ip, int port) {
   _pool = std::make_shared<celte::nl::KafkaPool>(celte::nl::KafkaPool::Options{
       .bootstrapServers = ip + std::string(":") + std::to_string(port)});
 
-  // client / server spcific logic will be handled separately in the FSM
+  // Launch the connection asynchronously
   Services::dispatch(celte::EConnectToCluster{
       .ip = ip,
       .port = port,
       .message = std::make_shared<std::string>("hello")});
-  std::cout << "CelteRuntime is connecting to kafka cluster at " << ip << ":"
-            << port << std::endl;
 }
 
 bool CelteRuntime::IsConnectedToCluster() {

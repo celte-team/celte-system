@@ -10,6 +10,7 @@ namespace client {
 namespace states {
 
 void Connecting::entry() {
+  KPOOL.Connect();
   if (not HOOKS.client.connection.onConnectionProcedureInitiated()) {
     logs::Logger::getInstance().err()
         << "Connection procedure hook failed" << std::endl;

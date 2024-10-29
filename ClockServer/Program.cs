@@ -61,7 +61,6 @@ namespace GlobalClockService
                 try
                 {
                     var deliveryResult = await producer.ProduceAsync(topic, message, cancellationToken);
-                    Console.WriteLine($"Tick {tickId} sent at {timestamp:O}");
                 }
                 catch (ProduceException<string, string> e)
                 {
