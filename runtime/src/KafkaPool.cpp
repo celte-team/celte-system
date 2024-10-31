@@ -5,6 +5,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <chrono>
+#include <set>
 
 namespace celte {
 namespace nl {
@@ -16,6 +17,7 @@ KafkaPool::KafkaPool(const Options &options)
           {"bootstrap.servers", {options.bootstrapServers}},
           {"enable.auto.commit", {"true"}},
           {"log_level", {"3"}},
+          {"retries", {"2"}},
       }), // Socket timeout
 
       _producerProps(kafka::Properties({
@@ -48,7 +50,6 @@ kafka::clients::consumer::KafkaConsumer &
 KafkaPool::GetConsumer(const std::string &topic) {
   return _consumers.at(topic);
 }
-
 KafkaPool::~KafkaPool() {
   _running = false;
   _consumerThread.join();
@@ -60,8 +61,8 @@ void KafkaPool::__init() {
 }
 
 void KafkaPool::Send(const KafkaPool::SendOptions &options) {
-  if (options.autoCreateTopic and
-      not __createTopicIfNotExists(options.topic, 1, 1)) {
+  std::set<std::string> topics{options.topic};
+  if (options.autoCreateTopic and not __createTopicIfNotExists(topics, 1, 1)) {
     logs::Logger::getInstance().err()
         << "Failed to create topic " << options.topic << std::endl;
     throw std::runtime_error("Failed to create topic");
@@ -143,19 +144,31 @@ void KafkaPool::__emplaceConsumerIfNotExists(const std::string &groupId,
 }
 
 void KafkaPool::Subscribe(const SubscribeOptions &ops) {
-  {
-    logs::Logger::getInstance().info()
-        << "Subscribing to topic " << ops.topic << std::endl;
-    boost::lock_guard<boost::mutex> lock(*_mutex);
-    _callbacks[ops.topic] = ops.callback;
+  if (ops.callbacks.size() != 0 and ops.topics.size() != ops.callbacks.size()) {
+    logs::Logger::getInstance().err()
+        << "Number of topics and callbacks must be the same" << std::endl;
+    return;
   }
 
-  if (ops.autoCreateTopic and not __createTopicIfNotExists(ops.topic, 1, 1)) {
-    logs::Logger::getInstance().err()
-        << "Failed to create topic " << ops.topic << std::endl;
+  // if callbacks is empty, we expect them to be set manually elsewhere. Else,
+  // we do it now:
+  if (ops.callbacks.size() == ops.topics.size()) {
+    // registering the callbacks for each topic
+    boost::lock_guard<boost::mutex> lock(*_mutex);
+    for (int i = 0; i < ops.topics.size(); i++) {
+      _callbacks[ops.topics[i]] = ops.callbacks[i];
+    }
+  }
+
+  // auto create topics if needed
+  auto topicsAsSet =
+      std::set<std::string>(ops.topics.begin(), ops.topics.end());
+  if (ops.autoCreateTopic and not __createTopicIfNotExists(topicsAsSet, 1, 1)) {
+    logs::Logger::getInstance().err() << "Failed to create topics" << std::endl;
     throw std::runtime_error("Failed to create topic");
   }
 
+  // assigning the group id
   auto props = _consumerProps;
   if (!ops.groupId.empty()) {
     props.put("group.id", ops.groupId);
@@ -163,29 +176,23 @@ void KafkaPool::Subscribe(const SubscribeOptions &ops) {
       props.put(prop.first, prop.second);
     }
   }
-  std::string uuid =
-      boost::uuids::to_string(boost::uuids::random_generator()());
-  props.put("client.id", uuid);
 
+  // create a consumer for the group if it does not exist
   __emplaceConsumerIfNotExists(ops.groupId, props, ops.autoPoll);
-
   auto &consumer = (ops.autoPoll) ? _consumers.at(ops.groupId)
                                   : _manualConsumers.at(ops.groupId);
 
-  // Get the current subscription list
+  // Get the current subscription list and update it with the new topics
   auto subscriptions = consumer.subscription();
+  for (auto &topic : ops.topics) {
+    subscriptions.insert(topic);
+  }
 
-  // Add the new topic to the subscription list
-  subscriptions.insert(ops.topic);
-
+  // Subscribe with the updated subscription list
   try {
     boost::lock_guard<boost::mutex> lock(*_mutex);
-    // Subscribe with the updated subscription list
-    consumer.subscribe(subscriptions,
-                       kafka::clients::consumer::NullRebalanceCallback);
-  } catch (kafka::KafkaException &e) {
-    logs::Logger::getInstance().err()
-        << "Error subscribing to topic " << ops.topic << std::endl;
+    consumer.subscribe(subscriptions);
+  } catch (std::exception &e) {
     logs::Logger::getInstance().err() << e.what() << std::endl;
   }
 }
@@ -238,33 +245,47 @@ void KafkaPool::CatchUp(unsigned int maxBlockingMs) {
   }
 }
 
-bool KafkaPool::__createTopicIfNotExists(const std::string &topic,
+bool KafkaPool::__createTopicIfNotExists(std::set<std::string> &topics,
                                          int numPartitions,
                                          int replicationFactor) {
-
+  std::cout << "creating topics" << std::endl;
+  for (auto topic : topics) {
+    std::cout << topic << std::endl;
+  }
   kafka::Properties props;
   props.put("bootstrap.servers", _options.bootstrapServers);
-  // stop the client from retrying after a fail
   props.put("retries", "1");
   kafka::clients::admin::AdminClient adminClient(props);
-  auto topics = adminClient.listTopics(std::chrono::milliseconds(1000));
-  if (topics.error) {
+  auto existingTopics = adminClient.listTopics(std::chrono::milliseconds(1000));
+  if (existingTopics.error) {
     logs::Logger::getInstance().err()
-        << "Error listing topics: " << topics.error.value() << std::endl;
+        << "Error listing topics: " << existingTopics.error.value()
+        << std::endl;
     return false;
   }
-  for (auto &topicName : topics.topics) {
-    if (topicName == topic)
-      return true;
+
+  for (const auto &topic : existingTopics.topics) {
+    topics.erase(topic);
   }
+
+  std::cout << "the following topics will be created: " << std::endl;
+  for (auto &topic : topics) {
+    std::cout << topic << std::endl;
+  }
+
+  if (topics.size() == 0) {
+    return true;
+  }
+
   auto createResult = adminClient.createTopics(
-      {topic}, numPartitions, replicationFactor, kafka::Properties(),
+      topics, numPartitions, replicationFactor, kafka::Properties(),
       std::chrono::milliseconds(1000));
   if (!createResult.error ||
       createResult.error.value() == RD_KAFKA_RESP_ERR_TOPIC_ALREADY_EXISTS) {
-    std::cout << "created topic" << std::endl;
+    std::cout << "topics correctly created" << std::endl;
     return true;
   }
+  std::cout << "there was an error here o secour" << std::endl;
   return false;
 }
 

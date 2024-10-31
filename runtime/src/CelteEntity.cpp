@@ -20,6 +20,7 @@ void CelteEntity::SetInformationToLoad(const std::string &info) {
 
 void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
   try {
+    std::cout << "celte entity on spawn" << std::endl;
     auto &chunk = chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
                       .GetGrapeByPosition(x, y, z)
                       .GetChunkByPosition(x, y, z);

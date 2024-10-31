@@ -14,29 +14,37 @@ Chunk::Chunk(const ChunkConfig &config)
 
 Chunk::~Chunk() {}
 
-void Chunk::Initialize() {
+std::string Chunk::Initialize() {
   __registerConsumers();
   __registerRPCs();
-  if (not _config.isLocallyOwned) {
-    ENTITIES.RegisterReplConsumer(_combinedId);
-  }
+  // if (not _config.isLocallyOwned) {
+  //   ENTITIES.RegisterReplConsumer(_combinedId);
+  // }
+  return _combinedId;
 }
 
 void Chunk::__registerConsumers() {
-  // A consumer to listen for Chunk scope RPCs and execute them
-  KPOOL.Subscribe({
-      .topic = _combinedId + "." + celte::tp::RPCs,
-      .groupId = "", // no group, all consumers receive the message
-      .autoCreateTopic = true,
-      .autoPoll = true,
-      .callback = [this](auto r) { RUNTIME.RPCTable().InvokeLocal(r); },
-  });
+  // // A consumer to listen for Chunk scope RPCs and execute them
+  // KPOOL.Subscribe({
+  //     .topic{_combinedId + "." + celte::tp::RPCs},
+  //     .groupId = "", // no group, all consumers receive the message
+  //     .autoCreateTopic = true,
+  //     .autoPoll = true,
+  //     .callback = [this](auto r) { RUNTIME.RPCTable().InvokeLocal(r); },
+  // });
 
-  KPOOL.CreateTopicIfNotExists(_combinedId + "." + celte::tp::REPLICATION, 1,
-                               1);
+  // KPOOL.CreateTopicIfNotExists(_combinedId + "." + celte::tp::REPLICATION, 1,
+  //                              1);
+  KPOOL.RegisterTopicCallback(_combinedId + "." + celte::tp::RPCs,
+                              [this](auto r) { RPC.InvokeLocal(r); });
 }
 
 bool Chunk::ContainsPosition(float x, float y, float z) const {
+  {
+    // debug
+    std::cout << "Chunk::ContainsPosition" << std::endl;
+    std::cout << "chunk " << _combinedId << "'s bounding box: " << std::endl;
+  }
   return _boundingBox.ContainsPosition(x, y, z);
 }
 
@@ -91,9 +99,13 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
 
 void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
                                                  bool take, int tick) {
+  logs::Logger::getInstance().info()
+      << "Scheduling authority transfer for entity " << entityUUID << " to "
+      << _combinedId << " at tick " << tick << std::endl;
   if (take) {
     CLOCK.ScheduleAt(tick, [this, entityUUID]() {
       try {
+        std::cout << "Executing authority transfer" << std::endl;
         ENTITIES.GetEntity(entityUUID).OnChunkTakeAuthority(*this);
       } catch (std::out_of_range &e) {
         logs::Logger::getInstance().err()

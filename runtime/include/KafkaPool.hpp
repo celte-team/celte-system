@@ -9,6 +9,7 @@
 #include <kafka/KafkaProducer.h>
 #include <optional>
 #include <unordered_map>
+#include <vector>
 
 namespace celte {
 namespace nl {
@@ -66,13 +67,13 @@ public:
    * Callback function to handle messages. Default is nullptr.
    */
   struct SubscribeOptions {
-    std::string topic = "";
+    std::vector<std::string> topics = std::vector<std::string>();
     std::string groupId = "";
     bool autoCreateTopic = true;
     std::map<std::string, std::string> extraProps = {};
     bool autoPoll = true;
-    MessageCallback callback = nullptr;
-    int timeoutMs = 1000;
+    // MessageCallback callback = nullptr;
+    std::vector<MessageCallback> callbacks = {};
   };
 
   KafkaPool(const Options &options);
@@ -85,6 +86,11 @@ public:
    * @param options
    */
   void Subscribe(const SubscribeOptions &options);
+
+  inline void RegisterTopicCallback(const std::string &topic,
+                                    MessageCallback callback) {
+    _callbacks[topic] = callback;
+  }
 
   /**
    * @brief Unsubscribes a group of consumers from the given topic.
@@ -159,9 +165,17 @@ public:
    */
   bool Poll(const std::string &groupId, unsigned int pollTimeoutMs = 100);
 
-  inline void CreateTopicIfNotExists(const std::string &topic,
+  inline void CreateTopicIfNotExists(std::string &topic, int numPartitions,
+                                     int replicationFactor) {
+    std::set<std::string> topics{topic};
+    __createTopicIfNotExists(topics, numPartitions, replicationFactor);
+  }
+
+  inline void CreateTopicsIfNotExist(std::vector<std::string> &topics,
                                      int numPartitions, int replicationFactor) {
-    __createTopicIfNotExists(topic, numPartitions, replicationFactor);
+    std::set<std::string> topicsAsSet =
+        std::set<std::string>(topics.begin(), topics.end());
+    __createTopicIfNotExists(topicsAsSet, numPartitions, replicationFactor);
   }
 
   void Connect();
@@ -182,7 +196,7 @@ private:
    * @brief Creates a topic in kafka if it does not exist yet.
    * Returns false if it failed.
    */
-  bool __createTopicIfNotExists(const std::string &topic, int numPartitions,
+  bool __createTopicIfNotExists(std::set<std::string> &topic, int numPartitions,
                                 int replicationFactor);
 
   /**

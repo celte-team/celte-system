@@ -8,11 +8,11 @@ namespace runtime {
 void Clock::Init() {
   // subscribing to the global clock tick topic
   KPOOL.Subscribe({
-      .topic = celte::tp::GLOBAL_CLOCK,
+      .topics{celte::tp::GLOBAL_CLOCK},
       .autoCreateTopic = false,
       .extraProps = {{"auto.offset.reset", "earliest"}},
       .autoPoll = true,
-      .callback = [this](auto r) { __updateCurrentTick(r); },
+      .callbacks{[this](auto r) { __updateCurrentTick(r); }},
   });
 }
 

@@ -119,24 +119,41 @@ std::vector<std::string> CelteEntityManagementSystem::FilterEntities(
 }
 
 void CelteEntityManagementSystem::RegisterReplConsumer(
-    const std::string &chunkId) {
-  KPOOL.Subscribe({
-      .topic = chunkId + "." + celte::tp::REPLICATION,
-      .autoCreateTopic = true, // technically this could be false but this will
-                               // avoid bugs if the synch is bad
-      .autoPoll = true,
-      .callback =
-          [this](const kafka::clients::consumer::ConsumerRecord &record) {
-            std::unordered_map<std::string, std::string> replData;
-            for (const auto &header : record.headers()) {
-              auto value = std::string(
-                  reinterpret_cast<const char *>(header.value.data()),
-                  header.value.size());
-              replData[header.key] = value;
-            }
-            __handleReplicationDataReceived(replData);
-          },
-  });
+    const std::vector<std::string> &chunkId) {
+  // KPOOL.Subscribe({
+  //     .topics{chunkId + "." + celte::tp::REPLICATION},
+  //     .autoCreateTopic = true, // technically this could be false but this
+  //     will
+  //                              // avoid bugs if the synch is bad
+  //     .autoPoll = true,
+  //     .callbacks{[this](
+  //                    const kafka::clients::consumer::ConsumerRecord &record)
+  //                    {
+  //       std::unordered_map<std::string, std::string> replData;
+  //       for (const auto &header : record.headers()) {
+  //         auto value =
+  //             std::string(reinterpret_cast<const char
+  //             *>(header.value.data()),
+  //                         header.value.size());
+  //         replData[header.key] = value;
+  //       }
+  //       __handleReplicationDataReceived(replData);
+  //     }},
+  // });
+
+  for (auto &topic : chunkId) {
+    KPOOL.RegisterTopicCallback(
+        topic, [this](const kafka::clients::consumer::ConsumerRecord &record) {
+          std::unordered_map<std::string, std::string> replData;
+          for (const auto &header : record.headers()) {
+            auto value =
+                std::string(reinterpret_cast<const char *>(header.value.data()),
+                            header.value.size());
+            replData[header.key] = value;
+          }
+          __handleReplicationDataReceived(replData);
+        });
+  }
 }
 
 void CelteEntityManagementSystem::__handleReplicationDataReceived(
