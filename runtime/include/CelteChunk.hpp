@@ -37,8 +37,10 @@ public:
    * @brief Initializes the chunk. Call this method only once.
    * It could be called in the constructor but is not in order to
    * allow copy constructors to be called without reinitializing the network
+   *
+   * @return std::string the combined id of the chunk
    */
-  void Initialize();
+  std::string Initialize();
 
   /**
    * @brief Returns true if the given position is inside the chunk.

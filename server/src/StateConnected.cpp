@@ -81,15 +81,14 @@ void Connected::__registerGrapeConsumers(const std::string &grapeId) {
     std::cout << "Registering grape consumers: " << grapeId + "." + tp::RPCs
               << std::endl;
     KPOOL.Subscribe({
-        .topic = grapeId + "." + tp::RPCs,
+        .topics{grapeId + "." + tp::RPCs},
         .autoCreateTopic = true,
         .extraProps = {{"auto.offset.reset", "earliest"}},
         .autoPoll = true,
-        .callback =
-            [this](auto r) {
-              std::cout << "INVOKE LOCAL IN SERVER RPC LISTENER" << std::endl;
-              RPC.InvokeLocal(r);
-            },
+        .callbacks{[this](auto r) {
+          std::cout << "INVOKE LOCAL IN SERVER RPC LISTENER" << std::endl;
+          RPC.InvokeLocal(r);
+        }},
     });
   } catch (kafka::KafkaException &e) {
     std::cerr << "Error in __registerGrapeConsumers: " << e.what() << std::endl;

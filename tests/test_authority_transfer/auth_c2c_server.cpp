@@ -7,6 +7,11 @@
 #include <thread>
 
 static std::shared_ptr<celte::CelteEntity> entity = nullptr;
+static std::chrono::seconds chunkChangeTimer = std::chrono::seconds(5);
+static std::chrono::time_point<std::chrono::system_clock> entitySpawnTimePoint =
+    std::chrono::system_clock::now();
+std::atomic_bool chunkChangeTriggered = false;
+static float x = 0;
 
 void loadGrape(std::string grapeId, bool isLocallyOwned) {
   // Should load eight chunks (2x2x2)
@@ -17,17 +22,10 @@ void loadGrape(std::string grapeId, bool isLocallyOwned) {
                                   .size = glm::vec3(10, 10, 10),
                                   .localX = glm::vec3(1, 0, 0),
                                   .localY = glm::vec3(0, 1, 0),
-                                  .localZ = glm::vec3(0, 0, 1)};
+                                  .localZ = glm::vec3(0, 0, 1),
+                                  .isLocallyOwned = isLocallyOwned};
   celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER().RegisterGrape(
       grapeOptions);
-
-  // Check that there are eight chunks
-  if (not(celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
-              .GetGrape(grapeId)
-              .GetStatistics()
-              .numberOfChunks == 8)) {
-    throw std::runtime_error("Grape should have 8 chunks");
-  }
 }
 
 void registerHooks() {
@@ -56,31 +54,58 @@ void registerHooks() {
     entity = std::make_shared<celte::CelteEntity>();
     entity->SetInformationToLoad("test");
     entity->OnSpawn(x, y, z, clientId);
+    entity->RegisterProperty("x", x);
+
+    entitySpawnTimePoint = std::chrono::system_clock::now();
 
     return true;
   };
 }
 
+void triggerChunkChange() {
+  std::cout << "Triggering chunk change" << std::endl;
+  chunkChangeTriggered = true;
+  auto &chunk =
+      GRAPES.GetGrape("LeChateauDuMechant").GetChunkByPosition(4, 4, -4);
+  std::cout << "transfering authority to chunk " << chunk.GetCombinedId()
+            << std::endl;
+  chunk.OnEnterEntity(entity->GetUUID());
+}
+
+void run_test_logic() {
+  if (entity != nullptr) {
+    if (std::chrono::system_clock::now() - entitySpawnTimePoint >
+            chunkChangeTimer and
+        not chunkChangeTriggered) {
+      triggerChunkChange();
+    }
+  }
+}
+
 int main() {
   registerHooks();
   RUNTIME.Start(celte::runtime::RuntimeMode::SERVER);
-  RUNTIME.ConnectToCluster("localhost", 89);
+  RUNTIME.ConnectToCluster("localhost", 80);
 
-  std::future<void> future = std::async(std::launch::async, []() {
-    // wait for 10 seconds and test runtime.isconnectedtocluster
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-    if (RUNTIME.IsConnectedToCluster()) {
-      std::cout << "Connected to cluster" << std::endl;
-    } else {
-      std::cout << "Not connected to cluster" << std::endl;
-      KPOOL.ResetConsumers();
-    }
-  });
+  int connectionTimeoutMs = 5000;
+  auto connectionTimeout = std::chrono::system_clock::now() +
+                           std::chrono::milliseconds(connectionTimeoutMs);
+  while (RUNTIME.IsConnectedToCluster() == false and
+         std::chrono::system_clock::now() < connectionTimeout) {
+    RUNTIME.Tick();
+  }
+  if (not RUNTIME.IsConnectedToCluster()) {
+    std::cout << "Connection failed" << std::endl;
+    KPOOL.ResetConsumers();
+    return 1;
+  }
+
+  std::cout << "Connected to cluster" << std::endl;
 
   while (true) {
     RUNTIME.Tick();
-    future.wait_for(std::chrono::milliseconds(10));
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    run_test_logic();
   }
 
   return 0;

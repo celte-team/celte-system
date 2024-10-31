@@ -1,5 +1,6 @@
 #pragma once
 #include "CelteEntity.hpp"
+#include <set>
 #include <unordered_map>
 
 namespace celte {
@@ -71,7 +72,7 @@ public:
    * will tipically not create this consumer for the chunks it manages but will
    * do so for chunks managed by other nodes.
    */
-  void RegisterReplConsumer(const std::string &chunkId);
+  void RegisterReplConsumer(const std::vector<std::string> &chunkId);
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
