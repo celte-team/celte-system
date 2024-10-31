@@ -83,7 +83,19 @@ public:
    * @brief Resets the data changed flag for all data.
    */
   inline void ResetDataChanged() { _replicator.ResetDataChanged(); }
+
 #endif
+
+  /**
+   * @brief Registers a property to be replicated usingm this entity's
+   * replicator. This will allow the property to be replicated to other
+   * peers in the network. The method should be called on both the server
+   * and the client side.
+   */
+  template <typename T>
+  void RegisterProperty(const std::string &name, T &prop) {
+    _replicator.registerValue(name, prop);
+  }
 
   /**
    * @brief Sets the information that should be used to load this entity by

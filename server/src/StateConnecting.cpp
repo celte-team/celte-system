@@ -17,20 +17,20 @@ void Connecting::entry() {
   try {
     // creating a listener for RPCs related to this server node as a whole
     std::cout << "Creating RPC listener for " << RUNTIME.GetUUID() << std::endl;
-    KPOOL.Subscribe({.topic = RUNTIME.GetUUID() + "." + celte::tp::RPCs,
+    KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
                      .autoCreateTopic = true,
                      .extraProps = {{"auto.offset.reset", "earliest"}},
                      .autoPoll = true,
-                     .callback = [this](auto r) { RPC.InvokeLocal(r); }});
+                     .callbacks{[this](auto r) { RPC.InvokeLocal(r); }}});
 
     // creating a listener for RPCs related to the server node as a whole
     std::cout << "Creating an RPC listener for " << RUNTIME.GetUUID() << "."
               << celte::tp::RPCs << std::endl;
-    KPOOL.Subscribe({.topic = RUNTIME.GetUUID() + "." + celte::tp::RPCs,
+    KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
                      .autoCreateTopic = true,
                      .extraProps = {{"auto.offset.reset", "earliest"}},
                      .autoPoll = true,
-                     .callback = [this](auto r) { RPC.InvokeLocal(r); }});
+                     .callbacks{[this](auto r) { RPC.InvokeLocal(r); }}});
 
     std::cout << "Registersing self as " << RUNTIME.GetUUID() << std::endl;
     KPOOL.Send({

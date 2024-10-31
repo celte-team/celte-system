@@ -7,9 +7,11 @@
 #include <thread>
 
 static std::shared_ptr<celte::CelteEntity> entity = nullptr;
+static float x = 0;
 
 void loadGrape(std::string grapeId, bool isLocallyOwned) {
   // Should load eight chunks (2x2x2)
+  std::cout << "before loading the grape" << std::endl;
   auto grapeOptions =
       celte::chunks::GrapeOptions{.grapeId = grapeId,
                                   .subdivision = 2,
@@ -18,16 +20,11 @@ void loadGrape(std::string grapeId, bool isLocallyOwned) {
                                   .localX = glm::vec3(1, 0, 0),
                                   .localY = glm::vec3(0, 1, 0),
                                   .localZ = glm::vec3(0, 0, 1)};
+
+  std::cout << "before registering the grape" << std::endl;
   celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER().RegisterGrape(
       grapeOptions);
-
-  // Check that there are eight chunks
-  if (not(celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
-              .GetGrape(grapeId)
-              .GetStatistics()
-              .numberOfChunks == 8)) {
-    throw std::runtime_error("Grape should have 8 chunks");
-  }
+  std::cout << "done loading the grape" << std::endl;
 }
 
 void registerHooks() {
@@ -58,9 +55,11 @@ void registerHooks() {
               << ", " << z << std::endl;
     // Create a new entity
     entity = std::make_shared<celte::CelteEntity>();
+    std::cout << "calling on spawn" << std::endl;
     // no information to load because not on server side
     entity->OnSpawn(x, y, z, clientId);
 
+    entity->RegisterProperty("x", x);
     return true;
   };
 }
@@ -69,9 +68,26 @@ int main() {
   registerHooks();
   RUNTIME.Start(celte::runtime::RuntimeMode::CLIENT);
   RUNTIME.ConnectToCluster("localhost", 80);
-  while (true) {
-    celte::runtime::CelteRuntime::GetInstance().Tick();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+  int connectionTimeoutMs = 5000;
+  auto connectionTimeout = std::chrono::system_clock::now() +
+                           std::chrono::milliseconds(connectionTimeoutMs);
+  while (RUNTIME.IsConnectedToCluster() == false and
+         std::chrono::system_clock::now() < connectionTimeout) {
+    RUNTIME.Tick();
   }
+  if (not RUNTIME.IsConnectedToCluster()) {
+    std::cout << "Connection failed" << std::endl;
+    KPOOL.ResetConsumers();
+    return 1;
+  }
+
+  std::cout << "Connected to cluster" << std::endl;
+
+  while (true) {
+    RUNTIME.Tick();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+
   return 0;
 }

@@ -60,19 +60,23 @@ void Connecting::__subscribeToTopics() {
 
   // creating a listener for RPCs related to this client as a whole
   KPOOL.Subscribe({
-      .topic = RUNTIME.GetUUID() + "." + celte::tp::RPCs,
+      .topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
       .autoCreateTopic = true,
       .extraProps = {{"auto.offset.reset", "earliest"}},
       .autoPoll = true,
-      .callback = [this](auto r) { RPC.InvokeLocal(r); },
+      .callbacks{[this](auto r) {
+        std::cout << "invoke local" << std::endl;
+        std::cout << "r: " << r.value().toString() << std::endl;
+        RPC.InvokeLocal(r);
+      }},
   });
 
   // creating a listener for RPCs related to the client as a whole
-  KPOOL.Subscribe({.topic = RUNTIME.GetUUID() + "." + celte::tp::RPCs,
+  KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
                    .autoCreateTopic = true,
                    .extraProps = {{"auto.offset.reset", "earliest"}},
                    .autoPoll = true,
-                   .callback = [this](auto r) { RPC.InvokeLocal(r); }});
+                   .callbacks = {[this](auto r) { RPC.InvokeLocal(r); }}});
 }
 } // namespace states
 } // namespace client
