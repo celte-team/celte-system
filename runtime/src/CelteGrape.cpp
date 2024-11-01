@@ -121,6 +121,7 @@ bool Grape::ContainsPosition(float x, float y, float z) const {
 Chunk &Grape::GetChunkByPosition(float x, float y, float z) {
   for (auto &[chunkId, chunk] : _chunks) {
     if (chunk->ContainsPosition(x, y, z)) {
+      std::cout << "chunk found" << std::endl;
       return *chunk;
     }
   }

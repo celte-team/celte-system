@@ -120,30 +120,23 @@ std::vector<std::string> CelteEntityManagementSystem::FilterEntities(
 
 void CelteEntityManagementSystem::RegisterReplConsumer(
     const std::vector<std::string> &chunkId) {
-  // KPOOL.Subscribe({
-  //     .topics{chunkId + "." + celte::tp::REPLICATION},
-  //     .autoCreateTopic = true, // technically this could be false but this
-  //     will
-  //                              // avoid bugs if the synch is bad
-  //     .autoPoll = true,
-  //     .callbacks{[this](
-  //                    const kafka::clients::consumer::ConsumerRecord &record)
-  //                    {
-  //       std::unordered_map<std::string, std::string> replData;
-  //       for (const auto &header : record.headers()) {
-  //         auto value =
-  //             std::string(reinterpret_cast<const char
-  //             *>(header.value.data()),
-  //                         header.value.size());
-  //         replData[header.key] = value;
-  //       }
-  //       __handleReplicationDataReceived(replData);
-  //     }},
-  // });
 
   for (auto &topic : chunkId) {
+    std::cout << "registered repl consumer for " << topic << std::endl;
     KPOOL.RegisterTopicCallback(
-        topic, [this](const kafka::clients::consumer::ConsumerRecord &record) {
+        // Parsing the record to extract the new values of the properties, and
+        // updating the entity
+        topic,
+        [this, topic](const kafka::clients::consumer::ConsumerRecord &record) {
+          std::cout << "topic " << topic << " received a record" << std::endl;
+          std::cout << "record headers are: " << std::endl;
+          for (const auto &header : record.headers()) {
+            std::cout << header.key << " : "
+                      << std::string(reinterpret_cast<const char *>(
+                                         header.value.data()),
+                                     header.value.size())
+                      << std::endl;
+          }
           std::unordered_map<std::string, std::string> replData;
           for (const auto &header : record.headers()) {
             auto value =
@@ -158,6 +151,7 @@ void CelteEntityManagementSystem::RegisterReplConsumer(
 
 void CelteEntityManagementSystem::__handleReplicationDataReceived(
     std::unordered_map<std::string, std::string> &data) {
+  std::cout << "handling replication data" << std::endl;
   // dropping extra headers
   try {
     data.erase(celte::tp::HEADER_PEER_UUID);
