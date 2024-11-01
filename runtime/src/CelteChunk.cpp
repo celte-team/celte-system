@@ -17,34 +17,15 @@ Chunk::~Chunk() {}
 std::string Chunk::Initialize() {
   __registerConsumers();
   __registerRPCs();
-  // if (not _config.isLocallyOwned) {
-  //   ENTITIES.RegisterReplConsumer(_combinedId);
-  // }
   return _combinedId;
 }
 
 void Chunk::__registerConsumers() {
-  // // A consumer to listen for Chunk scope RPCs and execute them
-  // KPOOL.Subscribe({
-  //     .topic{_combinedId + "." + celte::tp::RPCs},
-  //     .groupId = "", // no group, all consumers receive the message
-  //     .autoCreateTopic = true,
-  //     .autoPoll = true,
-  //     .callback = [this](auto r) { RUNTIME.RPCTable().InvokeLocal(r); },
-  // });
-
-  // KPOOL.CreateTopicIfNotExists(_combinedId + "." + celte::tp::REPLICATION, 1,
-  //                              1);
   KPOOL.RegisterTopicCallback(_combinedId + "." + celte::tp::RPCs,
                               [this](auto r) { RPC.InvokeLocal(r); });
 }
 
 bool Chunk::ContainsPosition(float x, float y, float z) const {
-  {
-    // debug
-    std::cout << "Chunk::ContainsPosition" << std::endl;
-    std::cout << "chunk " << _combinedId << "'s bounding box: " << std::endl;
-  }
   return _boundingBox.ContainsPosition(x, y, z);
 }
 
@@ -64,7 +45,7 @@ void Chunk::SendReplicationData() {
     return;
   }
 
-  // std::move will clear the local map, so no need to clear it manually
+  // std::move will clear the local map, so no need to clear it
   KPOOL.Send((const nl::KafkaPool::SendOptions){
       .topic = _combinedId + "." + celte::tp::REPLICATION,
       .headers = std::move(_nextScheduledReplicationData),
@@ -76,20 +57,23 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
   try {
     auto &entity = ENTITIES.GetEntity(entityId);
     if (entity.GetOwnerChunk().GetCombinedId() == _combinedId) {
+      std::cerr << "transferring to the same chunk" << std::endl;
       return;
     }
   } catch (std::out_of_range &e) {
     logs::Logger::getInstance().err()
         << "Entity not found in OnEnterEntity: " << e.what() << std::endl;
-    return;
+    std::cerr << "Entity not found in OnEnterEntity: " << std::endl;
   }
 
   // the current method is only called when the entity enters the chunk in the
   // server node, calling the RPC will trigger the behavior of transfering
   // authority over to the chunk in all the peers listening to the chunk's
   // topic.
+  std::cout << "invoking authority transfer on chunk " << _combinedId
+            << std::endl;
   RPC.InvokeChunk(_combinedId, "__rp_scheduleEntityAuthorityTransfer", entityId,
-                  true, CLOCK.CurrentTick() + 10);
+                  true, CLOCK.CurrentTick() + 30);
 }
 #endif
 
@@ -99,9 +83,11 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
 
 void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
                                                  bool take, int tick) {
-  logs::Logger::getInstance().info()
-      << "Scheduling authority transfer for entity " << entityUUID << " to "
-      << _combinedId << " at tick " << tick << std::endl;
+  // logs::Logger::getInstance().info()
+  //     << "Scheduling authority transfer for entity " << entityUUID << " to "
+  //     << _combinedId << " at tick " << tick << std::endl;
+  std::cout << "Scheduling authority transfer for entity " << entityUUID
+            << " to " << _combinedId << " at tick " << tick << std::endl;
   if (take) {
     CLOCK.ScheduleAt(tick, [this, entityUUID]() {
       try {

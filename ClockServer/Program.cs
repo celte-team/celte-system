@@ -41,7 +41,8 @@ namespace GlobalClockService
 
         static async Task StartClockTicks(IProducer<string, string> producer, string topic, int deltaMs, CancellationToken cancellationToken)
         {
-            long tickId = 0;
+            int tickId = 0;
+
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -53,8 +54,7 @@ namespace GlobalClockService
 
                 var message = new Message<string, string>
                 {
-                    Key = tickId.ToString(),
-                    Value = Convert.ToBase64String(MessagePackSerializer.Serialize(tickId)),
+                    Value = tickId.ToString(),
                     Headers = headers
                 };
 

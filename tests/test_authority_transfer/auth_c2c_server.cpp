@@ -11,6 +11,8 @@ static std::chrono::seconds chunkChangeTimer = std::chrono::seconds(5);
 static std::chrono::time_point<std::chrono::system_clock> entitySpawnTimePoint =
     std::chrono::system_clock::now();
 std::atomic_bool chunkChangeTriggered = false;
+static std::chrono::seconds xValueChangeTimer = std::chrono::seconds(10);
+std::atomic_bool xValueChangeTriggered = false;
 static float x = 0;
 
 void loadGrape(std::string grapeId, bool isLocallyOwned) {
@@ -66,10 +68,11 @@ void triggerChunkChange() {
   std::cout << "Triggering chunk change" << std::endl;
   chunkChangeTriggered = true;
   auto &chunk =
-      GRAPES.GetGrape("LeChateauDuMechant").GetChunkByPosition(4, 4, -4);
+      GRAPES.GetGrape("LeChateauDuMechant").GetChunkByPosition(-4, -4, -4);
   std::cout << "transfering authority to chunk " << chunk.GetCombinedId()
             << std::endl;
   chunk.OnEnterEntity(entity->GetUUID());
+  std::cout << "after transfering authority" << std::endl;
 }
 
 void run_test_logic() {
@@ -78,6 +81,14 @@ void run_test_logic() {
             chunkChangeTimer and
         not chunkChangeTriggered) {
       triggerChunkChange();
+    }
+    if (std::chrono::system_clock::now() - entitySpawnTimePoint >
+            xValueChangeTimer and
+        not xValueChangeTriggered) {
+      x += 1;
+      entity->NotifyDataChanged("x");
+      std::cout << "Notified data changed" << std::endl;
+      xValueChangeTriggered = true;
     }
   }
 }

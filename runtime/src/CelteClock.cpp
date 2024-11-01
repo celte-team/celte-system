@@ -18,11 +18,9 @@ void Clock::Init() {
 
 void Clock::__updateCurrentTick(
     const kafka::clients::consumer::ConsumerRecord &r) {
-  if (r.value().size() < sizeof(int)) {
-    std::cerr << "Invalid message received on global clock topic" << std::endl;
-    return;
-  }
-  _tick = *reinterpret_cast<const int *>(r.value().data());
+  const char *data = reinterpret_cast<const char *>(r.value().data());
+  std::string tickStr(data, r.value().size());
+  _tick = std::stoi(tickStr);
 }
 
 void Clock::ScheduleAt(int tick, std::function<void()> task) {
