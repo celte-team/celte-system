@@ -13,7 +13,7 @@ import subprocess
 import sys
 from colorama import Fore, Style
 
-CONTAINER_NAME = "celte_cpp"
+CONTAINER_NAME = "celte_cpp_x86"
 env = os.environ.copy()
 
 def check_dependencies():
@@ -69,6 +69,7 @@ def run_docker_cpp():
     #                 '-e', f'CELTE_CLUSTER_HOST={ip_address}', '-it', CONTAINER_NAME, '/bin/bash'])
     subprocess.run(['docker', 'run',
                     '-v', f'{os.getcwd()}:/workdir',
+                    '-v', f'{os.getcwd()}/../celte-godot:/celte-godot', #../celte-godot
                     '-v', '/tmp/.X11-unix:/tmp/.X11-unix',
                     '-e', f'CELTE_CLUSTER_HOST={ip_address}',
                     '-e', f'DISPLAY={os.environ["DISPLAY"]}',
@@ -76,6 +77,9 @@ def run_docker_cpp():
                     '--name', name,
                     '-it', CONTAINER_NAME,
                     '/bin/bash'])
+    # execute this command when the container is started
+    # ./automations/setup_repository.sh /Users/clement_t/Epitech/celte/celte-godot/gdprojects/p1/gdproj
+    #
 
 def join_docker_cpp():
     """Join an existing C++ Docker container."""
