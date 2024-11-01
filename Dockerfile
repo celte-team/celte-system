@@ -43,7 +43,8 @@ RUN dnf update -y && \
     bash-completion \
     python3 \
     python3-pip \
-    pacman
+    pacman \
+    scons
 
 # Additional dependencies
 RUN dnf install -y \
@@ -61,14 +62,19 @@ RUN dnf install -y \
     autoconf \
     automake \
     autoconf-archive \
-    snapd
+    snapd \
+    boost-devel
 
 # Clone vcpkg
 RUN git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT && \
     cd $VCPKG_ROOT && \
     ./bootstrap-vcpkg.sh -useSystemBinaries
 
+RUN pip3 install pyyaml
+
 # Install Godot
+ENV GODOT_PATH="/usr/bin/"
+
 RUN dnf install godot -y
 
 WORKDIR /workdir
