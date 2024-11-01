@@ -20,13 +20,11 @@ void CelteEntity::SetInformationToLoad(const std::string &info) {
 
 void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
   try {
-    std::cout << "celte entity on spawn" << std::endl;
     auto &chunk = chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
                       .GetGrapeByPosition(x, y, z)
                       .GetChunkByPosition(x, y, z);
     OnChunkTakeAuthority(chunk);
-    logs::Logger::getInstance().info() << "Entity " << _uuid << " is in chunk "
-                                       << chunk.GetCombinedId() << std::endl;
+    std::cout << "chunk uuid: " << chunk.GetCombinedId() << std::endl;
   } catch (std::out_of_range &e) {
     RUNTIME.Err() << "Entity is not in any grape: " << e.what() << std::endl;
   }
@@ -68,7 +66,14 @@ void CelteEntity::UploadReplicationData() {
     return;
   }
 
-  _ownerChunk->ScheduleReplicationDataToSend(_uuid, _replicator.GetBlob());
+  std::string blob = _replicator.GetBlob();
+  if (blob.empty()) {
+    return;
+  }
+  if (_ownerChunk)
+    std::cout << "uploading replication data to owner chunk: "
+              << _ownerChunk->GetCombinedId() << std::endl;
+  _ownerChunk->ScheduleReplicationDataToSend(_uuid, blob);
 }
 #endif
 

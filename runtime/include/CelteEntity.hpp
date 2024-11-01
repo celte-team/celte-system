@@ -84,6 +84,10 @@ public:
    */
   inline void ResetDataChanged() { _replicator.ResetDataChanged(); }
 
+  inline void NotifyDataChanged(const std::string &name) {
+    _replicator.notifyDataChanged(name);
+  }
+
 #endif
 
   /**

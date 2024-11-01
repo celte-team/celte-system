@@ -20,27 +20,18 @@ RotatedBoundingBox::RotatedBoundingBox(const glm::vec3 &position,
 RotatedBoundingBox::~RotatedBoundingBox() {}
 
 bool RotatedBoundingBox::ContainsPosition(float x, float y, float z) const {
-  std::cout << "Checking if position (" << x << ", " << y << ", " << z
-            << ") is within the bounding box." << std::endl;
-
   // looking at the vector localOrigin to position
   glm::vec3 posLocalCoord(glm::vec3(x, y, z) - _position);
-  std::cout << "Local coordinates relative to bounding box position: "
-            << glm::to_string(posLocalCoord) << std::endl;
 
   // projecting on local Axis (their norm is one)
   glm::vec3 posLocalCoordProj(glm::dot(posLocalCoord, _localX),
                               glm::dot(posLocalCoord, _localY),
                               glm::dot(posLocalCoord, _localZ));
-  std::cout << "Projection on local axes: " << glm::to_string(posLocalCoordProj)
-            << std::endl;
 
   // is any of the coords of the projection greater than the half size?
   bool contains = (glm::abs(posLocalCoordProj.x) <= _halfSize.x &&
                    glm::abs(posLocalCoordProj.y) <= _halfSize.y &&
                    glm::abs(posLocalCoordProj.z) <= _halfSize.z);
-  std::cout << "Position is " << (contains ? "inside" : "outside")
-            << " the bounding box." << std::endl;
 
   return contains;
 }
