@@ -50,7 +50,6 @@ CelteRuntime::~CelteRuntime() {}
 rpc::Table &CelteRuntime::RPCTable() { return _rpcTable; }
 
 void CelteRuntime::Start(RuntimeMode mode) {
-  std::cout << "Starting Celte runtime with uuid " << GetUUID() << std::endl;
   _mode = mode;
   __initNetworkLayer(mode);
 }

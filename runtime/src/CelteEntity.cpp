@@ -24,7 +24,6 @@ void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
                       .GetGrapeByPosition(x, y, z)
                       .GetChunkByPosition(x, y, z);
     OnChunkTakeAuthority(chunk);
-    std::cout << "chunk uuid: " << chunk.GetCombinedId() << std::endl;
   } catch (std::out_of_range &e) {
     RUNTIME.Err() << "Entity is not in any grape: " << e.what() << std::endl;
   }
@@ -66,14 +65,19 @@ void CelteEntity::UploadReplicationData() {
     return;
   }
 
+  // lazy replication, only send data if user notified of change using
+  // NotifyDataChanged
   std::string blob = _replicator.GetBlob();
-  if (blob.empty()) {
-    return;
+  // active replication, send all data that has changed
+  std::string activeBlob = _replicator.GetActiveBlob();
+
+  if (not blob.empty()) {
+    _ownerChunk->ScheduleReplicationDataToSend(_uuid, blob);
   }
-  if (_ownerChunk)
-    std::cout << "uploading replication data to owner chunk: "
-              << _ownerChunk->GetCombinedId() << std::endl;
-  _ownerChunk->ScheduleReplicationDataToSend(_uuid, blob);
+
+  if (not activeBlob.empty()) {
+    _ownerChunk->ScheduleReplicationDataToSend(_uuid, activeBlob, true);
+  }
 }
 #endif
 
@@ -81,8 +85,12 @@ const std::string &CelteEntity::GetInformationToLoad() const {
   return _informationToLoad;
 }
 
-void CelteEntity::DownloadReplicationData(const std::string &blob) {
-  _replicator.Overwrite(blob);
+void CelteEntity::DownloadReplicationData(const std::string &blob,
+                                          bool active) {
+  if (blob.empty()) {
+    return;
+  }
+  _replicator.Overwrite(blob, active);
 }
 
 } // namespace celte

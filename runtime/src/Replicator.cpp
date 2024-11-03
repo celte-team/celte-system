@@ -42,7 +42,7 @@ Replicator::ReplBlob Replicator::GetBlob() {
   return blob;
 }
 
-void Replicator::Overwrite(const ReplBlob &blob) {
+void Replicator::Overwrite(const ReplBlob &blob, bool active) {
 
   size_t offset = 0;
   msgpack::unpacker unpacker;
@@ -50,6 +50,40 @@ void Replicator::Overwrite(const ReplBlob &blob) {
   std::memcpy(unpacker.buffer(), blob.data(), blob.size());
   unpacker.buffer_consumed(blob.size());
 
+  // if blob begins with "__active__" then we are dealing with active data
+  // bool active =
+  //     (blob.find("__active__") == 0) ? _activeReplicatedData :
+  //     _replicatedData;
+
+  if (active) {
+    __overwriteActiveData(blob, unpacker);
+  } else {
+    __overwriteData(blob, unpacker);
+  }
+
+  // msgpack::object_handle oh;
+  // while (unpacker.next(oh)) {
+  //   msgpack::object obj = oh.get();
+  //   std::string key;
+  //   size_t dataSize;
+  //   msgpack::type::raw_ref rawData;
+
+  //   obj.convert(key); // Unpack the key
+  //   unpacker.next(oh);
+  //   oh.get().convert(dataSize); // Unpack the size of the data
+  //   unpacker.next(oh);
+  //   oh.get().convert(rawData); // Unpack the data
+
+  //   auto it = _replicatedData.find(key);
+  //   if (it != _replicatedData.end()) {
+  //     std::memcpy(it->second.dataPtr, rawData.ptr, dataSize);
+  //     it->second.hasChanged = false;
+  //   }
+  // }
+}
+
+void Replicator::__overwriteActiveData(const ReplBlob &blob,
+                                       msgpack::unpacker &unpacker) {
   msgpack::object_handle oh;
   while (unpacker.next(oh)) {
     msgpack::object obj = oh.get();
@@ -57,11 +91,33 @@ void Replicator::Overwrite(const ReplBlob &blob) {
     size_t dataSize;
     msgpack::type::raw_ref rawData;
 
-    obj.convert(key); // Unpack the key
     unpacker.next(oh);
-    oh.get().convert(dataSize); // Unpack the size of the data
+    oh.get().convert(dataSize);
     unpacker.next(oh);
-    oh.get().convert(rawData); // Unpack the data
+    oh.get().convert(rawData);
+
+    auto it = _activeReplicatedData.find(key);
+    if (it != _activeReplicatedData.end()) {
+      std::memcpy(it->second.dataPtr, rawData.ptr, dataSize);
+      it->second.hash = __computeCheckSum(it->second.dataPtr, dataSize);
+    }
+  }
+}
+
+void Replicator::__overwriteData(const ReplBlob &blob,
+                                 msgpack::unpacker &unpacker) {
+  msgpack::object_handle oh;
+  while (unpacker.next(oh)) {
+    msgpack::object obj = oh.get();
+    std::string key;
+    size_t dataSize;
+    msgpack::type::raw_ref rawData;
+
+    obj.convert(key);
+    unpacker.next(oh);
+    oh.get().convert(dataSize);
+    unpacker.next(oh);
+    oh.get().convert(rawData);
 
     auto it = _replicatedData.find(key);
     if (it != _replicatedData.end()) {
@@ -69,6 +125,37 @@ void Replicator::Overwrite(const ReplBlob &blob) {
       it->second.hasChanged = false;
     }
   }
+}
+
+Replicator::ReplBlob Replicator::GetActiveBlob() {
+  ReplBlob blob;
+  msgpack::sbuffer sbuf;
+  msgpack::packer<msgpack::sbuffer> packer(sbuf);
+
+  if (_activeReplicatedData.size() == 0) {
+    return blob;
+  }
+  for (auto &entry : _activeReplicatedData) {
+    int checksum =
+        __computeCheckSum(entry.second.dataPtr, entry.second.dataSize);
+    if (entry.second.hash != checksum) {
+      entry.second.hash = checksum;
+      packer.pack(entry.first);
+      packer.pack(entry.second.dataSize);
+      packer.pack(msgpack::type::raw_ref(
+          static_cast<char *>(entry.second.dataPtr), entry.second.dataSize));
+    }
+  }
+  blob.assign(sbuf.data(), sbuf.size());
+  return blob;
+};
+
+int Replicator::__computeCheckSum(void *dataPtr, size_t size) {
+  int hash = 0;
+  for (size_t i = 0; i < size; i++) {
+    hash = 31 * hash + reinterpret_cast<char *>(dataPtr)[i];
+  }
+  return hash;
 }
 
 } // namespace runtime

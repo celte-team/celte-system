@@ -116,7 +116,7 @@ private:
    * update their properties to reflect the values dictated by the server node.
    */
   void __handleReplicationDataReceived(
-      std::unordered_map<std::string, std::string> &data);
+      std::unordered_map<std::string, std::string> &data, bool active = false);
 
   std::unordered_map<std::string, std::shared_ptr<CelteEntity>> _entities;
 

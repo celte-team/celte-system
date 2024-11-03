@@ -14,6 +14,7 @@ std::atomic_bool chunkChangeTriggered = false;
 static std::chrono::seconds xValueChangeTimer = std::chrono::seconds(10);
 std::atomic_bool xValueChangeTriggered = false;
 static float x = 0;
+static int activeX = 0;
 
 void loadGrape(std::string grapeId, bool isLocallyOwned) {
   // Should load eight chunks (2x2x2)
@@ -57,6 +58,7 @@ void registerHooks() {
     entity->SetInformationToLoad("test");
     entity->OnSpawn(x, y, z, clientId);
     entity->RegisterProperty("x", x);
+    entity->RegisterActiveProperty("activeX", activeX);
 
     entitySpawnTimePoint = std::chrono::system_clock::now();
 
@@ -86,6 +88,7 @@ void run_test_logic() {
             xValueChangeTimer and
         not xValueChangeTriggered) {
       x += 1;
+      activeX += 1;
       entity->NotifyDataChanged("x");
       std::cout << "Notified data changed" << std::endl;
       xValueChangeTriggered = true;
@@ -115,7 +118,7 @@ int main() {
 
   while (true) {
     RUNTIME.Tick();
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(10));
     run_test_logic();
   }
 
