@@ -32,15 +32,6 @@ KafkaPool::KafkaPool(const Options &options)
         << "Producer error: " << error.toString() << std::endl;
   });
 
-  // _consumerProps.put("log_cb", [](int /*level*/, const char *
-  // /*filename*/,
-  //                                 int /*lineno*/, const char *msg)
-  //                                 {
-  //   std::cout << "[" << kafka::utility::getCurrentTime() << "]" <<
-  //   msg
-  //             << std::endl;
-  // });
-
   __init();
 }
 
@@ -248,10 +239,6 @@ void KafkaPool::CatchUp(unsigned int maxBlockingMs) {
 bool KafkaPool::__createTopicIfNotExists(std::set<std::string> &topics,
                                          int numPartitions,
                                          int replicationFactor) {
-  std::cout << "creating topics" << std::endl;
-  for (auto topic : topics) {
-    std::cout << topic << std::endl;
-  }
   kafka::Properties props;
   props.put("bootstrap.servers", _options.bootstrapServers);
   props.put("retries", "1");
@@ -268,11 +255,6 @@ bool KafkaPool::__createTopicIfNotExists(std::set<std::string> &topics,
     topics.erase(topic);
   }
 
-  std::cout << "the following topics will be created: " << std::endl;
-  for (auto &topic : topics) {
-    std::cout << topic << std::endl;
-  }
-
   if (topics.size() == 0) {
     return true;
   }
@@ -282,10 +264,8 @@ bool KafkaPool::__createTopicIfNotExists(std::set<std::string> &topics,
       std::chrono::milliseconds(1000));
   if (!createResult.error ||
       createResult.error.value() == RD_KAFKA_RESP_ERR_TOPIC_ALREADY_EXISTS) {
-    std::cout << "topics correctly created" << std::endl;
     return true;
   }
-  std::cout << "there was an error here o secour" << std::endl;
   return false;
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "unordered_map"
+#include <msgpack.hpp>
 #include <stdexcept>
 #include <string>
 
@@ -24,6 +25,12 @@ private:
     size_t dataSize;
     void *dataPtr;
     bool hasChanged;
+  };
+
+  struct ActiveReplData {
+    size_t dataSize;
+    void *dataPtr;
+    int hash;
   };
 
 public:
@@ -54,9 +61,15 @@ public:
   ReplBlob GetBlob();
 
   /**
+   * @brief Returns a blob containing all of the changes to the data that is
+   * being actively watched for.
+   */
+  ReplBlob GetActiveBlob();
+
+  /**
    * @brief Overwrite the data with the data in the blob.
    */
-  void Overwrite(const ReplBlob &blob);
+  void Overwrite(const ReplBlob &blob, bool active = false);
 
   /**
    * @brief Registers a value to be replicated.
@@ -71,6 +84,20 @@ public:
   }
 
   /**
+   * @brief Registers a value to be replicated. Contrary to registerValue, this
+   * value will be actively watched over, meaning that any change to the value
+   * will be sent over the network without needing to call notifyDataChanged.
+   */
+  template <typename T>
+  void registerActiveValue(const std::string &name, T &value) {
+    if (_activeReplicatedData.find(name) != _activeReplicatedData.end()) {
+      throw std::runtime_error("Value already registered: " + name);
+    }
+    ActiveReplData replData = {sizeof(value), &value, false};
+    _activeReplicatedData[name] = replData;
+  }
+
+  /**
    * @brief Get the value of a registered value.
    */
   template <typename T> T getValue(const std::string &name) {
@@ -78,8 +105,31 @@ public:
   }
 
 private:
+  int __computeCheckSum(void *dataptr, size_t size);
+
+  /**
+   * @brief This method is pretty much the same than __overwriteActiveData,
+   * except the destination is _replicatedData instead of _activeReplicatedData.
+   * This is code duplication, so not cool, but it will avoid a LOT of
+   * conditional statements at runtime.
+   * This will take a blob and update the local values of the properties
+   * described by the blob.
+   */
+  void __overwriteData(const ReplBlob &blob, msgpack::unpacker &unpacker);
+
+  /**
+   * @brief This method is pretty much the same than __overwriteData,
+   * except the destination is _activeReplicatedData instead of _replicatedData.
+   * This is code duplication, so not cool, but it will avoid a LOT of
+   * conditional statements at runtime.
+   * This will take a blob and update the local values of the properties
+   * described by the blob.
+   */
+  void __overwriteActiveData(const ReplBlob &blob, msgpack::unpacker &unpacker);
+
   // Values to replicate, key is the name of the value to replicate
   std::unordered_map<std::string, ReplData> _replicatedData;
+  std::unordered_map<std::string, ActiveReplData> _activeReplicatedData;
 };
 } // namespace runtime
 } // namespace celte

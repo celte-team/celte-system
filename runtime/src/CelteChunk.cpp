@@ -36,21 +36,35 @@ void Chunk::__registerRPCs() {
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 void Chunk::ScheduleReplicationDataToSend(const std::string &entityId,
-                                          const std::string &blob) {
-  _nextScheduledReplicationData[entityId] = blob;
+                                          const std::string &blob,
+                                          bool active) {
+  if (active) {
+    _nextScheduledActiveReplicationData[entityId] = blob;
+  } else {
+    _nextScheduledReplicationData[entityId] = blob;
+  }
 }
 
 void Chunk::SendReplicationData() {
-  if (_nextScheduledReplicationData.empty() or not _config.isLocallyOwned) {
+  if (not _config.isLocallyOwned)
     return;
+
+  if (not _nextScheduledReplicationData.empty()) {
+    // std::move will clear the local map, so no need to clear it
+    KPOOL.Send((const nl::KafkaPool::SendOptions){
+        .topic = _combinedId + "." + celte::tp::REPLICATION,
+        .headers = std::move(_nextScheduledReplicationData),
+        .value = std::string(),
+        .autoCreateTopic = false});
   }
 
-  // std::move will clear the local map, so no need to clear it
-  KPOOL.Send((const nl::KafkaPool::SendOptions){
-      .topic = _combinedId + "." + celte::tp::REPLICATION,
-      .headers = std::move(_nextScheduledReplicationData),
-      .value = std::string(),
-      .autoCreateTopic = false});
+  if (not _nextScheduledActiveReplicationData.empty()) {
+    KPOOL.Send((const nl::KafkaPool::SendOptions){
+        .topic = _combinedId + "." + celte::tp::REPLICATION,
+        .headers = std::move(_nextScheduledActiveReplicationData),
+        .value = std::string("active"),
+        .autoCreateTopic = false});
+  }
 }
 
 void Chunk::OnEnterEntity(const std::string &entityId) {
@@ -70,8 +84,6 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
   // server node, calling the RPC will trigger the behavior of transfering
   // authority over to the chunk in all the peers listening to the chunk's
   // topic.
-  std::cout << "invoking authority transfer on chunk " << _combinedId
-            << std::endl;
   RPC.InvokeChunk(_combinedId, "__rp_scheduleEntityAuthorityTransfer", entityId,
                   true, CLOCK.CurrentTick() + 30);
 }
@@ -83,15 +95,9 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
 
 void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
                                                  bool take, int tick) {
-  // logs::Logger::getInstance().info()
-  //     << "Scheduling authority transfer for entity " << entityUUID << " to "
-  //     << _combinedId << " at tick " << tick << std::endl;
-  std::cout << "Scheduling authority transfer for entity " << entityUUID
-            << " to " << _combinedId << " at tick " << tick << std::endl;
   if (take) {
     CLOCK.ScheduleAt(tick, [this, entityUUID]() {
       try {
-        std::cout << "Executing authority transfer" << std::endl;
         ENTITIES.GetEntity(entityUUID).OnChunkTakeAuthority(*this);
       } catch (std::out_of_range &e) {
         logs::Logger::getInstance().err()

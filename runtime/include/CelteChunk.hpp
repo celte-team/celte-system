@@ -68,7 +68,8 @@ public:
    * be sent to the chunk's kafka replication topic.
    */
   void ScheduleReplicationDataToSend(const std::string &entityId,
-                                     const std::string &blob);
+                                     const std::string &blob,
+                                     bool active = false);
 
   /**
    * @brief Sends the data of the entities to the chunk's kafka replication
@@ -127,6 +128,7 @@ private:
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::map<std::string, std::string> _nextScheduledReplicationData;
+  std::map<std::string, std::string> _nextScheduledActiveReplicationData;
 #endif
 };
 } // namespace chunks
