@@ -8,6 +8,7 @@
 
 static std::shared_ptr<celte::CelteEntity> entity = nullptr;
 static float x = 0;
+static float activeX = 0;
 
 void loadGrape(std::string grapeId, bool isLocallyOwned) {
   // Should load eight chunks (2x2x2)
@@ -60,6 +61,7 @@ void registerHooks() {
     entity->OnSpawn(x, y, z, clientId);
 
     entity->RegisterProperty("x", x);
+    entity->RegisterActiveProperty("activeX", activeX);
     return true;
   };
 }
@@ -86,7 +88,7 @@ int main() {
 
   while (true) {
     RUNTIME.Tick();
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
   return 0;

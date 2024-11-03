@@ -78,17 +78,12 @@ void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
 
 void Connected::__registerGrapeConsumers(const std::string &grapeId) {
   try {
-    std::cout << "Registering grape consumers: " << grapeId + "." + tp::RPCs
-              << std::endl;
     KPOOL.Subscribe({
         .topics{grapeId + "." + tp::RPCs},
         .autoCreateTopic = true,
         .extraProps = {{"auto.offset.reset", "earliest"}},
         .autoPoll = true,
-        .callbacks{[this](auto r) {
-          std::cout << "INVOKE LOCAL IN SERVER RPC LISTENER" << std::endl;
-          RPC.InvokeLocal(r);
-        }},
+        .callbacks{[this](auto r) { RPC.InvokeLocal(r); }},
     });
   } catch (kafka::KafkaException &e) {
     std::cerr << "Error in __registerGrapeConsumers: " << e.what() << std::endl;

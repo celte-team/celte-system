@@ -18,7 +18,6 @@ void Connecting::entry() {
     RUNTIME.GetClock().Init();
 
     // creating a listener for RPCs related to this server node as a whole
-    std::cout << "Creating RPC listener for " << RUNTIME.GetUUID() << std::endl;
     KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
                      .autoCreateTopic = true,
                      .extraProps = {{"auto.offset.reset", "earliest"}},
@@ -26,8 +25,6 @@ void Connecting::entry() {
                      .callbacks{[this](auto r) { RPC.InvokeLocal(r); }}});
 
     // creating a listener for RPCs related to the server node as a whole
-    std::cout << "Creating an RPC listener for " << RUNTIME.GetUUID() << "."
-              << celte::tp::RPCs << std::endl;
     KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
                      .autoCreateTopic = true,
                      .extraProps = {{"auto.offset.reset", "earliest"}},

@@ -19,8 +19,6 @@ void Connecting::entry() {
   }
 
   __subscribeToTopics();
-  std::cout << "Client Subscribing to topics after clock : "
-            << RUNTIME.GetUUID() << std::endl;
 
   KPOOL.Send({
       .topic = celte::tp::MASTER_HELLO_CLIENT,
@@ -55,7 +53,6 @@ void Connecting::react(EConnectionSuccess const &event) {
 
 void Connecting::__subscribeToTopics() {
   // subscribes to the global clock topic
-  std::cout << "Client Subscribing to topics" << std::endl;
   RUNTIME.GetClock().Init();
 
   // creating a listener for RPCs related to this client as a whole
@@ -64,11 +61,7 @@ void Connecting::__subscribeToTopics() {
       .autoCreateTopic = true,
       .extraProps = {{"auto.offset.reset", "earliest"}},
       .autoPoll = true,
-      .callbacks{[this](auto r) {
-        std::cout << "invoke local" << std::endl;
-        std::cout << "r: " << r.value().toString() << std::endl;
-        RPC.InvokeLocal(r);
-      }},
+      .callbacks{[this](auto r) { RPC.InvokeLocal(r); }},
   });
 
   // creating a listener for RPCs related to the client as a whole

@@ -122,21 +122,11 @@ void CelteEntityManagementSystem::RegisterReplConsumer(
     const std::vector<std::string> &chunkId) {
 
   for (auto &topic : chunkId) {
-    std::cout << "registered repl consumer for " << topic << std::endl;
     KPOOL.RegisterTopicCallback(
         // Parsing the record to extract the new values of the properties, and
         // updating the entity
         topic,
         [this, topic](const kafka::clients::consumer::ConsumerRecord &record) {
-          std::cout << "topic " << topic << " received a record" << std::endl;
-          std::cout << "record headers are: " << std::endl;
-          for (const auto &header : record.headers()) {
-            std::cout << header.key << " : "
-                      << std::string(reinterpret_cast<const char *>(
-                                         header.value.data()),
-                                     header.value.size())
-                      << std::endl;
-          }
           std::unordered_map<std::string, std::string> replData;
           for (const auto &header : record.headers()) {
             auto value =
@@ -144,14 +134,16 @@ void CelteEntityManagementSystem::RegisterReplConsumer(
                             header.value.size());
             replData[header.key] = value;
           }
-          __handleReplicationDataReceived(replData);
+          bool active =
+              (std::string(static_cast<const char *>(record.value().data()),
+                           record.value().size())) == std::string("active");
+          __handleReplicationDataReceived(replData, active);
         });
   }
 }
 
 void CelteEntityManagementSystem::__handleReplicationDataReceived(
-    std::unordered_map<std::string, std::string> &data) {
-  std::cout << "handling replication data" << std::endl;
+    std::unordered_map<std::string, std::string> &data, bool active) {
   // dropping extra headers
   try {
     data.erase(celte::tp::HEADER_PEER_UUID);
@@ -161,7 +153,7 @@ void CelteEntityManagementSystem::__handleReplicationDataReceived(
   for (auto &[entityId, blob] : data) {
     try {
       CelteEntity &entity = GetEntity(entityId);
-      entity.DownloadReplicationData(blob);
+      entity.DownloadReplicationData(blob, active);
     } catch (std::out_of_range &e) {
       logs::Logger::getInstance().err()
           << "Entity " << entityId << " not found."

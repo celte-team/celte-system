@@ -72,13 +72,8 @@ void Grape::__subdivide() {
 
 // Server creates replication topics
 #ifdef CELTE_SERVER_MODE_ENABLED
-  std::cout << "is grape locally owned? " << _options.isLocallyOwned
-            << std::endl;
   if (_options.isLocallyOwned) {
-    std::cout << "creating all topics for chunks" << std::endl;
     KPOOL.CreateTopicsIfNotExist(replTopics, 1, 1);
-    // ENTITIES.RegisterReplConsumer(repltopics);
-    std::cout << "done " << std::endl;
   }
 #else
   // Client consumer from replication topic
@@ -97,7 +92,6 @@ void Grape::__subdivide() {
       .autoPoll = true,
       // callbacks are already set in the chunk Initialize method
   });
-  std::cout << "done subdividing" << std::endl;
 }
 
 GrapeStatistics Grape::GetStatistics() const {
@@ -121,7 +115,6 @@ bool Grape::ContainsPosition(float x, float y, float z) const {
 Chunk &Grape::GetChunkByPosition(float x, float y, float z) {
   for (auto &[chunkId, chunk] : _chunks) {
     if (chunk->ContainsPosition(x, y, z)) {
-      std::cout << "chunk found" << std::endl;
       return *chunk;
     }
   }
