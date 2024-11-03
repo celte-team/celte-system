@@ -100,14 +100,12 @@ void KafkaPool::__send(
 void KafkaPool::__consumerJob() {
   while (_running) {
     // avoid busy waiting
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    boost::lock_guard<boost::mutex> lock(*_mutex);
     for (auto &consumer : _consumers) {
-      {
-        boost::lock_guard<boost::mutex> lock(*_mutex);
-        auto records = consumer.second.poll(std::chrono::milliseconds(100));
-        for (auto &record : records) {
-          _records.push(record);
-        }
+      auto records = consumer.second.poll(std::chrono::milliseconds(100));
+      for (auto &record : records) {
+        _records.push(record);
       }
     }
   }
