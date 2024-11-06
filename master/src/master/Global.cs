@@ -4,7 +4,7 @@ namespace M
 {
     public static class Global
     {
-        private static string masterUUID = "master";
+        // private static string masterUUID = "master";
         private static string masterHelloSn = "master.hello.sn";
         private static string masterHelloClient = "master.hello.client";
         private static string masterRPC = "master.rpc";
