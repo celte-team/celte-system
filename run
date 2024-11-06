@@ -13,7 +13,7 @@ import subprocess
 import sys
 from colorama import Fore, Style
 
-CONTAINER_NAME = "celte_cpp"
+CONTAINER_NAME = "clmt/celte_server"
 env = os.environ.copy()
 
 def check_dependencies():
@@ -127,11 +127,23 @@ def build_docker_image():
         print(f"{Fore.RED}Failed to build Docker image{Style.RESET_ALL}")
         sys.exit(1)
 
+def run_redis_sentinel():
+    """Run the Redis Sentinel Docker container."""
+    # write the EXTERNAL_HOST_IP to the .env file inside the redis file
+    os.chdir('redis')
+    export_env_vars('EXTERNAL_HOST', ip_address)
+    print(f"{Fore.GREEN}Redis Sentinel is running, don't forget to go to http://localhost:5540/ ;){Style.RESET_ALL}")
+    subprocess.run(['docker', 'compose', 'down'])
+    subprocess.run(['docker', 'compose', 'up'])
+    # print in green
+    os.chdir('..')
+
 launcher = {
     '--kafka': run_docker_kafka,
     '--cpp': run_docker_cpp,
     '--join-cpp': join_docker_cpp,
     '--build': build_docker_image,
+    '--redis': run_redis_sentinel,
     '--requirements': lambda: subprocess.run(['pip3', 'install', 'colorama']),
     '--help': lambda: usage()
 }

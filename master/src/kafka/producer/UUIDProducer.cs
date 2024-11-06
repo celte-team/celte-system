@@ -8,7 +8,6 @@ class UUIDProducerService : IDisposable
 {
     private readonly ProducerConfig _config;
     private readonly string _topic;
-    private bool _disposed = false;
     private Master _master = Master.GetInstance();
 
     // store all the UUID that we have produced

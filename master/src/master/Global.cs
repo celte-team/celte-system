@@ -4,10 +4,12 @@ namespace M
 {
     public static class Global
     {
-        private static string masterUUID = "master";
+        // private static string masterUUID = "master";
         private static string masterHelloSn = "master.hello.sn";
         private static string masterHelloClient = "master.hello.client";
         private static string masterRPC = "master.rpc";
+
+        // AddTopic("helloTest", newTopicHelloTest); -> x3 instances docker of the topic
 
         public static string MasterUUID { get { return masterUUID; } }
         public static string MasterHelloSn { get { return masterHelloSn; } }
