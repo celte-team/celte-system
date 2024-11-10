@@ -61,16 +61,12 @@ void Connecting::__subscribeToTopics() {
   KPOOL.Subscribe({
       .topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
       .autoCreateTopic = true,
-      .extraProps = {{"auto.offset.reset", "earliest"}},
-      .autoPoll = true,
       .callbacks{[this](auto r) { RPC.InvokeLocal(r); }},
   });
 
   // creating a listener for RPCs related to the client as a whole
   KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
                    .autoCreateTopic = true,
-                   .extraProps = {{"auto.offset.reset", "earliest"}},
-                   .autoPoll = true,
                    .callbacks = {[this](auto r) { RPC.InvokeLocal(r); }}});
 }
 } // namespace states
