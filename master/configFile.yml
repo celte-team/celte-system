@@ -1,4 +1,3 @@
-chunks: 1
 cpu: 1
 memory: 512
 container_image: "masterceltearm"

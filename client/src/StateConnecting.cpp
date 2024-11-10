@@ -20,6 +20,8 @@ void Connecting::entry() {
 
   __subscribeToTopics();
 
+  KPOOL.CommitSubscriptions();
+
   KPOOL.Send({
       .topic = celte::tp::MASTER_HELLO_CLIENT,
       .value = RUNTIME.GetUUID(),

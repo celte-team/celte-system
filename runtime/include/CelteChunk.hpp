@@ -53,6 +53,8 @@ public:
 
   inline const std::string &GetCombinedId() const { return _combinedId; }
 
+  inline bool IsLocallyOwned() const { return _config.isLocallyOwned; }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Called when an entity enters the chunk. (This should be called by
