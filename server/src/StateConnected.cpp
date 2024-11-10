@@ -81,8 +81,6 @@ void Connected::__registerGrapeConsumers(const std::string &grapeId) {
     KPOOL.Subscribe({
         .topics{grapeId + "." + tp::RPCs},
         .autoCreateTopic = true,
-        .extraProps = {{"auto.offset.reset", "earliest"}},
-        .autoPoll = true,
         .callbacks{[this](auto r) { RPC.InvokeLocal(r); }},
     });
     KPOOL.CommitSubscriptions();

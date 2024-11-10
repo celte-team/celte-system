@@ -39,7 +39,6 @@ public:
   struct SubscriptionTask {
     std::string consumerGroupId = "";
     kafka::Topics newSubscriptions = {};
-    bool autoPoll = true;
   };
 
   using MessageCallback = std::function<void(
@@ -49,11 +48,7 @@ public:
     std::vector<std::string> topics = std::vector<std::string>();
     std::string groupId = "";
     bool autoCreateTopic = true;
-    std::map<std::string, std::string> extraProps = {};
-    bool autoPoll = true;
-    // MessageCallback callback = nullptr;
     std::vector<MessageCallback> callbacks = {};
-    bool dedicatedConsumer = false;
   };
 
   struct SendOptions {
@@ -122,8 +117,6 @@ private:
   ubn::queue<std::function<void()>> _tasksToExecute;
   std::vector<std::shared_ptr<kafka::clients::consumer::KafkaConsumer>>
       _consumersAutoPoll;
-  std::vector<std::shared_ptr<kafka::clients::consumer::KafkaConsumer>>
-      _consumersManualPoll;
   std::shared_ptr<boost::mutex> _consumerMutex;
   std::atomic_bool _running;
   ubn::queue<kafka::clients::consumer::ConsumerRecord> _records;

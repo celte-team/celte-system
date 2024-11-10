@@ -48,10 +48,8 @@ void KPool::Subscribe(const SubscribeOptions &options) {
   }
 
   // push the topics to the list of incoming subscriptions
-  _subscriptionsToImplement.push(
-      SubscriptionTask{.consumerGroupId = options.groupId,
-                       .newSubscriptions = topics,
-                       .autoPoll = options.autoPoll});
+  _subscriptionsToImplement.push(SubscriptionTask{
+      .consumerGroupId = options.groupId, .newSubscriptions = topics});
 }
 
 void KPool::RegisterTopicCallback(const std::string &topic,
@@ -78,20 +76,18 @@ void KPool::CatchUp(unsigned int maxBlockingMs) {
   }
 }
 
-bool KPool::Poll(const std::string &groupId, unsigned int pollTimeoutMs) {
-  //   try {
-  //     auto &consumer = _manualConsumers.at(groupId);
-  //     auto records = consumer.poll(std::chrono::milliseconds(pollTimeoutMs));
-  //     for (auto &record : records) {
-  //       _records.push(record);
-  //     }
-  //   } catch (const std::out_of_range &e) {
-  //     logs::Logger::getInstance().err()
-  //         << "Group ID " << groupId << " not found" << std::endl;
-  //     return false;
-  //   }
-  //   return true;
-  throw std::runtime_error("Not implemented");
+void KPool::__consumerJob() {
+  while (_running) {
+    // avoid busy waiting
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    boost::lock_guard<boost::mutex> lock(*_consumerMutex);
+    for (auto &consumer : _consumersAutoPoll) {
+      auto records = consumer->poll(std::chrono::milliseconds(100));
+      for (auto &record : records) {
+        _records.push(record);
+      }
+    }
+  }
 }
 
 void KPool::CreateTopicIfNotExists(std::string &topic, int numPartitions,
@@ -122,15 +118,9 @@ void KPool::CommitSubscriptions() {
 
   // group the subscriptions by consumer group
   std::unordered_map<std::string, std::set<std::string>> perGroupSubsAutoPoll;
-  std::unordered_map<std::string, std::set<std::string>> perGroupSubsManualPoll;
   for (const auto &sub : subscriptions) {
-    if (sub.autoPoll) {
-      perGroupSubsAutoPoll[sub.consumerGroupId].insert(
-          sub.newSubscriptions.begin(), sub.newSubscriptions.end());
-    } else {
-      perGroupSubsManualPoll[sub.consumerGroupId].insert(
-          sub.newSubscriptions.begin(), sub.newSubscriptions.end());
-    }
+    perGroupSubsAutoPoll[sub.consumerGroupId].insert(
+        sub.newSubscriptions.begin(), sub.newSubscriptions.end());
   }
 
   // create the consumers
@@ -143,17 +133,7 @@ void KPool::CommitSubscriptions() {
     }
     _consumersAutoPoll.back()->subscribe(group.second);
   }
-
-  for (const auto &group : perGroupSubsManualPoll) {
-    {
-      boost::lock_guard<boost::mutex> lock(*_consumerMutex);
-      _consumersManualPoll.emplace_back(
-          std::make_shared<kafka::clients::consumer::KafkaConsumer>(
-              _consumerProps));
-    }
-    _consumersManualPoll.back()->subscribe(group.second);
-  }
-} // namespace nl
+}
 
 void KPool::__initAdminClient() {
   kafka::Properties props;
@@ -195,20 +175,6 @@ bool KPool::__createTopicIfNotExists(std::set<std::string> &topics,
     return true;
   }
   return false;
-}
-
-void KPool::__consumerJob() {
-  while (_running) {
-    // avoid busy waiting
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    boost::lock_guard<boost::mutex> lock(*_consumerMutex);
-    for (auto &consumer : _consumersAutoPoll) {
-      auto records = consumer->poll(std::chrono::milliseconds(100));
-      for (auto &record : records) {
-        _records.push(record);
-      }
-    }
-  }
 }
 
 void KPool::Send(
@@ -265,10 +231,7 @@ void KPool::__send(
   }
 }
 
-void KPool::ResetConsumers() {
-  _consumersAutoPoll.clear();
-  _consumersManualPoll.clear();
-}
+void KPool::ResetConsumers() { _consumersAutoPoll.clear(); }
 
 } // namespace nl
 } // namespace celte
