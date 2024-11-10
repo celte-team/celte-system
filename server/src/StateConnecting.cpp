@@ -31,6 +31,8 @@ void Connecting::entry() {
                      .autoPoll = true,
                      .callbacks{[this](auto r) { RPC.InvokeLocal(r); }}});
 
+    KPOOL.CommitSubscriptions();
+
     std::cout << "Registersing self as " << RUNTIME.GetUUID() << std::endl;
     KPOOL.Send({
         .topic = celte::tp::MASTER_HELLO_SN,
