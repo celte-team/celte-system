@@ -76,18 +76,13 @@ void Grape::__subdivide() {
 
   // Client consumer from replication topic (or server if not locally owned)
   if (not _options.isLocallyOwned) {
-    KPOOL.Subscribe({.topics = replTopics,
-                     .groupId = "",
-                     .autoCreateTopic = false,
-                     .autoPoll = true});
+    KPOOL.Subscribe(
+        {.topics = replTopics, .groupId = "", .autoCreateTopic = false});
     ENTITIES.RegisterReplConsumer(replTopics);
   }
 
   KPOOL.Subscribe({
-      .topics = rpcTopics,
-      .groupId = "",
-      .autoCreateTopic = true,
-      .autoPoll = true,
+      .topics = rpcTopics, .groupId = "", .autoCreateTopic = true,
       // callbacks are already set in the chunk Initialize method
   });
 

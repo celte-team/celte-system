@@ -20,15 +20,11 @@ void Connecting::entry() {
     // creating a listener for RPCs related to this server node as a whole
     KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
                      .autoCreateTopic = true,
-                     .extraProps = {{"auto.offset.reset", "earliest"}},
-                     .autoPoll = true,
                      .callbacks{[this](auto r) { RPC.InvokeLocal(r); }}});
 
     // creating a listener for RPCs related to the server node as a whole
     KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
                      .autoCreateTopic = true,
-                     .extraProps = {{"auto.offset.reset", "earliest"}},
-                     .autoPoll = true,
                      .callbacks{[this](auto r) { RPC.InvokeLocal(r); }}});
 
     KPOOL.CommitSubscriptions();

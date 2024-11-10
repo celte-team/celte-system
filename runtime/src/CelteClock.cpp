@@ -10,8 +10,6 @@ void Clock::Init() {
   KPOOL.Subscribe({
       .topics{celte::tp::GLOBAL_CLOCK},
       .autoCreateTopic = false,
-      .extraProps = {{"auto.offset.reset", "earliest"}},
-      .autoPoll = true,
       .callbacks{[this](auto r) { __updateCurrentTick(r); }},
   });
 }
