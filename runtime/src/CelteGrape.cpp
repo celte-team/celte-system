@@ -48,7 +48,6 @@ void Grape::__subdivide() {
 
   std::vector<std::string> rpcTopics;
   std::vector<std::string> replTopics;
-  std::vector<celte::nl::KafkaPool::MessageCallback> callbacks;
 
   // create a chunk for each point
   for (auto point : points) {
@@ -72,18 +71,17 @@ void Grape::__subdivide() {
 
 // Server creates replication topics
 #ifdef CELTE_SERVER_MODE_ENABLED
-  if (_options.isLocallyOwned) {
-    KPOOL.CreateTopicsIfNotExist(replTopics, 1, 1);
-  }
-#else
-  // Client consumer from replication topic
-  KPOOL.Subscribe({.topics = replTopics,
-                   .groupId = "",
-                   .autoCreateTopic = false,
-                   .autoPoll = true});
-  // The following line will register the consumers
-  ENTITIES.RegisterReplConsumer(replTopics);
+  KPOOL.CreateTopicsIfNotExist(replTopics, 1, 1);
 #endif
+
+  // Client consumer from replication topic (or server if not locally owned)
+  if (not _options.isLocallyOwned) {
+    KPOOL.Subscribe({.topics = replTopics,
+                     .groupId = "",
+                     .autoCreateTopic = false,
+                     .autoPoll = true});
+    ENTITIES.RegisterReplConsumer(replTopics);
+  }
 
   KPOOL.Subscribe({
       .topics = rpcTopics,
@@ -92,6 +90,8 @@ void Grape::__subdivide() {
       .autoPoll = true,
       // callbacks are already set in the chunk Initialize method
   });
+
+  KPOOL.CommitSubscriptions();
 }
 
 GrapeStatistics Grape::GetStatistics() const {

@@ -35,6 +35,7 @@ add_subdirectory(runtime)
 add_subdirectory(tests)
 add_subdirectory(tests/single_node_poc)
 add_subdirectory(tests/test_authority_transfer)
+add_subdirectory(tests/test2nodes)
 
 # Find and configure RdKafka
 find_package(RdKafka CONFIG REQUIRED)

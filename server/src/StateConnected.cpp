@@ -85,6 +85,7 @@ void Connected::__registerGrapeConsumers(const std::string &grapeId) {
         .autoPoll = true,
         .callbacks{[this](auto r) { RPC.InvokeLocal(r); }},
     });
+    KPOOL.CommitSubscriptions();
   } catch (kafka::KafkaException &e) {
     std::cerr << "Error in __registerGrapeConsumers: " << e.what() << std::endl;
   }

@@ -1,6 +1,5 @@
 #pragma once
 #include "CelteServer.hpp"
-#include "KafkaPool.hpp"
 #include "ServerEvents.hpp"
 #include "tinyfsm.hpp"
 #include <set>

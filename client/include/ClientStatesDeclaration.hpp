@@ -1,7 +1,6 @@
 #pragma once
 #include "CelteClient.hpp"
 #include "ClientEvents.hpp"
-#include "KafkaPool.hpp"
 #include "tinyfsm.hpp"
 
 namespace celte {

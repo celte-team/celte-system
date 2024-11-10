@@ -51,7 +51,7 @@ void Chunk::SendReplicationData() {
 
   if (not _nextScheduledReplicationData.empty()) {
     // std::move will clear the local map, so no need to clear it
-    KPOOL.Send((const nl::KafkaPool::SendOptions){
+    KPOOL.Send((const nl::KPool::SendOptions){
         .topic = _combinedId + "." + celte::tp::REPLICATION,
         .headers = std::move(_nextScheduledReplicationData),
         .value = std::string(),
@@ -59,7 +59,7 @@ void Chunk::SendReplicationData() {
   }
 
   if (not _nextScheduledActiveReplicationData.empty()) {
-    KPOOL.Send((const nl::KafkaPool::SendOptions){
+    KPOOL.Send((const nl::KPool::SendOptions){
         .topic = _combinedId + "." + celte::tp::REPLICATION,
         .headers = std::move(_nextScheduledActiveReplicationData),
         .value = std::string("active"),
@@ -71,7 +71,6 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
   try {
     auto &entity = ENTITIES.GetEntity(entityId);
     if (entity.GetOwnerChunk().GetCombinedId() == _combinedId) {
-      std::cerr << "transferring to the same chunk" << std::endl;
       return;
     }
   } catch (std::out_of_range &e) {
@@ -99,6 +98,9 @@ void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
     CLOCK.ScheduleAt(tick, [this, entityUUID]() {
       try {
         ENTITIES.GetEntity(entityUUID).OnChunkTakeAuthority(*this);
+        logs::Logger::getInstance().info()
+            << "Entity " << entityUUID << " authority taken by " << _combinedId
+            << std::endl;
       } catch (std::out_of_range &e) {
         logs::Logger::getInstance().err()
             << "Entity not found: " << e.what() << std::endl;

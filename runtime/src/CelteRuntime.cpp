@@ -57,6 +57,7 @@ void CelteRuntime::Start(RuntimeMode mode) {
 void CelteRuntime::Tick() {
   // Executing tasks received from the network
   if (_pool) [[likely]] {
+    // _pool->CommitSubscriptions();
     _pool->CatchUp();
   }
   // Executing tasks that have been scheduled for delayed execution
@@ -163,7 +164,10 @@ void CelteRuntime::ConnectToCluster() {
 }
 
 void CelteRuntime::ConnectToCluster(const std::string &ip, int port) {
-  _pool = std::make_shared<celte::nl::KafkaPool>(celte::nl::KafkaPool::Options{
+  // _pool =
+  // std::make_shared<celte::nl::KafkaPool>(celte::nl::KafkaPool::Options{
+  //     .bootstrapServers = ip + std::string(":") + std::to_string(port)});
+  _pool = std::make_shared<celte::nl::KPool>(celte::nl::KPool::Options{
       .bootstrapServers = ip + std::string(":") + std::to_string(port)});
 
   // Launch the connection asynchronously
@@ -208,7 +212,8 @@ bool CelteRuntime::WaitForClusterConnection(int timeoutMs) {
   }
 }
 
-nl::KafkaPool &CelteRuntime::KPool() {
+// nl::KafkaPool &CelteRuntime::KPool() {
+nl::KPool &CelteRuntime::KPool() {
   if (!_pool) {
     throw std::logic_error("Kafka pool not initialized");
   }

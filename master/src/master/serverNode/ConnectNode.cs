@@ -22,7 +22,20 @@ class ConnectNode
 
             // Assuming message is supposed to be a UUID or similar identifier
             _master.kFKProducer._uuidProducerService.OpenTopic(message);
-            RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "LeChateauDuMechant");
+            // RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "LeChateauDuMechant");
+            // each node gets a grape so the grape assigned to this node is the one with the same index as the current node
+            Console.WriteLine("Grape count: " + _master._setupConfig._grapes.Count);
+            Console.WriteLine("Node count: " + _nodes.Count);
+            string? grapeId = _master._setupConfig._grapes[_nodes.Count];
+            if (grapeId != null)
+            {
+                RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), grapeId);
+            }
+            else
+            {
+                Console.WriteLine("No grapes available.");
+                return;
+            }
 
             // Link node with the server
             if (!_nodes.ContainsKey(message))

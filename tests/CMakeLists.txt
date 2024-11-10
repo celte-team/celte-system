@@ -23,11 +23,13 @@ pkg_check_modules(GLIB REQUIRED glib-2.0)
 include_directories(include
     ${GLIB_INCLUDE_DIRS}
     ${RDKAFKA_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/runtime/include
 )
 
 # Set the source files for the unit tests
 set(SOURCES
-    test_clock.cpp  # Add your new test file here
+    test_clock.cpp
+    kafka_usage.cpp
 )
 
 add_executable(test_server ${SOURCES})

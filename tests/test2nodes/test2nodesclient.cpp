@@ -14,14 +14,16 @@ static int nGrapeLoaded = 0;
 void loadGrape(std::string grapeId, bool isLocallyOwned) {
   // Should load eight chunks (2x2x2)
   std::cout << "before loading the grape" << std::endl;
-  auto grapeOptions = celte::chunks::GrapeOptions{
-      .grapeId = grapeId,
-      .subdivision = 2,
-      .position = glm::vec3(0, 0, 0) + glm::vec3(nGrapeLoaded * 10, 0, 0),
-      .size = glm::vec3(10, 10, 10),
-      .localX = glm::vec3(1, 0, 0),
-      .localY = glm::vec3(0, 1, 0),
-      .localZ = glm::vec3(0, 0, 1)};
+  glm::vec3 grapePosition = (grapeId == "LeChateauDuMechant")
+                                ? glm::vec3(0, 0, 0)
+                                : glm::vec3(10, 0, 0);
+  auto grapeOptions = celte::chunks::GrapeOptions{.grapeId = grapeId,
+                                                  .subdivision = 1,
+                                                  .position = grapePosition,
+                                                  .size = glm::vec3(10, 10, 10),
+                                                  .localX = glm::vec3(1, 0, 0),
+                                                  .localY = glm::vec3(0, 1, 0),
+                                                  .localZ = glm::vec3(0, 0, 1)};
 
   std::cout << "before registering the grape" << std::endl;
   celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER().RegisterGrape(
@@ -48,6 +50,11 @@ void registerHooks() {
   HOOKS.client.grape.loadGrape = [](std::string grapeId) {
     std::cout << "Client is loading grape" << std::endl;
     loadGrape(grapeId, false);
+    std::string otherGrapeId = (grapeId == "LeChateauDuMechant")
+                                   ? "LeChateauDuGentil"
+                                   : "LeChateauDuMechant";
+    std::cout << "loading second grape: " << otherGrapeId << std::endl;
+    loadGrape(otherGrapeId, false);
     return true;
   };
 
@@ -89,6 +96,7 @@ int main() {
 
   while (true) {
     RUNTIME.Tick();
+    // std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
   return 0;

@@ -32,10 +32,10 @@ set(COMMON_SOURCES
     src/CelteEntityManagementSystem.cpp
     src/CelteHooks.cpp
     src/RotatedBoundingBox.cpp
-    src/KafkaPool.cpp
     src/CelteClock.cpp
     src/Replicator.cpp
     src/Logger.cpp
+    src/KPool.cpp
 )
 
 set(SERVER_SOURCES

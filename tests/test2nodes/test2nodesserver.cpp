@@ -16,21 +16,23 @@ std::atomic_bool xValueChangeTriggered = false;
 static float x = 0;
 static int activeX = 0;
 static int nGrapeLoaded = 0;
+static bool isNode1 = false;
 
 void loadGrape(std::string grapeId, bool isLocallyOwned) {
+  std::cout << "Server loading grape " << grapeId << std::endl;
   // Should load eight chunks (2x2x2)
-  auto grapeOptions = celte::chunks::GrapeOptions{
-      .grapeId = grapeId,
-      .subdivision = 2,
-      .position =
-          glm::vec3(0, 0, 0) +
-          glm::vec3(nGrapeLoaded * 10, 0,
-                    0), // each grape is 10 units away from the previous one
-      .size = glm::vec3(10, 10, 10),
-      .localX = glm::vec3(1, 0, 0),
-      .localY = glm::vec3(0, 1, 0),
-      .localZ = glm::vec3(0, 0, 1),
-      .isLocallyOwned = isLocallyOwned};
+  glm::vec3 grapePosition = (grapeId == "LeChateauDuMechant")
+                                ? glm::vec3(0, 0, 0)
+                                : glm::vec3(10, 0, 0);
+  auto grapeOptions =
+      celte::chunks::GrapeOptions{.grapeId = grapeId,
+                                  .subdivision = 1,
+                                  .position = grapePosition,
+                                  .size = glm::vec3(10, 10, 10),
+                                  .localX = glm::vec3(1, 0, 0),
+                                  .localY = glm::vec3(0, 1, 0),
+                                  .localZ = glm::vec3(0, 0, 1),
+                                  .isLocallyOwned = isLocallyOwned};
   celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER().RegisterGrape(
       grapeOptions);
   ++nGrapeLoaded;
@@ -52,6 +54,23 @@ void registerHooks() {
   HOOKS.server.grape.loadGrape = [](std::string grapeId, bool isLocallyOwned) {
     std::cout << "SN is loading grape" << std::endl;
     loadGrape(grapeId, isLocallyOwned);
+    if (grapeId == "LeChateauDuMechant" and
+        isLocallyOwned) { // just for synchronizing the two nodes during the
+      // test
+      std::cout << "This is Node 1" << std::endl;
+      isNode1 = true;
+    } else {
+      std::cout << "This is Node 2" << std::endl;
+    }
+
+    // we load another grape, in game this would be done by proximity to the
+    // currently loaded grape. The other node has ownership of this grape so we
+    // load it as not locally owned
+    std::string otherGrapeId = (grapeId == "LeChateauDuMechant")
+                                   ? "LeChateauDuGentil"
+                                   : "LeChateauDuMechant";
+    std::cout << "loading second grape: " << otherGrapeId << std::endl;
+    loadGrape(otherGrapeId, false);
     return true;
   };
   HOOKS.server.newPlayerConnected.execPlayerSpawn = [](std::string clientId,
@@ -75,7 +94,7 @@ void triggerChunkChange() {
   std::cout << "Triggering chunk change" << std::endl;
   chunkChangeTriggered = true;
   auto &chunk =
-      GRAPES.GetGrape("LeChateauDuMechant").GetChunkByPosition(-4, -4, -4);
+      GRAPES.GetGrape("LeChateauDuGentil").GetChunkByPosition(10, 0, 0);
   std::cout << "transfering authority to chunk " << chunk.GetCombinedId()
             << std::endl;
   chunk.OnEnterEntity(entity->GetUUID());
@@ -86,12 +105,25 @@ void run_test_logic() {
   if (entity != nullptr) {
     if (std::chrono::system_clock::now() - entitySpawnTimePoint >
             chunkChangeTimer and
-        not chunkChangeTriggered) {
+        not chunkChangeTriggered and isNode1) {
+      std::cout << "Node 1 triggering chunk change" << std::endl;
       triggerChunkChange();
     }
     if (std::chrono::system_clock::now() - entitySpawnTimePoint >
             xValueChangeTimer and
-        not xValueChangeTriggered) {
+        not xValueChangeTriggered and
+        not isNode1) { // entity should have moved to node 2 by now
+      std::cout << "In Node 2, about to change x values" << std::endl;
+      // lets check if entity is in this node:
+      auto &chunk = entity->GetOwnerChunk();
+      std::cout << "Entity is in chunk " << chunk.GetCombinedId() << std::endl;
+      std::cout << "This chunk is locally owned: " << chunk.IsLocallyOwned()
+                << std::endl;
+      if (not chunk.IsLocallyOwned()) {
+        std::cout << "Entity is not in this node" << std::endl;
+        exit(1);
+      }
+
       activeX += 1;
       x += 1;
       entity->NotifyDataChanged("x");
@@ -123,7 +155,6 @@ int main() {
 
   while (true) {
     RUNTIME.Tick();
-    // std::this_thread::sleep_for(std::chrono::milliseconds(10));
     run_test_logic();
   }
 

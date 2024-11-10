@@ -28,7 +28,7 @@
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteHooks.hpp"
 #include "CelteRPC.hpp"
-#include "KafkaPool.hpp"
+#include "KPool.hpp"
 #include "Logger.hpp"
 #include "tinyfsm.hpp"
 #include "topics.hpp"
@@ -206,7 +206,8 @@ public:
    * messages from kafka. If the kafka pool is not initialized, throws an
    * std::logic_error.
    */
-  nl::KafkaPool &KPool();
+  // nl::KafkaPool &KPool();
+  nl::KPool &KPool();
 
   /**
    * @brief Returns a reference to the hook table.
@@ -274,7 +275,8 @@ private:
 
   // Kafka producer / consumer pool used to send and receive messages from
   // kafka
-  std::shared_ptr<nl::KafkaPool> _pool;
+  // std::shared_ptr<nl::KafkaPool> _pool;
+  std::shared_ptr<nl::KPool> _pool;
 
   // Hooks table
   api::HooksTable _hooks;
