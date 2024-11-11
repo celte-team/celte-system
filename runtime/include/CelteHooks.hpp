@@ -95,6 +95,19 @@ public:
       std::function<bool(std::string, bool)> loadGrape =
           [](std::string grapeId, bool isLocallyOwned) { return true; };
     } grape;
+
+    /**
+     * @brief this collection of hooks regroups all hooks related to managing
+     * the passing of authority over entities.
+     */
+    struct {
+      /**
+       * @brief This hook is called when the server is informed that an entity
+       * has been assigned to a new chunk.
+       */
+      std::function<void(std::string, std::string chunkId)> onTake =
+          [](std::string entityId, std::string chunkId) {};
+    } authority;
   } server;
 
 #else
@@ -172,6 +185,19 @@ public:
                 return true;
               };
     } grape;
+
+    /**
+     * @brief this collection of hooks regroups all hooks related to managing
+     * the passing of authority over entities.
+     */
+    struct {
+      /**
+       * @brief This hook is called when the client is informed that an entity
+       * has been assigned to a new chunk.
+       */
+      std::function<void(std::string, std::string chunkId)> onTake =
+          [](std::string entityId, std::string chunkId) {};
+    } authority;
   } client;
 #endif
   /**
