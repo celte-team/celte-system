@@ -97,10 +97,12 @@ void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
   if (take) {
     CLOCK.ScheduleAt(tick, [this, entityUUID]() {
       try {
+#ifdef CELTE_SERVER_MODE_ENABLED
+        HOOKS.server.authority.onTake(entityUUID, _combinedId);
+#else
+        HOOKS.client.authority.onTake(entityUUID, _combinedId);
+#endif
         ENTITIES.GetEntity(entityUUID).OnChunkTakeAuthority(*this);
-        logs::Logger::getInstance().info()
-            << "Entity " << entityUUID << " authority taken by " << _combinedId
-            << std::endl;
       } catch (std::out_of_range &e) {
         logs::Logger::getInstance().err()
             << "Entity not found: " << e.what() << std::endl;
