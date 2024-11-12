@@ -26,6 +26,7 @@ void Replicator::ResetDataChanged() {
 }
 
 void Replicator::Overwrite(const ReplBlob &blob, bool active) {
+  std::cout << "Overwriting data" << std::endl;
   size_t offset = 0;
   msgpack::unpacker unpacker;
   unpacker.reserve_buffer(blob.size());
