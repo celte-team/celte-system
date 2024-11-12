@@ -76,6 +76,10 @@ void Grape::__subdivide() {
 
   // Client consumer from replication topic (or server if not locally owned)
   if (not _options.isLocallyOwned) {
+    std::cout << "subscribing to repl topics" << std::endl;
+    for (auto topic : replTopics) {
+      std::cout << "subscribing to " << topic << std::endl;
+    }
     KPOOL.Subscribe(
         {.topics = replTopics, .groupId = "", .autoCreateTopic = false});
     ENTITIES.RegisterReplConsumer(replTopics);
