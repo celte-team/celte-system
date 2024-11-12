@@ -21,7 +21,6 @@ include_directories(
 
 include_directories(${CMAKE_PREFIX_PATH}/include)
 
-# here
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
@@ -36,6 +35,7 @@ add_subdirectory(tests)
 add_subdirectory(tests/single_node_poc)
 add_subdirectory(tests/test_authority_transfer)
 add_subdirectory(tests/test2nodes)
+add_subdirectory(tests/replicationLatencyTest)
 
 # Find and configure RdKafka
 find_package(RdKafka CONFIG REQUIRED)
