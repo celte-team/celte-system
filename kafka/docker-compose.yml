@@ -70,6 +70,12 @@ services:
     depends_on:
       - zoo1
 
+  clock:
+    build:
+      context: ../
+      dockerfile: ClockServer/Dockerfile
+    container_name: clock-celte
+
   haproxy:
     image: haproxy:2.9
     container_name: haproxy
@@ -147,16 +153,3 @@ services:
     volumes:
       - ./grafana:/var/lib/grafana
 
-
-
-  # globalclock:
-  #   build:
-  #     context: ../
-  #     dockerfile: ClockServer/Dockerfile
-  #   container_name: globalclock
-  #   restart: always
-  #   environment:
-  #     CELTE_HOST_CLUSTER: haproxy:80
-  #     CELTE_CLOCK_DELTA_MS: 100
-  #   depends_on:
-  #     - haproxy
