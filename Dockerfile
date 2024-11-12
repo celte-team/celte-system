@@ -5,8 +5,8 @@
 
     # please for ARM64, use the following command:
         # Docker buildx build -t [NAMEOFTHEIMAGE]_x86 --platform=linux/amd64 . --output type=docker
-        # Docker run -p 8080-8100:8080-8100 -p 35729:35729 -v $(pwd):/workdir -it [NAMEOFTHEIMAGE]_x86 /bin/bash
-        # Then cd /workdir and run the following command:
+        # Docker run -p 8080-8100:8080-8100 -p 35729:35729 -v $(pwd):/celte-system -it [NAMEOFTHEIMAGE]_x86 /bin/bash
+        # Then cd /celte-system and run the following command:
         # cd build, etc...
 
 # ////////////////////////////////////////
@@ -63,7 +63,8 @@ RUN dnf install -y \
     automake \
     autoconf-archive \
     snapd \
-    boost-devel
+    boost-devel \
+    ansible
 
 # Clone vcpkg
 RUN git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT && \
@@ -72,9 +73,18 @@ RUN git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT && \
 
 RUN pip3 install pyyaml
 
+COPY . /celte-system
+# cd ../celte-godot
+# COPY ../celte-godot /celte-godot
+
 # Install Godot
 ENV GODOT_PATH="/usr/bin/"
 
 RUN dnf install godot -y
 
-WORKDIR /workdir
+WORKDIR /celte-system
+
+RUN rm -fr build && mkdir build \
+    && cd build \
+    && cmake --preset default .. \
+    && make -j

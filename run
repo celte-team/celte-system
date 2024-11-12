@@ -13,7 +13,7 @@ import subprocess
 import sys
 from colorama import Fore, Style
 
-CONTAINER_NAME = "celte_cpp_x86"
+CONTAINER_NAME = "clmt/celte_server"
 env = os.environ.copy()
 
 def check_dependencies():
@@ -51,24 +51,13 @@ def run_docker_cpp():
     """Run the C++ Docker container."""
     images = subprocess.run(['docker', 'images'], stdout=subprocess.PIPE).stdout.decode('utf-8')
     images = images.split('\n')
-    # print("images", images)
-    for image in images:
-        if CONTAINER_NAME in image:
-            print(f"\n{Fore.GREEN}Docker image {CONTAINER_NAME} found{Style.RESET_ALL}")
-            break
-    else:
-        print(f"\n{Fore.YELLOW}Docker image {CONTAINER_NAME} not found...{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}Building docker image{Style.RESET_ALL}\n")
-        build_docker_image()
 
     uuid = subprocess.run(['uuidgen'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip().replace('-', '_')
-    name = 'celte_cpp_' + uuid
+    name = 'celte_server_' + uuid
     print(f'Creating container {name}')
-    export_env_vars("CELTE_CPP_CONTAINER", name)
-    # subprocess.run(['docker', 'run', '-v', f'{os.getcwd()}:/workdir', '--name', name,
-    #                 '-e', f'CELTE_CLUSTER_HOST={ip_address}', '-it', CONTAINER_NAME, '/bin/bash'])
+    export_env_vars("CELTE_SERVER_CONTAINER", name)
     subprocess.run(['docker', 'run',
-                    '-v', f'{os.getcwd()}:/workdir',
+                    # '-v', f'{os.getcwd()}:/celte-system',
                     '-v', f'{os.getcwd()}/../celte-godot:/celte-godot', #../celte-godot
                     '-v', '/tmp/.X11-unix:/tmp/.X11-unix',
                     '-e', f'CELTE_CLUSTER_HOST={ip_address}',
@@ -78,13 +67,12 @@ def run_docker_cpp():
                     '-it', CONTAINER_NAME,
                     '/bin/bash'])
     # execute this command when the container is started
-    # ./automations/setup_repository.sh /Users/clement_t/Epitech/celte/celte-godot/gdprojects/p1/gdproj
-    #
+    # ./automations/setup_repository.sh ~/celte-godot/gdprojects/p1/gdproj
 
 def join_docker_cpp():
     """Join an existing C++ Docker container."""
     env_vars = get_env_vars()
-    container_name = env_vars.get('CELTE_CPP_CONTAINER')
+    container_name = env_vars.get('CELTE_SERVER_CONTAINER')
     if container_name:
         print(f'Joining container [{container_name}]')
         subprocess.run(['docker', 'exec', '-it', container_name, '/bin/bash'])
