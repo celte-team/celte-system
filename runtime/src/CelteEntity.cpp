@@ -11,15 +11,11 @@
 
 namespace celte {
 void CelteEntity::SetInformationToLoad(const std::string &info) {
-  std::cout << "LE GROS EGALE LA " << info << std::endl;
   _informationToLoad = std::string();
 
   for (int i = 0; i < info.size(); i++) {
-    std::cout << "copying " << info[i] << std::endl;
     _informationToLoad += info[i];
   }
-  // _informationToLoad = info;
-  std::cout << "INFORMATION TO LOAD WOULAH " << _informationToLoad << std::endl;
 }
 
 void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
@@ -28,8 +24,6 @@ void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
                       .GetGrapeByPosition(x, y, z)
                       .GetChunkByPosition(x, y, z);
     OnChunkTakeAuthority(chunk);
-    logs::Logger::getInstance().info() << "Entity " << _uuid << " is in chunk "
-                                       << chunk.GetCombinedId() << std::endl;
   } catch (std::out_of_range &e) {
     RUNTIME.Err() << "Entity is not in any grape: " << e.what() << std::endl;
   }
@@ -40,11 +34,6 @@ void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
     _uuid = uuid;
   }
 
-  logs::Logger::getInstance().info()
-      << "Registering entity " << _uuid
-      << " in the entity management system, with info " << _informationToLoad
-      << std::endl;
-  std::cout << "pointer to this (celte entity): " << this << std::endl;
   ENTITIES.RegisterEntity(shared_from_this());
   _isSpawned = true; // will cause errors if OnSpawn is called but the entity is
                      // not actually spawned in the game.
@@ -76,7 +65,19 @@ void CelteEntity::UploadReplicationData() {
     return;
   }
 
-  _ownerChunk->ScheduleReplicationDataToSend(_uuid, _replicator.GetBlob());
+  // lazy replication, only send data if user notified of change using
+  // NotifyDataChanged
+  std::string blob = _replicator.GetBlob();
+  // active replication, send all data that has changed
+  std::string activeBlob = _replicator.GetActiveBlob();
+
+  if (not blob.empty()) {
+    _ownerChunk->ScheduleReplicationDataToSend(_uuid, blob);
+  }
+
+  if (not activeBlob.empty()) {
+    _ownerChunk->ScheduleReplicationDataToSend(_uuid, activeBlob, true);
+  }
 }
 #endif
 
@@ -84,8 +85,12 @@ const std::string &CelteEntity::GetInformationToLoad() const {
   return _informationToLoad;
 }
 
-void CelteEntity::DownloadReplicationData(const std::string &blob) {
-  _replicator.Overwrite(blob);
+void CelteEntity::DownloadReplicationData(const std::string &blob,
+                                          bool active) {
+  if (blob.empty()) {
+    return;
+  }
+  _replicator.Overwrite(blob, active);
 }
 
 } // namespace celte

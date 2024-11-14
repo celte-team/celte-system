@@ -119,38 +119,37 @@ std::vector<std::string> CelteEntityManagementSystem::FilterEntities(
 }
 
 void CelteEntityManagementSystem::RegisterReplConsumer(
-    const std::string &chunkId) {
-  KPOOL.Subscribe({
-      .topic = chunkId + "." + celte::tp::REPLICATION,
-      .autoCreateTopic = true, // technically this could be false but this will
-                               // avoid bugs if the synch is bad
-      .autoPoll = true,
-      .callback =
-          [this](const kafka::clients::consumer::ConsumerRecord &record) {
-            std::unordered_map<std::string, std::string> replData;
-            for (const auto &header : record.headers()) {
-              auto value = std::string(
-                  reinterpret_cast<const char *>(header.value.data()),
-                  header.value.size());
-              replData[header.key] = value;
-            }
-            __handleReplicationDataReceived(replData);
-          },
-  });
+    const std::vector<std::string> &chunkId) {
+
+  for (auto &topic : chunkId) {
+    KPOOL.RegisterTopicCallback(
+        // Parsing the record to extract the new values of the properties, and
+        // updating the entity
+        topic,
+        [this, topic](const kafka::clients::consumer::ConsumerRecord &record) {
+          std::unordered_map<std::string, std::string> replData;
+          for (const auto &header : record.headers()) {
+            auto value =
+                std::string(reinterpret_cast<const char *>(header.value.data()),
+                            header.value.size());
+            replData[header.key] = value;
+          }
+          bool active =
+              (std::string(static_cast<const char *>(record.value().data()),
+                           record.value().size())) == std::string("active");
+          __handleReplicationDataReceived(replData, active);
+        });
+  }
 }
 
 void CelteEntityManagementSystem::__handleReplicationDataReceived(
-    std::unordered_map<std::string, std::string> &data) {
+    std::unordered_map<std::string, std::string> &data, bool active) {
   // dropping extra headers
-  try {
-    data.erase(celte::tp::HEADER_PEER_UUID);
-  } catch (std::out_of_range &e) {
-    // header wasn't here to begin with, all good
-  }
+  data.erase(celte::tp::HEADER_PEER_UUID);
   for (auto &[entityId, blob] : data) {
     try {
       CelteEntity &entity = GetEntity(entityId);
-      entity.DownloadReplicationData(blob);
+      entity.DownloadReplicationData(blob, active);
     } catch (std::out_of_range &e) {
       logs::Logger::getInstance().err()
           << "Entity " << entityId << " not found."

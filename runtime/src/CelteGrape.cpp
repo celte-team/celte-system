@@ -45,22 +45,10 @@ void Grape::__subdivide() {
                                  _options.localX, _options.localY,
                                  _options.localZ);
   auto points = boundingBox.GetMeshedPoints(_options.subdivision);
-  std::cout << "options args for subdivision are: " << _options.subdivision
-            << std::endl
-            << "position: " << _options.position.x << " " << _options.position.y
-            << " " << _options.position.z << std::endl
-            << "size: " << _options.size.x << " " << _options.size.y << " "
-            << _options.size.z << std::endl
-            << "localX: " << _options.localX.x << " " << _options.localX.y
-            << " " << _options.localX.z << std::endl
-            << "localY: " << _options.localY.x << " " << _options.localY.y
-            << " " << _options.localY.z << std::endl
-            << "localZ: " << _options.localZ.x << " " << _options.localZ.y
-            << " " << _options.localZ.z << std::endl;
 
-  logs::Logger::getInstance().info()
-      << "Creating " << points.size() << " chunks in grape " << _options.grapeId
-      << std::endl;
+  std::vector<std::string> rpcTopics;
+  std::vector<std::string> replTopics;
+
   // create a chunk for each point
   for (auto point : points) {
     std::stringstream chunkId;
@@ -75,11 +63,34 @@ void Grape::__subdivide() {
                           .size = _options.size / (float)_options.subdivision,
                           .isLocallyOwned = _options.isLocallyOwned};
     _chunks[chunkId.str()] = std::make_shared<Chunk>(config);
-    logs::Logger::getInstance().info()
-        << "Created chunk " << chunkId.str() << " in grape " << _options.grapeId
-        << std::endl;
-    _chunks[chunkId.str()]->Initialize();
+    std::string combinedId = _chunks[chunkId.str()]->Initialize();
+
+    rpcTopics.push_back(combinedId + "." + tp::RPCs);
+    replTopics.push_back(combinedId + "." + tp::REPLICATION);
   }
+
+// Server creates replication topics
+#ifdef CELTE_SERVER_MODE_ENABLED
+  KPOOL.CreateTopicsIfNotExist(replTopics, 1, 1);
+#endif
+
+  // Client consumer from replication topic (or server if not locally owned)
+  if (not _options.isLocallyOwned) {
+    std::cout << "subscribing to repl topics" << std::endl;
+    for (auto topic : replTopics) {
+      std::cout << "subscribing to " << topic << std::endl;
+    }
+    KPOOL.Subscribe(
+        {.topics = replTopics, .groupId = "", .autoCreateTopic = false});
+    ENTITIES.RegisterReplConsumer(replTopics);
+  }
+
+  KPOOL.Subscribe({
+      .topics = rpcTopics, .groupId = "", .autoCreateTopic = true,
+      // callbacks are already set in the chunk Initialize method
+  });
+
+  KPOOL.CommitSubscriptions();
 }
 
 GrapeStatistics Grape::GetStatistics() const {

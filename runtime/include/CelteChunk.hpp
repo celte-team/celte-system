@@ -37,8 +37,10 @@ public:
    * @brief Initializes the chunk. Call this method only once.
    * It could be called in the constructor but is not in order to
    * allow copy constructors to be called without reinitializing the network
+   *
+   * @return std::string the combined id of the chunk
    */
-  void Initialize();
+  std::string Initialize();
 
   /**
    * @brief Returns true if the given position is inside the chunk.
@@ -51,13 +53,25 @@ public:
 
   inline const std::string &GetCombinedId() const { return _combinedId; }
 
+  inline bool IsLocallyOwned() const { return _config.isLocallyOwned; }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
+  /**
+   * @brief Called when an entity enters the chunk. (This should be called by
+   * the in engine encapsulation of the chunk, on server side, by the server
+   * node owning the chunk). This will notify the chunk that an entity has
+   * entered it, and trigger the process of transfering authority over to the
+   * chunk.
+   */
+  void OnEnterEntity(const std::string &entityId);
+
   /**
    * @brief Adds the data of this entity to the list of data to
    * be sent to the chunk's kafka replication topic.
    */
   void ScheduleReplicationDataToSend(const std::string &entityId,
-                                     const std::string &blob);
+                                     const std::string &blob,
+                                     bool active = false);
 
   /**
    * @brief Sends the data of the entities to the chunk's kafka replication
@@ -116,6 +130,7 @@ private:
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::map<std::string, std::string> _nextScheduledReplicationData;
+  std::map<std::string, std::string> _nextScheduledActiveReplicationData;
 #endif
 };
 } // namespace chunks

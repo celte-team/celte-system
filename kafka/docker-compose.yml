@@ -70,6 +70,12 @@ services:
     depends_on:
       - zoo1
 
+  clock:
+    build:
+      context: ../
+      dockerfile: ClockServer/Dockerfile
+    container_name: clock-celte
+
   haproxy:
     image: haproxy:2.9
     container_name: haproxy
@@ -89,6 +95,10 @@ services:
       - kafka2
       - kafka3
 
+########################################################################################
+# The following services are for metrics and monitoring.
+########################################################################################
+
   kafdrop:
     image: obsidiandynamics/kafdrop
     container_name: kafdrop
@@ -100,15 +110,46 @@ services:
     depends_on:
       - haproxy
 
+# in case we loose it: 7589 is the id of the grafana dashboard template for kafka-exporter
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: kafka-exporter
+    ports:
+      - 9308:9308
+    command:
+      - --kafka.server=kafka1:19092
+      - --kafka.server=kafka2:19093
+      - --kafka.server=kafka3:19094
+      - --zookeeper.server=zoo1:2181
+      - --use.consumelag.zookeeper
+      - --log.level=debug
+      - --topic.filter=.*
+      - --group.filter=.*
+      - --web.telemetry-path=/metrics
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    restart: always
 
-  # globalclock:
-  #   build:
-  #     context: ../
-  #     dockerfile: ClockServer/Dockerfile
-  #   container_name: globalclock
-  #   restart: always
-  #   environment:
-  #     CELTE_HOST_CLUSTER: haproxy:80
-  #     CELTE_CLOCK_DELTA_MS: 100
-  #   depends_on:
-  #     - haproxy
+  prometheus:
+      image: prom/prometheus
+      ports:
+        - 9090:9090
+      volumes:
+        - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      # network_mode: bridge
+      command:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --web.enable-lifecycle
+        - --web.enable-admin-api
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=eliotisthebest
+    volumes:
+      - ./grafana:/var/lib/grafana
+

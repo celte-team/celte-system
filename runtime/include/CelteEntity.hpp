@@ -83,7 +83,45 @@ public:
    * @brief Resets the data changed flag for all data.
    */
   inline void ResetDataChanged() { _replicator.ResetDataChanged(); }
+
+  inline void NotifyDataChanged(const std::string &name) {
+    _replicator.notifyDataChanged(name);
+  }
+
 #endif
+
+  /**
+   * @brief Registers a property to be replicated usingm this entity's
+   * replicator. This will allow the property to be replicated to other
+   * peers in the network. The method should be called on both the server
+   * and the client side.
+   *
+   * @warning Properties registered this way are lazily replicated: no
+   * information concerning a potential update of the state of this entity will
+   * be sent to the chunk's replication channel unless the NotifyDataChanged
+   * method is called from the server owning the entity. To have the property be
+   * watched actively, use RegisterActiveProperty instead.
+   */
+  template <typename T>
+  void RegisterProperty(const std::string &name, T &prop) {
+    _replicator.registerValue(name, prop);
+  }
+
+  /**
+   * @brief Registers a property to be replicated usingm this entity's
+   * replicator. This will allow the property to be replicated to other
+   * peers in the network. The method should be called on both the server
+   * and the client side.
+   *
+   * @warning Properties registered this way are actively replicated: any change
+   * to the property will be sent to the chunk's replication channel as soon as
+   * it is detected by celte. To have the property be watched lazily and save
+   * bandwidth, use RegisterProperty instead.
+   */
+  template <typename T>
+  void RegisterActiveProperty(const std::string &name, T &prop) {
+    _replicator.registerActiveValue(name, prop);
+  }
 
   /**
    * @brief Sets the information that should be used to load this entity by
@@ -92,18 +130,6 @@ public:
    * instantiated, and should contain enough information for the dev to load
    * the entity on the client side.
    */
-  // inline void SetInformationToLoad(const std::string &info) {
-  //   std::cout << "LE GROS EGALE LA " << info << std::endl;
-  //   _informationToLoad = std::string();
-
-  //   for (int i = 0; i < info.size(); i++) {
-  //     std::cout << "copying " << info[i] << std::endl;
-  //     _informationToLoad += info[i];
-  //   }
-  //   // _informationToLoad = info;
-  //   std::cout << "INFORMATION TO LOAD WOULAH " << _informationToLoad
-  //             << std::endl;
-  // }
   void SetInformationToLoad(const std::string &info);
 
   /**
@@ -123,7 +149,7 @@ public:
    * and should update it in order to rollback to the changes made by the
    * server that has authority over the entity.
    */
-  void DownloadReplicationData(const std::string &blob);
+  void DownloadReplicationData(const std::string &blob, bool active = false);
 
 private:
   std::string _uuid;

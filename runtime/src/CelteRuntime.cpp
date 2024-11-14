@@ -50,7 +50,6 @@ CelteRuntime::~CelteRuntime() {}
 rpc::Table &CelteRuntime::RPCTable() { return _rpcTable; }
 
 void CelteRuntime::Start(RuntimeMode mode) {
-  std::cout << "Starting Celte runtime with uuid " << GetUUID() << std::endl;
   _mode = mode;
   __initNetworkLayer(mode);
 }
@@ -58,6 +57,7 @@ void CelteRuntime::Start(RuntimeMode mode) {
 void CelteRuntime::Tick() {
   // Executing tasks received from the network
   if (_pool) [[likely]] {
+    // _pool->CommitSubscriptions();
     _pool->CatchUp();
   }
   // Executing tasks that have been scheduled for delayed execution
@@ -122,9 +122,6 @@ void CelteRuntime::RequestSpawn(const std::string &clientId,
                                 const std::string &grapeId, float x, float y,
                                 float z) {
   // TODO: check if spawn is authorized
-  // HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId);
-  // RUNTIME.GetRPCTable().InvokeByTopic(clientId, "__rp_spawnPlayer",
-  // clientId);
   RPC.InvokeGrape(grapeId, "__rp_onSpawnRequested", clientId, x, y, z);
 }
 
@@ -167,16 +164,17 @@ void CelteRuntime::ConnectToCluster() {
 }
 
 void CelteRuntime::ConnectToCluster(const std::string &ip, int port) {
-  _pool = std::make_shared<celte::nl::KafkaPool>(celte::nl::KafkaPool::Options{
+  // _pool =
+  // std::make_shared<celte::nl::KafkaPool>(celte::nl::KafkaPool::Options{
+  //     .bootstrapServers = ip + std::string(":") + std::to_string(port)});
+  _pool = std::make_shared<celte::nl::KPool>(celte::nl::KPool::Options{
       .bootstrapServers = ip + std::string(":") + std::to_string(port)});
 
-  // client / server spcific logic will be handled separately in the FSM
+  // Launch the connection asynchronously
   Services::dispatch(celte::EConnectToCluster{
       .ip = ip,
       .port = port,
       .message = std::make_shared<std::string>("hello")});
-  std::cout << "CelteRuntime is connecting to kafka cluster at " << ip << ":"
-            << port << std::endl;
 }
 
 bool CelteRuntime::IsConnectedToCluster() {
@@ -214,7 +212,8 @@ bool CelteRuntime::WaitForClusterConnection(int timeoutMs) {
   }
 }
 
-nl::KafkaPool &CelteRuntime::KPool() {
+// nl::KafkaPool &CelteRuntime::KPool() {
+nl::KPool &CelteRuntime::KPool() {
   if (!_pool) {
     throw std::logic_error("Kafka pool not initialized");
   }

@@ -14,26 +14,15 @@ Chunk::Chunk(const ChunkConfig &config)
 
 Chunk::~Chunk() {}
 
-void Chunk::Initialize() {
+std::string Chunk::Initialize() {
   __registerConsumers();
   __registerRPCs();
-  if (not _config.isLocallyOwned) {
-    ENTITIES.RegisterReplConsumer(_combinedId);
-  }
+  return _combinedId;
 }
 
 void Chunk::__registerConsumers() {
-  // A consumer to listen for Chunk scope RPCs and execute them
-  KPOOL.Subscribe({
-      .topic = _combinedId + "." + celte::tp::RPCs,
-      .groupId = "", // no group, all consumers receive the message
-      .autoCreateTopic = true,
-      .autoPoll = true,
-      .callback = [this](auto r) { RUNTIME.RPCTable().InvokeLocal(r); },
-  });
-
-  KPOOL.CreateTopicIfNotExists(_combinedId + "." + celte::tp::REPLICATION, 1,
-                               1);
+  KPOOL.RegisterTopicCallback(_combinedId + "." + celte::tp::RPCs,
+                              [this](auto r) { RPC.InvokeLocal(r); });
 }
 
 bool Chunk::ContainsPosition(float x, float y, float z) const {
@@ -47,21 +36,55 @@ void Chunk::__registerRPCs() {
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 void Chunk::ScheduleReplicationDataToSend(const std::string &entityId,
-                                          const std::string &blob) {
-  _nextScheduledReplicationData[entityId] = blob;
+                                          const std::string &blob,
+                                          bool active) {
+  if (active) {
+    _nextScheduledActiveReplicationData[entityId] = blob;
+  } else {
+    _nextScheduledReplicationData[entityId] = blob;
+  }
 }
 
 void Chunk::SendReplicationData() {
-  if (_nextScheduledReplicationData.empty() or not _config.isLocallyOwned) {
+  if (not _config.isLocallyOwned)
     return;
+
+  if (not _nextScheduledReplicationData.empty()) {
+    // std::move will clear the local map, so no need to clear it
+    KPOOL.Send((const nl::KPool::SendOptions){
+        .topic = _combinedId + "." + celte::tp::REPLICATION,
+        .headers = std::move(_nextScheduledReplicationData),
+        .value = std::string(),
+        .autoCreateTopic = false});
   }
 
-  // std::move will clear the local map, so no need to clear it manually
-  KPOOL.Send((const nl::KafkaPool::SendOptions){
-      .topic = _combinedId + "." + celte::tp::REPLICATION,
-      .headers = std::move(_nextScheduledReplicationData),
-      .value = std::string(),
-      .autoCreateTopic = false});
+  if (not _nextScheduledActiveReplicationData.empty()) {
+    KPOOL.Send((const nl::KPool::SendOptions){
+        .topic = _combinedId + "." + celte::tp::REPLICATION,
+        .headers = std::move(_nextScheduledActiveReplicationData),
+        .value = std::string("active"),
+        .autoCreateTopic = false});
+  }
+}
+
+void Chunk::OnEnterEntity(const std::string &entityId) {
+  try {
+    auto &entity = ENTITIES.GetEntity(entityId);
+    if (entity.GetOwnerChunk().GetCombinedId() == _combinedId) {
+      return;
+    }
+  } catch (std::out_of_range &e) {
+    logs::Logger::getInstance().err()
+        << "Entity not found in OnEnterEntity: " << e.what() << std::endl;
+    std::cerr << "Entity not found in OnEnterEntity: " << std::endl;
+  }
+
+  // the current method is only called when the entity enters the chunk in the
+  // server node, calling the RPC will trigger the behavior of transfering
+  // authority over to the chunk in all the peers listening to the chunk's
+  // topic.
+  RPC.InvokeChunk(_combinedId, "__rp_scheduleEntityAuthorityTransfer", entityId,
+                  true, CLOCK.CurrentTick() + 30);
 }
 #endif
 
@@ -74,6 +97,11 @@ void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
   if (take) {
     CLOCK.ScheduleAt(tick, [this, entityUUID]() {
       try {
+#ifdef CELTE_SERVER_MODE_ENABLED
+        HOOKS.server.authority.onTake(entityUUID, _combinedId);
+#else
+        HOOKS.client.authority.onTake(entityUUID, _combinedId);
+#endif
         ENTITIES.GetEntity(entityUUID).OnChunkTakeAuthority(*this);
       } catch (std::out_of_range &e) {
         logs::Logger::getInstance().err()

@@ -8,22 +8,17 @@ namespace runtime {
 void Clock::Init() {
   // subscribing to the global clock tick topic
   KPOOL.Subscribe({
-      .topic = celte::tp::GLOBAL_CLOCK,
+      .topics{celte::tp::GLOBAL_CLOCK},
       .autoCreateTopic = false,
-      .extraProps = {{"auto.offset.reset", "earliest"}},
-      .autoPoll = true,
-      .callback = [this](auto r) { __updateCurrentTick(r); },
+      .callbacks{[this](auto r) { __updateCurrentTick(r); }},
   });
 }
 
 void Clock::__updateCurrentTick(
     const kafka::clients::consumer::ConsumerRecord &r) {
-  if (r.value().size() < sizeof(int)) {
-    std::cerr << "Invalid message received on global clock topic" << std::endl;
-    return;
-  }
-  _tick = *reinterpret_cast<const int *>(r.value().data());
-  std::cout << "Current tick: " << _tick << std::endl;
+  const char *data = reinterpret_cast<const char *>(r.value().data());
+  std::string tickStr(data, r.value().size());
+  _tick = std::stoi(tickStr);
 }
 
 void Clock::ScheduleAt(int tick, std::function<void()> task) {
