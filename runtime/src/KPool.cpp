@@ -22,13 +22,13 @@ KPool::KPool(const Options &options)
       _producerProps({
           {"bootstrap.servers", {options.bootstrapServers}},
           {"enable.idempotence", {"true"}},
-      }) {}
-
-KPool::~KPool() {
-  _running = false;
-  if (_consumerThread.joinable())
-    _consumerThread.join();
+      }) {
+  for (int i = 0; i < _options.numGeneralPurposeConsumerThreads; i++) {
+    _consumerWorkers.emplace_back(std::make_shared<ConsumerWorker>(_records));
+  }
 }
+
+KPool::~KPool() { _running = false; }
 
 void KPool::Subscribe(const SubscribeOptions &options) {
   kafka::Topics topics(options.topics.begin(), options.topics.end());
@@ -48,8 +48,10 @@ void KPool::Subscribe(const SubscribeOptions &options) {
   }
 
   // push the topics to the list of incoming subscriptions
-  _subscriptionsToImplement.push(SubscriptionTask{
-      .consumerGroupId = options.groupId, .newSubscriptions = topics});
+  _subscriptionsToImplement.push(
+      SubscriptionTask{.consumerGroupId = options.groupId,
+                       .newSubscriptions = topics,
+                       .useDedicatedThread = options.useDedicatedThread});
 }
 
 void KPool::RegisterTopicCallback(const std::string &topic,
@@ -76,22 +78,14 @@ void KPool::CatchUp(unsigned int maxBlockingMs) {
   }
 }
 
-void KPool::__consumerJob() {
-  while (_running) {
-    // avoid busy waiting
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    boost::lock_guard<boost::mutex> lock(*_consumerMutex);
-    for (auto &consumer : _consumersAutoPoll) {
-      auto records = consumer->poll(std::chrono::milliseconds(100));
-      for (auto &record : records) {
-        _records.push(record);
-      }
-    }
+void KPool::CreateTopicIfNotExists(std::string &topic, int numPartitions,
+                                   int replicationFactor) {
+  std::set<std::string> topics{topic};
+  if (!__createTopicIfNotExists(topics, numPartitions, replicationFactor)) {
+    logs::Logger::getInstance().err() << "Failed to create topic" << std::endl;
+    throw std::runtime_error("Failed to create topic");
   }
 }
-
-void KPool::CreateTopicIfNotExists(std::string &topic, int numPartitions,
-                                   int replicationFactor) {}
 
 void KPool::CreateTopicsIfNotExist(std::vector<std::string> &topics,
                                    int numPartitions, int replicationFactor) {
@@ -106,7 +100,7 @@ void KPool::Connect() {
   _producer.emplace(_producerProps);
   __initAdminClient();
   _running = true;
-  _consumerThread = boost::thread(&KPool::__consumerJob, this);
+  // _consumerThread = boost::thread(&KPool::__consumerJob, this);
 }
 
 void KPool::CommitSubscriptions() {
@@ -116,23 +110,48 @@ void KPool::CommitSubscriptions() {
     subscriptions.push_back(_subscriptionsToImplement.pop());
   }
 
-  // group the subscriptions by consumer group
-  std::unordered_map<std::string, std::set<std::string>> perGroupSubsAutoPoll;
+  // Group subscriptions by dedicated thread / non-dedicated thread
+  std::vector<SubscriptionTask> subscriptionsDedicated;
+  std::vector<SubscriptionTask> subscriptionsNonDedicated;
   for (const auto &sub : subscriptions) {
-    perGroupSubsAutoPoll[sub.consumerGroupId].insert(
-        sub.newSubscriptions.begin(), sub.newSubscriptions.end());
+    if (sub.useDedicatedThread) {
+      subscriptionsDedicated.push_back(sub);
+    } else {
+      subscriptionsNonDedicated.push_back(sub);
+    }
   }
 
-  // create the consumers
-  for (const auto &group : perGroupSubsAutoPoll) {
-    {
-      boost::lock_guard<boost::mutex> lock(*_consumerMutex);
-      _consumersAutoPoll.emplace_back(
-          std::make_shared<kafka::clients::consumer::KafkaConsumer>(
-              _consumerProps));
-    }
-    _consumersAutoPoll.back()->subscribe(group.second);
+  // Create consumers for the subscriptions that require a dedicated thread
+  for (const auto &sub : subscriptionsDedicated) {
+    auto props = _consumerProps;
+    // props.put("group.id", sub.consumerGroupId);
+    auto consumerWorker = std::make_shared<ConsumerWorker>(_records);
+    auto consumer =
+        std::make_shared<kafka::clients::consumer::KafkaConsumer>(props);
+    consumer->subscribe(sub.newSubscriptions);
+    consumerWorker->AddConsumer(consumer);
+    _consumerWorkersDedicated.push_back(consumerWorker);
   }
+
+  // regrouping all the topics (in the future, split by consumer group)
+  kafka::Topics topics;
+  for (const auto &sub : subscriptionsNonDedicated) {
+    topics.insert(sub.newSubscriptions.begin(), sub.newSubscriptions.end());
+  }
+
+  // Get the worker with the less work
+  auto minWorker = _consumerWorkers[0];
+  for (auto &worker : _consumerWorkers) {
+    if (worker->GetNumConsumers() < minWorker->GetNumConsumers()) {
+      minWorker = worker;
+    }
+  }
+
+  // Create consumers for the rest of the subscriptions
+  auto consumer =
+      std::make_shared<kafka::clients::consumer::KafkaConsumer>(_consumerProps);
+  consumer->subscribe(topics);
+  minWorker->AddConsumer(consumer);
 }
 
 void KPool::__initAdminClient() {
