@@ -36,6 +36,7 @@ set(COMMON_SOURCES
     src/Replicator.cpp
     src/Logger.cpp
     src/KPool.cpp
+    src/ConsumerWorker.cpp
 )
 
 set(SERVER_SOURCES

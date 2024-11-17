@@ -1,4 +1,5 @@
 #pragma once
+#include "ConsumerWorker.hpp"
 #include "kafka/Properties.h"
 #include "queue.hpp"
 #include <atomic>
@@ -34,11 +35,13 @@ public:
    */
   struct Options {
     std::string bootstrapServers = "localhost:80";
+    int numGeneralPurposeConsumerThreads = 4;
   };
 
   struct SubscriptionTask {
     std::string consumerGroupId = "";
     kafka::Topics newSubscriptions = {};
+    bool useDedicatedThread = false;
   };
 
   using MessageCallback = std::function<void(
@@ -49,6 +52,7 @@ public:
     std::string groupId = "";
     bool autoCreateTopic = true;
     std::vector<MessageCallback> callbacks = {};
+    bool useDedicatedThread = false;
   };
 
   struct SendOptions {
@@ -87,8 +91,6 @@ public:
 
   void CatchUp(unsigned int maxBlockingMs = 100);
 
-  bool Poll(const std::string &groupId, unsigned int pollTimeoutMs = 100);
-
   void CreateTopicIfNotExists(std::string &topic, int numPartitions,
                               int replicationFactor);
 
@@ -106,8 +108,6 @@ private:
                                 int numPartitions, int replicationFactor);
 
   void __initAdminClient();
-
-  void __consumerJob();
 
   void __send(
       kafka::clients::producer::ProducerRecord &record,
@@ -127,7 +127,9 @@ private:
   std::optional<kafka::clients::producer::KafkaProducer> _producer;
   ubn::queue<SubscriptionTask> _subscriptionsToImplement;
   std::unordered_map<std::string, MessageCallback> _callbacks;
-  boost::thread _consumerThread;
+
+  std::vector<std::shared_ptr<ConsumerWorker>> _consumerWorkers;
+  std::vector<std::shared_ptr<ConsumerWorker>> _consumerWorkersDedicated;
 };
 } // namespace nl
 } // namespace celte
