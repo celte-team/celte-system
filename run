@@ -175,6 +175,24 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+
+def run_master():
+    """Run the master configuration update."""
+    os.chdir('master')
+
+    config_file_path = 'configFile.yml'
+    with open(config_file_path, 'r') as f:
+        config = yaml.safe_load(f)
+
+    if 'kafka_brokers' in config:
+        config['kafka_brokers'] = f"{ip_address}:80"
+
+    # Write the updated configuration back to the file
+    with open(config_file_path, 'w') as f:
+        yaml.dump(config, f)
+
+    subprocess.run(['dotnet', 'run', '--config', 'configFile.yml'])
+
 launcher = {
     '--kafka': run_docker_kafka,
     '--cpp': run_docker_cpp,
