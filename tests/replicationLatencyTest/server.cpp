@@ -42,13 +42,12 @@ void registerHooks() {
   HOOKS.server.grape.loadGrape = [](std::string grapeId, bool isLocallyOwned) {
     std::cout << "SN is loading grape" << std::endl;
     loadGrape();
-    std::cout << "Grape has been loaded" << std::endl;
+    std::cout << ">> Grape has been loaded <<" << std::endl;
     return true;
   };
   HOOKS.server.newPlayerConnected.execPlayerSpawn = [](std::string clientId,
                                                        int x, int y, int z) {
-    std::cout << "Spawning player " << clientId << " at " << x << ", " << y
-              << ", " << z << std::endl;
+    std::cout << ">> Called exec spawn hook <<" << std::endl;
     // Create a new entity
     entity = std::make_shared<celte::CelteEntity>();
     entity->SetInformationToLoad("test");

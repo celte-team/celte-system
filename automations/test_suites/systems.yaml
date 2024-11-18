@@ -1,0 +1,27 @@
+logs: ./build/tmp/automations/logs
+test_suites:
+  - name: DataReplication
+    description: This test checks that the server node can indeed replicate data to the client node.
+    timeout-seconds: 50
+
+    cluster: yes
+    master: yes
+
+    servers:
+      binary: ./build/tests/replicationLatencyTest/server
+      replicas: 1
+
+    clients:
+      binary: ./build/tests/replicationLatencyTest/client
+      replicas: 1
+      wait-servers:
+        regex: ">> Grape has been loaded <<"
+        timeout-seconds: 20
+
+    expects:
+      servers:
+        - ">> Called exec spawn hook <<"
+
+      clients:
+        - ">> Called exec spawn hook <<"
+        # - ">> property updated to * <<"
