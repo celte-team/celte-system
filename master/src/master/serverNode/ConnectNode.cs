@@ -6,13 +6,20 @@ class ConnectNode
 {
     Master _master = Master.GetInstance();
 
-    public struct Node
-    {
-        public string uuid;
-    }
-    public static Dictionary<string, Node> _nodes = new Dictionary<string, Node>();
+    // public struct Node
+    // {
+    //     public string uuid;
+    // }
+    // redis variable
+    // public static Dictionary<string, Node> _nodes = new Dictionary<string, Node>();
 
-    public void connectNewNode(byte[] messageByte)
+    // public List<string> GetNodes()
+    public async Task<List<string>> GetNodes()
+    {
+        return await Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes");
+    }
+
+    public async void connectNewNode(byte[] messageByte)
     {
         try
         {
@@ -20,14 +27,16 @@ class ConnectNode
             string message = System.Text.Encoding.UTF8.GetString(messageByte);
             Console.WriteLine("Deserialized message: " + message);
 
-            // Assuming message is supposed to be a UUID or similar identifier
-            _master.kFKProducer._uuidProducerService.OpenTopic(message);
+            await _master.kFKProducer._uuidProducerService.OpenTopic(message, 3);
+            Console.WriteLine("Topic opened: " + message);
             RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "leChateauDuMechant");
 
             // Link node with the server
-            if (!_nodes.ContainsKey(message))
+
+            if (!Redis.RedisClient.GetInstance().redisData.JSONExists("nodes", message))
             {
-                _nodes.Add(message, new Node { uuid = message });
+                // _nodes.Add(message, new Node { uuid = message });
+                Redis.RedisClient.GetInstance().redisData.JSONPush("nodes", message, message);
                 Console.WriteLine("Node added: " + message);
             }
             else

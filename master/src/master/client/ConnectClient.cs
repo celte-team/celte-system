@@ -10,24 +10,44 @@ class ConnectClient
         public string uuid;
     }
 
-    public static Dictionary<string, Client> _clients = new Dictionary<string, Client>();
+    // public static Dictionary<string, Client> _clients = new Dictionary<string, Client>();
 
     public async void connectNewClient(byte[] messageByte)
     {
         //
+        int numberOfTopics = 3;
         string message = System.Text.Encoding.UTF8.GetString(messageByte);
         Console.WriteLine("New client connected to the cluster: " + message);
 
         // if _clients do not already contain the message, add the message to the _clients
-        if (!_clients.ContainsKey(message))
-            _clients.Add(message, new Client { uuid = message });
+        // check inside the 'clients' redis if the message exist:
+        // Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
+        // var clients = redisClient.redisData.JSONGet("clients");
+        // Console.WriteLine($"Clients: {clients}");
+        // if (!_clients.ContainsKey(message))
+        //     _clients.Add(message, new Client { uuid = message });
 
-        _master.kFKProducer._uuidProducerService.OpenTopic(message);
+        _master.kFKProducer._uuidProducerService.OpenTopic(message, numberOfTopics);
+        // add the topic to the kafka consumer
         try
         {
             // select a random node from the list of nodes
-            int rand = new Random().Next(0, ConnectNode._nodes.Count);
-            string nodeId = ConnectNode._nodes.ElementAt(rand).Value.uuid;
+
+            // int rand = new Random().Next(0, Redis.RedisClient.GetInstance().redisData.JSONGetAll<string>("nodes").Count);
+            var nodesJson = await Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes");
+
+            // string nodeId = ConnectNode._nodes.ElementAt(rand).Value.uuid;
+            // string nodeId = Redis.RedisClient.GetInstance().redisData.JSONGetAll<string>("nodes")[rand].uuid;
+
+            if (nodesJson == null || nodesJson.Count == 0)
+            {
+                throw new Exception("No nodes available.");
+            }
+            // Generate a random index
+            int rand = new Random().Next(0, nodesJson.Count);
+
+            // Retrieve the node ID
+            string nodeId = nodesJson[rand];
 
             // call the function to compute the grapeId then return the values
             string clientId = message;
@@ -59,6 +79,17 @@ class ConnectClient
                         z = (int)result.Item1[4];
                         Console.WriteLine($"Sending response to acceptNewClient: {receivedClientId}, {grapeId}, {x}, {y}, {z}");
                         RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(nodeId), receivedClientId, grapeId, x, y, z);
+                        var jsonInfo = new
+                        {
+                            clientId = receivedClientId,
+                            grapeId = grapeId,
+                            x = x,
+                            y = y,
+                            z = z
+                        };
+                        Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
+                        // redisClient.SetValue("clients", jsonSerializer.Serialize(jsonInfo));
+
                     }
                     catch (Exception e)
                     {

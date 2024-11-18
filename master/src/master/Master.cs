@@ -4,11 +4,12 @@ using System.Threading;
 class Master
 {
     public SetupConfig? _setupConfig;
-    public KafkaManager? kafkaManager;
     private static Master? _master;
-    public KFKProducer kFKProducer;
+    public KFKProducer kFKProducer = null;
     public CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
     public KfkConsumerListener kfkConsumerListener;
+
+    public Dictionary<string, Action<byte[]>> topicAction = new Dictionary<string, Action<byte[]>>();
 
     private Master()
     {
@@ -25,10 +26,11 @@ class Master
             // setup the configuration
             _setupConfig = new SetupConfig(Environment.GetCommandLineArgs());
             _setupConfig.SettingUpMaster();
+
             kfkConsumerListener = new KfkConsumerListener(_setupConfig.GetYamlObjectConfig()["kafka_brokers"].ToString()
             , "kafka-dotnet");
-
             StartKafkaSystem();
+            Console.WriteLine("Master initialized");
         }
         catch (Exception e)
         {
@@ -47,14 +49,26 @@ class Master
         var StartExecuteBufferThread = new Thread(() => kfkConsumerListener.StartExecuteBuffer(cancellationTokenSource.Token));
 
         StartExecuteBufferThread.Start();
-
         ConnectNode connectNode = new ConnectNode();
         ConnectClient connectClient = new ConnectClient();
 
-        kfkConsumerListener.AddTopic(M.Global.MasterHelloSn, connectNode.connectNewNode);
-        kfkConsumerListener.AddTopic(M.Global.MasterHelloClient, connectClient.connectNewClient);
-        kfkConsumerListener.AddTopic(M.Global.MasterRPC, null);
+        int NumberOfTopics = 3;
 
+        Console.WriteLine("Kafka system started");
+        topicAction = new Dictionary<string, Action<byte[]>>
+            {
+                { M.Global.MasterHelloSn, connectNode.connectNewNode },
+                { M.Global.MasterHelloClient, connectClient.connectNewClient },
+            };
+
+        foreach (var topic in topicAction)
+        {
+            kfkConsumerListener.AddTopic(topic.Key, topic.Value, NumberOfTopics);
+        }
+
+        // kfkConsumerListener.AddTopic(M.Global.MasterHelloSn, connectNode.connectNewNode, NumberOfTopics);
+        // kfkConsumerListener.AddTopic(M.Global.MasterHelloClient, connectClient.connectNewClient, NumberOfTopics);
+        // kfkConsumerListener.AddTopic(M.Global.MasterRPC, null, NumberOfTopics);
 
         kFKProducer = new KFKProducer();
     }

@@ -1,15 +1,17 @@
 services:
   redis_master:
-    image: redis:3
+    image: redis/redis-stack:latest
     container_name: redis_master
     ports:
       - '6379:6379'
+
   redis_slave:
-    image: redis:3
+    image: redis/redis-stack:latest
     container_name: redis_slave
-    command: redis-server --port 6380 --slaveof "${EXTERNAL_HOST}" 6379 --slave-announce-ip "${EXTERNAL_HOST}"
+    command: redis-server --port 6380 --replicaof redis_master 6379
     ports:
       - '6380:6380'
+
   sentinel:
     build: ./sentinel
     container_name: redis_sentinel

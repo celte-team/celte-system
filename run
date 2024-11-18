@@ -12,6 +12,7 @@ import socket
 import subprocess
 import sys
 from colorama import Fore, Style
+import yaml
 
 CONTAINER_NAME = "clmt/celte_server"
 env = os.environ.copy()
@@ -138,12 +139,31 @@ def run_redis_sentinel():
     # print in green
     os.chdir('..')
 
+
+def run_master():
+    """Run the master configuration update."""
+    os.chdir('master')
+
+    config_file_path = 'configFile.yml'
+    with open(config_file_path, 'r') as f:
+        config = yaml.safe_load(f)
+
+    if 'kafka_brokers' in config:
+        config['kafka_brokers'] = f"{ip_address}:80"
+
+    # Write the updated configuration back to the file
+    with open(config_file_path, 'w') as f:
+        yaml.dump(config, f)
+
+    subprocess.run(['dotnet', 'run', '--config', 'configFile.yml'])
+
 launcher = {
     '--kafka': run_docker_kafka,
     '--cpp': run_docker_cpp,
     '--join-cpp': join_docker_cpp,
     '--build': build_docker_image,
     '--redis': run_redis_sentinel,
+    '--master': run_master,
     '--requirements': lambda: subprocess.run(['pip3', 'install', 'colorama']),
     '--help': lambda: usage()
 }

@@ -22,7 +22,7 @@ class SetupConfig
 
     public Dictionary<string, object>? GetYamlObjectConfig()
     {
-        if (_yamlObject == null)
+        if (_yamlObject == null || _yamlObject.Count == 0)
         {
             Console.WriteLine("Yaml object is null.");
             return null;

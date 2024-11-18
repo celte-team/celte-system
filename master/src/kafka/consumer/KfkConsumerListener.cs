@@ -26,23 +26,25 @@ public class KfkConsumerListener : IDisposable
     // map with uuid and function
     private Dictionary<string, Dictionary<string, Action<byte[]>>> _rpcFunctions;
 
+    const string RedisChannelTopic = "kafka-topic";
+
     public KfkConsumerListener(string bootstrapServers, string groupId)
     {
         config = new ConsumerConfig
         {
             BootstrapServers = bootstrapServers,
             GroupId = groupId,
-            AutoOffsetReset = AutoOffsetReset.Earliest // "earliest"
+            AutoOffsetReset = AutoOffsetReset.Earliest
         };
 
         _consumer = new ConsumerBuilder<string, byte[]>(config).Build();
         _buffer = new ConcurrentQueue<(string, byte[], Headers)>();
         _topicHandlers = new Dictionary<string, Action<byte[]>>();
         _cancellationTokenSource = new CancellationTokenSource();
-
         // RPC function map
         _rpcFunctions = new Dictionary<string, Dictionary<string, Action<byte[]>>>();
 
+        SubscribeToRedisChannelTopics();
         _adminClientConfig = new AdminClientConfig
         {
             BootstrapServers = bootstrapServers
@@ -59,24 +61,35 @@ public class KfkConsumerListener : IDisposable
         Console.WriteLine($"Registered RPC function for topic {topic}, request ID {requestId}");
     }
 
-    public void AddTopic(string topic, Action<byte[]>? handler)
+    public async void AddTopic(string topic, Action<byte[]>? handler, int partitions = 1)
     {
         using (var adminClient = new AdminClientBuilder(_adminClientConfig).Build())
         {
             try
             {
+                var redisClient = Redis.RedisClient.GetInstance();
+
+                redisClient.rLogger.LogActionAsync(new Redis.ActionLog
+                {
+                    ActionType = "KafkaConsumerListener",
+                    Timestamp = DateTime.Now,
+                    Details = "topic: " + topic
+                }).GetAwaiter().GetResult();
+
+                Console.WriteLine($"Checking if topic {topic} exists...");
                 var metadata = adminClient.GetMetadata(TimeSpan.FromSeconds(10));
+                Console.WriteLine($"Metadata: {metadata.Topics.Count}");
                 if (!metadata.Topics.Any(t => t.Topic == topic))
                 {
                     var topicSpecification = new TopicSpecification
                     {
                         Name = topic,
-                        NumPartitions = 1,
+                        NumPartitions = partitions,
                         ReplicationFactor = 1
                     };
-
+                    UpdateTopicFromRedisChannel(topic);
                     adminClient.CreateTopicsAsync(new List<TopicSpecification> { topicSpecification }).Wait();
-                    Console.WriteLine($"Topic {topic} created successfully.");
+                    Console.WriteLine($"Topic {topic} created successfully.\n\n");
                 }
                 else
                 {
@@ -101,9 +114,59 @@ public class KfkConsumerListener : IDisposable
                     var newSubscription = _consumer.Subscription.ToList();
                     newSubscription.Add(topic);
                     _consumer.Subscribe(newSubscription);
-                    Console.WriteLine($"Registered handler for topic {topic}, newSubscription = {string.Join(",", newSubscription)}");
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// The goal of this function is to update the topic list from a Redis channel, it will use the JSON format
+    /// to send the topic name. then it their is a new topic it will add it to the topic list.
+    /// </summary>
+    public void SubscribeToRedisChannelTopics()
+    {
+        try
+        {
+            Console.WriteLine("Subscribing to Redis channel...");
+            var redisClient = Redis.RedisClient.GetInstance();
+            redisClient.Subscribe(RedisChannelTopic, (channel, message) =>
+            {
+                Console.WriteLine($"Received !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! message from Redis channel {channel}: {message}");
+                string topic = message;
+                if (_topicHandlers.ContainsKey(topic))
+                {
+                    Console.WriteLine($"Topic {topic} already exists.!!!!!!!!!!!!");
+                    return;
+                }
+                Console.WriteLine($"Adding topic {topic} from Redis channel...");
+                // AddTopic(topic, null);
+        //                 const topicAction = [{
+        //     topic: M.Global.MasterHelloSn,
+        //     action: connectNode.connectNewNode
+        // }, {
+        //     topic: M.Global.MasterHelloClient,
+        //     action: connectClient.connectNewClient
+        // }]
+                // AddTopic(topic, topicAction[0].action, 1);
+
+            });
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error subscribing to Redis channel: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Add a topic to the topic JSON list from a Redis channel
+    /// </summary>
+    public void UpdateTopicFromRedisChannel(string topic) {
+        try {
+            var redisClient = Redis.RedisClient.GetInstance();
+            Console.WriteLine($"Updating topic {topic} from Redis channel123123123...");
+            redisClient.redisData.JSONPush(RedisChannelTopic, "$", topic);
+        } catch (Exception e) {
+            Console.WriteLine($"Error updating topic from Redis channel: {e.Message}");
         }
     }
 
@@ -160,7 +223,7 @@ public class KfkConsumerListener : IDisposable
                     // check if the 4 last characters are ".rpc"
                     if (topic.EndsWith(".rpc"))
                     {
-                        Console.WriteLine($"Processing RPC message123: topic = {topic}, message = {messageString}");
+                        Console.WriteLine($"Processing RPC message: topic = {topic}, message = {messageString}");
                         // byte[] messageBytes = Encoding.ASCII.GetBytes(message);
                         for (int i = 0; i < message.Length; i++)
                         {
