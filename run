@@ -11,10 +11,12 @@ import platform
 import socket
 import subprocess
 import sys
+import signal
 from colorama import Fore, Style
 
 CONTAINER_NAME = "clmt/celte_server"
 env = os.environ.copy()
+current_process = None
 
 def check_dependencies():
     """Check if Docker is installed and running."""
@@ -40,15 +42,19 @@ def get_ip_address():
         sys.exit(1)
 
 def run_docker_kafka():
+    global current_process
     env['DOCKER_HOST_IP'] = ip_address
     # cd into the kafka directory
     os.chdir('kafka')
-    subprocess.run(['docker', 'compose', 'down'])
-    subprocess.run(['docker', 'compose', 'up'], env=env)
+    current_process = subprocess.Popen(['docker', 'compose', 'down'])
+    current_process.wait()
+    current_process = subprocess.Popen(['docker', 'compose', 'up'], env=env)
+    current_process.wait()
     os.chdir('..')
 
 def run_docker_cpp():
     """Run the C++ Docker container."""
+    global current_process
     images = subprocess.run(['docker', 'images'], stdout=subprocess.PIPE).stdout.decode('utf-8')
     images = images.split('\n')
 
@@ -56,7 +62,7 @@ def run_docker_cpp():
     name = 'celte_server_' + uuid
     print(f'Creating container {name}')
     export_env_vars("CELTE_SERVER_CONTAINER", name)
-    subprocess.run(['docker', 'run',
+    current_process = subprocess.Popen(['docker', 'run',
                     # '-v', f'{os.getcwd()}:/celte-system',
                     '-v', f'{os.getcwd()}/../celte-godot:/celte-godot', #../celte-godot
                     '-v', '/tmp/.X11-unix:/tmp/.X11-unix',
@@ -66,16 +72,19 @@ def run_docker_cpp():
                     '--name', name,
                     '-it', CONTAINER_NAME,
                     '/bin/bash'])
+    current_process.wait()
     # execute this command when the container is started
     # ./automations/setup_repository.sh ~/celte-godot/gdprojects/p1/gdproj
 
 def join_docker_cpp():
     """Join an existing C++ Docker container."""
+    global current_process
     env_vars = get_env_vars()
     container_name = env_vars.get('CELTE_SERVER_CONTAINER')
     if container_name:
         print(f'Joining container [{container_name}]')
-        subprocess.run(['docker', 'exec', '-it', container_name, '/bin/bash'])
+        current_process = subprocess.Popen(['docker', 'exec', '-it', container_name, '/bin/bash'])
+        current_process.wait()
     else:
         print(f"{Fore.RED}No container found to join.{Style.RESET_ALL}")
 
@@ -109,15 +118,32 @@ def get_env_vars():
 
 def build_docker_image():
     """Build the Docker image for the C++ project."""
+    global current_process
     if platform.system() == 'Darwin':
         build_command = ['docker', 'buildx', 'build', '--platform', 'linux/amd64', '-t', CONTAINER_NAME, '.', '--output', 'type=docker']
     else:
         build_command = ['docker', 'build', '-t', CONTAINER_NAME, '.']
 
-    result = subprocess.run(build_command)
-    if result.returncode != 0:
+    current_process = subprocess.Popen(build_command)
+    current_process.wait()
+    if current_process.returncode != 0:
         print(f"{Fore.RED}Failed to build Docker image{Style.RESET_ALL}")
         sys.exit(1)
+
+def run_binary(binary_path):
+    """Run a binary with the environment set to connect to the Celte cluster."""
+    global current_process
+    env['CELTE_CLUSTER_HOST'] = ip_address
+    env['CELTE_CLUSTER_PORT'] = '12345'  # Replace with the actual port if needed
+    current_process = subprocess.Popen([binary_path], env=env)
+    current_process.wait()
+
+def signal_handler(sig, frame):
+    if current_process:
+        current_process.terminate()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 launcher = {
     '--kafka': run_docker_kafka,
@@ -125,7 +151,8 @@ launcher = {
     '--join-cpp': join_docker_cpp,
     '--build': build_docker_image,
     '--requirements': lambda: subprocess.run(['pip3', 'install', 'colorama']),
-    '--help': lambda: usage()
+    '--help': lambda: usage(),
+    '--bin': run_binary
 }
 
 def usage():
@@ -145,11 +172,19 @@ if __name__ == "__main__":
     ip_address = get_ip_address()
     export_env_vars('DOCKER_HOST_IP', ip_address)
 
-
     # if there is multiple commands, run them
     for command in sys.argv[1:]:
         if command in launcher:
-            launcher[command]()
+            if command == '--bin':
+                if len(sys.argv) < 3:
+                    print(f"{Fore.RED}Error: --bin requires a binary path argument{Style.RESET_ALL}")
+                    usage()
+                    sys.exit(1)
+                binary_path = sys.argv[2]
+                launcher[command](binary_path)
+                break
+            else:
+                launcher[command]()
         else:
             usage()
             sys.exit(1)
