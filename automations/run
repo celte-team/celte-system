@@ -190,10 +190,26 @@ def wait_for_all_logs(log_file, regexes, timeout_seconds):
     print(f"{Fore.RED}Timeout waiting for logs in {log_file}{Style.RESET_ALL}")
     return False
 
+def build(config):
+    """Build the project using the build steps defined in the configuration."""
+    for step in config['build']:
+        print(f"Running build step: {step['step']}")
+        commands = ' && '.join(step['run'].strip().split('\n'))
+        print(f"Executing: {commands}")
+        result = subprocess.run(commands, shell=True, cwd=os.getcwd())
+        if result.returncode != 0:
+            print(f"{Fore.RED}Build step {step['step']} failed with command: {commands}{Style.RESET_ALL}")
+            return False
+    return True
+
 def run_tests(yaml_path):
     """Run tests defined in the YAML file."""
     with open(yaml_path, 'r') as file:
         config = yaml.safe_load(file)
+
+    if not build(config):
+        print(f"{Fore.RED} Build Failed. Exiting...{Style.RESET_ALL}")
+        sys.exit(1)
 
     log_dir = config['logs']
     os.makedirs(log_dir, exist_ok=True)
@@ -310,14 +326,32 @@ def run_tests(yaml_path):
         else:
             print(f"{Fore.GREEN} PASSED{Style.RESET_ALL}")
 
+        # Terminate all processes
         if cluster_process_handle:
+            docker_down = subprocess.Popen(['docker', 'compose', 'down'], cwd='./kafka')
             cluster_process_handle.terminate()
+            cluster_process_handle.wait()
+            docker_down.wait()
         if master_process_handle:
             master_process_handle.terminate()
+            master_process_handle.wait()
         for handle in server_processes_handles:
-            handle.terminate()
+            handle.send_signal(signal.SIGINT)
+            try:
+                handle.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                print(f"{Fore.YELLOW}Server process did not terminate gracefully, killing it{Style.RESET_ALL}")
+                handle.kill()
+                handle.wait()
+
         for handle in client_processes_handles:
-            handle.terminate()
+            handle.send_signal(signal.SIGINT)
+            try:
+                handle.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                print(f"{Fore.YELLOW}Client process did not terminate gracefully, killing it{Style.RESET_ALL}")
+                handle.kill()
+                handle.wait()
 
 def run_server():
     """Placeholder method to simulate running a server."""

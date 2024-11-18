@@ -1,4 +1,23 @@
 logs: ./build/tmp/automations/logs
+
+build:
+  - step: systems
+    run: |
+      mkdir -p build
+      cd build
+      cmake --preset default -G Ninja ..
+      cmake --build . --target all
+
+  - step: master
+    run: |
+      cd master
+      dotnet build
+
+  - step: clock
+    run: |
+      cd ClockServer
+      dotnet build
+
 test_suites:
   - name: DataReplication
     description: This test checks that the server node can indeed replicate data to the client node.
