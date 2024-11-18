@@ -24,7 +24,7 @@ public:
       std::shared_ptr<kafka::clients::consumer::KafkaConsumer> consumer);
 
   inline int GetNumConsumers() {
-    boost::lock_guard<boost::mutex> lock(*_consumerMutex);
+    // boost::lock_guard<boost::mutex> lock(*_consumerMutex);
     return _consumersAutoPoll.size();
   }
 

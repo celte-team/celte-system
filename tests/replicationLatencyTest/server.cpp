@@ -72,7 +72,7 @@ void runTestLogic() {
 int main() {
   registerHooks();
   RUNTIME.Start(celte::runtime::RuntimeMode::SERVER);
-  RUNTIME.ConnectToCluster("localhost", 80);
+  RUNTIME.ConnectToCluster();
 
   int connectionTimeoutMs = 5000;
   auto connectionTimeout = std::chrono::system_clock::now() +

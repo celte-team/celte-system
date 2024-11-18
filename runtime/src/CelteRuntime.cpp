@@ -153,20 +153,11 @@ void CelteRuntime::ConnectToCluster() {
   if (ip.empty()) {
     throw std::runtime_error("CELTE_CLUSTER_HOST not set");
   }
-  std::size_t pos = ip.find(':');
-  if (pos == std::string::npos) {
-    throw std::runtime_error("CELTE_CLUSTER_HOST must be in the format "
-                             "host:port");
-  }
-  std::string host = ip.substr(0, pos);
-  int port = std::stoi(ip.substr(pos + 1));
-  ConnectToCluster(host, port);
+  int port = 80;
+  ConnectToCluster(ip, port);
 }
 
 void CelteRuntime::ConnectToCluster(const std::string &ip, int port) {
-  // _pool =
-  // std::make_shared<celte::nl::KafkaPool>(celte::nl::KafkaPool::Options{
-  //     .bootstrapServers = ip + std::string(":") + std::to_string(port)});
   _pool = std::make_shared<celte::nl::KPool>(celte::nl::KPool::Options{
       .bootstrapServers = ip + std::string(":") + std::to_string(port)});
 

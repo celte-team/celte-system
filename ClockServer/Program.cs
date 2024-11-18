@@ -12,7 +12,7 @@ namespace GlobalClockService
         {
             var config = new ProducerConfig
             {
-                BootstrapServers = System.Environment.GetEnvironmentVariable("CELTE_HOST_CLUSTER") ?? "localhost:9092"
+                BootstrapServers = System.Environment.GetEnvironmentVariable("CELTE_CLUSTER_HOST") ?? "localhost:9092"
             };
 
             int deltaMs = int.TryParse(System.Environment.GetEnvironmentVariable("CELTE_CLOCK_DELTA_MS"), out var result) ? result : 1000 / 10; // defaults at 10 fps

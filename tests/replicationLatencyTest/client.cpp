@@ -64,7 +64,7 @@ void registerHooks() {
 int main() {
   registerHooks();
   RUNTIME.Start(celte::runtime::RuntimeMode::CLIENT);
-  RUNTIME.ConnectToCluster("localhost", 80);
+  RUNTIME.ConnectToCluster();
 
   int connectionTimeoutMs = 5000;
   auto connectionTimeout = std::chrono::system_clock::now() +
@@ -83,7 +83,6 @@ int main() {
 
   while (true) {
     RUNTIME.Tick();
-    // std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
   return 0;

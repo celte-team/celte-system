@@ -140,18 +140,18 @@ void KPool::CommitSubscriptions() {
   }
 
   // Get the worker with the less work
-  auto minWorker = _consumerWorkers[0];
-  for (auto &worker : _consumerWorkers) {
-    if (worker->GetNumConsumers() < minWorker->GetNumConsumers()) {
-      minWorker = worker;
-    }
-  }
+  // TODO: reintroduce the mutex lock in GetNumConsumers and figure out a way
+  // to avoid the deadlock when finding the min worker
+  auto minWorker =
+      std::min_element(_consumerWorkers.begin(), _consumerWorkers.end(),
+                       [](const auto &a, const auto &b) {
+                         return a->GetNumConsumers() < b->GetNumConsumers();
+                       });
 
-  // Create consumers for the rest of the subscriptions
   auto consumer =
       std::make_shared<kafka::clients::consumer::KafkaConsumer>(_consumerProps);
   consumer->subscribe(topics);
-  minWorker->AddConsumer(consumer);
+  (*minWorker)->AddConsumer(consumer);
 }
 
 void KPool::__initAdminClient() {
