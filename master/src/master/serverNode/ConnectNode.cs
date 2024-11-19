@@ -36,7 +36,7 @@ class ConnectNode
             await _master.kFKProducer._uuidProducerService.OpenTopic(message, 3);
             Console.WriteLine("Topic opened: " + message);
             RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "leChateauDuMechant");
-
+            await AddNode(message);
             // Link node with the server
 
             if (!Redis.RedisClient.GetInstance().redisData.JSONExists("nodes", message))

@@ -30,8 +30,12 @@ namespace Redis {
 
         private RedisClient(string connectionString)
         {
-            _connection = ConnectionMultiplexer.Connect(connectionString);
-            _db = _connection.GetDatabase();
+            try {
+                _connection = ConnectionMultiplexer.Connect(connectionString);
+                _db = _connection.GetDatabase();
+            } catch (Exception ex) {
+                Console.WriteLine($"Error connecting to Redis: {ex.Message}");
+            }
         }
 
         public static RedisClient GetInstance(string connectionString = null)

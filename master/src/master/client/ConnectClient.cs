@@ -18,7 +18,6 @@ class ConnectClient
         string message = System.Text.Encoding.UTF8.GetString(messageByte);
         Console.WriteLine("New client connected to the cluster: " + message);
         _master.kFKProducer._uuidProducerService.OpenTopic(message, numberOfTopics);
-
         try
         {
             // Get the list of nodes from Redis
@@ -28,15 +27,13 @@ class ConnectClient
             {
                 throw new Exception("No nodes available.");
             }
+
             // Generate a random index
             int rand = new Random().Next(0, nodesJson.Count);
-            Console.WriteLine($"nodesJson.Count = {nodesJson.Count}");
             Console.WriteLine($"Random index: {rand}");
 
-            // Retrieve the node ID
+            // // Retrieve the node ID
             string nodeId = nodesJson[rand];
-            Console.WriteLine($" Scope.Peer(nodeId): {Scope.Peer(nodeId)} nodeID : {nodeId}");
-            // Call the function to compute the grapeId then return the values
             string clientId = message;
             string uuidProcess = Guid.NewGuid().ToString();
             const string rpcName = "__rp_getPlayerSpawnPosition";
@@ -47,7 +44,8 @@ class ConnectClient
                 { "rpcUUID", RPC.__str2bytes(uuidProcess) },
                 { "peer.uuid", RPC.__str2bytes(M.Global.MasterUUID) }
             };
-
+            Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
+            await redisClient.redisData.JSONPush("clients_try_to_connect", clientId, clientId);
             await RPC.Call(rpcName, Scope.Peer(nodeId), headers, uuidProcess, async (byte[] value) =>
                 {
                     Console.WriteLine($">>>>>>>>>>> Received response from getPlayerSpawnPosition: {value} <<<<<<<<<<<");
@@ -74,7 +72,6 @@ class ConnectClient
                             z = z
                         };
                         Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
-                        // await redisClient.redisData.JSONSetValueAsync("clients", receivedClientId, jsonInfo);
                         await redisClient.redisData.JSONPush("clients", receivedClientId, jsonInfo);
                     }
                     catch (Exception e)
