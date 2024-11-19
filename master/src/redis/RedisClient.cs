@@ -105,7 +105,6 @@ namespace Redis {
                 }
 
                 // Append the new log entry to the JSON array
-                Console.WriteLine("key: " + key + " logJson: " + logJson);
                 await _db.ExecuteAsync("JSON.ARRAPPEND", key, "$", logJson);
             }
             catch (Exception ex)
@@ -152,7 +151,7 @@ namespace Redis {
             _db.StringIncrement(key);
         }
 
-        public void JSONPush(string key, string field, object value)
+        public async Task<bool> JSONPush(string key, string field, object value)
         {
             if (!_db.KeyExists(key))
             {
@@ -161,10 +160,11 @@ namespace Redis {
 
             string jsonValue = JSONSerializer.Serialize(value);
             Console.WriteLine("key: " + key + " field: " + field + " jsonValue: " + jsonValue);
-            _db.ExecuteAsync("JSON.ARRAPPEND", key, $"$.{field}", jsonValue);
+            await _db.ExecuteAsync("JSON.ARRAPPEND", key, $"$.{field}", jsonValue);
+            return true;
         }
 
-        public async void JSONPush(string key, string field, string value)
+        public async Task<bool> JSONPush(string key, string field, string value)
         {
             try {
                 if (!await _db.KeyExistsAsync(key))
@@ -186,6 +186,7 @@ namespace Redis {
             } catch (Exception ex) {
                 Console.WriteLine($"Error pushing JSON value: {ex.Message}");
             }
+            return true;
         }
 
         public async Task<T> JSONGetAll<T>(string key)
@@ -193,7 +194,6 @@ namespace Redis {
             try
             {
                 var jsonValue = await _db.ExecuteAsync("JSON.GET", key);
-                // string value = jsonValue.ToString();
                 T value = JSONSerializer.Deserialize<T>(jsonValue.ToString());
                 return value;
             }

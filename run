@@ -175,6 +175,16 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+def run_redis_sentinel():
+    """Run the Redis Sentinel Docker container."""
+    # write the EXTERNAL_HOST_IP to the .env file inside the redis file
+    os.chdir('redis')
+    export_env_vars('EXTERNAL_HOST', ip_address)
+    print(f"{Fore.GREEN}Redis Sentinel is running, don't forget to go to http://localhost:5540/ ;){Style.RESET_ALL}")
+    subprocess.run(['docker', 'compose', 'down'])
+    subprocess.run(['docker', 'compose', 'up'])
+    # print in green
+    os.chdir('..')
 
 def run_master():
     """Run the master configuration update."""

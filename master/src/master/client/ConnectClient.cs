@@ -14,30 +14,15 @@ class ConnectClient
 
     public async void connectNewClient(byte[] messageByte)
     {
-        //
         int numberOfTopics = 3;
         string message = System.Text.Encoding.UTF8.GetString(messageByte);
         Console.WriteLine("New client connected to the cluster: " + message);
-
-        // if _clients do not already contain the message, add the message to the _clients
-        // check inside the 'clients' redis if the message exist:
-        // Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
-        // var clients = redisClient.redisData.JSONGet("clients");
-        // Console.WriteLine($"Clients: {clients}");
-        // if (!_clients.ContainsKey(message))
-        //     _clients.Add(message, new Client { uuid = message });
-
         _master.kFKProducer._uuidProducerService.OpenTopic(message, numberOfTopics);
-        // add the topic to the kafka consumer
+
         try
         {
-            // select a random node from the list of nodes
-
-            // int rand = new Random().Next(0, Redis.RedisClient.GetInstance().redisData.JSONGetAll<string>("nodes").Count);
+            // Get the list of nodes from Redis
             var nodesJson = await Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes");
-
-            // string nodeId = ConnectNode._nodes.ElementAt(rand).Value.uuid;
-            // string nodeId = Redis.RedisClient.GetInstance().redisData.JSONGetAll<string>("nodes")[rand].uuid;
 
             if (nodesJson == null || nodesJson.Count == 0)
             {
@@ -45,11 +30,13 @@ class ConnectClient
             }
             // Generate a random index
             int rand = new Random().Next(0, nodesJson.Count);
+            Console.WriteLine($"nodesJson.Count = {nodesJson.Count}");
+            Console.WriteLine($"Random index: {rand}");
 
             // Retrieve the node ID
             string nodeId = nodesJson[rand];
-
-            // call the function to compute the grapeId then return the values
+            Console.WriteLine($" Scope.Peer(nodeId): {Scope.Peer(nodeId)} nodeID : {nodeId}");
+            // Call the function to compute the grapeId then return the values
             string clientId = message;
             string uuidProcess = Guid.NewGuid().ToString();
             const string rpcName = "__rp_getPlayerSpawnPosition";
@@ -66,7 +53,6 @@ class ConnectClient
                     Console.WriteLine($">>>>>>>>>>> Received response from getPlayerSpawnPosition: {value} <<<<<<<<<<<");
                     try
                     {
-                        // Initialiser les variables de sortie
                         string grapeId = string.Empty;
                         string receivedClientId = string.Empty;
                         float x = 0, y = 0, z = 0;
@@ -88,8 +74,8 @@ class ConnectClient
                             z = z
                         };
                         Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
-                        // redisClient.SetValue("clients", jsonSerializer.Serialize(jsonInfo));
-
+                        // await redisClient.redisData.JSONSetValueAsync("clients", receivedClientId, jsonInfo);
+                        await redisClient.redisData.JSONPush("clients", receivedClientId, jsonInfo);
                     }
                     catch (Exception e)
                     {

@@ -48,7 +48,7 @@ class UUIDProducerService : IDisposable
 
 
     // open topic of each UUID
-    public async Task OpenTopic(string uuid, int partitions)
+    public async Task OpenTopic(string uuid, int partitions = 3)
     {
         var bootstrapServers = _master._setupConfig.GetYamlObjectConfig()["kafka_brokers"].ToString();
 

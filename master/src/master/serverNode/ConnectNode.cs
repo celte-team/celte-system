@@ -6,17 +6,23 @@ class ConnectNode
 {
     Master _master = Master.GetInstance();
 
-    // public struct Node
-    // {
-    //     public string uuid;
-    // }
-    // redis variable
-    // public static Dictionary<string, Node> _nodes = new Dictionary<string, Node>();
-
-    // public List<string> GetNodes()
+    /// <summary>
+    /// Get all nodes from redis
+    /// </summary>
+    /// <returns>
+    /// return a System.Collections.Generic.List`1[System.String]
+    /// you can use this to iterate over the list of nodes
+    /// </returns>
     public async Task<List<string>> GetNodes()
     {
         return await Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes");
+    }
+
+    // public async void AddNode(string uuid)
+    public async Task<bool> AddNode(string uuid)
+    {
+        await Redis.RedisClient.GetInstance().redisData.JSONPush("nodes", uuid, uuid);
+        return true;
     }
 
     public async void connectNewNode(byte[] messageByte)
@@ -47,7 +53,6 @@ class ConnectNode
         catch (Exception e)
         {
             Console.WriteLine("Error deserializing message: " + e.Message);
-            Console.WriteLine("Inner exception: " + e.InnerException?.Message);
         }
     }
 }

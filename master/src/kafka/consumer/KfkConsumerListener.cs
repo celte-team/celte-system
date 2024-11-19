@@ -58,7 +58,6 @@ public class KfkConsumerListener : IDisposable
             _rpcFunctions[topic] = new Dictionary<string, Action<byte[]>>();
         }
         _rpcFunctions[topic][requestId] = function;
-        Console.WriteLine($"Registered RPC function for topic {topic}, request ID {requestId}");
     }
 
     public async void AddTopic(string topic, Action<byte[]>? handler, int partitions = 1)
@@ -76,9 +75,7 @@ public class KfkConsumerListener : IDisposable
                     Details = "topic: " + topic
                 }).GetAwaiter().GetResult();
 
-                Console.WriteLine($"Checking if topic {topic} exists...");
                 var metadata = adminClient.GetMetadata(TimeSpan.FromSeconds(10));
-                Console.WriteLine($"Metadata: {metadata.Topics.Count}");
                 if (!metadata.Topics.Any(t => t.Topic == topic))
                 {
                     var topicSpecification = new TopicSpecification
@@ -127,11 +124,9 @@ public class KfkConsumerListener : IDisposable
     {
         try
         {
-            Console.WriteLine("Subscribing to Redis channel...");
             var redisClient = Redis.RedisClient.GetInstance();
             redisClient.Subscribe(RedisChannelTopic, (channel, message) =>
             {
-                Console.WriteLine($"Received !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! message from Redis channel {channel}: {message}");
                 string topic = message;
                 if (_topicHandlers.ContainsKey(topic))
                 {
@@ -139,16 +134,6 @@ public class KfkConsumerListener : IDisposable
                     return;
                 }
                 Console.WriteLine($"Adding topic {topic} from Redis channel...");
-                // AddTopic(topic, null);
-        //                 const topicAction = [{
-        //     topic: M.Global.MasterHelloSn,
-        //     action: connectNode.connectNewNode
-        // }, {
-        //     topic: M.Global.MasterHelloClient,
-        //     action: connectClient.connectNewClient
-        // }]
-                // AddTopic(topic, topicAction[0].action, 1);
-
             });
         }
         catch (Exception e)
@@ -163,7 +148,6 @@ public class KfkConsumerListener : IDisposable
     public void UpdateTopicFromRedisChannel(string topic) {
         try {
             var redisClient = Redis.RedisClient.GetInstance();
-            Console.WriteLine($"Updating topic {topic} from Redis channel123123123...");
             redisClient.redisData.JSONPush(RedisChannelTopic, "$", topic);
         } catch (Exception e) {
             Console.WriteLine($"Error updating topic from Redis channel: {e.Message}");
@@ -181,7 +165,6 @@ public class KfkConsumerListener : IDisposable
                 if (consumeResult != null)
                 {
                     _buffer.Enqueue((consumeResult.Topic, consumeResult.Message.Value, consumeResult.Message.Headers));
-                    // _buffer.Enqueue((consumeResult.Topic, Encoding.ASCII.GetBytes(consumeResult.Message.Value), consumeResult.Message.Headers));
                     string messageString = System.Text.Encoding.UTF8.GetString(consumeResult.Message.Value);
                     Console.WriteLine($"Consumed event from topic {consumeResult.Topic}: value = {messageString}");
                 }
@@ -214,17 +197,14 @@ public class KfkConsumerListener : IDisposable
             {
                 if (_buffer.TryDequeue(out var item))
                 {
-                    // var (topic, message, headers) = item;
                     // give the good type to the variables
                     (string topic, byte[] message, Headers headers) = item;
                     string messageString = System.Text.Encoding.UTF8.GetString(message);
-                    Console.WriteLine($"Processing message from topic {topic}: value = {messageString}");
 
                     // check if the 4 last characters are ".rpc"
                     if (topic.EndsWith(".rpc"))
                     {
                         Console.WriteLine($"Processing RPC message: topic = {topic}, message = {messageString}");
-                        // byte[] messageBytes = Encoding.ASCII.GetBytes(message);
                         for (int i = 0; i < message.Length; i++)
                         {
                             Console.WriteLine($"Message byte {i}: {message[i]}");

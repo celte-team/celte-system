@@ -1,4 +1,7 @@
+container_image: masterceltearm
 cpu: 1
+grapes:
+- LeChateauDuMechant
+- LeChateauDuGentil
+kafka_brokers: 192.168.0.19:80
 memory: 512
-container_image: "masterceltearm"
-kafka_brokers: "192.168.123.159:80"
