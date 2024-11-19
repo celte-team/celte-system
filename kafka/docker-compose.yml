@@ -75,6 +75,8 @@ services:
       context: ../
       dockerfile: ClockServer/Dockerfile
     container_name: clock-celte
+    environment:
+      - CELTE_CLUSTER_HOST=${DOCKER_HOST_IP}
 
   haproxy:
     image: haproxy:2.9
