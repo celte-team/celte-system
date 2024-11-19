@@ -30,9 +30,15 @@ include_directories(include
 set(SOURCES
     test_clock.cpp
     kafka_usage.cpp
+    test_replicator.cpp
 )
 
 add_executable(test_server ${SOURCES})
 target_compile_definitions(test_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
 target_link_libraries(test_server gtest gmock gtest_main msgpack-cxx)
 target_link_libraries(test_server celtesystems_runtime_server)
+
+add_executable(manual_test_replicator test_manual_replicator_pointer.cpp)
+target_compile_definitions(manual_test_replicator PRIVATE -DCELTE_SERVER_MODE_ENABLED)
+target_link_libraries(manual_test_replicator gtest gmock gtest_main msgpack-cxx)
+target_link_libraries(manual_test_replicator celtesystems_runtime_server)
