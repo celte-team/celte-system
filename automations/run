@@ -211,10 +211,10 @@ def run_tests(yaml_path):
         print(f"{Fore.RED} Build Failed. Exiting...{Style.RESET_ALL}")
         sys.exit(1)
 
-    log_dir = config['logs']
-    os.makedirs(log_dir, exist_ok=True)
 
     for suite in config['test_suites']:
+        log_dir = os.path.join(config['logs'], suite['name'])
+        os.makedirs(log_dir, exist_ok=True)
         print(f"{Fore.GREEN}Running test suite: {suite['name']}{Style.RESET_ALL}")
         print(f"{Fore.BLUE}Description: {suite['description']}{Style.RESET_ALL}")
 
@@ -238,6 +238,7 @@ def run_tests(yaml_path):
         if suite.get('cluster') == True:
             print(f"{Fore.GREEN}Starting Kafka cluster{Style.RESET_ALL}")
             cluster_process_handle = run_command(["./automations/run", "--kafka"], os.path.join(log_dir, 'kafka_cluster.log'))
+            print(f"{Fore.GREEN}Cluster logs available at: {Style.RESET_ALL}{os.path.join(log_dir, 'kafka_cluster.log')}")
 
             # Wait for the cluster to be ready
             cluster_log = os.path.join(log_dir, 'kafka_cluster.log')
@@ -248,6 +249,7 @@ def run_tests(yaml_path):
         if suite.get('master') == True:
             print(f"{Fore.GREEN}Starting Celte master{Style.RESET_ALL}")
             master_log = os.path.join(log_dir, f"{suite['name']}_master.log")
+            print(f"{Fore.GREEN}Master logs available at: {Style.RESET_ALL}{master_log}")
             # master_process_handle = run_command("dotnet run --config configFile.yml", master_log, folder="./master")
             master_process_handle = run_command(["dotnet", "run", "--config", "configFile.yml"], master_log, folder="./master")
 
@@ -261,6 +263,7 @@ def run_tests(yaml_path):
             print(f"{Fore.GREEN}Starting {replicas} server replicas{Style.RESET_ALL}")
             for i in range(replicas):
                 server_log = os.path.join(log_dir, f"{suite['name']}_server_{i}.log")
+                print(f"{Fore.GREEN}Server {i} logs available at: {Style.RESET_ALL}{server_log}")
                 # server_process_handle = run_command(f"./automations/run --bin {server_binary}", server_log)
                 handle = run_command(["./automations/run", "--bin", server_binary], server_log)
                 server_processes_handles.append(handle)
@@ -282,6 +285,7 @@ def run_tests(yaml_path):
             print(f"{Fore.GREEN}Starting {replicas} client replicas{Style.RESET_ALL}")
             for i in range(replicas):
                 client_log = os.path.join(log_dir, f"{suite['name']}_client_{i}.log")
+                print(f"{Fore.GREEN}Client {i} logs available at: {Style.RESET_ALL}{client_log}")
                 # client_process_handle = run_command(f"./automations/run --bin {client_binary}", client_log)
                 client_process_handle = run_command(["./automations/run", "--bin", client_binary], client_log)
                 client_processes_handles.append(client_process_handle)

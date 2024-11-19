@@ -158,6 +158,7 @@ void KPool::__initAdminClient() {
   kafka::Properties props;
   props.put("bootstrap.servers", _options.bootstrapServers);
   props.put("retries", "1");
+  props.put("acks", "all");
   _adminClient.emplace(props);
 }
 
@@ -184,6 +185,15 @@ bool KPool::__createTopicIfNotExists(std::set<std::string> &topics,
 
   if (topicsToCreate.size() == 0) {
     return true;
+  }
+
+  {
+    // debug
+    std::cout << "Creating topics " << std::endl;
+    for (auto &topic : topicsToCreate) {
+      std::cout << "\t" << topic << std::endl;
+    }
+    std::cout << std::endl;
   }
 
   auto createResult = _adminClient.value().createTopics(

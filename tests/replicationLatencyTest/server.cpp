@@ -52,7 +52,9 @@ void registerHooks() {
     entity = std::make_shared<celte::CelteEntity>();
     entity->SetInformationToLoad("test");
     entity->OnSpawn(x, y, z, clientId);
-    entity->RegisterActiveProperty("property", property);
+    property = 0;
+    entity->RegisterActiveProperty("property", &property);
+    std::cout << "pointer to property is " << &property << std::endl;
 
     entitySpawnTimePoint = std::chrono::system_clock::now();
 
@@ -63,8 +65,9 @@ void registerHooks() {
 void runTestLogic() {
   // if entity has spawned more that 10 seconds ago, change property every tick.
   if (std::chrono::system_clock::now() - entitySpawnTimePoint >
-      std::chrono::seconds(10)) {
-    property++;
+          std::chrono::seconds(10) and
+      property == 0) {
+    property = 1;
   }
 }
 

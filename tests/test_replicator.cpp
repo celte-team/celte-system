@@ -10,8 +10,8 @@ protected:
   Replicator replicator;
 
   void SetUp() override {
-    replicator.registerValue("key1", data1);
-    replicator.registerValue("key2", data2);
+    replicator.registerValue("key1", &data1);
+    replicator.registerValue("key2", &data2);
   }
 
 public:
@@ -28,7 +28,7 @@ TEST_F(ReplicatorTest, GetBlob) {
   replicator.notifyDataChanged("key1");
   Replicator::ReplBlob blob = replicator.GetBlob();
 
-  EXPECT_FALSE(blob.data.empty());
+  EXPECT_FALSE(blob.empty());
 }
 
 TEST_F(ReplicatorTest, CorrectDataInBlob) {
@@ -37,9 +37,9 @@ TEST_F(ReplicatorTest, CorrectDataInBlob) {
   Replicator::ReplBlob blob = replicator.GetBlob();
 
   msgpack::unpacker unpacker;
-  unpacker.reserve_buffer(blob.data.size());
-  std::memcpy(unpacker.buffer(), blob.data.data(), blob.data.size());
-  unpacker.buffer_consumed(blob.data.size());
+  unpacker.reserve_buffer(blob.size());
+  std::memcpy(unpacker.buffer(), blob.data(), blob.size());
+  unpacker.buffer_consumed(blob.size());
 
   msgpack::object_handle oh;
   unpacker.next(oh);
@@ -68,7 +68,7 @@ TEST_F(ReplicatorTest, InvalidRegister) {
 
   int newData = 100;
   EXPECT_THROW(
-      { replicator.registerValue("key1", newData); }, std::runtime_error);
+      { replicator.registerValue("key1", &newData); }, std::runtime_error);
 }
 
 TEST_F(ReplicatorTest, ResetDataChanged) {
@@ -79,14 +79,14 @@ TEST_F(ReplicatorTest, ResetDataChanged) {
 
   // Check if the hasChanged flag is reset (indirectly by checking GetBlob)
   Replicator::ReplBlob blob = replicator.GetBlob();
-  EXPECT_TRUE(blob.data.empty());
+  EXPECT_TRUE(blob.empty());
 }
 
 // Edge case: No data changed
 TEST_F(ReplicatorTest, GetBlobNoDataChanged) {
   Replicator::ReplBlob blob = replicator.GetBlob();
 
-  EXPECT_TRUE(blob.data.empty());
+  EXPECT_TRUE(blob.empty());
 }
 
 // Edge case: Overwrite with empty blob

@@ -62,8 +62,8 @@ void registerHooks() {
     entity = std::make_shared<celte::CelteEntity>();
     entity->SetInformationToLoad("test");
     entity->OnSpawn(x, y, z, clientId);
-    entity->RegisterProperty("x", x);
-    entity->RegisterActiveProperty("activeX", activeX);
+    entity->RegisterProperty("x", &x);
+    entity->RegisterActiveProperty("activeX", &activeX);
 
     entitySpawnTimePoint = std::chrono::system_clock::now();
 
