@@ -29,6 +29,7 @@
 #include "CelteHooks.hpp"
 #include "CelteRPC.hpp"
 #include "KPool.hpp"
+#include "CelteInputSystem.hpp"
 #include "Logger.hpp"
 #include "tinyfsm.hpp"
 #include "topics.hpp"
@@ -58,6 +59,7 @@ using Services =
 #define HOOKS celte::runtime::CelteRuntime::GetInstance().Hooks()
 #define RPC celte::runtime::CelteRuntime::GetInstance().RPCTable()
 #define KPOOL celte::runtime::CelteRuntime::GetInstance().KPool()
+#define CINPUT celte::runtime::CelteRuntime::GetInstance().CelteInput()
 #define CLOCK celte::runtime::CelteRuntime::GetInstance().GetClock()
 #define ENTITIES celte::runtime::CelteRuntime::GetInstance().GetEntityManager()
 
@@ -209,6 +211,15 @@ public:
   // nl::KafkaPool &KPool();
   nl::KPool &KPool();
 
+
+  /**
+   * @brief Returns a reference to the KafkaPool used to send and receive
+   * messages from kafka. If the kafka pool is not initialized, throws an
+   * std::logic_error.
+   */
+  // nl::KafkaPool &KPool();
+  CelteInputSystem &CelteInput();
+
   /**
    * @brief Returns a reference to the hook table.
    */
@@ -277,6 +288,9 @@ private:
   // kafka
   // std::shared_ptr<nl::KafkaPool> _pool;
   std::shared_ptr<nl::KPool> _pool;
+
+  // Input ptr 
+  std::shared_ptr<CelteInputSystem> _inputs;
 
   // Hooks table
   api::HooksTable _hooks;

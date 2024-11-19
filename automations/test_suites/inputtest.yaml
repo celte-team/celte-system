@@ -1,0 +1,44 @@
+logs: ./build/tmp/automations/logs
+
+build:
+  - step: systems
+    run: |
+      mkdir -p build
+      cd build
+      if [ -z "$(ls -A .)" ]; then cmake --preset default -G Ninja ..; fi
+      cmake --build . --target all
+
+  - step: master
+    run: |
+      cd master
+      /home/ebriand/dotnet/dotnet build
+
+  - step: clock
+    run: |
+      cd ClockServer
+      /home/ebriand/dotnet/dotnet build
+
+test_suites:
+  - name: DataReplication
+    description: This test checks that the server node can indeed replicate data to the client node.
+    timeout-seconds: 50
+
+    cluster: yes
+    master: yes
+
+    servers:
+      binary: ./build/tests/InputSystemTest/server_input
+      replicas: 1
+
+    clients:
+      binary: ./build/tests/InputSystemTest/client_input
+      replicas: 1
+      wait-servers:
+        regex: ">> Grape has been loaded <<"
+        timeout-seconds: 20
+
+    expects:
+      servers:
+        - ".*| input name: move forward.*"
+
+      clients:

@@ -22,21 +22,25 @@ CONTAINER_NAME = "clmt/celte_server"
 env = os.environ.copy()
 current_process = None
 
+
 def check_dependencies():
     """Check if Docker is installed and running."""
     try:
-        result = subprocess.run(['docker', 'ps'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.run(
+            ['docker', 'ps'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode != 0:
             raise FileNotFoundError("Docker command failed")
     except FileNotFoundError:
         print(f"{Fore.RED}Docker is not installed or not running. Please install or start Docker.{Style.RESET_ALL}")
         sys.exit(1)
 
+
 def get_ip_address():
     """Retrieve the IP address of the host machine."""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
+        # ip = s.getsockname()[0] + ':' + str(s.getsockname()[1])
         ip = s.getsockname()[0]
         print(f"{Fore.GREEN}Host IP Address: {ip}{Style.RESET_ALL}")
         s.close()
@@ -44,6 +48,7 @@ def get_ip_address():
     except Exception as e:
         print(f"{Fore.RED}Failed to get IP address: {e}{Style.RESET_ALL}")
         sys.exit(1)
+
 
 def run_docker_kafka():
     global current_process
@@ -56,29 +61,35 @@ def run_docker_kafka():
     current_process.wait()
     os.chdir('..')
 
+
 def run_docker_cpp():
     """Run the C++ Docker container."""
     global current_process
-    images = subprocess.run(['docker', 'images'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    images = subprocess.run(['docker', 'images'],
+                            stdout=subprocess.PIPE).stdout.decode('utf-8')
     images = images.split('\n')
 
-    uuid = subprocess.run(['uuidgen'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip().replace('-', '_')
+    uuid = subprocess.run(['uuidgen'], stdout=subprocess.PIPE).stdout.decode(
+        'utf-8').strip().replace('-', '_')
     name = 'celte_server_' + uuid
     print(f'Creating container {name}')
     export_env_vars("CELTE_SERVER_CONTAINER", name)
+    print("IPPPPPPPPPPPPPPPPPPPPPPPP: ", ip_address)
     current_process = subprocess.Popen(['docker', 'run',
-                    # '-v', f'{os.getcwd()}:/celte-system',
-                    '-v', f'{os.getcwd()}/../celte-godot:/celte-godot', #../celte-godot
-                    '-v', '/tmp/.X11-unix:/tmp/.X11-unix',
-                    '-e', f'CELTE_CLUSTER_HOST={ip_address}',
-                    '-e', f'DISPLAY={os.environ["DISPLAY"]}',
-                    # '--device', '/dev/dri',
-                    '--name', name,
-                    '-it', CONTAINER_NAME,
-                    '/bin/bash'])
+                                        # '-v', f'{os.getcwd()}:/celte-system',
+                                        # ../celte-godot
+                                        '-v', f'{os.getcwd()}/../celte-godot:/celte-godot',
+                                        '-v', '/tmp/.X11-unix:/tmp/.X11-unix',
+                                        '-e', f'CELTE_CLUSTER_HOST={ip_address}',
+                                        '-e', f'DISPLAY={os.environ["DISPLAY"]}',
+                                        # '--device', '/dev/dri',
+                                        '--name', name,
+                                        '-it', CONTAINER_NAME,
+                                        '/bin/bash'])
     current_process.wait()
     # execute this command when the container is started
     # ./automations/setup_repository.sh ~/celte-godot/gdprojects/p1/gdproj
+
 
 def join_docker_cpp():
     """Join an existing C++ Docker container."""
@@ -87,10 +98,12 @@ def join_docker_cpp():
     container_name = env_vars.get('CELTE_SERVER_CONTAINER')
     if (container_name):
         print(f'Joining container [{container_name}]')
-        current_process = subprocess.Popen(['docker', 'exec', '-it', container_name, '/bin/bash'])
+        current_process = subprocess.Popen(
+            ['docker', 'exec', '-it', container_name, '/bin/bash'])
         current_process.wait()
     else:
         print(f"{Fore.RED}No container found to join.{Style.RESET_ALL}")
+
 
 def export_env_vars(key, value):
     """Export environment variables to a .env file."""
@@ -110,6 +123,7 @@ def export_env_vars(key, value):
         if not found:
             f.write(f'{key}={value}\n')
 
+
 def get_env_vars():
     """Get environment variables from the .env file."""
     env_vars = {}
@@ -120,11 +134,13 @@ def get_env_vars():
                 env_vars[key] = value
     return env_vars
 
+
 def build_docker_image():
     """Build the Docker image for the C++ project."""
     global current_process
     if platform.system() == 'Darwin':
-        build_command = ['docker', 'buildx', 'build', '--platform', 'linux/amd64', '-t', CONTAINER_NAME, '.', '--output', 'type=docker']
+        build_command = ['docker', 'buildx', 'build', '--platform',
+                         'linux/amd64', '-t', CONTAINER_NAME, '.', '--output', 'type=docker']
     else:
         build_command = ['docker', 'build', '-t', CONTAINER_NAME, '.']
 
@@ -134,6 +150,7 @@ def build_docker_image():
         print(f"{Fore.RED}Failed to build Docker image{Style.RESET_ALL}")
         sys.exit(1)
 
+
 def run_binary(binary_path):
     """Run a binary with the environment set to connect to the Celte cluster."""
     global current_process
@@ -141,16 +158,19 @@ def run_binary(binary_path):
     current_process = subprocess.Popen([binary_path], env=env)
     current_process.wait()
 
+
 def run_command(command, log_file, folder=None):
     """Run a command and pipe the output to a log file."""
     if folder:
         with open(log_file, 'w') as log:
-            process = subprocess.Popen(command, stdout=log, stderr=log, cwd=folder)
+            process = subprocess.Popen(
+                command, stdout=log, stderr=log, cwd=folder)
             return process
     else:
         with open(log_file, 'w') as log:
             process = subprocess.Popen(command, stdout=log, stderr=log)
             return process
+
 
 def wait_for_log(log_file, regex, timeout_seconds, **kwargs):
     """Wait for a regex to appear in a log file within a timeout period."""
@@ -158,7 +178,8 @@ def wait_for_log(log_file, regex, timeout_seconds, **kwargs):
     pattern = re.compile(regex)
     start_time = time.time()
     while time.time() - start_time < timeout_seconds:
-        print(f"{Fore.GREEN}Waiting for logs...{Style.RESET_ALL} {wheel[int(time.time()) % 4]}", end='\r')
+        print(
+            f"{Fore.GREEN}Waiting for logs...{Style.RESET_ALL} {wheel[int(time.time()) % 4]}", end='\r')
         with open(log_file, 'r') as log:
             for line in log:
                 if pattern.search(line):
@@ -166,6 +187,7 @@ def wait_for_log(log_file, regex, timeout_seconds, **kwargs):
         time.sleep(1)
     print(f"{Fore.RED}Timeout waiting for log in {log_file}{Style.RESET_ALL}")
     return False
+
 
 def wait_for_all_logs(log_file, regexes, timeout_seconds):
     """Wait for all regexes to appear in a log file within a timeout period."""
@@ -176,12 +198,14 @@ def wait_for_all_logs(log_file, regexes, timeout_seconds):
     wheel = ['-', '\\', '|', '/']
 
     while time.time() - start_time < timeout_seconds or found_patterns == n_patterns_to_find:
-        print(f"{Fore.GREEN}Waiting for logs... {Style.RESET_ALL}{wheel[int(time.time()) % 4]}", end='\r')
+        print(
+            f"{Fore.GREEN}Waiting for logs... {Style.RESET_ALL}{wheel[int(time.time()) % 4]}", end='\r')
         with open(log_file, 'r') as log:
             for line in log:
                 for pattern in patterns:
                     if pattern.search(line):
-                        print(f"{Fore.GREEN}Found pattern: {Fore.BLUE}{pattern.pattern}{Style.RESET_ALL}")
+                        print(
+                            f"{Fore.GREEN}Found pattern: {Fore.BLUE}{pattern.pattern}{Style.RESET_ALL}")
                         patterns.remove(pattern)
                         found_patterns += 1
         if found_patterns == n_patterns_to_find:
@@ -189,6 +213,7 @@ def wait_for_all_logs(log_file, regexes, timeout_seconds):
         time.sleep(1)
     print(f"{Fore.RED}Timeout waiting for logs in {log_file}{Style.RESET_ALL}")
     return False
+
 
 def build(config):
     """Build the project using the build steps defined in the configuration."""
@@ -198,9 +223,11 @@ def build(config):
         print(f"Executing: {commands}")
         result = subprocess.run(commands, shell=True, cwd=os.getcwd())
         if result.returncode != 0:
-            print(f"{Fore.RED}Build step {step['step']} failed with command: {commands}{Style.RESET_ALL}")
+            print(
+                f"{Fore.RED}Build step {step['step']} failed with command: {commands}{Style.RESET_ALL}")
             return False
     return True
+
 
 def run_tests(yaml_path):
     """Run tests defined in the YAML file."""
@@ -211,22 +238,25 @@ def run_tests(yaml_path):
         print(f"{Fore.RED} Build Failed. Exiting...{Style.RESET_ALL}")
         sys.exit(1)
 
-
     for suite in config['test_suites']:
         log_dir = os.path.join(config['logs'], suite['name'])
         os.makedirs(log_dir, exist_ok=True)
-        print(f"{Fore.GREEN}Running test suite: {suite['name']}{Style.RESET_ALL}")
-        print(f"{Fore.BLUE}Description: {suite['description']}{Style.RESET_ALL}")
+        print(
+            f"{Fore.GREEN}Running test suite: {suite['name']}{Style.RESET_ALL}")
+        print(
+            f"{Fore.BLUE}Description: {suite['description']}{Style.RESET_ALL}")
 
         server_binary = suite['servers']['binary']
         client_binary = suite['clients']['binary']
 
         if not os.path.exists(server_binary):
-            print(f"{Fore.RED}Server binary not found: {server_binary}{Style.RESET_ALL}")
+            print(
+                f"{Fore.RED}Server binary not found: {server_binary}{Style.RESET_ALL}")
             print(f"{Fore.RED} FAILED{Style.RESET_ALL}")
             continue
         if not os.path.exists(client_binary):
-            print(f"{Fore.RED}Client binary not found: {client_binary}{Style.RESET_ALL}")
+            print(
+                f"{Fore.RED}Client binary not found: {client_binary}{Style.RESET_ALL}")
             print(f"{Fore.RED} FAILED{Style.RESET_ALL}")
             continue
 
@@ -237,35 +267,44 @@ def run_tests(yaml_path):
 
         if suite.get('cluster') == True:
             print(f"{Fore.GREEN}Starting Kafka cluster{Style.RESET_ALL}")
-            cluster_process_handle = run_command(["./automations/run", "--kafka"], os.path.join(log_dir, 'kafka_cluster.log'))
-            print(f"{Fore.GREEN}Cluster logs available at: {Style.RESET_ALL}{os.path.join(log_dir, 'kafka_cluster.log')}")
+            cluster_process_handle = run_command(
+                ["./automations/run", "--kafka"], os.path.join(log_dir, 'kafka_cluster.log'))
+            print(
+                f"{Fore.GREEN}Cluster logs available at: {Style.RESET_ALL}{os.path.join(log_dir, 'kafka_cluster.log')}")
 
             # Wait for the cluster to be ready
             cluster_log = os.path.join(log_dir, 'kafka_cluster.log')
             if not wait_for_log(cluster_log, r'.*3 active.*', suite.get('timeout-seconds', 60)):
-                print(f"{Fore.RED}Timeout waiting for Kafka cluster to be ready{Style.RESET_ALL}")
+                print(
+                    f"{Fore.RED}Timeout waiting for Kafka cluster to be ready{Style.RESET_ALL}")
                 sys.exit(1)
 
         if suite.get('master') == True:
             print(f"{Fore.GREEN}Starting Celte master{Style.RESET_ALL}")
             master_log = os.path.join(log_dir, f"{suite['name']}_master.log")
-            print(f"{Fore.GREEN}Master logs available at: {Style.RESET_ALL}{master_log}")
+            print(
+                f"{Fore.GREEN}Master logs available at: {Style.RESET_ALL}{master_log}")
             # master_process_handle = run_command("dotnet run --config configFile.yml", master_log, folder="./master")
-            master_process_handle = run_command(["dotnet", "run", "--config", "configFile.yml"], master_log, folder="./master")
+            master_process_handle = run_command(
+                ["/home/ebriand/dotnet/dotnet", "run", "--config", "configFile.yml"], master_log, folder="./master")
 
             # Wait for the master to be ready
             if not wait_for_log(master_log, r"Press Ctrl\+C to exit\.\.\.", suite.get('timeout-seconds', 60)):
-                print(f"{Fore.RED}Timeout waiting for Celte master to be ready{Style.RESET_ALL}")
+                print(
+                    f"{Fore.RED}Timeout waiting for Celte master to be ready{Style.RESET_ALL}")
                 sys.exit(1)
 
         if suite.get('servers'):
             replicas = suite['servers'].get('replicas', 1)
             print(f"{Fore.GREEN}Starting {replicas} server replicas{Style.RESET_ALL}")
             for i in range(replicas):
-                server_log = os.path.join(log_dir, f"{suite['name']}_server_{i}.log")
-                print(f"{Fore.GREEN}Server {i} logs available at: {Style.RESET_ALL}{server_log}")
+                server_log = os.path.join(
+                    log_dir, f"{suite['name']}_server_{i}.log")
+                print(
+                    f"{Fore.GREEN}Server {i} logs available at: {Style.RESET_ALL}{server_log}")
                 # server_process_handle = run_command(f"./automations/run --bin {server_binary}", server_log)
-                handle = run_command(["./automations/run", "--bin", server_binary], server_log)
+                handle = run_command(
+                    ["./automations/run", "--bin", server_binary], server_log)
                 server_processes_handles.append(handle)
 
         # Wait for the servers to be ready
@@ -275,26 +314,32 @@ def run_tests(yaml_path):
             regex = wait_servers['regex']
             timeout_seconds = wait_servers.get('timeout-seconds', 60)
             for i in range(replicas):
-                server_log = os.path.join(log_dir, f"{suite['name']}_server_{i}.log")
+                server_log = os.path.join(
+                    log_dir, f"{suite['name']}_server_{i}.log")
                 if not wait_for_log(server_log, regex, timeout_seconds):
-                    print(f"{Fore.RED}Timeout waiting for server {i} to be ready{Style.RESET_ALL}")
+                    print(
+                        f"{Fore.RED}Timeout waiting for server {i} to be ready{Style.RESET_ALL}")
                     sys.exit(1)
 
         if suite.get('clients'):
             replicas = suite['clients'].get('replicas', 1)
             print(f"{Fore.GREEN}Starting {replicas} client replicas{Style.RESET_ALL}")
             for i in range(replicas):
-                client_log = os.path.join(log_dir, f"{suite['name']}_client_{i}.log")
-                print(f"{Fore.GREEN}Client {i} logs available at: {Style.RESET_ALL}{client_log}")
+                client_log = os.path.join(
+                    log_dir, f"{suite['name']}_client_{i}.log")
+                print(
+                    f"{Fore.GREEN}Client {i} logs available at: {Style.RESET_ALL}{client_log}")
                 # client_process_handle = run_command(f"./automations/run --bin {client_binary}", client_log)
-                client_process_handle = run_command(["./automations/run", "--bin", client_binary], client_log)
+                client_process_handle = run_command(
+                    ["./automations/run", "--bin", client_binary], client_log)
                 client_processes_handles.append(client_process_handle)
 
         def check_logs(log_file, regexes, timeout_seconds, failed_lock, failed_flag):
             if not wait_for_all_logs(log_file, regexes, timeout_seconds):
                 with failed_lock:
                     failed_flag[0] = True
-                print(f"{Fore.RED}Timeout waiting for expected logs in {log_file}{Style.RESET_ALL}")
+                print(
+                    f"{Fore.RED}Timeout waiting for expected logs in {log_file}{Style.RESET_ALL}")
 
         failed_lock = threading.Lock()
         failed_flag = [False]
@@ -305,8 +350,10 @@ def run_tests(yaml_path):
         if suite.get('expects') and suite['expects'].get('servers'):
             expected_server_logs = suite['expects']['servers']
             for i in range(replicas):
-                server_log = os.path.join(log_dir, f"{suite['name']}_server_{i}.log")
-                thread = threading.Thread(target=check_logs, args=(server_log, expected_server_logs, suite.get('timeout-seconds', 60), failed_lock, failed_flag))
+                server_log = os.path.join(
+                    log_dir, f"{suite['name']}_server_{i}.log")
+                thread = threading.Thread(target=check_logs, args=(
+                    server_log, expected_server_logs, suite.get('timeout-seconds', 60), failed_lock, failed_flag))
                 threads.append(thread)
                 thread.start()
 
@@ -314,8 +361,10 @@ def run_tests(yaml_path):
         if suite.get('expects') and suite['expects'].get('clients'):
             expected_client_logs = suite['expects']['clients']
             for i in range(replicas):
-                client_log = os.path.join(log_dir, f"{suite['name']}_client_{i}.log")
-                thread = threading.Thread(target=check_logs, args=(client_log, expected_client_logs, suite.get('timeout-seconds', 60), failed_lock, failed_flag))
+                client_log = os.path.join(
+                    log_dir, f"{suite['name']}_client_{i}.log")
+                thread = threading.Thread(target=check_logs, args=(
+                    client_log, expected_client_logs, suite.get('timeout-seconds', 60), failed_lock, failed_flag))
                 threads.append(thread)
                 thread.start()
 
@@ -332,7 +381,8 @@ def run_tests(yaml_path):
 
         # Terminate all processes
         if cluster_process_handle:
-            docker_down = subprocess.Popen(['docker', 'compose', 'down'], cwd='./kafka')
+            docker_down = subprocess.Popen(
+                ['docker', 'compose', 'down'], cwd='./kafka')
             cluster_process_handle.terminate()
             cluster_process_handle.wait()
             docker_down.wait()
@@ -344,7 +394,8 @@ def run_tests(yaml_path):
             try:
                 handle.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                print(f"{Fore.YELLOW}Server process did not terminate gracefully, killing it{Style.RESET_ALL}")
+                print(
+                    f"{Fore.YELLOW}Server process did not terminate gracefully, killing it{Style.RESET_ALL}")
                 handle.kill()
                 handle.wait()
 
@@ -353,22 +404,27 @@ def run_tests(yaml_path):
             try:
                 handle.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                print(f"{Fore.YELLOW}Client process did not terminate gracefully, killing it{Style.RESET_ALL}")
+                print(
+                    f"{Fore.YELLOW}Client process did not terminate gracefully, killing it{Style.RESET_ALL}")
                 handle.kill()
                 handle.wait()
+
 
 def run_server():
     """Placeholder method to simulate running a server."""
     print("Server is running...")
 
+
 def run_client():
     """Placeholder method to simulate running a client."""
     print("Client is running...")
+
 
 def signal_handler(sig, frame):
     if current_process:
         current_process.terminate()
     sys.exit(0)
+
 
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -383,11 +439,13 @@ launcher = {
     '--test': run_tests
 }
 
+
 def usage():
     """Print the usage of the script."""
     print("Usage: runDocker [command], where command is one of the following:")
     for key in launcher:
         print(f"\t{key}")
+
 
 if __name__ == "__main__":
     try:
@@ -405,7 +463,8 @@ if __name__ == "__main__":
         if command in launcher:
             if command == '--bin':
                 if len(sys.argv) < 3:
-                    print(f"{Fore.RED}Error: --bin requires a binary path argument{Style.RESET_ALL}")
+                    print(
+                        f"{Fore.RED}Error: --bin requires a binary path argument{Style.RESET_ALL}")
                     usage()
                     sys.exit(1)
                 binary_path = sys.argv[2]
@@ -413,7 +472,8 @@ if __name__ == "__main__":
                 break
             elif command == '--test':
                 if len(sys.argv) < 3:
-                    print(f"{Fore.RED}Error: --test requires a YAML file path argument{Style.RESET_ALL}")
+                    print(
+                        f"{Fore.RED}Error: --test requires a YAML file path argument{Style.RESET_ALL}")
                     usage()
                     sys.exit(1)
                 yaml_path = sys.argv[2]
