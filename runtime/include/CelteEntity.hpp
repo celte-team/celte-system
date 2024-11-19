@@ -103,7 +103,7 @@ public:
    * watched actively, use RegisterActiveProperty instead.
    */
   template <typename T>
-  void RegisterProperty(const std::string &name, T &prop) {
+  void RegisterProperty(const std::string &name, T *prop) {
     _replicator.registerValue(name, prop);
   }
 
@@ -119,7 +119,7 @@ public:
    * bandwidth, use RegisterProperty instead.
    */
   template <typename T>
-  void RegisterActiveProperty(const std::string &name, T &prop) {
+  void RegisterActiveProperty(const std::string &name, T *prop) {
     _replicator.registerActiveValue(name, prop);
   }
 

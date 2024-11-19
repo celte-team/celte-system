@@ -26,7 +26,6 @@ void Replicator::ResetDataChanged() {
 }
 
 void Replicator::Overwrite(const ReplBlob &blob, bool active) {
-  std::cout << "Overwriting data" << std::endl;
   size_t offset = 0;
   msgpack::unpacker unpacker;
   unpacker.reserve_buffer(blob.size());
@@ -40,47 +39,24 @@ void Replicator::Overwrite(const ReplBlob &blob, bool active) {
   }
 }
 
-void Replicator::__overwriteActiveData(const ReplBlob &blob,
-                                       msgpack::unpacker &unpacker) {
-  msgpack::object_handle oh;
-  while (unpacker.next(oh)) {
-    msgpack::object obj = oh.get();
-    std::string key;
-    size_t dataSize;
-    msgpack::type::raw_ref rawData;
-
-    unpacker.next(oh);
-    oh.get().convert(dataSize);
-    unpacker.next(oh);
-    oh.get().convert(rawData);
-
-    auto it = _activeReplicatedData.find(key);
-    if (it != _activeReplicatedData.end()) {
-      std::memcpy(it->second.dataPtr, rawData.ptr, dataSize);
-      it->second.hash = __computeCheckSum(it->second.dataPtr, dataSize);
-    }
-  }
-}
-
 void Replicator::__overwriteData(const ReplBlob &blob,
                                  msgpack::unpacker &unpacker) {
   msgpack::object_handle oh;
   while (unpacker.next(oh)) {
     msgpack::object obj = oh.get();
     std::string key;
-    size_t dataSize;
-    msgpack::type::raw_ref rawData;
+    std::string rawData;
 
     obj.convert(key);
-    unpacker.next(oh);
-    oh.get().convert(dataSize);
     unpacker.next(oh);
     oh.get().convert(rawData);
 
     auto it = _replicatedData.find(key);
     if (it != _replicatedData.end()) {
-      std::memcpy(it->second.dataPtr, rawData.ptr, dataSize);
+      std::memcpy(it->second.dataPtr, rawData.data(), rawData.size());
       it->second.hasChanged = false;
+    } else {
+      throw std::runtime_error("Key not found in data: " + key);
     }
   }
 }
@@ -96,9 +72,9 @@ Replicator::ReplBlob Replicator::GetBlob() {
   for (const auto &entry : _replicatedData) {
     if (entry.second.hasChanged) {
       packer.pack(entry.first);
-      packer.pack(entry.second.dataSize);
-      packer.pack(msgpack::type::raw_ref(
-          static_cast<char *>(entry.second.dataPtr), entry.second.dataSize));
+      std::string binData(static_cast<char *>(entry.second.dataPtr),
+                          entry.second.dataSize);
+      packer.pack(binData);
     }
   }
   blob.assign(sbuf.data(), sbuf.size()); // Assign the serialized data to blob
@@ -113,20 +89,51 @@ Replicator::ReplBlob Replicator::GetActiveBlob() {
   if (_activeReplicatedData.size() == 0) {
     return blob;
   }
-  for (auto &entry : _activeReplicatedData) {
-    int checksum =
-        __computeCheckSum(entry.second.dataPtr, entry.second.dataSize);
-    if (entry.second.hash != checksum) {
-      entry.second.hash = checksum;
-      packer.pack(entry.first);
-      packer.pack(entry.second.dataSize);
-      packer.pack(msgpack::type::raw_ref(
-          static_cast<char *>(entry.second.dataPtr), entry.second.dataSize));
+  for (auto &[key, replData] : _activeReplicatedData) {
+    int checksum = __computeCheckSum(replData.dataPtr, replData.dataSize);
+    if (replData.hash != checksum) {
+      replData.hash = checksum;
+      packer.pack(key);
+      std::string binData(static_cast<char *>(replData.dataPtr),
+                          replData.dataSize);
+      packer.pack(binData);
     }
   }
   blob.assign(sbuf.data(), sbuf.size());
   return blob;
 };
+
+void Replicator::__overwriteActiveData(const ReplBlob &blob,
+                                       msgpack::unpacker &unpacker) {
+
+  { // debug
+    std::cout << "blob contents (unpack): ";
+    // print byte per byte in hex
+    for (size_t i = 0; i < blob.size(); i++) {
+      std::cout << std::hex << (int)blob[i] << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  msgpack::object_handle oh;
+  while (unpacker.next(oh)) {
+    msgpack::object obj = oh.get();
+    std::string key;
+    std::string rawData;
+
+    obj.convert(key);
+    unpacker.next(oh);
+    oh.get().convert(rawData);
+
+    auto it = _activeReplicatedData.find(key);
+    if (it != _activeReplicatedData.end()) {
+      std::memcpy(it->second.dataPtr, rawData.data(), rawData.size());
+      it->second.hash = __computeCheckSum(it->second.dataPtr, rawData.size());
+    } else {
+      throw std::runtime_error("Key not found in active data: " + key);
+    }
+  }
+}
 
 int Replicator::__computeCheckSum(void *dataPtr, size_t size) {
   int hash = 0;

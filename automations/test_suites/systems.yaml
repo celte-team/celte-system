@@ -5,7 +5,7 @@ build:
     run: |
       mkdir -p build
       cd build
-      cmake --preset default -G Ninja ..
+      if [ -z "$(ls -A .)" ]; then cmake --preset default -G Ninja ..; fi
       cmake --build . --target all
 
   - step: master
@@ -43,4 +43,4 @@ test_suites:
 
       clients:
         - ">> Called exec spawn hook <<"
-        # - ">> property updated to * <<"
+        - ">> property changed to 1 <<"

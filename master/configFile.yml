@@ -4,4 +4,4 @@ container_image: "masterceltearm"
 kafka_brokers: "localhost:80"
 grapes:
   - LeChateauDuMechant
-  - LeChateauDuGentil
+  # - LeChateauDuGentil
