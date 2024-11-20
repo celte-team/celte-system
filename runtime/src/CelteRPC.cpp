@@ -10,6 +10,7 @@ void Table::InvokeLocal(kafka::clients::consumer::ConsumerRecord record) {
   try {
     // we try to execute the rpc
     std::string rpName = __getHdrValue__(record, "rpName");
+    std::cout << "RPC: invoking " << rpName << std::endl;
     __tryInvokeRPC(record, rpName);
 
     // if no rpc with this name is found, it might be an answer to a previous

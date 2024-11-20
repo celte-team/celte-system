@@ -49,8 +49,8 @@ void Connected::__unregisterRPCs() {
 }
 
 void Connected::__rp_assignGrape(std::string grapeId) {
-  HOOKS.server.grape.loadGrape(grapeId, true);
   __registerGrapeConsumers(grapeId);
+  // HOOKS.server.grape.loadGrape(grapeId, true);
 }
 
 void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
@@ -65,6 +65,7 @@ void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
 void Connected::__rp_onSpawnRequested(const std::string &clientId, float x,
                                       float y, float z) {
   // TODO: check if this spawn is legal
+  std::cout << "in __onspawnrequested" << std::endl;
   auto chunkId = GRAPES.GetGrapeByPosition(x, y, z)
                      .GetChunkByPosition(x, y, z)
                      .GetCombinedId();
@@ -78,11 +79,15 @@ void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
 
 void Connected::__registerGrapeConsumers(const std::string &grapeId) {
   try {
-    KPOOL.Subscribe({
-        .topics{grapeId + "." + tp::RPCs},
-        .autoCreateTopic = true,
-        .callbacks{[this](auto r) { RPC.InvokeLocal(r); }},
-    });
+    KPOOL.Subscribe(
+        {.topics{grapeId + "." + tp::RPCs},
+         .autoCreateTopic = true,
+         .callbacks{[this](auto r) { RPC.InvokeLocal(r); }},
+         .then = [grapeId]() {
+           std::cout << "__registerGrapeConsumer.then -> loading the grape"
+                     << std::endl;
+           HOOKS.server.grape.loadGrape(grapeId, true);
+         }});
     KPOOL.CommitSubscriptions();
   } catch (kafka::KafkaException &e) {
     std::cerr << "Error in __registerGrapeConsumers: " << e.what() << std::endl;

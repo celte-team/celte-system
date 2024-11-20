@@ -106,15 +106,6 @@ Replicator::ReplBlob Replicator::GetActiveBlob() {
 void Replicator::__overwriteActiveData(const ReplBlob &blob,
                                        msgpack::unpacker &unpacker) {
 
-  { // debug
-    std::cout << "blob contents (unpack): ";
-    // print byte per byte in hex
-    for (size_t i = 0; i < blob.size(); i++) {
-      std::cout << std::hex << (int)blob[i] << " ";
-    }
-    std::cout << std::endl;
-  }
-
   msgpack::object_handle oh;
   while (unpacker.next(oh)) {
     msgpack::object obj = oh.get();
