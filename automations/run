@@ -331,14 +331,6 @@ def run_tests(yaml_path):
             print(f"{Fore.GREEN} PASSED{Style.RESET_ALL}")
 
         # Terminate all processes
-        if cluster_process_handle:
-            docker_down = subprocess.Popen(['docker', 'compose', 'down'], cwd='./kafka')
-            cluster_process_handle.terminate()
-            cluster_process_handle.wait()
-            docker_down.wait()
-        if master_process_handle:
-            master_process_handle.terminate()
-            master_process_handle.wait()
         for handle in server_processes_handles:
             handle.send_signal(signal.SIGINT)
             try:
@@ -356,6 +348,14 @@ def run_tests(yaml_path):
                 print(f"{Fore.YELLOW}Client process did not terminate gracefully, killing it{Style.RESET_ALL}")
                 handle.kill()
                 handle.wait()
+        if master_process_handle:
+            master_process_handle.terminate()
+            master_process_handle.wait()
+        if cluster_process_handle:
+            docker_down = subprocess.Popen(['docker', 'compose', 'down'], cwd='./kafka')
+            cluster_process_handle.terminate()
+            cluster_process_handle.wait()
+            docker_down.wait()
 
 def run_server():
     """Placeholder method to simulate running a server."""

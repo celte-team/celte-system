@@ -19,23 +19,6 @@ void Connecting::entry() {
   }
 
   __subscribeToTopics();
-
-  KPOOL.CommitSubscriptions();
-
-  KPOOL.Send({
-      .topic = celte::tp::MASTER_HELLO_CLIENT,
-      .value = RUNTIME.GetUUID(),
-      .onDelivered =
-          [this](auto metadata, auto error) {
-            if (error) {
-              HOOKS.client.connection.onConnectionError();
-              HOOKS.client.connection.onClientDisconnected();
-              transit<Disconnected>();
-            } else {
-              dispatch(EConnectionSuccess());
-            }
-          },
-  });
 }
 
 void Connecting::exit() {
@@ -58,16 +41,27 @@ void Connecting::__subscribeToTopics() {
   RUNTIME.GetClock().Init();
 
   // creating a listener for RPCs related to this client as a whole
-  KPOOL.Subscribe({
-      .topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
-      .autoCreateTopic = true,
-      .callbacks{[this](auto r) { RPC.InvokeLocal(r); }},
-  });
-
-  // creating a listener for RPCs related to the client as a whole
   KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
                    .autoCreateTopic = true,
-                   .callbacks = {[this](auto r) { RPC.InvokeLocal(r); }}});
+                   .callbacks{[this](auto r) { RPC.InvokeLocal(r); }},
+
+                   .then = [this]() {
+                     KPOOL.Send({
+                         .topic = celte::tp::MASTER_HELLO_CLIENT,
+                         .value = RUNTIME.GetUUID(),
+                         .onDelivered =
+                             [this](auto metadata, auto error) {
+                               if (error) {
+                                 HOOKS.client.connection.onConnectionError();
+                                 HOOKS.client.connection.onClientDisconnected();
+                                 transit<Disconnected>();
+                               } else {
+                                 dispatch(EConnectionSuccess());
+                               }
+                             },
+                     });
+                   }});
+  KPOOL.CommitSubscriptions();
 }
 } // namespace states
 } // namespace client
