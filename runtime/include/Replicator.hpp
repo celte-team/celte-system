@@ -1,5 +1,6 @@
 #pragma once
 #include "unordered_map"
+#include <iostream>
 #include <msgpack.hpp>
 #include <stdexcept>
 #include <string>
@@ -89,11 +90,12 @@ public:
    * will be sent over the network without needing to call notifyDataChanged.
    */
   template <typename T>
-  void registerActiveValue(const std::string &name, T &value) {
+  void registerActiveValue(const std::string &name, T *value) {
     if (_activeReplicatedData.find(name) != _activeReplicatedData.end()) {
       throw std::runtime_error("Value already registered: " + name);
     }
-    ActiveReplData replData = {sizeof(value), &value, false};
+    ActiveReplData replData = {
+        .dataSize = sizeof(T), .dataPtr = value, .hash = 0};
     _activeReplicatedData[name] = replData;
   }
 

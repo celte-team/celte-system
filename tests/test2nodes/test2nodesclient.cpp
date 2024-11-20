@@ -68,8 +68,8 @@ void registerHooks() {
     // no information to load because not on server side
     entity->OnSpawn(x, y, z, clientId);
 
-    entity->RegisterProperty("x", x);
-    entity->RegisterActiveProperty("activeX", activeX);
+    entity->RegisterProperty("x", &x);
+    entity->RegisterActiveProperty("activeX", &activeX);
     return true;
   };
 }

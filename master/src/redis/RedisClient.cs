@@ -33,6 +33,7 @@ namespace Redis {
             try {
                 _connection = ConnectionMultiplexer.Connect(connectionString);
                 _db = _connection.GetDatabase();
+                Console.WriteLine("Connected to Redis");
             } catch (Exception ex) {
                 Console.WriteLine($"Error connecting to Redis: {ex.Message}");
             }

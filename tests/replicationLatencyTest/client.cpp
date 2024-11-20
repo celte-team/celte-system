@@ -8,6 +8,7 @@
 
 static std::shared_ptr<celte::CelteEntity> entity = nullptr;
 static int property = 0;
+static bool propertyChanged = false;
 
 void loadGrape() {
   std::string grapeName("LeChateauDuMechant");
@@ -52,13 +53,23 @@ void registerHooks() {
               << ", " << z << std::endl;
     // Create a new entity
     entity = std::make_shared<celte::CelteEntity>();
-    std::cout << "calling on spawn" << std::endl;
+    std::cout << ">> Called exec spawn hook <<" << std::endl;
     // no information to load because not on server side
     entity->OnSpawn(x, y, z, clientId);
 
-    entity->RegisterActiveProperty("property", property);
+    entity->RegisterActiveProperty("property", &property);
     return true;
   };
+}
+
+void runTestLogic() {
+  if (not propertyChanged) {
+    if (property != 0) {
+      std::cout << ">> property changed to " << property << " <<" << std::endl;
+      propertyChanged = true;
+      return;
+    }
+  }
 }
 
 int main() {
@@ -83,6 +94,7 @@ int main() {
 
   while (true) {
     RUNTIME.Tick();
+    runTestLogic();
   }
 
   return 0;

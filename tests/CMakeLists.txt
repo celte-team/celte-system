@@ -30,6 +30,7 @@ include_directories(include
 set(SOURCES
     test_clock.cpp
     kafka_usage.cpp
+    test_replicator.cpp
 )
 
 add_executable(test_server ${SOURCES})
