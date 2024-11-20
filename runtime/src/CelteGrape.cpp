@@ -75,23 +75,19 @@ void Grape::__subdivide() {
   KPOOL.CreateTopicsIfNotExist(rpcTopics, 1, 1);
 #endif
 
-  // Subscribe to chunk rpc topics. This is common between server and client.
+  std::vector<std::string> topics;
+  topics.insert(topics.end(), rpcTopics.begin(), rpcTopics.end());
+  if (not _options.isLocallyOwned) {
+    topics.insert(topics.end(), replTopics.begin(), replTopics.end());
+    ENTITIES.RegisterReplConsumer(replTopics);
+  }
+
   KPOOL.Subscribe({
-      .topics = rpcTopics, .groupId = "", .autoCreateTopic = false,
-      // callbacks are already set in the chunk Initialize method
+      .topics = topics, .autoCreateTopic = false,
+      // callbacks are already set in the chunk Initialize method and
+      // ENTITIES.RegisterReplConsumer
   });
   KPOOL.CommitSubscriptions();
-
-  // Client consumer from replication topic (or server if not locally owned)
-  if (not _options.isLocallyOwned) {
-    // Replication needs to be reactive so we'll use a dedicated thread
-    KPOOL.Subscribe({.topics = replTopics,
-                     .groupId = "",
-                     .autoCreateTopic = false,
-                     .useDedicatedThread = true});
-    ENTITIES.RegisterReplConsumer(replTopics);
-    KPOOL.CommitSubscriptions();
-  }
 }
 
 GrapeStatistics Grape::GetStatistics() const {

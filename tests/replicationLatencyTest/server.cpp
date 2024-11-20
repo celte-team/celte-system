@@ -10,6 +10,7 @@ static std::shared_ptr<celte::CelteEntity> entity = nullptr;
 std::chrono::time_point<std::chrono::system_clock> entitySpawnTimePoint =
     std::chrono::system_clock::now();
 static int property = 0;
+static bool spawn = false;
 
 void loadGrape() {
   std::string grapeName("LeChateauDuMechant");
@@ -52,21 +53,21 @@ void registerHooks() {
     entity = std::make_shared<celte::CelteEntity>();
     entity->SetInformationToLoad("test");
     entity->OnSpawn(x, y, z, clientId);
-    property = 0;
     entity->RegisterActiveProperty("property", &property);
-    std::cout << "pointer to property is " << &property << std::endl;
-
     entitySpawnTimePoint = std::chrono::system_clock::now();
+    spawn = true;
 
     return true;
   };
 }
 
 void runTestLogic() {
-  // if entity has spawned more that 10 seconds ago, change property every tick.
+  // if entity has spawned more that 10 seconds ago, change property once.
   if (std::chrono::system_clock::now() - entitySpawnTimePoint >
           std::chrono::seconds(10) and
-      property == 0) {
+      property == 0 and spawn) {
+    // spawn) {
+    std::cout << "property set to one on server side" << std::endl;
     property = 1;
   }
 }

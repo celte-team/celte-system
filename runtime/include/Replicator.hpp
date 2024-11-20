@@ -1,5 +1,6 @@
 #pragma once
 #include "unordered_map"
+#include <iostream>
 #include <msgpack.hpp>
 #include <stdexcept>
 #include <string>

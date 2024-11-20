@@ -24,19 +24,16 @@ TEST(KPoolV2, CreateAndSubscribeToLists) {
 
   kpool.Subscribe({
       .topics = {"topic1", "topic2"},
-      .groupId = "group1",
       .autoCreateTopic = true,
   });
 
   kpool.Subscribe({
       .topics = {"topic3", "topic4"},
-      .groupId = "",
       .autoCreateTopic = true,
   });
 
   kpool.Subscribe({
       .topics = {"topic5", "topic6", "topic7", "topic8", "topic9"},
-      .groupId = "",
       .autoCreateTopic = true,
   });
 
@@ -44,7 +41,6 @@ TEST(KPoolV2, CreateAndSubscribeToLists) {
 
   kpool.Subscribe({
       .topics = {"topic10", "topic11", "topic12"},
-      .groupId = "",
       .autoCreateTopic = true,
   });
 
