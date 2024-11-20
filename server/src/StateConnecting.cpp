@@ -30,20 +30,7 @@ void Connecting::entry() {
     KPOOL.CommitSubscriptions();
 
     std::cout << "Registersing self as " << RUNTIME.GetUUID() << std::endl;
-    KPOOL.Send({
-        .topic = celte::tp::MASTER_HELLO_SN,
-        .value = RUNTIME.GetUUID(),
-        .onDelivered =
-            [this](auto metadata, auto error) {
-              if (error) {
-                HOOKS.server.connection.onConnectionError();
-                HOOKS.server.connection.onServerDisconnected();
-                transit<Disconnected>();
-              } else {
-                dispatch(EConnectionSuccess());
-              }
-            },
-    });
+
   } catch (kafka::KafkaException &e) {
     std::cerr << "Error in Connecting::entry: " << e.what() << std::endl;
     HOOKS.server.connection.onConnectionError();

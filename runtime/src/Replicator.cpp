@@ -46,8 +46,7 @@ void Replicator::__overwriteActiveData(const ReplBlob &blob,
   while (unpacker.next(oh)) {
     msgpack::object obj = oh.get();
     std::string key;
-    size_t dataSize;
-    msgpack::type::raw_ref rawData;
+    std::string rawData;
 
     unpacker.next(oh);
     oh.get().convert(dataSize);
@@ -77,10 +76,12 @@ void Replicator::__overwriteData(const ReplBlob &blob,
     unpacker.next(oh);
     oh.get().convert(rawData);
 
-    auto it = _replicatedData.find(key);
-    if (it != _replicatedData.end()) {
-      std::memcpy(it->second.dataPtr, rawData.ptr, dataSize);
-      it->second.hasChanged = false;
+    auto it = _activeReplicatedData.find(key);
+    if (it != _activeReplicatedData.end()) {
+      std::memcpy(it->second.dataPtr, rawData.data(), rawData.size());
+      it->second.hash = __computeCheckSum(it->second.dataPtr, rawData.size());
+    } else {
+      throw std::runtime_error("Key not found in active data: " + key);
     }
   }
 }

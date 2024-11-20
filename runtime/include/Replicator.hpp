@@ -75,11 +75,11 @@ public:
    * @brief Registers a value to be replicated.
    *
    */
-  template <typename T> void registerValue(const std::string &name, T &value) {
+  template <typename T> void registerValue(const std::string &name, T *value) {
     if (_replicatedData.find(name) != _replicatedData.end()) {
       throw std::runtime_error("Value already registered: " + name);
     }
-    ReplData replData = {sizeof(value), &value, false};
+    ReplData replData = {sizeof(T), value, false};
     _replicatedData[name] = replData;
   }
 

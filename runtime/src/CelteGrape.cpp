@@ -92,6 +92,26 @@ void Grape::__subdivide() {
     ENTITIES.RegisterReplConsumer(replTopics);
     KPOOL.CommitSubscriptions();
   }
+
+// Server creates replication topics
+#ifdef CELTE_SERVER_MODE_ENABLED
+  KPOOL.CreateTopicsIfNotExist(replTopics, 1, 1);
+  KPOOL.CreateTopicsIfNotExist(rpcTopics, 1, 1);
+#endif
+
+  std::vector<std::string> topics;
+  topics.insert(topics.end(), rpcTopics.begin(), rpcTopics.end());
+  if (not _options.isLocallyOwned) {
+    topics.insert(topics.end(), replTopics.begin(), replTopics.end());
+    ENTITIES.RegisterReplConsumer(replTopics);
+  }
+
+  KPOOL.Subscribe({
+      .topics = topics, .autoCreateTopic = false,
+      // callbacks are already set in the chunk Initialize method and
+      // ENTITIES.RegisterReplConsumer
+  });
+  KPOOL.CommitSubscriptions();
 }
 
 GrapeStatistics Grape::GetStatistics() const {

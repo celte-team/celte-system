@@ -51,6 +51,7 @@ void Connected::__unregisterRPCs() {
 void Connected::__rp_assignGrape(std::string grapeId) {
   HOOKS.server.grape.loadGrape(grapeId, true);
   __registerGrapeConsumers(grapeId);
+  // HOOKS.server.grape.loadGrape(grapeId, true);
 }
 
 void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
@@ -65,6 +66,7 @@ void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
 void Connected::__rp_onSpawnRequested(const std::string &clientId, float x,
                                       float y, float z) {
   // TODO: check if this spawn is legal
+  std::cout << "in __onspawnrequested" << std::endl;
   auto chunkId = GRAPES.GetGrapeByPosition(x, y, z)
                      .GetChunkByPosition(x, y, z)
                      .GetCombinedId();
