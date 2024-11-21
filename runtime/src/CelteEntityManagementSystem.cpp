@@ -150,6 +150,19 @@ void CelteEntityManagementSystem::__handleReplicationDataReceived(
     try {
       CelteEntity &entity = GetEntity(entityId);
       entity.DownloadReplicationData(blob, active);
+#ifdef CELTE_SERVER_MODE_ENABLED
+      if (active)
+        HOOKS.server.replication.onActiveReplicationDataReceived(entityId,
+                                                                 blob);
+      else
+        HOOKS.server.replication.onReplicationDataReceived(entityId, blob);
+#else
+      if (active)
+        HOOKS.client.replication.onActiveReplicationDataReceived(entityId,
+                                                                 blob);
+      else
+        HOOKS.client.replication.onReplicationDataReceived(entityId, blob);
+#endif
     } catch (std::out_of_range &e) {
       logs::Logger::getInstance().err()
           << "Entity " << entityId << " not found."

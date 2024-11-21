@@ -19,6 +19,33 @@ build:
       dotnet build
 
 test_suites:
+
+  - name: SingleNodeTest
+    description: this checks tests if a client can spawn in a single node server.
+    timeout-seconds:  50
+
+    cluster: yes
+    master: yes
+
+    servers:
+      binary: ./build/tests/single_node_poc/test_server_single_node
+      replicas: 1
+
+    clients:
+      binary: ./build/tests/single_node_poc/test_client_single_node
+      replicas: 1
+      wait-servers:
+        regex: ">> Grape loaded << "
+        timeout-seconds: 20
+
+    expects:
+      servers:
+        - ">> Player spawned << "
+
+      clients:
+        - ">> Player spawned << "
+
+
   - name: DataReplication
     description: This test checks that the server node can indeed replicate data to the client node.
     timeout-seconds: 50

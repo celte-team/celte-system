@@ -82,8 +82,19 @@ void Grape::__subdivide() {
     ENTITIES.RegisterReplConsumer(replTopics);
   }
 
+  std::function<void()> then = nullptr;
+  if (not _options.isLocallyOwned) {
+    then = [this]() {
+      // request the SN managing the node to udpate us with the data we need to
+      // load the existing entities in the grape
+      std::cout << "requesting existing entities summary" << std::endl;
+      RPC.InvokeByTopic(_options.grapeId, "__rp_sendExistingEntitiesSummary",
+                        RUNTIME.GetUUID(), _options.grapeId);
+    };
+  }
+
   KPOOL.Subscribe({
-      .topics = topics, .autoCreateTopic = false,
+      .topics = topics, .autoCreateTopic = false, .then = then,
       // callbacks are already set in the chunk Initialize method and
       // ENTITIES.RegisterReplConsumer
   });

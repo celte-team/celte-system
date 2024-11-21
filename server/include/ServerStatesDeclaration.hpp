@@ -162,6 +162,15 @@ class Connected : public AServer {
   __rp_getPlayerSpawnPosition(const std::string &clientInfo);
 
   /**
+   * @brief This rp is called by the client when it is ready to spawn, connected
+   * to the grape and ready to play. The client has to be connected to chunk
+   * topics before calling this rp to ensure that no data created after the
+   * execution of this procedure is lost.
+   */
+  void __rp_sendExistingEntitiesSummary(std::string clientId,
+                                        std::string grapeId);
+
+  /**
    * @brief stores the clients that are under this node's authority.
    * Clients are added using the __rp_acceptNewClient RPC and removed
    * using the __rp_disconnectPlayer RPC. Disconnection happends when they

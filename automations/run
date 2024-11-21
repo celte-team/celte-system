@@ -188,6 +188,7 @@ def wait_for_all_logs(log_file, regexes, timeout_seconds):
             return True
         time.sleep(1)
     print(f"{Fore.RED}Timeout waiting for logs in {log_file}{Style.RESET_ALL}")
+    print(f"{Fore.RED}Patterns not found: {Fore.BLUE}{[pattern.pattern for pattern in patterns]}{Style.RESET_ALL}")
     return False
 
 def build(config):

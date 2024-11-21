@@ -114,15 +114,6 @@ bool KPool::__createTopicIfNotExists(std::set<std::string> &topics,
     return true;
   }
 
-  {
-    // debug
-    std::cout << "Creating topics " << std::endl;
-    for (auto &topic : topicsToCreate) {
-      std::cout << "\t" << topic << std::endl;
-    }
-    std::cout << std::endl;
-  }
-
   auto createResult = _adminClient->createTopics(
       topicsToCreate, numPartitions, replicationFactor, kafka::Properties(),
       std::chrono::milliseconds(1000));
@@ -208,6 +199,15 @@ void KPool::Subscribe(const SubscribeOptions &options) {
     for (int i = 0; i < options.topics.size(); i++) {
       _callbacks[options.topics[i]] = options.callbacks[i];
     }
+  }
+
+  {
+    // debug
+    std::cout << "subscribing to topics" << std::endl;
+    for (const auto &topic : options.topics) {
+      std::cout << "  - " << topic << std::endl;
+    }
+    std::cout << std::endl;
   }
 
   // push the topics to the list of incoming subscriptions

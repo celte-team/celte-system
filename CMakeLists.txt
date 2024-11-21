@@ -36,6 +36,7 @@ add_subdirectory(tests/single_node_poc)
 add_subdirectory(tests/test_authority_transfer)
 add_subdirectory(tests/test2nodes)
 add_subdirectory(tests/replicationLatencyTest)
+add_subdirectory(tests/basicMultiplayerGame)
 
 # Find and configure RdKafka
 find_package(RdKafka CONFIG REQUIRED)
