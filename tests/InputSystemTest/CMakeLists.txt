@@ -46,4 +46,4 @@ set(SOURCES_CLIENT
 
 add_executable(client_input ${SOURCES_CLIENT})
 target_link_libraries(client_input gtest gtest_main)
-target_link_libraries(client_input celtesystems_runtime_client msgpack-cxx RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} glm::glm)
+target_link_libraries(client_input celtesystems_runtime_client msgpack-cxx RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} glm::glm Boost::json)

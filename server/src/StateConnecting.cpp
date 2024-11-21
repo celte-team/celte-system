@@ -17,33 +17,32 @@ void Connecting::entry() {
   try {
     RUNTIME.GetClock().Init();
 
-    // creating a listener for RPCs related to this server node as a whole
-    KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
-                     .autoCreateTopic = true,
-                     .callbacks{[this](auto r) { RPC.InvokeLocal(r); }}});
+    KPOOL.Subscribe(
+        {.topics = {RUNTIME.GetUUID() + "." + celte::tp::RPCs},
+         .autoCreateTopic = true,
+         .callbacks = {[this](auto r) { RPC.InvokeLocal(r); }},
 
-    // creating a listener for RPCs related to the server node as a whole
-    KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
-                     .autoCreateTopic = true,
-                     .callbacks{[this](auto r) { RPC.InvokeLocal(r); }}});
+         .then = [this]() {
+           KPOOL.Send({
+               .topic = celte::tp::MASTER_HELLO_SN,
+               .value = RUNTIME.GetUUID(),
+               .onDelivered =
+                   [this](auto metadata, auto error) {
+                     if (error) {
+                       HOOKS.server.connection.onConnectionError();
+                       HOOKS.server.connection.onServerDisconnected();
+                       transit<Disconnected>();
+                     } else {
+                       dispatch(EConnectionSuccess());
+                     }
+                   },
+           });
+         }});
 
     KPOOL.CommitSubscriptions();
 
     std::cout << "Registersing self as " << RUNTIME.GetUUID() << std::endl;
-    KPOOL.Send({
-        .topic = celte::tp::MASTER_HELLO_SN,
-        .value = RUNTIME.GetUUID(),
-        .onDelivered =
-            [this](auto metadata, auto error) {
-              if (error) {
-                HOOKS.server.connection.onConnectionError();
-                HOOKS.server.connection.onServerDisconnected();
-                transit<Disconnected>();
-              } else {
-                dispatch(EConnectionSuccess());
-              }
-            },
-    });
+
   } catch (kafka::KafkaException &e) {
     std::cerr << "Error in Connecting::entry: " << e.what() << std::endl;
     HOOKS.server.connection.onConnectionError();

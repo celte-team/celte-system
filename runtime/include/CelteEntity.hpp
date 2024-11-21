@@ -68,6 +68,7 @@ namespace celte {
          */
         inline celte::chunks::Chunk& GetOwnerChunk() const
         {
+
             if (_ownerChunk == nullptr) {
                 throw std::out_of_range("Entity is not owned by any chunk.");
             }
@@ -158,7 +159,7 @@ namespace celte {
 
         /**
          * @brief Send input status to kafka
-         * 
+         *
          * @param inputName std::string of input
          * @param pressed   bool status of the input (true is down, false is up)
          */

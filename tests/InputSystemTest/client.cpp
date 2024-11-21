@@ -10,7 +10,7 @@
 
 static std::shared_ptr<celte::CelteEntity> entity = nullptr;
 static int property = 0;
-static bool propertyChanged = false;
+static bool Spawned = false;
 
 void loadGrape()
 {
@@ -40,7 +40,7 @@ void registerHooks()
     };
     HOOKS.client.connection.onReadyToSpawn = [](const std::string& grapeId,
                                                  float x, float y, float z) {
-        std::cout << "Client is ready to spawn" << std::endl;
+        std::cout << "Client is ready to spawn : " << grapeId << std::endl;
         RUNTIME.RequestSpawn(RUNTIME.GetUUID(), grapeId, x, y, z);
         return true;
     };
@@ -62,16 +62,32 @@ void registerHooks()
         entity->OnSpawn(x, y, z, clientId);
 
         entity->RegisterActiveProperty("property", &property);
+        Spawned = true;
         return true;
     };
+
+    HOOKS.client.grape.onLoadExistingEntities = [](std::string grapeId,
+                                                    boost::json::array summary) {
+        std::cout << ">> CLIENT LOADING EXISTING ENTITIES <<" << std::endl;
+
+        return true;
+    };
+
+    HOOKS.client.replication.onActiveReplicationDataReceived =
+        [](std::string entityId, std::string blob) {
+            std::cout << "Replication data received" << std::endl;
+        };
 }
 
 void runTestLogic()
 {
     static bool status = true;
-    entity->sendInputToKafka("move forward", status);
-    usleep(5000000);
-    status = !status;
+    if (Spawned) {
+        printf("Inside test logic\n");
+        entity->sendInputToKafka("move forward", status);
+        usleep(5000000);
+        status = !status;
+    }
 }
 
 int main()
@@ -97,6 +113,8 @@ int main()
         RUNTIME.Tick();
         runTestLogic();
     }
+
+    printf("FINISH PUTE\n");
 
     return 0;
 }

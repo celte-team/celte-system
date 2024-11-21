@@ -19,6 +19,9 @@
 #include "kafka/Properties.h"
 #include "kafka/Types.h"
 
+#include <iostream>
+#include <string>
+
 namespace celte {
     namespace runtime {
         CelteInputSystem::CelteInputSystem()
@@ -33,13 +36,19 @@ namespace celte {
                     // updating the entity
                     topic,
                     [this, topic](const kafka::clients::consumer::ConsumerRecord& record) {
+                        printf("Inside Callback\n");
+
                         std::string resultSerialized(static_cast<const char*>(record.value().data()),
                             record.value().size());
                         std::string name;
                         bool pressed;
-                        celte::rpc::unpack<std::string, bool>(resultSerialized, name, pressed);
+                        std::string topic2;
 
-                        handleInput(topic.substr(0, topic.find('.')), name, pressed);
+                        celte::rpc::unpack<std::string, bool>(resultSerialized, name, pressed);
+                        if (topic.size() >= 6 && topic.substr(topic.size() - 6) == ".input")
+                            topic.copy(topic2.data(), topic.size() - 6, 0);
+
+                        handleInput(topic2, name, pressed);
                     });
             }
         }

@@ -54,9 +54,23 @@ void registerClientHooks(const std::string &clientId) {
 
   HOOKS.client.player.execPlayerSpawn = [](std::string clientId, int x, int y,
                                            int z) {
-    std::cout << "Spawning player " << clientId << " at " << x << ", " << y
-              << ", " << z << std::endl;
-    // engine.SpawnPlayer(clientId); ~ or something equivalent
+    std::cout << ">> Player spawned << " << std::endl;
+    return true;
+  };
+
+  HOOKS.client.grape.loadGrape = [](std::string grapeId) {
+    celte::chunks::GrapeOptions grapeOptions{.grapeId = "LeChateauDuMechant",
+                                             .subdivision = 1,
+                                             .position = glm::vec3(0, 0, 0),
+                                             .size = glm::vec3(10, 10, 10),
+                                             .localX = glm::vec3(1, 0, 0),
+                                             .localY = glm::vec3(0, 1, 0),
+                                             .localZ = glm::vec3(0, 0, 1),
+                                             .isLocallyOwned = false};
+
+    celte::chunks::Grape &grape =
+        celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
+            .RegisterGrape(grapeOptions);
     return true;
   };
 }
@@ -86,7 +100,8 @@ int main(int ac, char **av) {
   runtime.Start(celte::runtime::RuntimeMode::CLIENT);
   runtime.ConnectToCluster(ip, 80);
 
-  // wait 10 ms for the connection to be established, and a uuid to be available
+  // wait 10 ms for the connection to be established, and a uuid to be
+  // available
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   // waiting for the client to be connected to the cluster, the Tick() call

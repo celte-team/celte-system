@@ -42,7 +42,25 @@ void registerServerHooks() {
     return std::make_tuple("LeChateauDuMechant", clientId, 0, 0, 0);
   };
   HOOKS.server.grape.loadGrape = [](std::string grapeId, bool isLocallyOwned) {
-#include "COMMON_SETUP.cpp"
+    celte::chunks::GrapeOptions grapeOptions{.grapeId = "LeChateauDuMechant",
+                                             .subdivision = 1,
+                                             .position = glm::vec3(0, 0, 0),
+                                             .size = glm::vec3(10, 10, 10),
+                                             .localX = glm::vec3(1, 0, 0),
+                                             .localY = glm::vec3(0, 1, 0),
+                                             .localZ = glm::vec3(0, 0, 1),
+                                             .isLocallyOwned = isLocallyOwned};
+
+    celte::chunks::Grape &grape =
+        celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
+            .RegisterGrape(grapeOptions);
+    std::cout << ">> Grape loaded << " << std::endl;
+    return true;
+  };
+
+  HOOKS.server.newPlayerConnected.execPlayerSpawn = [](std::string clientId,
+                                                       int x, int y, int z) {
+    std::cout << ">> Player spawned << " << std::endl;
     return true;
   };
 }

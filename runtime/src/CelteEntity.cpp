@@ -21,11 +21,13 @@ namespace celte {
 
     void CelteEntity::OnSpawn(float x, float y, float z, const std::string& uuid)
     {
+        std::cout << "I TRY LOADING THE CHUNK\n";
         try {
             auto& chunk = chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
                               .GetGrapeByPosition(x, y, z)
                               .GetChunkByPosition(x, y, z);
             OnChunkTakeAuthority(chunk);
+            std::cout << "I M LOADING THE CHUNK\n";
         } catch (std::out_of_range& e) {
             RUNTIME.Err() << "Entity is not in any grape: " << e.what() << std::endl;
         }
@@ -109,9 +111,16 @@ namespace celte {
         packer.pack(pressed);
 
         std::string value(sbuf.data(), sbuf.size());
-        std::string chunkId = GetOwnerChunk().GetCombinedId();
 
-        KPOOL.Send({ .topic = chunkId + "." + tp::INPUT, .value = value });
+        std::string chunkId = GetOwnerChunk().GetCombinedId();
+        std::string cp;
+
+        chunkId.copy(cp.data(), chunkId.size(), 0);
+        cp += "." + tp::INPUT;
+
+        std::cout << "Send message to " << chunkId << std::endl;
+
+        KPOOL.Send({ .topic = chunkId, .value = value });
     }
 
 } // namespace celte

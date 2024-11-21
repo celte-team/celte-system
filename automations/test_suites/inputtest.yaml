@@ -19,7 +19,7 @@ build:
       /home/ebriand/dotnet/dotnet build
 
 test_suites:
-  - name: DataReplication
+  - name: Input
     description: This test checks that the server node can indeed replicate data to the client node.
     timeout-seconds: 50
 
@@ -39,6 +39,6 @@ test_suites:
 
     expects:
       servers:
-        - ".*| input name: move forward.*"
+        - ".* input name: move forward.*"
 
       clients:

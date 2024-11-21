@@ -5,131 +5,206 @@
 #include <atomic>
 #include <boost/thread.hpp>
 #include <functional>
+#include <future>
 #include <kafka/AdminClient.h>
 #include <kafka/KafkaConsumer.h>
 #include <kafka/KafkaProducer.h>
 #include <memory>
 #include <optional>
+#include <shared_mutex>
 #include <unordered_map>
 #include <vector>
 
 namespace celte {
 namespace nl {
+
 /**
- * @brief This class manages sending, receiving and processing messages from
- * Kafka. It handles creating consumers and producers.
+ * @class KPool
+ * @brief Manages Kafka producer and consumer operations.
  */
 class KPool {
-  friend class kafka::clients::consumer::KafkaConsumer;
-  friend class kafka::clients::producer::KafkaProducer;
-
-  // clang-format off
-/* -------------------------------------------------------------------------- */
-/*                          HELPER STRUCTS AND ENUMS                          */
-/* -------------------------------------------------------------------------- */
-  // clang-format on
-
 public:
   /**
-   * @brief This structure is used when initializing the KPool, to pass
+   * @struct Options
+   * @brief Configuration options for KPool.
    */
   struct Options {
-    std::string bootstrapServers = "localhost:80";
-    int numGeneralPurposeConsumerThreads = 4;
+    std::string bootstrapServers = "localhost:80"; ///< Kafka bootstrap servers.
   };
 
+  /**
+   * @struct SubscriptionTask
+   * @brief Represents a subscription task.
+   */
   struct SubscriptionTask {
-    std::string consumerGroupId = "";
-    kafka::Topics newSubscriptions = {};
-    bool useDedicatedThread = false;
+    kafka::Topics newSubscriptions = {}; ///< New subscriptions.
+    std::function<void()> then =
+        nullptr; ///< Callback to execute after subscription.
   };
 
   using MessageCallback = std::function<void(
       const kafka::clients::consumer::ConsumerRecord &record)>;
 
+  /**
+   * @struct SubscribeOptions
+   * @brief Options for subscribing to topics.
+   */
   struct SubscribeOptions {
-    std::vector<std::string> topics = std::vector<std::string>();
-    std::string groupId = "";
-    bool autoCreateTopic = true;
-    std::vector<MessageCallback> callbacks = {};
-    bool useDedicatedThread = false;
+    std::vector<std::string> topics =
+        std::vector<std::string>(); ///< Topics to subscribe to.
+    bool autoCreateTopic =
+        true; ///< Automatically create topics if they do not exist.
+    std::vector<MessageCallback> callbacks = {}; ///< Callbacks for each topic.
+    std::function<void()> then =
+        nullptr; ///< Callback to execute after subscription.
   };
 
+  /**
+   * @struct SendOptions
+   * @brief Options for sending messages.
+   */
   struct SendOptions {
-    std::string topic = "";
-    std::map<std::string, std::string> headers = {};
-    std::string value = "";
+    std::string topic = ""; ///< Topic to send the message to.
+    std::map<std::string, std::string> headers =
+        {};                 ///< Headers for the message.
+    std::string value = ""; ///< Message value.
     std::function<void(const kafka::clients::producer::RecordMetadata &,
                        kafka::Error)>
-        onDelivered = nullptr;
-    bool autoCreateTopic = false;
+        onDelivered = nullptr; ///< Callback to execute after message delivery.
+    bool autoCreateTopic =
+        false; ///< Automatically create topic if it does not exist.
   };
 
-  // clang-format off
-  /* -------------------------------------------------------------------------- */
-  /*                               PUBLIC METHODS                               */
-  /* -------------------------------------------------------------------------- */
-  // clang-format on
-
+  /**
+   * @brief Constructor for KPool.
+   * @param options Configuration options.
+   */
   KPool(const Options &options);
+
+  /**
+   * @brief Destructor for KPool.
+   */
   ~KPool();
 
-  void Subscribe(const SubscribeOptions &options);
+  /**
+   * @brief Connects to Kafka.
+   */
+  void Connect();
 
-  void RegisterTopicCallback(const std::string &topic,
-                             MessageCallback callback);
+  /**
+   * @brief Sends a message with specified options.
+   * @param options Options for sending the message.
+   */
+  void Send(const SendOptions &options);
 
-  void Unsubscribe(const std::string &topic, const std::string &groupId = "",
-                   bool autoPoll = true);
-
+  /**
+   * @brief Sends a message.
+   * @param record The message to send.
+   * @param onDelivered Callback to execute after message delivery.
+   */
   void Send(
       kafka::clients::producer::ProducerRecord &record,
       const std::function<void(const kafka::clients::producer::RecordMetadata &,
                                kafka::Error)> &onDelivered);
 
-  void Send(const SendOptions &options);
+  /**
+   * @brief Subscribes to topics with specified options. Nothing is done until
+   * CommitSubscriptions is called.
+   *
+   * @warning The subscription is asynchronous ! use .then in the
+   * options to provide a callback. Note the this callback is executed
+   * synchronously when CatchUp is first called after the subscription is
+   * completed.
+   * @param options Options for subscribing to topics.
+   */
+  void Subscribe(const SubscribeOptions &options);
 
+  /**
+   * @brief Registers a callback for a specific topic.
+   * @param topic The topic to register the callback for.
+   * @param callback The callback to register.
+   */
+  void RegisterTopicCallback(const std::string &topic,
+                             MessageCallback callback);
+
+  /**
+   * @brief Commits the current subscriptions.
+   */
+  void CommitSubscriptions();
+
+  /**
+   * @brief Processes pending tasks and messages.
+   * @param maxBlockingMs Maximum time to block in milliseconds.
+   */
   void CatchUp(unsigned int maxBlockingMs = 100);
 
+  /**
+   * @brief Creates a topic if it does not exist.
+   * @param topic The topic to create.
+   * @param numPartitions Number of partitions for the topic.
+   * @param replicationFactor Replication factor for the topic.
+   */
   void CreateTopicIfNotExists(std::string &topic, int numPartitions,
                               int replicationFactor);
 
+  /**
+   * @brief Creates multiple topics if they do not exist.
+   * @param topics The topics to create.
+   * @param numPartitions Number of partitions for the topics.
+   * @param replicationFactor Replication factor for the topics.
+   */
   void CreateTopicsIfNotExist(std::vector<std::string> &topics,
                               int numPartitions, int replicationFactor);
 
-  void Connect();
-
-  void CommitSubscriptions();
-
+  /**
+   * @brief Resets the Kafka consumers.
+   */
   void ResetConsumers();
 
 private:
-  bool __createTopicIfNotExists(std::set<std::string> &topics,
-                                int numPartitions, int replicationFactor);
+  struct BatchSubscription {
+    std::future<void> future;
+    std::vector<std::function<void()>> thens;
 
-  void __initAdminClient();
+    BatchSubscription(std::future<void> future,
+                      std::vector<std::function<void()>> thens)
+        : future(std::move(future)), thens(std::move(thens)) {}
+  };
 
   void __send(
       kafka::clients::producer::ProducerRecord &record,
       const std::function<void(const kafka::clients::producer::RecordMetadata &,
                                kafka::Error)> &onDelivered);
 
-  ubn::queue<std::function<void()>> _tasksToExecute;
-  std::vector<std::shared_ptr<kafka::clients::consumer::KafkaConsumer>>
-      _consumersAutoPoll;
-  std::shared_ptr<boost::mutex> _consumerMutex;
-  std::atomic_bool _running;
-  ubn::queue<kafka::clients::consumer::ConsumerRecord> _records;
-  Options _options;
-  kafka::Properties _consumerProps;
-  kafka::Properties _producerProps;
-  std::optional<kafka::clients::admin::AdminClient> _adminClient;
-  std::optional<kafka::clients::producer::KafkaProducer> _producer;
-  ubn::queue<SubscriptionTask> _subscriptionsToImplement;
-  std::unordered_map<std::string, MessageCallback> _callbacks;
+  bool __createTopicIfNotExists(std::set<std::string> &topics,
+                                int numPartitions, int replicationFactor);
 
-  std::vector<std::shared_ptr<ConsumerWorker>> _consumerWorkers;
-  std::vector<std::shared_ptr<ConsumerWorker>> _consumerWorkersDedicated;
+  void __initAdminClient();
+
+  void __consumerJob();
+
+  Options _options;
+
+  kafka::Properties _producerProps;
+  kafka::Properties _consumerProps;
+  std::unique_ptr<kafka::clients::producer::KafkaProducer> _producer;
+  std::unique_ptr<kafka::clients::admin::AdminClient> _adminClient;
+
+  // flow is subscribe called -> subscription added to _subscriptionsToImplement
+  // -> commitSubscriptions called -> subscriptions grouped together and added
+  // to _subscriptionsInProgress
+  ubn::queue<SubscriptionTask> _subscriptionsToImplement;
+  ubn::queue<std::shared_ptr<BatchSubscription>> _subscriptionsInProgress;
+  ubn::queue<std::function<void()>> _tasksToExecute;
+
+  ubn::queue<kafka::clients::consumer::ConsumerRecord> _records;
+  std::thread _consumerThread;
+  std::atomic_bool _running;
+  // std::vector<ConsumerBucket> _consumerBuckets;
+  std::unique_ptr<kafka::clients::consumer::KafkaConsumer> _consumer;
+  std::shared_mutex _consumerMutex;
+
+  std::unordered_map<std::string, MessageCallback> _callbacks;
 };
 } // namespace nl
 } // namespace celte
