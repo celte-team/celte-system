@@ -114,15 +114,6 @@ bool KPool::__createTopicIfNotExists(std::set<std::string> &topics,
     return true;
   }
 
-  {
-    // debug
-    std::cout << "Creating topics " << std::endl;
-    for (auto &topic : topicsToCreate) {
-      std::cout << "\t" << topic << std::endl;
-    }
-    std::cout << std::endl;
-  }
-
   auto createResult = _adminClient->createTopics(
       topicsToCreate, numPartitions, replicationFactor, kafka::Properties(),
       std::chrono::milliseconds(1000));
