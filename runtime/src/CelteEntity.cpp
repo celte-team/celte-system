@@ -21,13 +21,11 @@ namespace celte {
 
     void CelteEntity::OnSpawn(float x, float y, float z, const std::string& uuid)
     {
-        std::cout << "I TRY LOADING THE CHUNK\n";
         try {
             auto& chunk = chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
                               .GetGrapeByPosition(x, y, z)
                               .GetChunkByPosition(x, y, z);
             OnChunkTakeAuthority(chunk);
-            std::cout << "I M LOADING THE CHUNK\n";
         } catch (std::out_of_range& e) {
             RUNTIME.Err() << "Entity is not in any grape: " << e.what() << std::endl;
         }
@@ -107,20 +105,22 @@ namespace celte {
         msgpack::sbuffer sbuf;
         msgpack::packer<msgpack::sbuffer> packer(sbuf);
 
-        packer.pack(inputName);
-        packer.pack(pressed);
+        packer.pack(std::make_tuple(inputName, pressed, _uuid));
+        // packer.pack(pressed);
 
         std::string value(sbuf.data(), sbuf.size());
+        std::cout << ("Inside test logic\n") << std::flush;
 
-        std::string chunkId = GetOwnerChunk().GetCombinedId();
-        std::string cp;
+        std::string chunkId = _ownerChunk->GetCombinedId();
+        std::string cp = chunkId + "." + tp::INPUT;
 
-        chunkId.copy(cp.data(), chunkId.size(), 0);
-        cp += "." + tp::INPUT;
+        std::cout << "JE SUIS PASSER [" << chunkId << "]\n"
+                  << std::flush;
 
-        std::cout << "Send message to " << chunkId << std::endl;
+        std::cout << "Send message to " << cp << std::endl
+                  << std::flush;
 
-        KPOOL.Send({ .topic = chunkId, .value = value });
+        KPOOL.Send({ .topic = cp, .value = value });
     }
 
 } // namespace celte

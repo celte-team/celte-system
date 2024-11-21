@@ -82,12 +82,14 @@ void registerHooks()
 void runTestLogic()
 {
     static bool status = true;
+
     if (Spawned) {
-        printf("Inside test logic\n");
         entity->sendInputToKafka("move forward", status);
         usleep(5000000);
         status = !status;
     }
+
+    // auto ilist = CINPUT.getListInput();
 }
 
 int main()
@@ -110,6 +112,7 @@ int main()
     std::cout << "Connected to cluster" << std::endl;
 
     while (true) {
+
         RUNTIME.Tick();
         runTestLogic();
     }

@@ -92,19 +92,23 @@ namespace celte {
             topics.insert(topics.end(), inputTopics.begin(), inputTopics.end());
             CINPUT.RegisterInputCallback(inputTopics);
 
+            std::function<void()> then = nullptr;
+            if (not _options.isLocallyOwned) {
+                then = [this]() {
+                    // request the SN managing the node to udpate us with the data we need to
+                    // load the existing entities in the grape
+                    std::cout << "requesting existing entities summary" << std::endl;
+                    RPC.InvokeByTopic(_options.grapeId, "__rp_sendExistingEntitiesSummary",
+                        RUNTIME.GetUUID(), _options.grapeId);
+                };
+            }
+
             KPOOL.Subscribe({
-                .topics = topics, .autoCreateTopic = false,
+                .topics = topics, .autoCreateTopic = false, .then = then,
                 // callbacks are already set in the chunk Initialize method and
                 // ENTITIES.RegisterReplConsumer
             });
             KPOOL.CommitSubscriptions();
-
-            // KPOOL.Subscribe({ .topics = inputTopics,
-            //     .groupId = "",
-            //     .autoCreateTopic = false,
-            //     .useDedicatedThread = true });
-            // CINPUT.RegisterInputCallback(inputTopics);
-            // KPOOL.CommitSubscriptions();
         }
 
         GrapeStatistics Grape::GetStatistics() const
