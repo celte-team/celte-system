@@ -44,6 +44,48 @@ void registerHooks() {
         std::cout << "Replication data received" << std::endl;
         game.world.Dump(game.objects);
       };
+
+  HOOKS.server.authority.onTake = [](std::string entityId,
+                                     std::string chunkId) {
+    std::cout << "Entity " << entityId << " has been assigned to chunk "
+              << chunkId << std::endl;
+  };
+}
+
+void moveEntity2() {
+  static std::chrono::time_point<std::chrono::system_clock> lastUpdate =
+      std::chrono::system_clock::now();
+
+  if (game.objects.size() < 2) {
+    return;
+  }
+
+  std::shared_ptr<GameObject> obj = game.objects.begin()->second;
+  std::shared_ptr<celte::CelteEntity> entity = obj->entity;
+
+  if (entity == nullptr) {
+    return;
+  }
+
+  if (std::chrono::system_clock::now() - lastUpdate < std::chrono::seconds(2)) {
+    return;
+  }
+  lastUpdate = std::chrono::system_clock::now();
+
+  if (not entity->GetOwnerChunk().IsLocallyOwned()) {
+    return;
+  }
+
+  int prevY = obj->y;
+  obj->y = (obj->y + 1) % game.world.GetYDim();
+
+  // if we cross a border, check for chunk authority change
+  if ((prevY < 10 and obj->y >= 10) and (prevY >= 10 and obj->y < 10)) {
+    std::cout << "SERVER CHANGING AUTHORITY" << std::endl;
+    auto &currChunkByPosition = GRAPES.GetGrapeByPosition(obj->x, obj->y, 0)
+                                    .GetChunkByPosition(obj->x, obj->y, 0);
+    entity->OnChunkTakeAuthority(currChunkByPosition);
+  }
 }
 
 void updateClientsPositions() {
@@ -55,6 +97,9 @@ void updateClientsPositions() {
     return;
   }
   lastUpdate = std::chrono::system_clock::now();
+
+  // second entity to be registered will move horizontally and change node
+  moveEntity2();
 
   if (not t_isNode1) {
     return;
