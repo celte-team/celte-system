@@ -66,10 +66,6 @@ class Master
             kfkConsumerListener.AddTopic(topic.Key, topic.Value, NumberOfTopics);
         }
 
-        // kfkConsumerListener.AddTopic(M.Global.MasterHelloSn, connectNode.connectNewNode, NumberOfTopics);
-        // kfkConsumerListener.AddTopic(M.Global.MasterHelloClient, connectClient.connectNewClient, NumberOfTopics);
-        // kfkConsumerListener.AddTopic(M.Global.MasterRPC, null, NumberOfTopics);
-
         kFKProducer = new KFKProducer();
     }
 
