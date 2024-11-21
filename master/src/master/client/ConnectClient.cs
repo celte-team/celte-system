@@ -51,6 +51,7 @@ class ConnectClient
                     Console.WriteLine($">>>>>>>>>>> Received response from getPlayerSpawnPosition: {value} <<<<<<<<<<<");
                     try
                     {
+                        // Initialiser les variables de sortie
                         string grapeId = string.Empty;
                         string receivedClientId = string.Empty;
                         float x = 0, y = 0, z = 0;
@@ -65,25 +66,17 @@ class ConnectClient
                         string ownerNode = "";
                         if (grapeId == "LeChateauDuMechant")
                         {
-                            ownerNode = ConnectNode._nodes.ElementAt(0).Value.uuid;
+                            // ownerNode = ConnectNode._nodes.ElementAt(0).Value.uuid;
+                            ownerNode = nodesJson[0];
                         }
                         else
                         {
-                            ownerNode = ConnectNode._nodes.ElementAt(1).Value.uuid;
+                            // ownerNode = ConnectNode._nodes.ElementAt(1).Value.uuid;
+                            ownerNode = nodesJson[1];
                         }
                         Console.WriteLine($"NODE OWNING CLIENT IS {ownerNode}");
                         Console.WriteLine($"Sending response to acceptNewClient: {receivedClientId}, {grapeId}, {x}, {y}, {z}");
-                        RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(nodeId), receivedClientId, grapeId, x, y, z);
-                        var jsonInfo = new
-                        {
-                            clientId = receivedClientId,
-                            grapeId = grapeId,
-                            x = x,
-                            y = y,
-                            z = z
-                        };
-                        Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
-                        await redisClient.redisData.JSONPush("clients", receivedClientId, jsonInfo);
+                        RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(ownerNode), receivedClientId, grapeId, x, y, z);
                     }
                     catch (Exception e)
                     {
