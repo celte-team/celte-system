@@ -1,0 +1,55 @@
+logs: ./build/tmp/automations/logs
+
+build:
+  - step: systems
+    run: |
+      mkdir -p build
+      cd build
+      if [ -z "$(ls -A .)" ]; then cmake --preset default -G Ninja ..; fi
+      cmake --build . --target all
+
+  - step: master
+    run: |
+      cd master
+      dotnet build
+
+  - step: clock
+    run: |
+      cd ClockServer
+      dotnet build
+
+test_suites:
+
+  - name: game1
+    description: Test the correct behavior with multiple clients in a small game.
+    timeout-seconds:  50
+
+    cluster: yes
+    master: yes
+
+    servers:
+      binary: ./build/tests/basicMultiplayerGame/server_game1
+      replicas: 2
+
+    clients:
+      binary: ./build/tests/basicMultiplayerGame/client_game1
+      replicas: 2
+      wait-servers:
+        regex: ">> SERVER READY << "
+        timeout-seconds: 20
+
+    expects:
+      servers:
+        - ">> Grape LeChateauDuMechant loaded, owned locally: (yes|no) <<"
+        - ">> Grape LeChateauDuGentil loaded, owned locally: (yes|no) <<"
+        - ">> SERVER SPAWN .* <<"
+        - "\\.{5}.\\.{4}~{10}" # x coord is 5 for player 1
+
+      clients:
+        - ">> Grape LeChateauDuMechant loaded, owned locally: no <<"
+        - ">> Grape LeChateauDuGentil loaded, owned locally: no <<"
+        - ">> CLIENT LOADED MAP << "
+        - ">> CLIENT IS READY TO SPAWN <<"
+        - ">> CLIENT LOADING EXISTING ENTITIES <<"
+        - ">> CLIENT SPAWNING .* <<"
+        - "\\.{5}.\\.{4}~{10}" # x coord is 5 for player 1

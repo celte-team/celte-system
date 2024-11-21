@@ -108,6 +108,28 @@ public:
       std::function<void(std::string, std::string chunkId)> onTake =
           [](std::string entityId, std::string chunkId) {};
     } authority;
+
+    struct {
+      /**
+       * @brief This hook is called when the server receives replication data.
+       *
+       * @param entityId The id of the entity that the data is related to.
+       * @param dataBlob The data that has been received.
+       */
+      std::function<void(std::string, std::string)> onReplicationDataReceived =
+          [](std::string entityId, std::string dataBlob) {};
+
+      /**
+       * @brief This hook is called when the server receives active replication
+       * data.
+       *
+       * @param entityId The id of the entity that the data is related to.
+       * @param dataBlob The data that has been received.
+       */
+      std::function<void(std::string, std::string)>
+          onActiveReplicationDataReceived =
+              [](std::string entityId, std::string dataBlob) {};
+    } replication;
   } server;
 
 #else

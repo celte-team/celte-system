@@ -35,6 +35,12 @@ void Connected::__registerRPCs() {
       std::tuple<std::string, std::string, float, float, float>(std::string));
 }
 
+void __rp_sendExistingEntitiesSummary(std::string clientId,
+                                      std::string grapeId) {
+  RPC.InvokePeer(clientId, "__rp_loadExistingEntities", grapeId,
+                 ENTITIES.GetRegisteredEntitiesSummary());
+}
+
 std::tuple<std::string, std::string, float, float, float>
 Connected::__rp_getPlayerSpawnPosition(const std::string &clientInfo) {
   return HOOKS.server.connection.onSpawnPositionRequest(clientInfo);
@@ -58,14 +64,13 @@ void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
   // TODO: add client to correct chunk's authority
   HOOKS.server.newPlayerConnected.accept(clientId);
   RPC.InvokePeer(clientId, "__rp_forceConnectToChunk", grapeId, x, y, z);
-  RPC.InvokePeer(clientId, "__rp_loadExistingEntities", grapeId,
-                 ENTITIES.GetRegisteredEntitiesSummary());
+  // RPC.InvokePeer(clientId, "__rp_loadExistingEntities", grapeId,
+  //                ENTITIES.GetRegisteredEntitiesSummary());
 }
 
 void Connected::__rp_onSpawnRequested(const std::string &clientId, float x,
                                       float y, float z) {
   // TODO: check if this spawn is legal
-  std::cout << "in __onspawnrequested" << std::endl;
   auto chunkId = GRAPES.GetGrapeByPosition(x, y, z)
                      .GetChunkByPosition(x, y, z)
                      .GetCombinedId();
