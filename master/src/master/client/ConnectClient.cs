@@ -56,8 +56,19 @@ class ConnectClient
                         x = (int)result.Item1[2];
                         y = (int)result.Item1[3];
                         z = (int)result.Item1[4];
+
+                        string ownerNode = "";
+                        if (grapeId == "LeChateauDuMechant")
+                        {
+                            ownerNode = ConnectNode._nodes.ElementAt(0).Value.uuid;
+                        }
+                        else
+                        {
+                            ownerNode = ConnectNode._nodes.ElementAt(1).Value.uuid;
+                        }
+                        Console.WriteLine($"NODE OWNING CLIENT IS {ownerNode}");
                         Console.WriteLine($"Sending response to acceptNewClient: {receivedClientId}, {grapeId}, {x}, {y}, {z}");
-                        RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(nodeId), receivedClientId, grapeId, x, y, z);
+                        RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(ownerNode), receivedClientId, grapeId, x, y, z);
                     }
                     catch (Exception e)
                     {

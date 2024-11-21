@@ -201,6 +201,15 @@ void KPool::Subscribe(const SubscribeOptions &options) {
     }
   }
 
+  {
+    // debug
+    std::cout << "subscribing to topics" << std::endl;
+    for (const auto &topic : options.topics) {
+      std::cout << "  - " << topic << std::endl;
+    }
+    std::cout << std::endl;
+  }
+
   // push the topics to the list of incoming subscriptions
   _subscriptionsToImplement.push(SubscriptionTask{
       .newSubscriptions = topics,
