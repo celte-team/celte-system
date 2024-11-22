@@ -232,7 +232,8 @@ void KPool::__consumerJob() {
       }
     }
 
-    std::shared_lock lock(_consumerMutex);
+    // std::shared_lock lock(_consumerMutex);
+    std::unique_lock lock(_consumerMutex);
     auto records = _consumer->poll(std::chrono::milliseconds(100));
     for (auto &record : records) {
       _records.push(record);

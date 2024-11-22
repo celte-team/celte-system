@@ -43,7 +43,8 @@ test_suites:
         - ">> Grape LeChateauDuMechant loaded, owned locally: (yes|no) <<"
         - ">> Grape LeChateauDuGentil loaded, owned locally: (yes|no) <<"
         - ">> SERVER SPAWN .* <<"
-        - "\\.{5}.\\.{4}~{10}" # x coord is 5 for player 1
+        - "\\.{5}.\\.{4}~{10}" # y coord is 5 for player 1
+        - ">> SERVER onTake HOOK CALLED <<"
 
       clients:
         - ">> Grape LeChateauDuMechant loaded, owned locally: no <<"

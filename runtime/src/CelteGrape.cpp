@@ -62,8 +62,13 @@ void Grape::__subdivide() {
                           .localZ = _options.localZ,
                           .size = _options.size / (float)_options.subdivision,
                           .isLocallyOwned = _options.isLocallyOwned};
-    _chunks[chunkId.str()] = std::make_shared<Chunk>(config);
-    std::string combinedId = _chunks[chunkId.str()]->Initialize();
+
+    std::cout << "GRAPE [" << _options.grapeId << "] CHUNK [" << chunkId.str()
+              << "]" << std::endl;
+    std::cout << "registering rpcs" << std::endl;
+    std::shared_ptr<Chunk> chunk = std::make_shared<Chunk>(config);
+    std::string combinedId = chunk->Initialize();
+    _chunks[combinedId] = chunk;
 
     rpcTopics.push_back(combinedId + "." + tp::RPCs);
     replTopics.push_back(combinedId + "." + tp::REPLICATION);
@@ -140,6 +145,18 @@ void Grape::ReplicateAllEntities() {
   }
 }
 #endif
+
+bool Grape::HasChunk(const std::string &chunkId) const {
+  return _chunks.find(chunkId) != _chunks.end();
+}
+
+Chunk &Grape::GetChunk(const std::string &chunkId) {
+  if (not HasChunk(chunkId)) {
+    throw std::out_of_range("Chunk " + chunkId + " does not exist in grape " +
+                            _options.grapeId);
+  }
+  return *_chunks[chunkId];
+}
 
 } // namespace chunks
 } // namespace celte
