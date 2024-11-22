@@ -2,6 +2,7 @@
 #include "CelteRuntime.hpp"
 #include "ClientStatesDeclaration.hpp"
 #include "Logger.hpp"
+#include "nlohmann/json.hpp"
 
 namespace celte {
 namespace client {
@@ -47,12 +48,23 @@ void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
   HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
 }
 
+// void Connected::__rp_loadExistingEntities(std::string grapeId,
+//                                           std::string summary) {
+//   try {
+//     boost::json::array summaryJSON = boost::json::parse(summary).as_array();
+//     HOOKS.client.grape.onLoadExistingEntities(grapeId, summaryJSON);
+//   } catch (std::exception &e) {
+//     logs::Logger::getInstance().err()
+//         << "Error loading existing entities: " << e.what() << std::endl;
+//     return;
+//   }
+// }
 void Connected::__rp_loadExistingEntities(std::string grapeId,
                                           std::string summary) {
   try {
-    boost::json::array summaryJSON = boost::json::parse(summary).as_array();
+    nlohmann::json summaryJSON = nlohmann::json::parse(summary);
     HOOKS.client.grape.onLoadExistingEntities(grapeId, summaryJSON);
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     logs::Logger::getInstance().err()
         << "Error loading existing entities: " << e.what() << std::endl;
     return;

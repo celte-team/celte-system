@@ -1,5 +1,6 @@
 #pragma once
-#include <boost/json.hpp>
+// #include <boost/json.hpp>
+#include "nlohmann/json.hpp"
 #include <functional>
 #include <kafka/KafkaConsumer.h>
 #include <string>
@@ -201,11 +202,8 @@ public:
        * @brief This hook is called by __rp_loadExistingEntities to load the
        * entities that are already registered to the server.
        */
-      std::function<bool(std::string, boost::json::array)>
-          onLoadExistingEntities =
-              [](std::string grapeId, boost::json::array summary) {
-                return true;
-              };
+      std::function<bool(std::string, nlohmann::json)> onLoadExistingEntities =
+          [](std::string grapeId, nlohmann::json summary) { return true; };
     } grape;
 
     /**

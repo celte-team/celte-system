@@ -123,6 +123,7 @@ services:
       - haproxy
 
 # in case we loose it: 7589 is the id of the grafana dashboard template for kafka-exporter
+# 11962 is good too
   kafka-exporter:
     image: danielqsj/kafka-exporter:latest
     container_name: kafka-exporter
