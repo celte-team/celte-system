@@ -103,6 +103,10 @@ public:
     return chunksIds;
   }
 
+  bool HasChunk(const std::string &chunkId) const;
+
+  Chunk &GetChunk(const std::string &chunkId);
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Replicates all entities in the grape to their respective chunks.

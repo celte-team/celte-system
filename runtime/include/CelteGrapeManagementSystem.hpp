@@ -58,6 +58,8 @@ public:
    */
   Grape &GetGrapeByPosition(float x, float y, float z);
 
+  Chunk &GetChunkById(const std::string &chunkId);
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief This method is called by the CelteEntityManagementSystem and will

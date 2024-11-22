@@ -37,6 +37,15 @@ Grape &CelteGrapeManagementSystem::GetGrapeByPosition(float x, float y,
                           std::to_string(z) + ").");
 }
 
+Chunk &CelteGrapeManagementSystem::GetChunkById(const std::string &chunkId) {
+  for (auto &[grapeId, grape] : _grapes) {
+    if (grape->HasChunk(chunkId)) {
+      return grape->GetChunk(chunkId);
+    }
+  }
+  throw std::out_of_range("No chunk with id " + chunkId + " exists.");
+}
+
 #ifdef CELTE_SERVER_MODE_ENABLED
 void CelteGrapeManagementSystem::ReplicateAllEntities() {
   for (auto &[grapeId, grape] : _grapes) {

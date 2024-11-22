@@ -110,11 +110,13 @@ private:
    * clock tick.
    *
    * @param entityId the id of the entity to transfer
+   * @param newOwnerChunkId the id of the chunk that will take authority
    * @param takeAuthority true if the chunk should take authority, false if it
    * should drop it
    * @param atTick the global clock tick at which the transfer should occur
    */
   void __rp_scheduleEntityAuthorityTransfer(std::string entityId,
+                                            std::string newOwnerChunkId,
                                             bool takeAuthority, int atTick);
 
   /* --------------------------------------------------------------------------

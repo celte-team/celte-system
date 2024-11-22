@@ -49,6 +49,7 @@ void registerHooks() {
                                      std::string chunkId) {
     std::cout << "Entity " << entityId << " has been assigned to chunk "
               << chunkId << std::endl;
+    std::cout << ">> SERVER onTake HOOK CALLED <<" << std::endl;
   };
 }
 
@@ -60,7 +61,9 @@ void moveEntity2() {
     return;
   }
 
-  std::shared_ptr<GameObject> obj = game.objects.begin()->second;
+  // second entity to be registered will move horizontally and change node
+  std::shared_ptr<GameObject> obj =
+      (*std::next(game.objects.begin(), 1)).second;
   std::shared_ptr<celte::CelteEntity> entity = obj->entity;
 
   if (entity == nullptr) {
@@ -72,19 +75,25 @@ void moveEntity2() {
   }
   lastUpdate = std::chrono::system_clock::now();
 
-  if (not entity->GetOwnerChunk().IsLocallyOwned()) {
-    return;
-  }
-
   int prevY = obj->y;
   obj->y = (obj->y + 1) % game.world.GetYDim();
 
   // if we cross a border, check for chunk authority change
-  if ((prevY < 10 and obj->y >= 10) and (prevY >= 10 and obj->y < 10)) {
+  if ((prevY < 10 and obj->y >= 10) or (prevY >= 10 and obj->y < 10)) {
+    if (not entity->GetOwnerChunk().IsLocallyOwned()) {
+      std::cout << "ENTITY NOT LOCALLY OWNED" << std::endl;
+      std::cout << "Clock tick: " << CLOCK.CurrentTick() << std::endl;
+      std::cout << "entity is owned by chunk"
+                << entity->GetOwnerChunk().GetCombinedId() << std::endl;
+      return;
+    }
+
     std::cout << "SERVER CHANGING AUTHORITY" << std::endl;
     auto &currChunkByPosition = GRAPES.GetGrapeByPosition(obj->x, obj->y, 0)
                                     .GetChunkByPosition(obj->x, obj->y, 0);
-    entity->OnChunkTakeAuthority(currChunkByPosition);
+    std::cout << "New owner is " << currChunkByPosition.GetCombinedId()
+              << std::endl;
+    currChunkByPosition.OnEnterEntity(entity->GetUUID());
   }
 }
 

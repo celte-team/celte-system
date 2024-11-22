@@ -29,14 +29,16 @@ void Connected::__registerRPCs() {
   REGISTER_RPC(__rp_spawnPlayer, celte::rpc::Table::Scope::CHUNK, std::string,
                int, int, int);
   REGISTER_RPC(__rp_assignGrape, celte::rpc::Table::Scope::GRAPPE, std::string);
+  REGISTER_RPC(__rp_sendExistingEntitiesSummary, celte::rpc::Table::Scope::PEER,
+               std::string, std::string);
 
   REGISTER_AWAITABLE_RPC(
       __rp_getPlayerSpawnPosition,
       std::tuple<std::string, std::string, float, float, float>(std::string));
 }
 
-void __rp_sendExistingEntitiesSummary(std::string clientId,
-                                      std::string grapeId) {
+void Connected::__rp_sendExistingEntitiesSummary(std::string clientId,
+                                                 std::string grapeId) {
   RPC.InvokePeer(clientId, "__rp_loadExistingEntities", grapeId,
                  ENTITIES.GetRegisteredEntitiesSummary());
 }
