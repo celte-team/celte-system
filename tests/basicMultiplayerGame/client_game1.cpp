@@ -1,10 +1,12 @@
 #include "Game1.hpp"
 #include <chrono>
+#include <iostream>
+#include <nlohmann/json.hpp>
 static Game game;
 
 char hash(std::string &s) { return s[7]; }
 
-void loadEntitiesFromSummary(boost::json::array summary) {
+void loadEntitiesFromSummary(const nlohmann::json &summary) {
   /*
   Format is :
   [
@@ -20,16 +22,15 @@ void loadEntitiesFromSummary(boost::json::array summary) {
   }
   ]
   */
-  for (auto edata : summary) {
-    auto entityData = edata.as_object();
-    auto uuid = entityData["uuid"].as_string().c_str();
-    auto chunk = entityData["chunk"].as_string().c_str();
-    auto info = entityData["info"].as_string().c_str();
+  for (const auto &entityData : summary) {
+    std::string uuid = entityData["uuid"];
+    std::string chunk = entityData["chunk"];
+    std::string info = entityData["info"];
     std::cout << "[FROM SUMMARY] loading entity " << uuid << " in chunk "
               << chunk << " with info " << info << std::endl;
     game.AddObject(uuid, info[0], 0, 0);
   }
-  std::cout << "client loaded entites, resuming" << std::endl;
+  std::cout << "client loaded entities, resuming" << std::endl;
 }
 
 void registerHooks() {
@@ -54,7 +55,7 @@ void registerHooks() {
   };
 
   HOOKS.client.grape.onLoadExistingEntities = [](std::string grapeId,
-                                                 boost::json::array summary) {
+                                                 nlohmann::json summary) {
     std::cout << ">> CLIENT LOADING EXISTING ENTITIES <<" << std::endl;
     loadEntitiesFromSummary(summary);
     return true;

@@ -2,7 +2,8 @@
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteRPC.hpp"
 #include "CelteRuntime.hpp"
-#include <boost/json.hpp>
+// #include <boost/json.hpp>
+#include "nlohmann/json.hpp"
 #include <string>
 
 namespace celte {
@@ -56,6 +57,48 @@ void CelteEntityManagementSystem::__replicateAllEntities() {
   GRAPES.ReplicateAllEntities();
 }
 
+// std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
+//   /*
+//   Format is :
+//   [
+//     {
+//       "uuid": "uuid",
+//       "chunk": "chunkCombinedId",
+//       "info": "info"
+//     },
+//     {
+//       "uuid": "uuid",
+//       "chunk": "chunkCombinedId",
+//       "info": "info"
+//     }
+//   ]
+//   */
+//   boost::json::array j;
+
+//   for (const auto &[uuid, entity] : _entities) {
+//     try {
+//       logs::Logger::getInstance().info()
+//           << "packing entity " << uuid << " to json." << std::endl;
+//       // Create a new object for each entity
+//       boost::json::object obj;
+
+//       obj["uuid"] = entity->GetUUID();
+//       obj["chunk"] = entity->GetOwnerChunk().GetCombinedId();
+//       obj["info"] = entity->GetInformationToLoad();
+
+//       // Add the object to the JSON array
+//       j.push_back(obj);
+//     } catch (std::out_of_range &e) {
+//       // If the entity is not associated with a chunk, log it
+//       logs::Logger::getInstance().err()
+//           << "Entity " << entity->GetUUID() << " is not owned by any chunk."
+//           << std::endl;
+//     }
+//   }
+
+//   return boost::json::serialize(j);
+// }
+
 std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
   /*
   Format is :
@@ -72,14 +115,14 @@ std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
     }
   ]
   */
-  boost::json::array j;
+  nlohmann::json j = nlohmann::json::array();
 
   for (const auto &[uuid, entity] : _entities) {
     try {
       logs::Logger::getInstance().info()
           << "packing entity " << uuid << " to json." << std::endl;
       // Create a new object for each entity
-      boost::json::object obj;
+      nlohmann::json obj;
 
       obj["uuid"] = entity->GetUUID();
       obj["chunk"] = entity->GetOwnerChunk().GetCombinedId();
@@ -95,7 +138,7 @@ std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
     }
   }
 
-  return boost::json::serialize(j);
+  return j.dump();
 }
 #endif
 
