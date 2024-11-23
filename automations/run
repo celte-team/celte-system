@@ -238,6 +238,7 @@ def run_tests(yaml_path):
 
         if suite.get('cluster') == True:
             print(f"{Fore.GREEN}Starting Kafka cluster{Style.RESET_ALL}")
+            # cluster_process_handle = run_command(["./automations/run", "--kafka"], os.path.join(log_dir, 'kafka_cluster.log'))
             cluster_process_handle = run_command(["./automations/run", "--kafka"], os.path.join(log_dir, 'kafka_cluster.log'))
             print(f"{Fore.GREEN}Cluster logs available at: {Style.RESET_ALL}{os.path.join(log_dir, 'kafka_cluster.log')}")
 

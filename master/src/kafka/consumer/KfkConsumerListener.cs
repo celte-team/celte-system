@@ -34,7 +34,8 @@ public class KfkConsumerListener : IDisposable
         {
             BootstrapServers = bootstrapServers,
             GroupId = groupId,
-            AutoOffsetReset = AutoOffsetReset.Earliest
+            AutoOffsetReset = AutoOffsetReset.Earliest,
+            EnableAutoCommit = true
         };
 
         _consumer = new ConsumerBuilder<string, byte[]>(config).Build();
@@ -44,7 +45,7 @@ public class KfkConsumerListener : IDisposable
         // RPC function map
         _rpcFunctions = new Dictionary<string, Dictionary<string, Action<byte[]>>>();
 
-        SubscribeToRedisChannelTopics();
+        // SubscribeToRedisChannelTopics();
         _adminClientConfig = new AdminClientConfig
         {
             BootstrapServers = bootstrapServers
@@ -120,27 +121,29 @@ public class KfkConsumerListener : IDisposable
     /// The goal of this function is to update the topic list from a Redis channel, it will use the JSON format
     /// to send the topic name. then it their is a new topic it will add it to the topic list.
     /// </summary>
-    public void SubscribeToRedisChannelTopics()
-    {
-        try
-        {
-            var redisClient = Redis.RedisClient.GetInstance();
-            redisClient.Subscribe(RedisChannelTopic, (channel, message) =>
-            {
-                string topic = message;
-                if (_topicHandlers.ContainsKey(topic))
-                {
-                    Console.WriteLine($"Topic {topic} already exists.!!!!!!!!!!!!");
-                    return;
-                }
-                Console.WriteLine($"Adding topic {topic} from Redis channel...");
-            });
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Error subscribing to Redis channel: {e.Message}");
-        }
-    }
+    // public void SubscribeToRedisChannelTopics()
+    // {
+    //     try
+    //     {
+    //         var redisClient = Redis.RedisClient.GetInstance();
+    //         Console.WriteLine("Subscribing to Redis channel123123123123123123123...");
+    //         redisClient.Subscribe(RedisChannelTopic, (channel, message) =>
+    //         {
+    //             Console.WriteLine($"Received message from Redis channel: {message}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    //             string topic = message;
+    //             if (_topicHandlers.ContainsKey(topic))
+    //             {
+    //                 Console.WriteLine($"Topic {topic} already exists.!!!!!!!!!!!!");
+    //                 return;
+    //             }
+    //             Console.WriteLine($"Adding topic {topic} from Redis channel...");
+    //         });
+    //     }
+    //     catch (Exception e)
+    //     {
+    //         Console.WriteLine($"Error subscribing to Redis channel: {e.Message}");
+    //     }
+    // }
 
     /// <summary>
     /// Add a topic to the topic JSON list from a Redis channel
@@ -148,6 +151,7 @@ public class KfkConsumerListener : IDisposable
     public void UpdateTopicFromRedisChannel(string topic) {
         try {
             var redisClient = Redis.RedisClient.GetInstance();
+            Console.WriteLine($"Pushing topic {topic} to Redis channel {RedisChannelTopic}");
             redisClient.redisData.JSONPush(RedisChannelTopic, "$", topic);
         } catch (Exception e) {
             Console.WriteLine($"Error updating topic from Redis channel: {e.Message}");

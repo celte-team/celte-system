@@ -22,7 +22,7 @@ class ConnectClient
         {
             // Get the list of nodes from Redis
             var nodesJson = await Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes");
-
+            Console.WriteLine($"Nodes: {string.Join(", ", nodesJson)}");
             if (nodesJson == null || nodesJson.Count == 0)
             {
                 throw new Exception("No nodes available.");
@@ -37,7 +37,6 @@ class ConnectClient
             string clientId = message;
             string uuidProcess = Guid.NewGuid().ToString();
             const string rpcName = "__rp_getPlayerSpawnPosition";
-            string masterRPC = M.Global.MasterRPC;
             Headers headers = new Headers
             {
                 { "rpName", RPC.__str2bytes(rpcName) },
@@ -67,11 +66,13 @@ class ConnectClient
                         if (grapeId == "LeChateauDuMechant")
                         {
                             // ownerNode = ConnectNode._nodes.ElementAt(0).Value.uuid;
+                            Console.WriteLine($"NODE OWNING CLIENT nodesJson[0]; IS {nodesJson[0]}");
                             ownerNode = nodesJson[0];
                         }
                         else
                         {
                             // ownerNode = ConnectNode._nodes.ElementAt(1).Value.uuid;
+                            Console.WriteLine($"NODE OWNING CLIENT nodesJson[1]; IS {nodesJson[1]}");
                             ownerNode = nodesJson[1];
                         }
                         Console.WriteLine($"NODE OWNING CLIENT IS {ownerNode}");

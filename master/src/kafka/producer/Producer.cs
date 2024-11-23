@@ -39,7 +39,6 @@ class KFKProducer : IDisposable
     {
         try
         {
-            Console.WriteLine($"Sending message to topic: {topic}");
             var producer = new ProducerBuilder<TKey, byte[]>(_config).Build();
             var result = await producer.ProduceAsync(topic, new Message<TKey, byte[]>
             {

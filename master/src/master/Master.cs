@@ -59,6 +59,7 @@ class Master
             {
                 { M.Global.MasterHelloSn, connectNode.connectNewNode },
                 { M.Global.MasterHelloClient, connectClient.connectNewClient },
+                { M.Global.MasterRPC, null }
             };
 
         foreach (var topic in topicAction)
