@@ -1,35 +1,29 @@
 #include "Game1.hpp"
 #include <chrono>
+#include <iostream>
+#include <nlohmann/json.hpp>
 static Game game;
 
 char hash(std::string &s) { return s[7]; }
 
-void loadEntitiesFromSummary(boost::json::array summary) {
-  /*
-  Format is :
-  [
-  {
-    "uuid": "uuid",
-    "chunk": "chunkCombinedId",
-    "info": "info"
-  },
-  {
-    "uuid": "uuid",
-    "chunk": "chunkCombinedId",
-    "info": "info"
-  }
-  ]
-  */
-  for (auto edata : summary) {
-    auto entityData = edata.as_object();
-    auto uuid = entityData["uuid"].as_string().c_str();
-    auto chunk = entityData["chunk"].as_string().c_str();
-    auto info = entityData["info"].as_string().c_str();
-    std::cout << "[FROM SUMMARY] loading entity " << uuid << " in chunk "
-              << chunk << " with info " << info << std::endl;
-    game.AddObject(uuid, info[0], 0, 0);
-  }
-  std::cout << "client loaded entites, resuming" << std::endl;
+void loadEntitiesFromSummary(const nlohmann::json &summary) {
+  std::string uuid = summary["uuid"];
+  std::string chunk = summary["chunk"];
+  std::string info = summary["info"];
+  std::string passiveProps = summary["passiveProps"];
+  std::string activeProps = summary["activeProps"];
+
+  char repr = std::atoi(info.c_str());
+
+  game.AddObject(uuid, repr, 0, 0);
+
+  // set the current state of the object from the data received from the server
+  auto &obj = game.objects[uuid];
+  obj->entity->DownloadReplicationData(passiveProps, false);
+  obj->entity->DownloadReplicationData(activeProps, true);
+
+  std::cout << "[LOADED ENTITY] " << uuid << " in chunk " << chunk
+            << " with info " << info << std::endl;
 }
 
 void registerHooks() {
@@ -48,13 +42,13 @@ void registerHooks() {
 
   HOOKS.client.connection.onReadyToSpawn = [](const std::string &grapeId,
                                               float x, float y, float z) {
-    std::cout << ">> CLIENT IS READY TO SPAWN <<" << std::endl;
-    RUNTIME.RequestSpawn(RUNTIME.GetUUID(), grapeId, x, y, z);
+    // std::cout << ">> CLIENT IS READY TO SPAWN <<" << std::endl;
+    // RUNTIME.RequestSpawn(RUNTIME.GetUUID(), grapeId, x, y, z);
     return true;
   };
 
   HOOKS.client.grape.onLoadExistingEntities = [](std::string grapeId,
-                                                 boost::json::array summary) {
+                                                 nlohmann::json summary) {
     std::cout << ">> CLIENT LOADING EXISTING ENTITIES <<" << std::endl;
     loadEntitiesFromSummary(summary);
     return true;
@@ -63,6 +57,8 @@ void registerHooks() {
   HOOKS.client.player.execPlayerSpawn = [](std::string clientId, int x, int y,
                                            int z) {
     std::cout << ">> CLIENT SPAWNING  " << clientId << " <<" << std::endl;
+    std::cout << "spawn coordinates are " << x << " " << y << " " << z
+              << std::endl;
     char repr = hash(clientId);
     game.AddObject(clientId, repr, x, y);
     game.world.Dump(game.objects);

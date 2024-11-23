@@ -2,6 +2,7 @@
 #include "CelteRuntime.hpp"
 #include "ClientStatesDeclaration.hpp"
 #include "Logger.hpp"
+#include "nlohmann/json.hpp"
 
 namespace celte {
 namespace client {
@@ -34,12 +35,12 @@ void Connected::__rp_forceConnectToChunk(std::string grapeId, float x, float y,
                                          float z) {
   logs::Logger::getInstance().info()
       << "Force connect to chunk rp has been called" << std::endl;
-  // loading the map will instantiate the chunks, thus subscribing to all the
-  // required topics
-  HOOKS.client.grape.loadGrape(grapeId);
   // notifiying the game dev that everything is ready on our side and he may
   // request for spawn whenever
   HOOKS.client.connection.onReadyToSpawn(grapeId, x, y, z);
+  // loading the map will instantiate the chunks, thus subscribing to all the
+  // required topics
+  HOOKS.client.grape.loadGrape(grapeId);
 }
 
 void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
@@ -49,14 +50,7 @@ void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
 
 void Connected::__rp_loadExistingEntities(std::string grapeId,
                                           std::string summary) {
-  try {
-    boost::json::array summaryJSON = boost::json::parse(summary).as_array();
-    HOOKS.client.grape.onLoadExistingEntities(grapeId, summaryJSON);
-  } catch (std::exception &e) {
-    logs::Logger::getInstance().err()
-        << "Error loading existing entities: " << e.what() << std::endl;
-    return;
-  }
+  ENTITIES.LoadExistingEntities(grapeId, summary);
 }
 
 } // namespace states

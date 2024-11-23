@@ -62,8 +62,13 @@ void Grape::__subdivide() {
                           .localZ = _options.localZ,
                           .size = _options.size / (float)_options.subdivision,
                           .isLocallyOwned = _options.isLocallyOwned};
-    _chunks[chunkId.str()] = std::make_shared<Chunk>(config);
-    std::string combinedId = _chunks[chunkId.str()]->Initialize();
+
+    std::cout << "GRAPE [" << _options.grapeId << "] CHUNK [" << chunkId.str()
+              << "]" << std::endl;
+    std::cout << "registering rpcs" << std::endl;
+    std::shared_ptr<Chunk> chunk = std::make_shared<Chunk>(config);
+    std::string combinedId = chunk->Initialize();
+    _chunks[combinedId] = chunk;
 
     rpcTopics.push_back(combinedId + "." + tp::RPCs);
     replTopics.push_back(combinedId + "." + tp::REPLICATION);
@@ -73,6 +78,15 @@ void Grape::__subdivide() {
 #ifdef CELTE_SERVER_MODE_ENABLED
   KPOOL.CreateTopicsIfNotExist(replTopics, 1, 1);
   KPOOL.CreateTopicsIfNotExist(rpcTopics, 1, 1);
+  if (_options.isLocallyOwned) {
+    std::vector<std::string> grapeTopic = {_options.grapeId};
+    KPOOL.CreateTopicsIfNotExist(grapeTopic, 1, 1);
+    KPOOL.RegisterTopicCallback(
+        _options.grapeId,
+        [this](const kafka::clients::consumer::ConsumerRecord &record) {
+          RPC.InvokeLocal(record);
+        });
+  }
 #endif
 
   std::vector<std::string> topics;
@@ -82,7 +96,8 @@ void Grape::__subdivide() {
     ENTITIES.RegisterReplConsumer(replTopics);
   }
 
-  std::function<void()> then = nullptr;
+  std::function<void()> then =
+      (_options.then != nullptr) ? _options.then : nullptr;
   if (not _options.isLocallyOwned) {
     then = [this]() {
       // request the SN managing the node to udpate us with the data we need to
@@ -90,7 +105,12 @@ void Grape::__subdivide() {
       std::cout << "requesting existing entities summary" << std::endl;
       RPC.InvokeByTopic(_options.grapeId, "__rp_sendExistingEntitiesSummary",
                         RUNTIME.GetUUID(), _options.grapeId);
+      if (_options.then != nullptr) {
+        _options.then();
+      }
     };
+  } else {
+    topics.push_back(_options.grapeId);
   }
 
   KPOOL.Subscribe({
@@ -140,6 +160,18 @@ void Grape::ReplicateAllEntities() {
   }
 }
 #endif
+
+bool Grape::HasChunk(const std::string &chunkId) const {
+  return _chunks.find(chunkId) != _chunks.end();
+}
+
+Chunk &Grape::GetChunk(const std::string &chunkId) {
+  if (not HasChunk(chunkId)) {
+    throw std::out_of_range("Chunk " + chunkId + " does not exist in grape " +
+                            _options.grapeId);
+  }
+  return *_chunks[chunkId];
+}
 
 } // namespace chunks
 } // namespace celte
