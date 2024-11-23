@@ -7,30 +7,23 @@ static Game game;
 char hash(std::string &s) { return s[7]; }
 
 void loadEntitiesFromSummary(const nlohmann::json &summary) {
-  /*
-  Format is :
-  [
-  {
-    "uuid": "uuid",
-    "chunk": "chunkCombinedId",
-    "info": "info"
-  },
-  {
-    "uuid": "uuid",
-    "chunk": "chunkCombinedId",
-    "info": "info"
-  }
-  ]
-  */
-  for (const auto &entityData : summary) {
-    std::string uuid = entityData["uuid"];
-    std::string chunk = entityData["chunk"];
-    std::string info = entityData["info"];
-    std::cout << "[FROM SUMMARY] loading entity " << uuid << " in chunk "
-              << chunk << " with info " << info << std::endl;
-    game.AddObject(uuid, info[0], 0, 0);
-  }
-  std::cout << "client loaded entities, resuming" << std::endl;
+  std::string uuid = summary["uuid"];
+  std::string chunk = summary["chunk"];
+  std::string info = summary["info"];
+  std::string passiveProps = summary["passiveProps"];
+  std::string activeProps = summary["activeProps"];
+
+  char repr = std::atoi(info.c_str());
+
+  game.AddObject(uuid, repr, 0, 0);
+
+  // set the current state of the object from the data received from the server
+  auto &obj = game.objects[uuid];
+  obj->entity->DownloadReplicationData(passiveProps, false);
+  obj->entity->DownloadReplicationData(activeProps, true);
+
+  std::cout << "[LOADED ENTITY] " << uuid << " in chunk " << chunk
+            << " with info " << info << std::endl;
 }
 
 void registerHooks() {
@@ -49,8 +42,8 @@ void registerHooks() {
 
   HOOKS.client.connection.onReadyToSpawn = [](const std::string &grapeId,
                                               float x, float y, float z) {
-    std::cout << ">> CLIENT IS READY TO SPAWN <<" << std::endl;
-    RUNTIME.RequestSpawn(RUNTIME.GetUUID(), grapeId, x, y, z);
+    // std::cout << ">> CLIENT IS READY TO SPAWN <<" << std::endl;
+    // RUNTIME.RequestSpawn(RUNTIME.GetUUID(), grapeId, x, y, z);
     return true;
   };
 
@@ -64,6 +57,8 @@ void registerHooks() {
   HOOKS.client.player.execPlayerSpawn = [](std::string clientId, int x, int y,
                                            int z) {
     std::cout << ">> CLIENT SPAWNING  " << clientId << " <<" << std::endl;
+    std::cout << "spawn coordinates are " << x << " " << y << " " << z
+              << std::endl;
     char repr = hash(clientId);
     game.AddObject(clientId, repr, x, y);
     game.world.Dump(game.objects);

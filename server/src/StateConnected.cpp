@@ -31,6 +31,8 @@ void Connected::__registerRPCs() {
   REGISTER_RPC(__rp_assignGrape, celte::rpc::Table::Scope::GRAPPE, std::string);
   REGISTER_RPC(__rp_sendExistingEntitiesSummary, celte::rpc::Table::Scope::PEER,
                std::string, std::string);
+  REGISTER_RPC(__rp_loadExistingEntities, celte::rpc::Table::Scope::PEER,
+               std::string, std::string);
 
   REGISTER_AWAITABLE_RPC(
       __rp_getPlayerSpawnPosition,
@@ -41,6 +43,11 @@ void Connected::__rp_sendExistingEntitiesSummary(std::string clientId,
                                                  std::string grapeId) {
   RPC.InvokePeer(clientId, "__rp_loadExistingEntities", grapeId,
                  ENTITIES.GetRegisteredEntitiesSummary());
+}
+
+void Connected::__rp_loadExistingEntities(std::string grapeId,
+                                          std::string summary) {
+  ENTITIES.LoadExistingEntities(grapeId, summary);
 }
 
 std::tuple<std::string, std::string, float, float, float>
@@ -58,25 +65,33 @@ void Connected::__unregisterRPCs() {
 
 void Connected::__rp_assignGrape(std::string grapeId) {
   __registerGrapeConsumers(grapeId);
-  // HOOKS.server.grape.loadGrape(grapeId, true);
 }
 
 void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
                                      float x, float y, float z) {
   // TODO: add client to correct chunk's authority
   HOOKS.server.newPlayerConnected.accept(clientId);
+  ENTITIES.AddPendingSpawn(clientId, grapeId, x, y, z);
   RPC.InvokePeer(clientId, "__rp_forceConnectToChunk", grapeId, x, y, z);
-  // RPC.InvokePeer(clientId, "__rp_loadExistingEntities", grapeId,
-  //                ENTITIES.GetRegisteredEntitiesSummary());
 }
 
 void Connected::__rp_onSpawnRequested(const std::string &clientId, float x,
-                                      float y, float z) {
-  // TODO: check if this spawn is legal
-  auto chunkId = GRAPES.GetGrapeByPosition(x, y, z)
-                     .GetChunkByPosition(x, y, z)
-                     .GetCombinedId();
-  RPC.InvokeChunk(chunkId, "__rp_spawnPlayer", clientId, x, y, z);
+                                      float y,
+                                      float z) { // TODO remove these arguments
+  try {
+    std::tuple<std::string, float, float, float> spawnInfo =
+        ENTITIES.GetPendingSpawn(clientId);
+    x = std::get<1>(spawnInfo);
+    y = std::get<2>(spawnInfo);
+    z = std::get<3>(spawnInfo);
+    auto chunkId = GRAPES.GetGrapeByPosition(x, y, z)
+                       .GetChunkByPosition(x, y, z)
+                       .GetCombinedId();
+    RPC.InvokeChunk(chunkId, "__rp_spawnPlayer", clientId, x, y, z);
+    ENTITIES.RemovePendingSpawn(clientId);
+  } catch (std::out_of_range &e) {
+    std::cerr << "Error in __rp_onSpawnRequested: " << e.what() << std::endl;
+  }
 }
 
 void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,

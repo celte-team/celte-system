@@ -30,6 +30,7 @@ struct GrapeOptions {
   glm::vec3 localZ;
   // is this grape owned by the local node?
   bool isLocallyOwned = false;
+  std::function<void()> then = nullptr;
 };
 
 struct GrapeStatistics {

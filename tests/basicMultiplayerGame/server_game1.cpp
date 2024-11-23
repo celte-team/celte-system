@@ -7,6 +7,26 @@ static bool t_isNode1 = false;
 
 char hash(std::string &s) { return s[7]; }
 
+void loadEntitiesFromSummary(const nlohmann::json &summary) {
+  std::string uuid = summary["uuid"];
+  std::string chunk = summary["chunk"];
+  std::string info = summary["info"];
+  std::string passiveProps = summary["passiveProps"];
+  std::string activeProps = summary["activeProps"];
+
+  char repr = std::atoi(info.c_str());
+
+  game.AddObject(uuid, repr, 0, 0);
+
+  // set the current state of the object from the data received from the server
+  auto &obj = game.objects[uuid];
+  obj->entity->DownloadReplicationData(passiveProps, false);
+  obj->entity->DownloadReplicationData(activeProps, true);
+
+  std::cout << "[LOADED ENTITY] " << uuid << " in chunk " << chunk
+            << " with info " << info << std::endl;
+}
+
 void registerHooks() {
   HOOKS.server.grape.loadGrape = [](std::string grapeId, bool isLocallyOwned) {
     game.LoadArea(grapeId, isLocallyOwned);
@@ -50,6 +70,13 @@ void registerHooks() {
     std::cout << "Entity " << entityId << " has been assigned to chunk "
               << chunkId << std::endl;
     std::cout << ">> SERVER onTake HOOK CALLED <<" << std::endl;
+  };
+
+  HOOKS.server.grape.onLoadExistingEntities = [](std::string grapeId,
+                                                 nlohmann::json summary) {
+    std::cout << ">> SERVER LOADING EXISTING ENTITIES <<" << std::endl;
+    loadEntitiesFromSummary(summary);
+    return true;
   };
 }
 

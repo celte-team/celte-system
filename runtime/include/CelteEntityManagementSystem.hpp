@@ -74,7 +74,25 @@ public:
    */
   void RegisterReplConsumer(const std::vector<std::string> &chunkId);
 
+  void LoadExistingEntities(const std::string &grapeId,
+                            const std::string &summary);
+
 #ifdef CELTE_SERVER_MODE_ENABLED
+  inline void AddPendingSpawn(const std::string &uuid,
+                              const std::string &chunkId, float x, float y,
+                              float z) {
+    _pendingSpawns[uuid] = std::make_tuple(chunkId, x, y, z);
+  }
+
+  inline void RemovePendingSpawn(const std::string &uuid) {
+    _pendingSpawns.erase(uuid);
+  }
+
+  inline std::tuple<std::string, float, float, float>
+  GetPendingSpawn(const std::string &uuid) {
+    return _pendingSpawns.at(uuid);
+  }
+
   /**
    * @brief Returns a summary of all the entities that are currently registered
    * with celte, along with information about how to instantiate them (see
@@ -119,6 +137,11 @@ private:
       std::unordered_map<std::string, std::string> &data, bool active = false);
 
   std::unordered_map<std::string, std::shared_ptr<CelteEntity>> _entities;
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  std::unordered_map<std::string, std::tuple<std::string, float, float, float>>
+      _pendingSpawns;
+#endif
 
   /*
   --------------------------------------------------------------------------

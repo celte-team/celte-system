@@ -59,13 +59,13 @@ public:
    * @brief Returns the a serialized version of the data to be replicated.
    *
    */
-  ReplBlob GetBlob();
+  ReplBlob GetBlob(bool peek = false);
 
   /**
    * @brief Returns a blob containing all of the changes to the data that is
    * being actively watched for.
    */
-  ReplBlob GetActiveBlob();
+  ReplBlob GetActiveBlob(bool peek = false);
 
   /**
    * @brief Overwrite the data with the data in the blob.
