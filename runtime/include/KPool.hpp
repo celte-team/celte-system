@@ -1,5 +1,5 @@
 #pragma once
-#include "ConsumerWorker.hpp"
+#include "KConsumerService.hpp"
 #include "kafka/Properties.h"
 #include "queue.hpp"
 #include <atomic>
@@ -181,30 +181,16 @@ private:
 
   void __initAdminClient();
 
-  void __consumerJob();
-
   Options _options;
 
   kafka::Properties _producerProps;
   kafka::Properties _consumerProps;
   std::unique_ptr<kafka::clients::producer::KafkaProducer> _producer;
   std::unique_ptr<kafka::clients::admin::AdminClient> _adminClient;
-
-  // flow is subscribe called -> subscription added to _subscriptionsToImplement
-  // -> commitSubscriptions called -> subscriptions grouped together and added
-  // to _subscriptionsInProgress
   ubn::queue<SubscriptionTask> _subscriptionsToImplement;
-  ubn::queue<std::shared_ptr<BatchSubscription>> _subscriptionsInProgress;
-  ubn::queue<std::function<void()>> _tasksToExecute;
-
   ubn::queue<kafka::clients::consumer::ConsumerRecord> _records;
-  std::thread _consumerThread;
-  std::atomic_bool _running;
-  // std::vector<ConsumerBucket> _consumerBuckets;
-  std::unique_ptr<kafka::clients::consumer::KafkaConsumer> _consumer;
-  std::shared_mutex _consumerMutex;
-
   std::unordered_map<std::string, MessageCallback> _callbacks;
+  KConsumerService _consumerService;
 };
 } // namespace nl
 } // namespace celte

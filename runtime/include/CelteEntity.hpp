@@ -90,6 +90,9 @@ public:
 
 #endif
 
+  std::string GetPassiveProps();
+  std::string GetActiveProps();
+
   /**
    * @brief Registers a property to be replicated usingm this entity's
    * replicator. This will allow the property to be replicated to other

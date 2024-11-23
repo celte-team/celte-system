@@ -245,6 +245,8 @@ public:
   template <typename... Args>
   void InvokeByTopic(const std::string &topic, const std::string &rpName,
                      Args... args) {
+    std::cout << "RPC by topic: " << rpName << " to topic " << topic
+              << std::endl;
     auto serializedArguments = __serialize__(args...);
 
     auto record = kafka::clients::producer::ProducerRecord(

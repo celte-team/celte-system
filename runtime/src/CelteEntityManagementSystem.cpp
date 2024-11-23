@@ -119,6 +119,9 @@ std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
 
   for (const auto &[uuid, entity] : _entities) {
     try {
+      if (not entity->GetOwnerChunk().GetConfig().isLocallyOwned) {
+        continue;
+      }
       logs::Logger::getInstance().info()
           << "packing entity " << uuid << " to json." << std::endl;
       // Create a new object for each entity
@@ -127,6 +130,8 @@ std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
       obj["uuid"] = entity->GetUUID();
       obj["chunk"] = entity->GetOwnerChunk().GetCombinedId();
       obj["info"] = entity->GetInformationToLoad();
+      obj["passiveProps"] = entity->GetPassiveProps();
+      obj["activeProprs"] = entity->GetActiveProps();
 
       // Add the object to the JSON array
       j.push_back(obj);
@@ -212,6 +217,31 @@ void CelteEntityManagementSystem::__handleReplicationDataReceived(
           << std::endl; // TODO: better handling for this, entities may need to
                         // spawn or smth
     }
+  }
+}
+
+void CelteEntityManagementSystem::LoadExistingEntities(
+    const std::string &grapeId, const std::string &summary) {
+  try {
+    nlohmann::json summaryJSON = nlohmann::json::parse(summary);
+
+    for (nlohmann::json &partialSummary : summaryJSON) {
+      std::string uuid = partialSummary["uuid"];
+      if (_entities.find(uuid) != _entities.end() or
+          uuid == RUNTIME.GetUUID()) {
+        continue; // entity already loaded
+      }
+#ifdef CELTE_SERVER_MODE_ENABLED
+      HOOKS.server.grape.onLoadExistingEntities(grapeId, partialSummary);
+#else
+      HOOKS.client.grape.onLoadExistingEntities(grapeId, partialSummary);
+#endif
+    }
+
+  } catch (const std::exception &e) {
+    logs::Logger::getInstance().err()
+        << "Error loading existing entities: " << e.what() << std::endl;
+    return;
   }
 }
 

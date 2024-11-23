@@ -78,6 +78,15 @@ void Grape::__subdivide() {
 #ifdef CELTE_SERVER_MODE_ENABLED
   KPOOL.CreateTopicsIfNotExist(replTopics, 1, 1);
   KPOOL.CreateTopicsIfNotExist(rpcTopics, 1, 1);
+  if (_options.isLocallyOwned) {
+    std::vector<std::string> grapeTopic = {_options.grapeId};
+    KPOOL.CreateTopicsIfNotExist(grapeTopic, 1, 1);
+    KPOOL.RegisterTopicCallback(
+        _options.grapeId,
+        [this](const kafka::clients::consumer::ConsumerRecord &record) {
+          RPC.InvokeLocal(record);
+        });
+  }
 #endif
 
   std::vector<std::string> topics;
@@ -87,7 +96,8 @@ void Grape::__subdivide() {
     ENTITIES.RegisterReplConsumer(replTopics);
   }
 
-  std::function<void()> then = nullptr;
+  std::function<void()> then =
+      (_options.then != nullptr) ? _options.then : nullptr;
   if (not _options.isLocallyOwned) {
     then = [this]() {
       // request the SN managing the node to udpate us with the data we need to
@@ -95,7 +105,12 @@ void Grape::__subdivide() {
       std::cout << "requesting existing entities summary" << std::endl;
       RPC.InvokeByTopic(_options.grapeId, "__rp_sendExistingEntitiesSummary",
                         RUNTIME.GetUUID(), _options.grapeId);
+      if (_options.then != nullptr) {
+        _options.then();
+      }
     };
+  } else {
+    topics.push_back(_options.grapeId);
   }
 
   KPOOL.Subscribe({

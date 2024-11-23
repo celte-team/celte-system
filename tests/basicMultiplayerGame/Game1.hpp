@@ -101,6 +101,22 @@ public:
       y = 15;
     }
 
+    // if the client is loading the area where the player will be spawning, then
+    // we should call the request spawn RP after the zone is done loading. This
+    // is done in the .then of the grape registration to ensure that the client
+    // is done connecting to the grape's topics before requesting to spawn.
+    std::function<void()> then = nullptr;
+#ifndef CELTE_SERVER_MODE_ENABLED
+    if (name == "LeChateauDuMechant") { // spawn zone is hard coded here but
+                                        // it's technically just the zone called
+                                        // in the loadGrape hook.
+      then = [name]() {
+        std::cout << ">> CLIENT IS READY TO SPAWN <<" << std::endl;
+        RUNTIME.RequestSpawn(RUNTIME.GetUUID(), name, 0, 0, 0);
+      };
+    }
+#endif
+
     glm::vec3 grapePosition(x, y, 0);
     auto grapeOptions =
         celte::chunks::GrapeOptions{.grapeId = name,
@@ -110,7 +126,8 @@ public:
                                     .localX = glm::vec3(1, 0, 0),
                                     .localY = glm::vec3(0, 1, 0),
                                     .localZ = glm::vec3(0, 0, 1),
-                                    .isLocallyOwned = locallyOwned};
+                                    .isLocallyOwned = locallyOwned,
+                                    .then = then};
     celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER().RegisterGrape(
         grapeOptions);
     std::cout << ">> Grape " << name

@@ -93,4 +93,10 @@ void CelteEntity::DownloadReplicationData(const std::string &blob,
   _replicator.Overwrite(blob, active);
 }
 
+std::string CelteEntity::GetPassiveProps() { return _replicator.GetBlob(true); }
+
+std::string CelteEntity::GetActiveProps() {
+  return _replicator.GetActiveBlob(true);
+}
+
 } // namespace celte
