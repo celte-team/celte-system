@@ -26,6 +26,7 @@ namespace celte {
     namespace runtime {
         CelteInputSystem::CelteInputSystem()
         {
+            _data = std::make_shared<LIST_INPUTS>();
         }
 
         void CelteInputSystem::RegisterInputCallback(const std::vector<std::string>& chunkId)
@@ -57,29 +58,35 @@ namespace celte {
                     });
             }
         }
-
         void CelteInputSystem::handleInput(std::string uuid, std::string InputName, bool status)
         {
+            // Dereference _data to access the map
+            if (_data->find(uuid) == _data->end()) {
+                // If the uuid is not found, create a new entry for it
+                (*_data)[uuid] = std::map<std::string, boost::circular_buffer<DataInput_t>>();
+            }
 
-            if (_data.find(uuid) == _data.end())
-                _data[uuid] = std::map<std::string, boost::circular_buffer<DataInput_t>>();
+            if ((*_data)[uuid].find(InputName) == (*_data)[uuid].end()) {
+                // If the InputName is not found, create a new circular buffer for it
+                (*_data)[uuid][InputName] = boost::circular_buffer<DataInput_t>(10);
+            }
 
-            if (_data[uuid].find(InputName) == _data[uuid].end())
-                _data[uuid][InputName] = boost::circular_buffer<DataInput_t>(10);
-
+            // Create a new DataInput_t with the given status and current time
             DataInput_t newInput = { status, std::chrono::system_clock::now() };
-            _data[uuid][InputName].push_back(newInput);
+
+            // Push the new input to the circular buffer for the given uuid and InputName
+            (*_data)[uuid][InputName].push_back(newInput);
         }
 
-        std::shared_ptr<std::map<std::string, std::map<std::string, boost::circular_buffer<CelteInputSystem::DataInput_t>>>> CelteInputSystem::getListInput()
+        std::shared_ptr<CelteInputSystem::LIST_INPUTS> CelteInputSystem::getListInput()
         {
-            return std::make_shared<LIST_INPUTS>(_data);
+            return _data;
         }
 
         std::shared_ptr<CelteInputSystem::LIST_INPUT_BY_UUID> CelteInputSystem::getListInputOfUuid(std::string uuid)
         {
-            auto uuidIt = _data.find(uuid); // Find the UUID in the outer map
-            if (uuidIt != _data.end())
+            auto uuidIt = _data->find(uuid); // Find the UUID in the outer map
+            if (uuidIt != _data->end())
                 return std::make_shared<CelteInputSystem::LIST_INPUT_BY_UUID>(uuidIt->second); // Return a shared pointer to the found element
 
             return nullptr;

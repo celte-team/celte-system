@@ -71,7 +71,7 @@ void registerHooks()
 void runTestLogic()
 {
     static bool one = true;
-    auto inputs = CINPUT.getListInput();
+    static auto inputs = CINPUT.getListInput();
 
     if (!inputs->empty() && one) {
         // Access the first element in the outer map (LIST_INPUTS)

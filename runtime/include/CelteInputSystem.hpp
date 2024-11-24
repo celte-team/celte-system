@@ -50,7 +50,7 @@ namespace celte {
             std::shared_ptr<DataInput_t> getSpecificInput(std::string uuid, std::string InputName, int indexHisto);
 
         private:
-            LIST_INPUTS _data;
+            std::shared_ptr<LIST_INPUTS> _data;
         };
 
     };
