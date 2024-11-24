@@ -38,7 +38,17 @@ set(SOURCES
 add_executable(test2nodesserver ${SOURCES})
 target_compile_definitions(test2nodesserver PRIVATE -DCELTE_SERVER_MODE_ENABLED)
 target_link_libraries(test2nodesserver gtest gtest_main)
-target_link_libraries(test2nodesserver celtesystems_runtime_server msgpack-cxx RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} glm::glm Boost::thread Boost::json)
+target_link_libraries(test2nodesserver
+    celtesystems_runtime_server
+    msgpack-cxx
+    ${RDKAFKA_LIBRARY}
+    ${RDKAFKA++_LIBRARY}
+    ${GLIB_LIBRARIES}
+    glm::glm
+    Boost::thread
+    Boost::json
+    lz4::lz4
+)
 
 set(SOURCES_CLIENT
     test2nodesclient.cpp
@@ -46,4 +56,12 @@ set(SOURCES_CLIENT
 
 add_executable(test2nodesclient ${SOURCES_CLIENT})
 target_link_libraries(test2nodesclient gtest gtest_main)
-target_link_libraries(test2nodesclient celtesystems_runtime_client msgpack-cxx RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} glm::glm)
+target_link_libraries(test2nodesclient
+    celtesystems_runtime_client
+    msgpack-cxx
+    ${RDKAFKA_LIBRARY}
+    ${RDKAFKA++_LIBRARY}
+    ${GLIB_LIBRARIES}
+    glm::glm
+    lz4::lz4
+)
