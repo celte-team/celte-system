@@ -40,5 +40,6 @@ test_suites:
     expects:
       servers:
         - ".* input name: move forward.*"
+        - ".*First element status: 1.*"
 
       clients:

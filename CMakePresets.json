@@ -15,12 +15,31 @@
                     "value": "$env{VCPKG_ROOT}/installed/$env{VCPKG_TARGET_TRIPLET}"
                 }
             }
+        },
+        {
+            "name": "default2",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "/home/ebriand/vcpkg/scripts/buildsystems/vcpkg.cmake"
+                },
+                "CMAKE_PREFIX_PATH": {
+                    "type": "STRING",
+                    "value": "/home/ebriand/vcpkg/installed/x64-linux"
+                }
+            }
         }
     ],
     "buildPresets": [
         {
             "name": "default",
             "configurePreset": "default"
+        },
+        {
+            "name": "default2",
+            "configurePreset": "default2"
         }
     ]
 }

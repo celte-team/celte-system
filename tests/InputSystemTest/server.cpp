@@ -70,9 +70,35 @@ void registerHooks()
 
 void runTestLogic()
 {
-    // if entity has spawned more that 10 seconds ago, change property every tick.
-    if (std::chrono::system_clock::now() - entitySpawnTimePoint > std::chrono::seconds(10) and property == 0) {
-        property = 1;
+    static bool one = true;
+    auto inputs = CINPUT.getListInput();
+
+    if (!inputs->empty() && one) {
+        // Access the first element in the outer map (LIST_INPUTS)
+        auto firstData = inputs->begin()->second.begin()->second.front();
+        auto firstData2 = CINPUT.getListInputOfUuid(inputs->begin()->first)->begin()->second.front();
+        auto firstData3 = CINPUT.getInputCircularBuf(inputs->begin()->first, "move forward")->front();
+        auto firstData4 = CINPUT.getSpecificInput(inputs->begin()->first, "move forward", 0);
+
+        if (firstData.status == firstData2.status == firstData3.status == firstData4->status) {
+            std::cout << "First element status: " << firstData.status << std::endl;
+            std::cout << "First element timestamp: " << std::chrono::system_clock::to_time_t(firstData.timestamp) << std::endl;
+        } else {
+            std::cout << "Error in get data :\n";
+
+            std::cout << "First element status: " << firstData.status << std::endl;
+            std::cout << "First element timestamp: " << std::chrono::system_clock::to_time_t(firstData.timestamp) << std::endl;
+
+            std::cout << "First element status: " << firstData2.status << std::endl;
+            std::cout << "First element timestamp: " << std::chrono::system_clock::to_time_t(firstData2.timestamp) << std::endl;
+
+            std::cout << "First element status: " << firstData3.status << std::endl;
+            std::cout << "First element timestamp: " << std::chrono::system_clock::to_time_t(firstData3.timestamp) << std::endl;
+
+            std::cout << "First element status: " << firstData4->status << std::endl;
+            std::cout << "First element timestamp: " << std::chrono::system_clock::to_time_t(firstData4->timestamp) << std::endl;
+        }
+        one = false;
     }
 }
 

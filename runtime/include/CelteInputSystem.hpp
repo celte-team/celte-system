@@ -44,10 +44,10 @@ namespace celte {
             void RegisterInputCallback(const std::vector<std::string>& chunkId);
             void handleInput(std::string ChunkID, std::string InputName, bool status);
 
-            LIST_INPUTS getListInput();
-            // std::shared_ptr<LIST_INPUT_BY_UUID> getListInputOfUuid(std::string uuid);
-            // std::shared_ptr<INPUT> getInputCircularBuf(std::string uuid, std::string InputName);
-            // std::shared_ptr<DataInput_t> getSpecificInput(std::string uuid, std::string InputName, int indexHisto);
+            std::shared_ptr<LIST_INPUTS> getListInput();
+            std::shared_ptr<LIST_INPUT_BY_UUID> getListInputOfUuid(std::string uuid);
+            std::shared_ptr<INPUT> getInputCircularBuf(std::string uuid, std::string InputName);
+            std::shared_ptr<DataInput_t> getSpecificInput(std::string uuid, std::string InputName, int indexHisto);
 
         private:
             LIST_INPUTS _data;
