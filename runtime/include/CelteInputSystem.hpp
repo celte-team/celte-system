@@ -19,6 +19,7 @@
 #include <chrono>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace celte {
@@ -45,9 +46,9 @@ namespace celte {
             void handleInput(std::string ChunkID, std::string InputName, bool status);
 
             std::shared_ptr<LIST_INPUTS> getListInput();
-            std::shared_ptr<LIST_INPUT_BY_UUID> getListInputOfUuid(std::string uuid);
-            std::shared_ptr<INPUT> getInputCircularBuf(std::string uuid, std::string InputName);
-            std::shared_ptr<DataInput_t> getSpecificInput(std::string uuid, std::string InputName, int indexHisto);
+            std::optional<const CelteInputSystem::LIST_INPUT_BY_UUID> getListInputOfUuid(std::string uuid);
+            std::optional<const CelteInputSystem::INPUT> getInputCircularBuf(std::string uuid, std::string InputName);
+            std::optional<const CelteInputSystem::DataInput_t> getSpecificInput(std::string uuid, std::string InputName, int indexHisto);
 
         private:
             std::shared_ptr<LIST_INPUTS> _data;

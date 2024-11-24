@@ -83,31 +83,44 @@ namespace celte {
             return _data;
         }
 
-        std::shared_ptr<CelteInputSystem::LIST_INPUT_BY_UUID> CelteInputSystem::getListInputOfUuid(std::string uuid)
+        std::optional<const CelteInputSystem::LIST_INPUT_BY_UUID> CelteInputSystem::getListInputOfUuid(std::string uuid)
         {
             auto uuidIt = _data->find(uuid); // Find the UUID in the outer map
-            if (uuidIt != _data->end())
-                return std::make_shared<CelteInputSystem::LIST_INPUT_BY_UUID>(uuidIt->second); // Return a shared pointer to the found element
+            if (uuidIt != _data->end()) {
+                // Return the reference wrapped in std::optional if found
+                return std::make_optional(uuidIt->second);
+            }
 
-            return nullptr;
+            // Return std::nullopt if the UUID is not found
+            return std::nullopt;
         }
-        std::shared_ptr<CelteInputSystem::INPUT> CelteInputSystem::getInputCircularBuf(std::string uuid, std::string InputName)
+
+        std::optional<const CelteInputSystem::INPUT> CelteInputSystem::getInputCircularBuf(std::string uuid, std::string InputName)
         {
             auto inputMap = getListInputOfUuid(uuid);
-            if (inputMap != nullptr) {
+            if (inputMap) {
                 auto inputIt = inputMap->find(InputName); // Find the InputName in the inner map
-                if (inputIt != inputMap->end())
-                    return std::make_shared<CelteInputSystem::INPUT>(inputIt->second); // Return a shared pointer to the found element
+                if (inputIt != inputMap->end()) {
+                    // Return a copy of the circular buffer wrapped in std::optional
+                    return std::make_optional(inputIt->second);
+                }
             }
-            return nullptr; // Return null if not found
+            // If not found, return std::nullopt
+            return std::nullopt;
         }
 
-        std::shared_ptr<CelteInputSystem::DataInput_t> CelteInputSystem::getSpecificInput(std::string uuid, std::string InputName, int indexHisto)
+        std::optional<const CelteInputSystem::DataInput_t> CelteInputSystem::getSpecificInput(std::string uuid, std::string InputName, int indexHisto)
         {
             auto inputIt = getInputCircularBuf(uuid, InputName);
-            if (inputIt != nullptr)
-                return std::make_shared<CelteInputSystem::DataInput_t>(inputIt->at(indexHisto));
-            return nullptr;
+            if (inputIt) {
+                // Ensure the index is valid for the circular buffer
+                if (indexHisto >= 0 && indexHisto < inputIt->size()) {
+                    // Return the specific DataInput_t wrapped in std::optional
+                    return std::make_optional(inputIt->at(indexHisto));
+                }
+            }
+            // If not found or index is out of bounds, return std::nullopt
+            return std::nullopt;
         }
 
     }
