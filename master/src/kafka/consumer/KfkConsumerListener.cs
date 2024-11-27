@@ -38,10 +38,6 @@ public class KfkConsumerListener : IDisposable
             EnableAutoCommit = true,
             TopicMetadataRefreshIntervalMs = 1000,
             AutoCommitIntervalMs = 5000,
-            // fetch.max.wait.ms
-            // FetchMaxWaitMs = 100,
-            // fetch.min.bytes
-            // FetchMinBytes = 1,
         };
 
         _consumer = new ConsumerBuilder<string, byte[]>(config).Build();
@@ -122,34 +118,6 @@ public class KfkConsumerListener : IDisposable
             }
         }
     }
-
-    /// <summary>
-    /// The goal of this function is to update the topic list from a Redis channel, it will use the JSON format
-    /// to send the topic name. then it their is a new topic it will add it to the topic list.
-    /// </summary>
-    // public void SubscribeToRedisChannelTopics()
-    // {
-    //     try
-    //     {
-    //         var redisClient = Redis.RedisClient.GetInstance();
-    //         Console.WriteLine("Subscribing to Redis channel123123123123123123123...");
-    //         redisClient.Subscribe(RedisChannelTopic, (channel, message) =>
-    //         {
-    //             Console.WriteLine($"Received message from Redis channel: {message}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    //             string topic = message;
-    //             if (_topicHandlers.ContainsKey(topic))
-    //             {
-    //                 Console.WriteLine($"Topic {topic} already exists.!!!!!!!!!!!!");
-    //                 return;
-    //             }
-    //             Console.WriteLine($"Adding topic {topic} from Redis channel...");
-    //         });
-    //     }
-    //     catch (Exception e)
-    //     {
-    //         Console.WriteLine($"Error subscribing to Redis channel: {e.Message}");
-    //     }
-    // }
 
     /// <summary>
     /// Add a topic to the topic JSON list from a Redis channel
