@@ -23,7 +23,7 @@ class KFKProducer : IDisposable
             _config = new ProducerConfig
             {
                 BootstrapServers = kafka_brokers,
-                Acks = Acks.All
+                Acks = Acks.All,
             };
 
             _producer = new ProducerBuilder<Null, byte[]>(_config).Build();

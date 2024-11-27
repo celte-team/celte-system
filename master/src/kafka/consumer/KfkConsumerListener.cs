@@ -35,7 +35,13 @@ public class KfkConsumerListener : IDisposable
             BootstrapServers = bootstrapServers,
             GroupId = groupId,
             AutoOffsetReset = AutoOffsetReset.Earliest,
-            EnableAutoCommit = true
+            EnableAutoCommit = true,
+            TopicMetadataRefreshIntervalMs = 1000,
+            AutoCommitIntervalMs = 5000,
+            // fetch.max.wait.ms
+            // FetchMaxWaitMs = 100,
+            // fetch.min.bytes
+            // FetchMinBytes = 1,
         };
 
         _consumer = new ConsumerBuilder<string, byte[]>(config).Build();

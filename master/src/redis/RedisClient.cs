@@ -93,7 +93,7 @@ namespace Redis {
         public async Task LogActionAsync(ActionLog log)
         {
             string logJson = JSONSerializer.Serialize(log);
-            string key = "action_logs";
+            string key = "action_logs_" + M.Global.MasterRedisID;
 
             if (_db == null)
             {

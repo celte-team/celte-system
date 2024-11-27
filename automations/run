@@ -238,7 +238,6 @@ def run_tests(yaml_path):
 
         if suite.get('cluster') == True:
             print(f"{Fore.GREEN}Starting Kafka cluster{Style.RESET_ALL}")
-            # cluster_process_handle = run_command(["./automations/run", "--kafka"], os.path.join(log_dir, 'kafka_cluster.log'))
             cluster_process_handle = run_command(["./automations/run", "--kafka"], os.path.join(log_dir, 'kafka_cluster.log'))
             print(f"{Fore.GREEN}Cluster logs available at: {Style.RESET_ALL}{os.path.join(log_dir, 'kafka_cluster.log')}")
 
@@ -398,6 +397,46 @@ def signal_handler(sig, frame):
         current_process.terminate()
     sys.exit(0)
 
+def run_command_in_thread(command, log_file, folder=None):
+    """
+    Run a command in a separate thread and log the output.
+    """
+    def target():
+        process = None
+        try:
+            if folder:
+                with open(log_file, 'w') as log:
+                    process = subprocess.Popen(command, stdout=log, stderr=log, cwd=folder)
+                    process.wait()
+            else:
+                with open(log_file, 'w') as log:
+                    process = subprocess.Popen(command, stdout=log, stderr=log)
+                    process.wait()
+        except Exception as e:
+            print(f"{Fore.RED}Error running command {command}: {e}{Style.RESET_ALL}")
+        finally:
+            if process and process.returncode != 0:
+                print(f"{Fore.RED}Command failed: {' '.join(command)}{Style.RESET_ALL}")
+
+    thread = threading.Thread(target=target)
+    thread.start()
+    return thread
+
+def run_all():
+    """Run all the services inside separate threads."""
+    threads = []
+
+    kafka_log_file = './logs/kafka.log'
+    kafka_command = ["./automations/run", "--kafka"]
+    threads.append(run_command_in_thread(kafka_command, kafka_log_file, folder="./kafka"))
+
+    # Redis Sentinel example
+    redis_log_file = './logs/redis.log'
+    redis_command = ["docker", "compose", "up"]
+    threads.append(run_command_in_thread(redis_command, redis_log_file, folder="./redis"))
+
+    print(f"{Fore.GREEN}All tasks completed.{Style.RESET_ALL}")
+
 signal.signal(signal.SIGINT, signal_handler)
 
 launcher = {
@@ -411,6 +450,7 @@ launcher = {
     '--test': run_tests,
     '--redis': run_redis_sentinel,
     '--master': run_master,
+    '--all': run_all, # Kafka, Redis, Master
 }
 
 def usage():

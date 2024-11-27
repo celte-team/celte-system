@@ -59,7 +59,7 @@ class Master
             {
                 { M.Global.MasterHelloSn, connectNode.connectNewNode },
                 { M.Global.MasterHelloClient, connectClient.connectNewClient },
-                { M.Global.MasterRPC, null }
+                { M.Global.MasterRPC, null },
             };
 
         foreach (var topic in topicAction)
@@ -69,12 +69,6 @@ class Master
 
         kFKProducer = new KFKProducer();
     }
-
-    private void __handleRPC(string message)
-    {
-        Console.WriteLine($"Received RPC message: {message}");
-    }
-
     public static Master GetInstance()
     {
         if (_master == null)
