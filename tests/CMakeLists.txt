@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.12)
 project(celte-unit-tests)
 
+find_package(unofficial-pulsar CONFIG) # moving this after gtest breaks the build, idk but hey it works here :)
+
 include(FetchContent)
 
 # Fetch GoogleTest and GoogleMock
@@ -24,6 +26,7 @@ include_directories(include
     ${GLIB_INCLUDE_DIRS}
     ${RDKAFKA_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/runtime/include
+    ${CMAKE_SOURCE_DIR}/runtime/net/include
 )
 
 # Set the source files for the unit tests
@@ -42,3 +45,11 @@ add_executable(manual_test_replicator test_manual_replicator_pointer.cpp)
 target_compile_definitions(manual_test_replicator PRIVATE -DCELTE_SERVER_MODE_ENABLED)
 target_link_libraries(manual_test_replicator gtest gmock gtest_main msgpack-cxx)
 target_link_libraries(manual_test_replicator celtesystems_runtime_server)
+
+add_executable(test_celtenet ${CMAKE_SOURCE_DIR}/runtime/net/tests/test_celtenet.cpp)
+target_link_libraries(test_celtenet gtest gmock gtest_main celtenet unofficial::pulsar::pulsar)
+
+#  setup ctest
+# add_test(NAME test_server COMMAND test_server)
+# add_test(NAME manual_test_replicator COMMAND manual_test_replicator)
+add_test(NAME test_celtenet COMMAND test_celtenet)

@@ -4,7 +4,6 @@ project(celtesystems)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Add the vcpkg toolchain file
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 
 find_package(RdKafka CONFIG REQUIRED)
@@ -12,15 +11,35 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 find_package(glm CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread json)
+find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
+find_package(unofficial-pulsar CONFIG)
 
 
-include_directories(include ${GLIB_INCLUDE_DIRS} ${RDKAFKA_INCLUDE_DIRS})
+include_directories(
+    include
+    ${GLIB_INCLUDE_DIRS}
+    ${RDKAFKA_INCLUDE_DIRS}
+    runtime/net/include
+    ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/include
+)
 
 # Add pkg-config flags for glib-2.0
 link_directories(${GLIB_LIBRARY_DIRS})
 add_definitions(${GLIB_CFLAGS_OTHER})
 
-find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
+
+
+set(NET_SOURCES
+    net/src/CelteNet.cpp
+    net/src/CelteService.cpp
+    net/src/RPCService.cpp
+    net/src/WriterStreamPool.cpp
+)
+
+add_library(celtenet SHARED ${NET_SOURCES})
+target_link_libraries(celtenet PRIVATE unofficial::pulsar::pulsar ${Boost_LIBRARIES})
+
+
 
 set(COMMON_SOURCES
     src/CelteRuntime.cpp
