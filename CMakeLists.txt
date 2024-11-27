@@ -17,7 +17,10 @@ include_directories(
     # kafka/cpp/include
     client/include
     server/include
-    runtime/include)
+    runtime/include
+    runtime/net/include
+)
+
 
 include_directories(${CMAKE_PREFIX_PATH}/include)
 

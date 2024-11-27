@@ -43,13 +43,6 @@ void KConsumerService::__execSubscriptionsTask(
     if (then != nullptr)
       _thens.push(then);
   }
-  {
-    // debug
-    std::cout << "NOW POLLING FROM TOPCIS " << std::endl;
-    for (auto &topic : topics) {
-      std::cout << topic << std::endl;
-    }
-  }
   _ioService.post([this, consumer]() { __pollOnceTask(consumer); });
 }
 
