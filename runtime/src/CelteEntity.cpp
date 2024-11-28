@@ -123,4 +123,11 @@ namespace celte {
         KPOOL.Send({ .topic = cp, .value = value });
     }
 
+std::string CelteEntity::GetPassiveProps() { return _replicator.GetBlob(true); }
+
+std::string CelteEntity::GetActiveProps() {
+  return _replicator.GetActiveBlob(true);
+}
+
 } // namespace celte
+

@@ -94,94 +94,88 @@ namespace celte {
 
 #endif
 
-        /**
-         * @brief Registers a property to be replicated usingm this entity's
-         * replicator. This will allow the property to be replicated to other
-         * peers in the network. The method should be called on both the server
-         * and the client side.
-         *
-         * @warning Properties registered this way are lazily replicated: no
-         * information concerning a potential update of the state of this entity will
-         * be sent to the chunk's replication channel unless the NotifyDataChanged
-         * method is called from the server owning the entity. To have the property be
-         * watched actively, use RegisterActiveProperty instead.
-         */
-        template <typename T>
-        void RegisterProperty(const std::string& name, T* prop)
-        {
-            _replicator.registerValue(name, prop);
-        }
+  std::string GetPassiveProps();
+  std::string GetActiveProps();
 
-        /**
-         * @brief Registers a property to be replicated usingm this entity's
-         * replicator. This will allow the property to be replicated to other
-         * peers in the network. The method should be called on both the server
-         * and the client side.
-         *
-         * @warning Properties registered this way are actively replicated: any change
-         * to the property will be sent to the chunk's replication channel as soon as
-         * it is detected by celte. To have the property be watched lazily and save
-         * bandwidth, use RegisterProperty instead.
-         */
-        template <typename T>
-        void RegisterActiveProperty(const std::string& name, T* prop)
-        {
-            _replicator.registerActiveValue(name, prop);
-        }
+  /**
+   * @brief Registers a property to be replicated usingm this entity's
+   * replicator. This will allow the property to be replicated to other
+   * peers in the network. The method should be called on both the server
+   * and the client side.
+   *
+   * @warning Properties registered this way are lazily replicated: no
+   * information concerning a potential update of the state of this entity will
+   * be sent to the chunk's replication channel unless the NotifyDataChanged
+   * method is called from the server owning the entity. To have the property be
+   * watched actively, use RegisterActiveProperty instead.
+   */
+  template <typename T>
+  void RegisterProperty(const std::string &name, T *prop) {
+    _replicator.registerValue(name, prop);
+  }
 
-        /**
-         * @brief Sets the information that should be used to load this entity by
-         * clients or other server nodes.
-         * This string should be set by the developer when the entity is first
-         * instantiated, and should contain enough information for the dev to load
-         * the entity on the client side.
-         */
-        void SetInformationToLoad(const std::string& info);
+  /**
+   * @brief Registers a property to be replicated usingm this entity's
+   * replicator. This will allow the property to be replicated to other
+   * peers in the network. The method should be called on both the server
+   * and the client side.
+   *
+   * @warning Properties registered this way are actively replicated: any change
+   * to the property will be sent to the chunk's replication channel as soon as
+   * it is detected by celte. To have the property be watched lazily and save
+   * bandwidth, use RegisterProperty instead.
+   */
+  template <typename T>
+  void RegisterActiveProperty(const std::string &name, T *prop) {
+    _replicator.registerActiveValue(name, prop);
+  }
 
-        /**
-         * @brief Returns the information that should be used to load this entity by
-         * clients or other server nodes.
-         */
-        const std::string& GetInformationToLoad() const;
+  /**
+   * @brief Sets the information that should be used to load this entity by
+   * clients or other server nodes.
+   * This string should be set by the developer when the entity is first
+   * instantiated, and should contain enough information for the dev to load
+   * the entity on the client side.
+   */
+  void SetInformationToLoad(const std::string &info);
 
-        /**
-         * @brief Returns true if the OnSpawn method has been called without errort
-         * and the entity is active in the game.
-         */
-        inline bool IsSpawned() const { return _isSpawned; }
+  /**
+   * @brief Returns the information that should be used to load this entity by
+   * clients or other server nodes.
+   */
+  const std::string &GetInformationToLoad() const;
 
-        /**
-         * @brief This method is called when the entity receives data from the network
-         * and should update it in order to rollback to the changes made by the
-         * server that has authority over the entity.
-         */
-        void DownloadReplicationData(const std::string& blob, bool active = false);
+  /**
+   * @brief Returns true if the OnSpawn method has been called without errort
+   * and the entity is active in the game.
+   */
+  inline bool IsSpawned() const { return _isSpawned; }
 
-        /**
-         * @brief Send input status to kafka
-         *
-         * @param inputName std::string of input
-         * @param pressed   bool status of the input (true is down, false is up)
-         */
-        void sendInputToKafka(std::string inputName, bool pressed);
+  /**
+   * @brief This method is called when the entity receives data from the network
+   * and should update it in order to rollback to the changes made by the
+   * server that has authority over the entity.
+   */
+  void DownloadReplicationData(const std::string &blob, bool active = false);
 
-    private:
-        std::string _uuid;
-        celte::chunks::Chunk* _ownerChunk = nullptr;
-        bool _isSpawned = false;
+private:
+  std::string _uuid;
+  celte::chunks::Chunk *_ownerChunk = nullptr;
+  bool _isSpawned = false;
 
-        /**
-         * @brief In server mode, this object is used to collect
-         * the data to be replicated so that it can later be sent to kafka.
-         * On the client side, this is used to overwrite data received from
-         * the network.
-         */
-        runtime::Replicator _replicator;
+  /**
+   * @brief In server mode, this object is used to collect
+   * the data to be replicated so that it can later be sent to kafka.
+   * On the client side, this is used to overwrite data received from
+   * the network.
+   */
+  runtime::Replicator _replicator;
 
-        // If a peer needs to spawn this entity, the server will send this
-        // information which should have been set by the developer when first
-        // instantiating the entity, using the SetInformationToLoad on server side.
-        // This is a string that can be used to load the entity.
-        std::string _informationToLoad;
-    };
+  // If a peer needs to spawn this entity, the server will send this
+  // information which should have been set by the developer when first
+  // instantiating the entity, using the SetInformationToLoad on server side.
+  // This is a string that can be used to load the entity.
+  std::string _informationToLoad;
+};
 } // namespace celte
+

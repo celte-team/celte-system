@@ -21,6 +21,7 @@ std::string Chunk::Initialize() {
 }
 
 void Chunk::__registerConsumers() {
+  std::cout << "Registering consumers for chunk " << _combinedId << std::endl;
   KPOOL.RegisterTopicCallback(_combinedId + "." + celte::tp::RPCs,
                               [this](auto r) { RPC.InvokeLocal(r); });
 }
@@ -31,7 +32,8 @@ bool Chunk::ContainsPosition(float x, float y, float z) const {
 
 void Chunk::__registerRPCs() {
   REGISTER_RPC(__rp_scheduleEntityAuthorityTransfer,
-               celte::rpc::Table::Scope::CHUNK, std::string, bool, int);
+               celte::rpc::Table::Scope::CHUNK, std::string, std::string, bool,
+               int);
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -83,8 +85,10 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
   // server node, calling the RPC will trigger the behavior of transfering
   // authority over to the chunk in all the peers listening to the chunk's
   // topic.
+  std::cout << "invoking rpc to schedule authority transfer on topic "
+            << _combinedId << ".rpc" << std::endl;
   RPC.InvokeChunk(_combinedId, "__rp_scheduleEntityAuthorityTransfer", entityId,
-                  true, CLOCK.CurrentTick() + 30);
+                  _combinedId, true, CLOCK.CurrentTick() + 30);
 }
 #endif
 
@@ -93,16 +97,18 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
 /* -------------------------------------------------------------------------- */
 
 void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
+                                                 std::string newOwnerChunkId,
                                                  bool take, int tick) {
   if (take) {
-    CLOCK.ScheduleAt(tick, [this, entityUUID]() {
+    CLOCK.ScheduleAt(tick, [this, entityUUID, newOwnerChunkId]() {
       try {
 #ifdef CELTE_SERVER_MODE_ENABLED
-        HOOKS.server.authority.onTake(entityUUID, _combinedId);
+        HOOKS.server.authority.onTake(entityUUID, newOwnerChunkId);
 #else
-        HOOKS.client.authority.onTake(entityUUID, _combinedId);
+        HOOKS.client.authority.onTake(entityUUID, newOwnerChunkId);
 #endif
-        ENTITIES.GetEntity(entityUUID).OnChunkTakeAuthority(*this);
+        auto &newOwnerChunk = GRAPES.GetChunkById(newOwnerChunkId);
+        ENTITIES.GetEntity(entityUUID).OnChunkTakeAuthority(newOwnerChunk);
       } catch (std::out_of_range &e) {
         logs::Logger::getInstance().err()
             << "Entity not found: " << e.what() << std::endl;

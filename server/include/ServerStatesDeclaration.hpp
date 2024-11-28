@@ -170,6 +170,8 @@ class Connected : public AServer {
   void __rp_sendExistingEntitiesSummary(std::string clientId,
                                         std::string grapeId);
 
+  void __rp_loadExistingEntities(std::string clientId, std::string summary);
+
   /**
    * @brief stores the clients that are under this node's authority.
    * Clients are added using the __rp_acceptNewClient RPC and removed

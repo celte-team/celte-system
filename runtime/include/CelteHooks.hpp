@@ -1,5 +1,6 @@
 #pragma once
-#include <boost/json.hpp>
+// #include <boost/json.hpp>
+#include "nlohmann/json.hpp"
 #include <functional>
 #include <kafka/KafkaConsumer.h>
 #include <string>
@@ -94,6 +95,13 @@ public:
        */
       std::function<bool(std::string, bool)> loadGrape =
           [](std::string grapeId, bool isLocallyOwned) { return true; };
+
+      /**
+       * @brief This hook is called by __rp_loadExistingEntities to load the
+       * entities that are already registered to the grape.
+       */
+      std::function<bool(std::string, nlohmann::json)> onLoadExistingEntities =
+          [](std::string grapeId, nlohmann::json summary) { return true; };
     } grape;
 
     /**
@@ -199,13 +207,10 @@ public:
 
       /**
        * @brief This hook is called by __rp_loadExistingEntities to load the
-       * entities that are already registered to the server.
+       * entities that are already registered to the grape.
        */
-      std::function<bool(std::string, boost::json::array)>
-          onLoadExistingEntities =
-              [](std::string grapeId, boost::json::array summary) {
-                return true;
-              };
+      std::function<bool(std::string, nlohmann::json)> onLoadExistingEntities =
+          [](std::string grapeId, nlohmann::json summary) { return true; };
     } grape;
 
     /**

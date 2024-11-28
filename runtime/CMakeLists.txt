@@ -38,6 +38,7 @@ set(COMMON_SOURCES
     src/KPool.cpp
     src/CelteInputSystem.cpp
     src/ConsumerWorker.cpp
+    src/KConsumerService.cpp
 )
 
 set(SERVER_SOURCES
