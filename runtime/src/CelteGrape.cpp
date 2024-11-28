@@ -48,6 +48,7 @@ void Grape::__subdivide() {
 
   std::vector<std::string> rpcTopics;
   std::vector<std::string> replTopics;
+  std::vector<std::string> inputTopics;
 
   // create a chunk for each point
   for (auto point : points) {
@@ -72,6 +73,7 @@ void Grape::__subdivide() {
 
     rpcTopics.push_back(combinedId + "." + tp::RPCs);
     replTopics.push_back(combinedId + "." + tp::REPLICATION);
+    inputTopics.push_back(combinedId + "." + tp::INPUT);
   }
 
 // Server creates replication topics
@@ -96,7 +98,7 @@ void Grape::__subdivide() {
     topics.insert(topics.end(), replTopics.begin(), replTopics.end());
     ENTITIES.RegisterReplConsumer(replTopics);
   }
-  
+
   topics.insert(topics.end(), inputTopics.begin(), inputTopics.end());
   CINPUT.RegisterInputCallback(inputTopics);
 
@@ -155,17 +157,15 @@ Chunk &Grape::GetChunkByPosition(float x, float y, float z) {
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-        void Grape::ReplicateAllEntities()
-        {
-            if (not _options.isLocallyOwned) {
-                return;
-            }
-            for (auto& [chunkId, chunk] : _chunks) {
-                chunk->SendReplicationData();
-            }
-        }
+void Grape::ReplicateAllEntities() {
+  if (not _options.isLocallyOwned) {
+    return;
+  }
+  for (auto &[chunkId, chunk] : _chunks) {
+    chunk->SendReplicationData();
+  }
+}
 #endif
-
 
 bool Grape::HasChunk(const std::string &chunkId) const {
   return _chunks.find(chunkId) != _chunks.end();

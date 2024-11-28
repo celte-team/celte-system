@@ -37,7 +37,6 @@ set(COMMON_SOURCES
     src/Logger.cpp
     src/KPool.cpp
     src/CelteInputSystem.cpp
-    src/ConsumerWorker.cpp
     src/KConsumerService.cpp
 )
 
