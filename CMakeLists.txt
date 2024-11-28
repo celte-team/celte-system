@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.20)
 project(celte-systems)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -36,6 +36,7 @@ add_subdirectory(tests/single_node_poc)
 add_subdirectory(tests/test_authority_transfer)
 add_subdirectory(tests/test2nodes)
 add_subdirectory(tests/replicationLatencyTest)
+add_subdirectory(tests/InputSystemTest)
 add_subdirectory(tests/basicMultiplayerGame)
 
 # Find and configure RdKafka

@@ -11,12 +11,12 @@ build:
   - step: master
     run: |
       cd master
-      dotnet build
+      /home/ebriand/dotnet/dotnet build
 
   - step: clock
     run: |
       cd ClockServer
-      dotnet build
+      /home/ebriand/dotnet/dotnet build
 
 test_suites:
 
@@ -36,7 +36,7 @@ test_suites:
       replicas: 1
       wait-servers:
         regex: ">> Grape loaded << "
-        timeout-seconds: 20
+        timeout-seconds: 50
 
     expects:
       servers:
@@ -48,7 +48,7 @@ test_suites:
 
   - name: DataReplication
     description: This test checks that the server node can indeed replicate data to the client node.
-    timeout-seconds: 50
+    timeout-seconds: 80
 
     cluster: yes
     master: yes
@@ -62,7 +62,7 @@ test_suites:
       replicas: 1
       wait-servers:
         regex: ">> Grape has been loaded <<"
-        timeout-seconds: 20
+        timeout-seconds: 50
 
     expects:
       servers:

@@ -1,14 +1,16 @@
 #include "CelteEntity.hpp"
 #include "CelteRuntime.hpp"
 #include <chrono>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <unistd.h>
 
 static std::shared_ptr<celte::CelteEntity> entity = nullptr;
 static int property = 0;
-static bool propertyChanged = false;
+static bool Spawned = false;
 
 void loadGrape()
 {
@@ -38,7 +40,7 @@ void registerHooks()
     };
     HOOKS.client.connection.onReadyToSpawn = [](const std::string& grapeId,
                                                  float x, float y, float z) {
-        std::cout << "Client is ready to spawn" << std::endl;
+        std::cout << "Client is ready to spawn : " << grapeId << std::endl;
         RUNTIME.RequestSpawn(RUNTIME.GetUUID(), grapeId, x, y, z);
         return true;
     };
@@ -60,19 +62,34 @@ void registerHooks()
         entity->OnSpawn(x, y, z, clientId);
 
         entity->RegisterActiveProperty("property", &property);
+        Spawned = true;
         return true;
     };
+
+    HOOKS.client.grape.onLoadExistingEntities = [](std::string grapeId,
+                                                    boost::json::array summary) {
+        std::cout << ">> CLIENT LOADING EXISTING ENTITIES <<" << std::endl;
+
+        return true;
+    };
+
+    HOOKS.client.replication.onActiveReplicationDataReceived =
+        [](std::string entityId, std::string blob) {
+            std::cout << "Replication data received" << std::endl;
+        };
 }
 
 void runTestLogic()
 {
-    if (not propertyChanged) {
-        if (property != 0) {
-            std::cout << ">> property changed to " << property << " <<" << std::endl;
-            propertyChanged = true;
-            return;
-        }
+    static bool status = true;
+
+    if (Spawned) {
+        entity->sendInputToKafka("move forward", status);
+        usleep(5000000);
+        status = !status;
     }
+
+    // auto ilist = CINPUT.getListInput();
 }
 
 int main()
@@ -95,10 +112,12 @@ int main()
     std::cout << "Connected to cluster" << std::endl;
 
     while (true) {
-        std::cout << "HELLO\n";
+
         RUNTIME.Tick();
         runTestLogic();
     }
+
+    printf("FINISH PUTE\n");
 
     return 0;
 }
