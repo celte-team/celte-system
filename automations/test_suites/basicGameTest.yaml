@@ -11,12 +11,12 @@ build:
   - step: master
     run: |
       cd master
-      dotnet build
+      /home/ebriand/dotnet/dotnet build
 
   - step: clock
     run: |
       cd ClockServer
-      dotnet build
+      /home/ebriand/dotnet/dotnet build
 
 test_suites:
 
