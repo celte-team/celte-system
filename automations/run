@@ -45,6 +45,18 @@ def get_ip_address():
         print(f"{Fore.RED}Failed to get IP address: {e}{Style.RESET_ALL}")
         sys.exit(1)
 
+def run_docker_pulsar():
+    global current_process
+    env['DOCKER_HOST_IP'] = ip_address
+    # cd into the kafka directory
+    os.chdir('pulsar')
+    current_process = subprocess.Popen(['docker', 'compose', 'down'])
+    current_process.wait()
+    current_process = subprocess.Popen(['docker', 'compose', 'up'], env=env)
+    current_process.wait()
+    os.chdir('..')
+
+
 def run_docker_kafka():
     global current_process
     env['DOCKER_HOST_IP'] = ip_address
@@ -374,6 +386,7 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 launcher = {
+    '--pulsar': run_docker_pulsar,
     '--kafka': run_docker_kafka,
     '--cpp': run_docker_cpp,
     '--join-cpp': join_docker_cpp,

@@ -89,3 +89,15 @@ services:
       - "6650:6650"
       - "8080:8080"
     command: bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
+
+  pulsar-express:
+    image: bbonnin/pulsar-express
+    container_name: pulsar-express
+    networks:
+      - pulsar
+    ports:
+      - "9000:3000"
+    environment:
+      - PE_CONNECTION_URL=http://${DOCKER_HOST_IP}:8080
+    depends_on:
+      - broker
