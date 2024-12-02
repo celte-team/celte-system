@@ -12,6 +12,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <algorithm>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include <functional>
@@ -35,7 +36,6 @@ template <typename Ret> struct Awaitable {
   }
 
 private:
-  // std::future<Ret> _future;
   std::shared_ptr<std::future<Ret>> _future;
   boost::asio::io_service &_io;
 };
@@ -88,7 +88,7 @@ class RPCService : public CelteService {
 public:
   struct Options {
     const std::string &thisPeerUuid;
-    std::string listenOn;
+    std::vector<std::string> listenOn;
     int nThreads = 1;
   };
 
@@ -108,7 +108,7 @@ public:
     RPRequest req{
         .name = name,
         .respondsTo = "",
-        .responseTopic = _options.listenOn,
+        .responseTopic = *_options.listenOn.begin(),
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = std::make_tuple(args...)};
 
@@ -128,7 +128,7 @@ public:
     RPRequest req{
         .name = name,
         .respondsTo = "",
-        .responseTopic = _options.listenOn,
+        .responseTopic = *_options.listenOn.begin(),
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = std::make_tuple(args...)};
     std::shared_ptr<std::promise<std::string>> promise =
@@ -136,23 +136,21 @@ public:
     rpcPromises[req.rpcId] = promise;
     _writerStreamPool.Write(topic, req);
 
-    // std::future<Ret> future = std::launch::async([promise]() {
-    // std::future<Ret> future = std::async(std::launch::async, [promise]() {
-    //   std::string result = promise->get_future().get();
-    //   return nlohmann::json::parse(result).get<Ret>();
-    // });
-
-    std::shared_ptr<std::future<Ret>> future =
-        std::make_shared<std::future<Ret>>(
-            std::async(std::launch::async, [promise]() {
-              std::string result = promise->get_future().get();
-              return nlohmann::json::parse(result).get<Ret>();
-            }));
+    auto future = std::make_shared<std::future<Ret>>(
+        std::async(std::launch::async, [promise]() {
+          std::string result = promise->get_future().get();
+          return nlohmann::json::parse(result).get<Ret>();
+        }));
     return Awaitable<Ret>(future, _io);
   }
 
+  inline bool Ready() {
+    return std::all_of(_readerStreams.begin(), _readerStreams.end(),
+                       [](auto &s) { return s->Ready(); });
+  }
+
 private:
-  void __initReaderStream(const std::string &topic);
+  void __initReaderStream(const std::vector<std::string> &topic);
 
   void __handleRemoteCall(const RPRequest &req);
   void __handleResponse(const RPRequest &req);

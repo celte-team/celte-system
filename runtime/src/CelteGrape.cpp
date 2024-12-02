@@ -17,6 +17,7 @@ Grape::Grape(const GrapeOptions &options) : _options(options) {
   }
   logs::Logger::getInstance().info() << "Subdividing grape...";
   try {
+    __initNetwork();
     __subdivide();
     logs::Logger::getInstance().info()
         << "Grape " << _options.grapeId << " created.";
@@ -29,7 +30,12 @@ Grape::Grape(const GrapeOptions &options) : _options(options) {
 }
 
 Grape::Grape(Grape &grape, std::vector<std::string> chunksIds)
-    : _options(grape._options) {
+    : _options(grape._options),
+      _rpcs(net::RPCService::Options{.thisPeerUuid = RUNTIME.GetUUID(),
+                                     .listenOn = {"not implemented"},
+                                     .nThreads = 1}) {
+  throw std::logic_error(
+      "Grape copy constructor not implemented, fix the options, grape id...");
   for (auto chunkId : chunksIds) {
     _chunks[chunkId] = grape._chunks[chunkId];
     grape._chunks.erase(chunkId);
@@ -38,18 +44,39 @@ Grape::Grape(Grape &grape, std::vector<std::string> chunksIds)
 
 Grape::~Grape() {}
 
+void Grape::__initNetwork() {
+  std::vector<std::string> rpcTopics{tp::PERSIST_DEFAULT + _options.grapeId +
+                                     "." + tp::RPCs};
+#ifdef CELTE_SERVER_MODE_ENABLED
+  if (_options.isLocallyOwned) {
+    rpcTopics.push_back(tp::PERSIST_DEFAULT + _options.grapeId);
+  }
+#endif
+
+  _rpcs.emplace(net::RPCService::Options{
+      .thisPeerUuid = RUNTIME.GetUUID(),
+      .listenOn = rpcTopics,
+  });
+
+  // todo: register rpcs specific to the grape
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  if (_options.isLocallyOwned) {
+    _rpcs->Register<std::string>(
+        "__rp_sendExistingEntitiesSummary",
+        std::function([this](std::string clientId, std::string grapeId) {
+          return ENTITIES.GetRegisteredEntitiesSummary();
+        }));
+  }
+#endif
+}
+
 void Grape::__subdivide() {
-  // subdivide each axis into _options.subdivision parts to create a list of
-  // points equally spaced along each axis, to map the space in the grape
   RotatedBoundingBox boundingBox(_options.position, _options.size,
                                  _options.localX, _options.localY,
                                  _options.localZ);
   auto points = boundingBox.GetMeshedPoints(_options.subdivision);
 
-  std::vector<std::string> rpcTopics;
-  std::vector<std::string> replTopics;
-
-  // create a chunk for each point
   for (auto point : points) {
     std::stringstream chunkId;
     glm::ivec3 pointInt = glm::ivec3(point);
@@ -62,64 +89,97 @@ void Grape::__subdivide() {
                           .localZ = _options.localZ,
                           .size = _options.size / (float)_options.subdivision,
                           .isLocallyOwned = _options.isLocallyOwned};
-
-    std::cout << "GRAPE [" << _options.grapeId << "] CHUNK [" << chunkId.str()
-              << "]" << std::endl;
-    std::cout << "registering rpcs" << std::endl;
     std::shared_ptr<Chunk> chunk = std::make_shared<Chunk>(config);
     std::string combinedId = chunk->Initialize();
     _chunks[combinedId] = chunk;
-
-    rpcTopics.push_back(combinedId + "." + tp::RPCs);
-    replTopics.push_back(combinedId + "." + tp::REPLICATION);
   }
-
-// Server creates replication topics
-#ifdef CELTE_SERVER_MODE_ENABLED
-  KPOOL.CreateTopicsIfNotExist(replTopics, 1, 1);
-  KPOOL.CreateTopicsIfNotExist(rpcTopics, 1, 1);
-  if (_options.isLocallyOwned) {
-    std::vector<std::string> grapeTopic = {_options.grapeId};
-    KPOOL.CreateTopicsIfNotExist(grapeTopic, 1, 1);
-    KPOOL.RegisterTopicCallback(
-        _options.grapeId,
-        [this](const kafka::clients::consumer::ConsumerRecord &record) {
-          RPC.InvokeLocal(record);
-        });
-  }
-#endif
-
-  std::vector<std::string> topics;
-  topics.insert(topics.end(), rpcTopics.begin(), rpcTopics.end());
-  if (not _options.isLocallyOwned) {
-    topics.insert(topics.end(), replTopics.begin(), replTopics.end());
-    ENTITIES.RegisterReplConsumer(replTopics);
-  }
-
-  std::function<void()> then =
-      (_options.then != nullptr) ? _options.then : nullptr;
-  if (not _options.isLocallyOwned) {
-    then = [this]() {
-      // request the SN managing the node to udpate us with the data we need to
-      // load the existing entities in the grape
-      std::cout << "requesting existing entities summary" << std::endl;
-      RPC.InvokeByTopic(_options.grapeId, "__rp_sendExistingEntitiesSummary",
-                        RUNTIME.GetUUID(), _options.grapeId);
-      if (_options.then != nullptr) {
-        _options.then();
-      }
-    };
-  } else {
-    topics.push_back(_options.grapeId);
-  }
-
-  KPOOL.Subscribe({
-      .topics = topics, .autoCreateTopic = false, .then = then,
-      // callbacks are already set in the chunk Initialize method and
-      // ENTITIES.RegisterReplConsumer
-  });
-  KPOOL.CommitSubscriptions();
 }
+
+// void Grape::__subdivide() {
+//   // subdivide each axis into _options.subdivision parts to create a list of
+//   // points equally spaced along each axis, to map the space in the grape
+//   RotatedBoundingBox boundingBox(_options.position, _options.size,
+//                                  _options.localX, _options.localY,
+//                                  _options.localZ);
+//   auto points = boundingBox.GetMeshedPoints(_options.subdivision);
+
+//   std::vector<std::string> rpcTopics;
+//   std::vector<std::string> replTopics;
+
+//   // create a chunk for each point
+//   for (auto point : points) {
+//     std::stringstream chunkId;
+//     glm::ivec3 pointInt = glm::ivec3(point);
+//     chunkId << "." << pointInt.x << "." << pointInt.y << "." << pointInt.z;
+//     ChunkConfig config = {.chunkId = chunkId.str(),
+//                           .grapeId = _options.grapeId,
+//                           .position = pointInt,
+//                           .localX = _options.localX,
+//                           .localY = _options.localY,
+//                           .localZ = _options.localZ,
+//                           .size = _options.size /
+//                           (float)_options.subdivision, .isLocallyOwned =
+//                           _options.isLocallyOwned};
+
+//     std::cout << "GRAPE [" << _options.grapeId << "] CHUNK [" <<
+//     chunkId.str()
+//               << "]" << std::endl;
+//     std::cout << "registering rpcs" << std::endl;
+//     std::shared_ptr<Chunk> chunk = std::make_shared<Chunk>(config);
+//     std::string combinedId = chunk->Initialize();
+//     _chunks[combinedId] = chunk;
+
+//     rpcTopics.push_back(combinedId + "." + tp::RPCs);
+//     replTopics.push_back(combinedId + "." + tp::REPLICATION);
+//   }
+
+// // Server creates replication topics
+// #ifdef CELTE_SERVER_MODE_ENABLED
+//   KPOOL.CreateTopicsIfNotExist(replTopics, 1, 1);
+//   KPOOL.CreateTopicsIfNotExist(rpcTopics, 1, 1);
+//   if (_options.isLocallyOwned) {
+//     std::vector<std::string> grapeTopic = {_options.grapeId};
+//     KPOOL.CreateTopicsIfNotExist(grapeTopic, 1, 1);
+//     KPOOL.RegisterTopicCallback(
+//         _options.grapeId,
+//         [this](const kafka::clients::consumer::ConsumerRecord &record) {
+//           RPC.InvokeLocal(record);
+//         });
+//   }
+// #endif
+
+//   std::vector<std::string> topics;
+//   topics.insert(topics.end(), rpcTopics.begin(), rpcTopics.end());
+//   if (not _options.isLocallyOwned) {
+//     topics.insert(topics.end(), replTopics.begin(), replTopics.end());
+//     ENTITIES.RegisterReplConsumer(replTopics);
+//   }
+
+//   std::function<void()> then =
+//       (_options.then != nullptr) ? _options.then : nullptr;
+//   if (not _options.isLocallyOwned) {
+//     then = [this]() {
+//       // request the SN managing the node to udpate us with the data we need
+//       to
+//       // load the existing entities in the grape
+//       std::cout << "requesting existing entities summary" << std::endl;
+//       RPC.InvokeByTopic(_options.grapeId, "__rp_sendExistingEntitiesSummary",
+//                         RUNTIME.GetUUID(), _options.grapeId);
+//       if (_options.then != nullptr) {
+//         _options.then();
+//       }
+//     };
+//   } else {
+//     topics.push_back(_options.grapeId);
+//   }
+
+//   KPOOL.Subscribe({
+//       .topics = topics, .autoCreateTopic = false, .then = then,
+//       // callbacks are already set in the chunk Initialize method and
+//       // ENTITIES.RegisterReplConsumer
+//   });
+//   KPOOL.CommitSubscriptions();
+// }
 
 GrapeStatistics Grape::GetStatistics() const {
   GrapeStatistics stats = {.grapeId = _options.grapeId,

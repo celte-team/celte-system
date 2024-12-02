@@ -14,14 +14,13 @@ RPCService::RPCService(const RPCService::Options &options)
     _threads.create_thread([this]() { _io.run(); });
   }
 
-  std::cout << "listen topic should be " << options.listenOn << std::endl;
-  if (!options.listenOn.empty()) {
+  if (options.listenOn.size() != 0) {
     std::cout << "calling init reader stream" << std::endl;
     __initReaderStream(options.listenOn);
   }
 }
 
-void RPCService::__initReaderStream(const std::string &topic) {
+void RPCService::__initReaderStream(const std::vector<std::string> &topic) {
   _createReaderStream<RPRequest>(
       {.thisPeerUuid = _options.thisPeerUuid,
        .topics = {topic},
@@ -36,19 +35,11 @@ void RPCService::__initReaderStream(const std::string &topic) {
            },
        .messageHandler =
            [this](const pulsar::Consumer, RPRequest req) {
-             std::cout << "async handler" << std::endl;
              if (!req.respondsTo.empty()) {
                std::cout << "handling response" << std::endl;
                __handleResponse(req);
              }
            }});
-
-  // wait until reader stream for our topic is ready
-  std::cout << "Waiting for reader stream to be ready" << std::endl;
-  while (!_readerStreams.back()->Ready()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-  }
-  std::cout << "Reader stream ready" << std::endl;
 }
 
 void RPCService::__handleRemoteCall(const RPRequest &req) {
@@ -71,8 +62,9 @@ void RPCService::__handleRemoteCall(const RPRequest &req) {
       .args = result,
   };
 
-  // _writerStreams[req.responseTopic]->Write(response);
-  _writerStreamPool.Write(req.responseTopic, response);
+  if (not req.responseTopic.empty()) {
+    _writerStreamPool.Write(req.responseTopic, response);
+  }
 }
 
 void RPCService::__handleResponse(const RPRequest &req) {

@@ -120,6 +120,12 @@ public:
   std::string GetRegisteredEntitiesSummary();
 #endif
 
+  inline void
+  HandleReplicationData(std::unordered_map<std::string, std::string> &data,
+                        bool active = false) {
+    __handleReplicationDataReceived(data, active);
+  }
+
 private:
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**

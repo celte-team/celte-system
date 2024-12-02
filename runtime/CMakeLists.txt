@@ -63,6 +63,7 @@ set(SERVER_SOURCES
     ../server/src/StateConnected.cpp
     ../server/src/StateConnecting.cpp
     ../server/src/StateDisconnected.cpp
+    ../server/src/ServerNetService.cpp
 )
 
 set(CLIENT_SOURCES
@@ -70,16 +71,17 @@ set(CLIENT_SOURCES
     ../client/src/StateConnected.cpp
     ../client/src/StateConnecting.cpp
     ../client/src/StateDisconnected.cpp
+    ../client/src/ClientNetService.cpp
 )
 
 # Runtime for server
 add_library(celtesystems_runtime_server SHARED ${COMMON_SOURCES} ${SERVER_SOURCES})
 target_compile_definitions(celtesystems_runtime_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(celtesystems_runtime_server PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES})
+target_link_libraries(celtesystems_runtime_server PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} celtenet)
 
 # Runtime for client
 add_library(celtesystems_runtime_client SHARED ${COMMON_SOURCES} ${CLIENT_SOURCES})
-target_link_libraries(celtesystems_runtime_client PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES})
+target_link_libraries(celtesystems_runtime_client PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} celtenet)
 
 ######################################################################
 #  INSTALL DEPENDENCIES

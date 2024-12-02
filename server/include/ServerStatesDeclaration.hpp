@@ -1,12 +1,15 @@
 #pragma once
 #include "CelteServer.hpp"
 #include "ServerEvents.hpp"
+#include "ServerNetService.hpp"
 #include "tinyfsm.hpp"
 #include <set>
 
 namespace celte {
 namespace server {
 namespace states {
+ServerNetService &ServerNet();
+
 /**
  * This is the default state for the server, before AKafkaLink
  * connects to kafka. It should initialize the server and wait for
@@ -161,14 +164,15 @@ class Connected : public AServer {
   std::tuple<std::string, std::string, float, float, float>
   __rp_getPlayerSpawnPosition(const std::string &clientInfo);
 
-  /**
-   * @brief This rp is called by the client when it is ready to spawn, connected
-   * to the grape and ready to play. The client has to be connected to chunk
-   * topics before calling this rp to ensure that no data created after the
-   * execution of this procedure is lost.
-   */
-  void __rp_sendExistingEntitiesSummary(std::string clientId,
-                                        std::string grapeId);
+  // /**
+  //  * @brief This rp is called by the client when it is ready to spawn,
+  //  connected
+  //  * to the grape and ready to play. The client has to be connected to chunk
+  //  * topics before calling this rp to ensure that no data created after the
+  //  * execution of this procedure is lost.
+  //  */
+  // void __rp_sendExistingEntitiesSummary(std::string clientId,
+  //                                       std::string grapeId);
 
   void __rp_loadExistingEntities(std::string clientId, std::string summary);
 

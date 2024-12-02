@@ -72,7 +72,9 @@ struct WriterStream {
     net.CreateProducer(pOptions);
   }
 
-  template <typename Req> void Write(const Req &req) {
+  template <typename Req>
+  void Write(const Req &req,
+             std::function<void(pulsar::Result)> onDelivered = nullptr) {
     static_assert(std::is_base_of<CelteRequest<Req>, Req>::value,
                   "Req must inherit from CelteRequest<Req>");
     nlohmann::json j;
@@ -86,12 +88,12 @@ struct WriterStream {
     _pending++;
     _producer.sendAsync(
         message.build(),
-        [this](pulsar::Result result, const pulsar::MessageId &messageId) {
+        [this, onDelivered](pulsar::Result result,
+                            const pulsar::MessageId &messageId) {
           std::cout << "message sent successfully" << std::endl;
           _pending--;
-          if (result != pulsar::ResultOk) {
-            throw CelteNetException("Failed to send message");
-          }
+          if (onDelivered)
+            onDelivered(result);
         });
   }
 

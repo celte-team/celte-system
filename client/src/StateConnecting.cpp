@@ -8,9 +8,13 @@
 namespace celte {
 namespace client {
 namespace states {
+ClientNetService &ClientNet() {
+  static ClientNetService service;
+  return service;
+}
 
 void Connecting::entry() {
-  KPOOL.Connect();
+  // KPOOL.Connect();
   if (not HOOKS.client.connection.onConnectionProcedureInitiated()) {
     logs::Logger::getInstance().err()
         << "Connection procedure hook failed" << std::endl;
@@ -40,28 +44,19 @@ void Connecting::__subscribeToTopics() {
   // subscribes to the global clock topic
   RUNTIME.GetClock().Init();
 
-  // creating a listener for RPCs related to this client as a whole
-  KPOOL.Subscribe({.topics{RUNTIME.GetUUID() + "." + celte::tp::RPCs},
-                   .autoCreateTopic = true,
-                   .callbacks{[this](auto r) { RPC.InvokeLocal(r); }},
-
-                   .then = [this]() {
-                     KPOOL.Send({
-                         .topic = celte::tp::MASTER_HELLO_CLIENT,
-                         .value = RUNTIME.GetUUID(),
-                         .onDelivered =
-                             [this](auto metadata, auto error) {
-                               if (error) {
-                                 HOOKS.client.connection.onConnectionError();
-                                 HOOKS.client.connection.onClientDisconnected();
-                                 transit<Disconnected>();
-                               } else {
-                                 dispatch(EConnectionSuccess());
-                               }
-                             },
-                     });
-                   }});
-  KPOOL.CommitSubscriptions();
+  ClientNet().Connect();
+  ClientNet().Write(tp::MASTER_HELLO_CLIENT, RUNTIME.GetUUID(),
+                    [this](auto result) {
+                      if (result != pulsar::Result::ResultOk) {
+                        std::cout << "client connecting failed" << std::endl;
+                        HOOKS.client.connection.onConnectionError();
+                        HOOKS.client.connection.onClientDisconnected();
+                        transit<Disconnected>();
+                      } else {
+                        std::cout << "client connecting success" << std::endl;
+                        dispatch(EConnectionSuccess());
+                      }
+                    });
 }
 } // namespace states
 } // namespace client

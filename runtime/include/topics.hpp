@@ -20,5 +20,6 @@ static const std::string HEADER_RPC_UUID = "rpcUUID";
 static const std::string answer = "answer";
 static const std::string GLOBAL_CLOCK = "global.clock";
 static const std::string REPLICATION = "repl";
+static const std::string PERSIST_DEFAULT = "persistent://public/default/";
 } // namespace tp
 } // namespace celte
