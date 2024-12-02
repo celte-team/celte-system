@@ -48,7 +48,6 @@ def get_ip_address():
 def run_docker_pulsar():
     global current_process
     env['DOCKER_HOST_IP'] = ip_address
-    # cd into the kafka directory
     os.chdir('pulsar')
     current_process = subprocess.Popen(['docker', 'compose', 'down', '-v'])
     current_process.wait()
@@ -60,7 +59,6 @@ def run_docker_pulsar():
 def run_docker_kafka():
     global current_process
     env['DOCKER_HOST_IP'] = ip_address
-    # cd into the kafka directory
     os.chdir('kafka')
     current_process = subprocess.Popen(['docker', 'compose', 'down'])
     current_process.wait()
@@ -249,22 +247,25 @@ def run_tests(yaml_path):
         client_processes_handles = []
 
         if suite.get('cluster') == True:
-            print(f"{Fore.GREEN}Starting Kafka cluster{Style.RESET_ALL}")
-            cluster_process_handle = run_command(["./automations/run", "--kafka"], os.path.join(log_dir, 'kafka_cluster.log'))
-            print(f"{Fore.GREEN}Cluster logs available at: {Style.RESET_ALL}{os.path.join(log_dir, 'kafka_cluster.log')}")
+            print(f"{Fore.GREEN}Starting cluster{Style.RESET_ALL}")
+            cluster_process_handle = run_command(["./automations/run", "--pulsar"], os.path.join(log_dir, 'cluster.log'))
+            print(f"{Fore.GREEN}Cluster logs available at: {Style.RESET_ALL}{os.path.join(log_dir, 'cluster.log')}")
 
             # Wait for the cluster to be ready
-            cluster_log = os.path.join(log_dir, 'kafka_cluster.log')
-            if not wait_for_log(cluster_log, r'.*3 active.*', suite.get('timeout-seconds', 60)):
-                print(f"{Fore.RED}Timeout waiting for Kafka cluster to be ready{Style.RESET_ALL}")
+            cluster_log = os.path.join(log_dir, 'cluster.log')
+            if not wait_for_log(cluster_log, 'PulsarService started', suite.get('timeout-seconds', 60)):
+                print(f"{Fore.RED}Timeout waiting for cluster to be ready{Style.RESET_ALL}")
                 sys.exit(1)
 
         if suite.get('master') == True:
             print(f"{Fore.GREEN}Starting Celte master{Style.RESET_ALL}")
             master_log = os.path.join(log_dir, f"{suite['name']}_master.log")
             print(f"{Fore.GREEN}Master logs available at: {Style.RESET_ALL}{master_log}")
-            # master_process_handle = run_command("dotnet run --config configFile.yml", master_log, folder="./master")
-            master_process_handle = run_command(["dotnet", "run", "--config", "configFile.yml"], master_log, folder="./master")
+            # if master-proxy is set to other than 'false', then use the provided binary instead of the default one
+            if suite.get('master-proxy') and suite['master-proxy'] != 'false':
+                master_process_handle = run_command([suite['master-proxy'], "--config", "configFile.yml"], master_log)
+            else:
+                master_process_handle = run_command(["dotnet", "run", "--config", "configFile.yml"], master_log, folder="./master")
 
             # Wait for the master to be ready
             if not wait_for_log(master_log, r"Press Ctrl\+C to exit\.\.\.", suite.get('timeout-seconds', 60)):
@@ -365,7 +366,7 @@ def run_tests(yaml_path):
             master_process_handle.terminate()
             master_process_handle.wait()
         if cluster_process_handle:
-            docker_down = subprocess.Popen(['docker', 'compose', 'down'], cwd='./kafka')
+            docker_down = subprocess.Popen(['docker', 'compose', 'down'], cwd='./pulsar')
             cluster_process_handle.terminate()
             cluster_process_handle.wait()
             docker_down.wait()

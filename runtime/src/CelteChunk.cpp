@@ -157,6 +157,7 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
 void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
                                                  std::string newOwnerChunkId,
                                                  bool take, int tick) {
+  std::cout << "Scheduling entity authority transfer" << std::endl;
   if (take) {
     CLOCK.ScheduleAt(tick, [this, entityUUID, newOwnerChunkId]() {
       try {

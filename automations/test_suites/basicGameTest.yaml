@@ -26,13 +26,14 @@ test_suites:
 
     cluster: yes
     master: yes
+    master-proxy: ./runtime/net/tests/master.dummy
 
     servers:
-      binary: ./build/tests/basicMultiplayerGame/server_game1
+      binary: ./build/tests/server.debug
       replicas: 2
 
     clients:
-      binary: ./build/tests/basicMultiplayerGame/client_game1
+      binary: ./build/tests/client.debug
       replicas: 2
       wait-servers:
         regex: ">> SERVER READY << "
