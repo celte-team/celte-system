@@ -112,7 +112,6 @@ class KFKProducer : IDisposable
     {
         Dispose(true);
         GC.SuppressFinalize(this);
-        Console.WriteLine("Kafka producer disposed.");
     }
 
     ~KFKProducer()
