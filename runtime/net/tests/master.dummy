@@ -2,6 +2,8 @@
 import threading
 import pulsar
 import json
+import time
+import sys
 
 client = pulsar.Client('pulsar://localhost:6650')
 
@@ -78,7 +80,12 @@ def hello_sn_thread(master_hello_sn):
 
         master_hello_sn.acknowledge(msg)
 
-        call_rpc(f"persistent://public/default/{json_data['peerUuid']}.rpc", "__rp_assignGrape", ["LeChateauDuMechant"])
+        # first grape gets LeChateauDuMechant, second grape gets LeChateauDuGentil
+        if len(nodes) == 1:
+            call_rpc(f"persistent://public/default/{nodes[0]}.rpc", "__rp_assignGrape", ["LeChateauDuMechant"])
+        elif len(nodes) == 2:
+            call_rpc(f"persistent://public/default/{nodes[1]}.rpc", "__rp_assignGrape", ["LeChateauDuGentil"])
+
 
 def hello_client_thread(master_hello_client):
     while True:
@@ -96,6 +103,23 @@ def hello_client_thread(master_hello_client):
         global nodes
         call_rpc(f"persistent://public/default/{nodes[0]}.rpc", "__rp_getPlayerSpawnPosition", [json_data['peerUuid']])
 
+def clock_thread():
+    global client
+    producer = client.create_producer('persistent://public/default/global.clock')
+    tick = 0
+    while True:
+        # sleep 10 ms
+        time.sleep(0.01)
+        msg = {
+            "tick": tick
+        }
+        producer.send(json.dumps(msg).encode('utf-8'))
+        print(f"\033[94m<Sent clock tick> {msg}\033[0m")
+        producer.flush()
+        tick += 1
+
+
+print("Go master!")
 master_rpc = client.subscribe('persistent://public/default/master.rpc', subscription_name='master-server')
 master_hello_sn = client.subscribe('persistent://public/default/master.hello.sn', subscription_name='master-server')
 master_hello_client = client.subscribe('persistent://public/default/master.hello.client', subscription_name='master-server')
@@ -110,7 +134,17 @@ hello_sn_thread.start()
 rpc_thread = threading.Thread(target=rpc_thread, args=(master_rpc,))
 rpc_thread.start()
 
+clock_thread = threading.Thread(target=clock_thread)
+clock_thread.start()
+
+# wait for the connection to pulsar to be established
+time.sleep(2)
+print("Press Ctrl+C to exit...")
+# flush stdout
+sys.stdout.flush()
+
 # wait for the threads to finish
 hello_client_thread.join()
 hello_sn_thread.join()
 rpc_thread.join()
+clock_thread.join()

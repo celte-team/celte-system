@@ -14,16 +14,9 @@ struct ClockUpdate : public net::CelteRequest<ClockUpdate> {
 };
 
 void Clock::Init() {
-  // subscribing to the global clock tick topic
-  // KPOOL.Subscribe({
-  //     .topics{celte::tp::GLOBAL_CLOCK},
-  //     .autoCreateTopic = false,
-  //     .callbacks{[this](auto r) { __updateCurrentTick(r); }},
-  // });
-
   _createReaderStream<ClockUpdate>({
       .thisPeerUuid = RUNTIME.GetUUID(),
-      .topics = {celte::tp::GLOBAL_CLOCK},
+      .topics = {celte::tp::PERSIST_DEFAULT + celte::tp::GLOBAL_CLOCK},
       .subscriptionName = "",
       .exclusive = false,
       .messageHandlerSync =
@@ -33,7 +26,10 @@ void Clock::Init() {
   });
 }
 
-void Clock::__updateCurrentTick(int tick) { _tick = tick; }
+void Clock::__updateCurrentTick(int tick) {
+  _tick = tick;
+  std::cout << "Clock tick: " << _tick << std::endl;
+}
 
 void Clock::ScheduleAt(int tick, std::function<void()> task) {
   if (tick < _tick) {
