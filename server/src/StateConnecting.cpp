@@ -24,12 +24,10 @@ void Connecting::entry() {
   ServerNet().Write(tp::MASTER_HELLO_SN, RUNTIME.GetUUID(),
                     [this](auto result) {
                       if (result != pulsar::Result::ResultOk) {
-                        std::cout << "server connecting failed" << std::endl;
                         HOOKS.server.connection.onConnectionError();
                         HOOKS.server.connection.onServerDisconnected();
                         transit<Disconnected>();
                       } else {
-                        std::cout << "server connecting success" << std::endl;
                         dispatch(EConnectionSuccess());
                       }
                     });

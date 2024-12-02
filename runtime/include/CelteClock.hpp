@@ -2,7 +2,6 @@
 
 #include "CelteService.hpp"
 #include <functional>
-#include <kafka/KafkaConsumer.h>
 #include <queue>
 #include <vector>
 

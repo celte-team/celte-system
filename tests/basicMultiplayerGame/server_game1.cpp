@@ -171,7 +171,6 @@ int main() {
 
   if (not RUNTIME.IsConnectedToCluster()) {
     std::cout << "Connection failed" << std::endl;
-    KPOOL.ResetConsumers();
     return 1;
   }
 

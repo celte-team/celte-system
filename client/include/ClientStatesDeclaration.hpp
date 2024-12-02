@@ -88,14 +88,6 @@ class Connected : public AClient {
   void __rp_forceConnectToChunk(std::string grapeId, float x, float y, float z);
 
   /**
-   * @brief This RPC is called by the server when it has spawned the player and
-   * the client should do the same.
-   *
-   * TODO: generalize for handling other entities and other players
-   */
-  void __rp_spawnPlayer(std::string clientId, float x, float y, float z);
-
-  /**
    * @brief This RPC is called by the server when the client connects to a
    * grape. The arguments contain a list of all entites that are currently
    * loaded in the grape. (see

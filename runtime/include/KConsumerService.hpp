@@ -1,7 +1,6 @@
 #pragma once
 #include "boost/asio.hpp"
 #include "boost/thread.hpp"
-#include "kafka/KafkaConsumer.h"
 #include "queue.hpp"
 #include <atomic>
 

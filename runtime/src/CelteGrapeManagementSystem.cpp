@@ -1,5 +1,6 @@
 #include "CelteGrapeManagementSystem.hpp"
 #include "Logger.hpp"
+#include <sstream>
 #include <stdexcept>
 
 namespace celte {
@@ -24,17 +25,19 @@ Grape &CelteGrapeManagementSystem::GetGrape(std::string grapeId) {
 
 Grape &CelteGrapeManagementSystem::GetGrapeByPosition(float x, float y,
                                                       float z) {
-  logs::Logger::getInstance().info()
-      << "GetGrapeByPosition has " << _grapes.size() << " grapes" << std::endl;
-
   for (auto &[grapeId, grape] : _grapes) {
     if (grape->ContainsPosition(x, y, z)) {
       return *grape;
     }
   }
-  throw std::out_of_range("No grape contains the position (" +
-                          std::to_string(x) + ", " + std::to_string(y) + ", " +
-                          std::to_string(z) + ").");
+  std::stringstream ss;
+  ss << "No grape contains the position (" << x << ", " << y << ", " << z
+     << ").";
+  ss << "List of the grapes searched for : \n";
+  for (auto &[grapeId, grape] : _grapes) {
+    ss << grapeId << "\n";
+  }
+  throw std::out_of_range(ss.str());
 }
 
 Chunk &CelteGrapeManagementSystem::GetChunkById(const std::string &chunkId) {

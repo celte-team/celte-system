@@ -56,6 +56,13 @@ public:
 
   inline bool IsLocallyOwned() const { return _config.isLocallyOwned; }
 
+  /**
+   * @brief  Blocking call: waits until all the reader streams of the chunk
+   * are ready to receive messages. This includes the rpc channel of the chunk,
+   * as well as replication and input topics.
+   */
+  void WaitNetworkInitialized();
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Called when an entity enters the chunk. (This should be called by
@@ -85,6 +92,28 @@ public:
 #endif
 
   inline ChunkConfig GetConfig() const { return _config; }
+
+  /**
+   * @brief Schedules the spawn of the given client at the given position for
+   * all peers listening on this topic.
+   */
+  void SpawnPlayerOnNetwork(const std::string &clientId, float x, float y,
+                            float z);
+
+  /**
+   * @brief This RPC will be called by clients when they want to spawn their
+   * player in the game world.
+   *
+   * # Hooks:
+   * This RPC refers to the following hooks:
+   * - celte::api::HooksTable::server::newPlayerConnected::spawnPlayer
+   *
+   * @param clientId The UUID of the client that connected to the server.
+   * @param x The x coordinate where the player should spawn.
+   * @param y The y coordinate where the player should spawn.
+   * @param z The z coordinate where the player should spawn.
+   */
+  void ExecSpawnPlayer(const std::string &clientId, float x, float y, float z);
 
 private:
   /**
@@ -134,8 +163,9 @@ private:
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::shared_ptr<net::WriterStream> _replicationWS;
-  std::map<std::string, std::string> _nextScheduledReplicationData;
-  std::map<std::string, std::string> _nextScheduledActiveReplicationData;
+  std::unordered_map<std::string, std::string> _nextScheduledReplicationData;
+  std::unordered_map<std::string, std::string>
+      _nextScheduledActiveReplicationData;
 #endif
 };
 } // namespace chunks

@@ -15,7 +15,6 @@ enable_testing()
 FetchContent_MakeAvailable(googletest)
 
 find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
-find_package(RdKafka CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
 find_package(glm CONFIG REQUIRED)
@@ -38,7 +37,7 @@ set(SOURCES
 add_executable(server_game1 ${SOURCES})
 target_compile_definitions(server_game1 PRIVATE -DCELTE_SERVER_MODE_ENABLED)
 target_link_libraries(server_game1 gtest gtest_main)
-target_link_libraries(server_game1 celtesystems_runtime_server msgpack-cxx RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} glm::glm Boost::thread Boost::json)
+target_link_libraries(server_game1 celtesystems_runtime_server msgpack-cxx ${GLIB_LIBRARIES} glm::glm Boost::thread Boost::json)
 
 set(SOURCES_CLIENT
     client_game1.cpp
@@ -46,4 +45,4 @@ set(SOURCES_CLIENT
 
 add_executable(client_game1 ${SOURCES_CLIENT})
 target_link_libraries(client_game1 gtest gtest_main)
-target_link_libraries(client_game1 celtesystems_runtime_client msgpack-cxx RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} glm::glm Boost::thread Boost::json)
+target_link_libraries(client_game1 celtesystems_runtime_client msgpack-cxx  ${GLIB_LIBRARIES} glm::glm Boost::thread Boost::json)

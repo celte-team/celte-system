@@ -57,38 +57,29 @@ public:
     auto it = _streams.find(topic);
     if (it == _streams.end()) {
       // create the stream and write the request as soon as it is ready
-      std::cout << "creating stream" << std::endl;
       std::shared_ptr<WriterStream> stream =
           std::make_shared<WriterStream>(WriterStream::Options{
               .topic = topic, .onReady = [req, onDelivered](WriterStream &s) {
-                std::cout << "producer is ready" << std::endl;
                 s.Write(req, onDelivered);
               }});
-      std::cout << "opening stream" << std::endl;
       stream->Open<Req>();
-      std::cout << "pushing stream to pool" << std::endl;
 
       _streams[topic] = WriterStreamPoolEntry{
           .producer = stream, .lastUsed = std::chrono::system_clock::now()};
       return;
     }
-    std::cout << "stream found" << std::endl;
 
     // if the producer is not ready, wait until it is, else write the request
     // immediately
     auto stream = it->second;
     if (!stream.producer->Ready()) {
-      std::cout << "post writing" << std::endl;
       _io.post([this, topic, req, stream, onDelivered]() {
         // wait until the producer is ready
-        std::cout << "waiting for producer to be ready" << std::endl;
         while (!stream.producer->Ready())
           ;
-        std::cout << "sending" << std::endl;
         stream.producer->Write(req, onDelivered);
       });
     } else {
-      std::cout << "writing directly" << std::endl;
       stream.producer->Write(req, onDelivered);
     }
 

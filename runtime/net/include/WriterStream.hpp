@@ -90,7 +90,6 @@ struct WriterStream {
         message.build(),
         [this, onDelivered](pulsar::Result result,
                             const pulsar::MessageId &messageId) {
-          std::cout << "message sent successfully" << std::endl;
           _pending--;
           if (onDelivered)
             onDelivered(result);

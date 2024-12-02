@@ -1,4 +1,3 @@
-#include "CelteRPC.hpp"
 #include "CelteRuntime.hpp"
 #include "ClientStatesDeclaration.hpp"
 #include "Logger.hpp"
@@ -33,18 +32,6 @@ void Connected::__registerRPCs() {
       }));
 
   rpcs.Register<bool>(
-      "__rp_spawnPlayer",
-      std::function([this](std::string clientId, float x, float y, float z) {
-        try {
-          __rp_spawnPlayer(clientId, x, y, z);
-          return true;
-        } catch (std::exception &e) {
-          std::cerr << "Error in __rp_spawnPlayer: " << e.what() << std::endl;
-          return false;
-        }
-      }));
-
-  rpcs.Register<bool>(
       "__rp_loadExistingEntities",
       std::function([this](std::string grapeId, std::string summary) {
         try {
@@ -64,17 +51,10 @@ void Connected::__rp_forceConnectToChunk(std::string grapeId, float x, float y,
                                          float z) {
   logs::Logger::getInstance().info()
       << "Force connect to chunk rp has been called" << std::endl;
-  // notifiying the game dev that everything is ready on our side and he may
-  // request for spawn whenever
-  HOOKS.client.connection.onReadyToSpawn(grapeId, x, y, z);
   // loading the map will instantiate the chunks, thus subscribing to all the
   // required topics
   HOOKS.client.grape.loadGrape(grapeId);
-}
-
-void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
-                                 float z) {
-  HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
+  // HOOKS.client.connection.onReadyToSpawn(grapeId, x, y, z);
 }
 
 void Connected::__rp_loadExistingEntities(std::string grapeId,

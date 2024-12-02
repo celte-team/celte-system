@@ -1,5 +1,5 @@
 #include "CelteRequest.hpp"
-
+#include "base64.hpp"
 namespace celte {
 namespace req {
 struct BinaryDataPacket : public celte::net::CelteRequest<BinaryDataPacket> {
@@ -47,11 +47,21 @@ struct ReplicationDataPacket
   bool active;
 
   void to_json(nlohmann::json &j) const {
-    j = nlohmann::json{{"data", data}, {"active", active}};
+    std::unordered_map<std::string, std::string> encoded_data;
+    for (const auto &pair : data) {
+      encoded_data[pair.first] = base64_encode(
+          reinterpret_cast<const unsigned char *>(pair.second.data()),
+          pair.second.size());
+    }
+    j = nlohmann::json{{"data", encoded_data}, {"active", active}};
   }
 
   void from_json(const nlohmann::json &j) {
-    j.at("data").get_to(data);
+    std::unordered_map<std::string, std::string> encoded_data;
+    j.at("data").get_to(encoded_data);
+    for (const auto &pair : encoded_data) {
+      data[pair.first] = base64_decode(pair.second);
+    }
     j.at("active").get_to(active);
   }
 };

@@ -1,6 +1,5 @@
 #include "CelteChunk.hpp"
 #include "CelteEntityManagementSystem.hpp"
-#include "CelteRPC.hpp"
 #include "CelteRuntime.hpp"
 #include "Logger.hpp"
 #include "Requests.hpp"
@@ -27,7 +26,6 @@ std::string Chunk::Initialize() {
 }
 
 void Chunk::__registerConsumers() {
-  std::cout << "Registering consumers for chunk " << _combinedId << std::endl;
   if (not _config.isLocallyOwned) {
     _createReaderStream<req::ReplicationDataPacket>({
         .thisPeerUuid = RUNTIME.GetUUID(),
@@ -51,14 +49,20 @@ void Chunk::__registerConsumers() {
 #endif
 }
 
+void Chunk::WaitNetworkInitialized() {
+  while (not _rpcs.Ready())
+    ;
+  for (auto rdr : _readerStreams) {
+    while (not rdr->Ready())
+      ;
+  }
+}
+
 bool Chunk::ContainsPosition(float x, float y, float z) const {
   return _boundingBox.ContainsPosition(x, y, z);
 }
 
 void Chunk::__registerRPCs() {
-  // REGISTER_RPC(__rp_scheduleEntityAuthorityTransfer,
-  //              celte::rpc::Table::Scope::CHUNK, std::string, std::string,
-  //              bool, int);
   _rpcs.Register<bool>(
       "__rp_scheduleEntityAuthorityTransfer",
       std::function([this](std::string entityUUID, std::string newOwnerChunkId,
@@ -71,6 +75,18 @@ void Chunk::__registerRPCs() {
           std::cerr << "Error in __rp_scheduleEntityAuthorityTransfer: "
                     << e.what() << std::endl;
 
+          return false;
+        }
+      }));
+
+  _rpcs.Register<bool>(
+      "__rp_spawnPlayer",
+      std::function([this](std::string clientId, float x, float y, float z) {
+        try {
+          ExecSpawnPlayer(clientId, x, y, z);
+          return true;
+        } catch (std::exception &e) {
+          std::cerr << "Error in __rp_spawnPlayer: " << e.what() << std::endl;
           return false;
         }
       }));
@@ -91,21 +107,22 @@ void Chunk::SendReplicationData() {
   if (not _config.isLocallyOwned)
     return;
 
+  // note: std move clears the map in place so we don't need to clear it
+  // manually :)
   if (not _nextScheduledReplicationData.empty()) {
-    // std::move will clear the local map, so no need to clear it
-    KPOOL.Send((const nl::KPool::SendOptions){
-        .topic = _combinedId + "." + celte::tp::REPLICATION,
-        .headers = std::move(_nextScheduledReplicationData),
-        .value = std::string(),
-        .autoCreateTopic = false});
+    _replicationWS->Write<req::ReplicationDataPacket>(
+        req::ReplicationDataPacket{
+            .data = std::move(_nextScheduledReplicationData),
+            .active = false,
+        });
   }
 
   if (not _nextScheduledActiveReplicationData.empty()) {
-    KPOOL.Send((const nl::KPool::SendOptions){
-        .topic = _combinedId + "." + celte::tp::REPLICATION,
-        .headers = std::move(_nextScheduledActiveReplicationData),
-        .value = std::string("active"),
-        .autoCreateTopic = false});
+    _replicationWS->Write<req::ReplicationDataPacket>(
+        req::ReplicationDataPacket{
+            .data = std::move(_nextScheduledActiveReplicationData),
+            .active = true,
+        });
   }
 }
 
@@ -125,10 +142,9 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
   // server node, calling the RPC will trigger the behavior of transfering
   // authority over to the chunk in all the peers listening to the chunk's
   // topic.
-  std::cout << "invoking rpc to schedule authority transfer on topic "
-            << _combinedId << ".rpc" << std::endl;
-  RPC.InvokeChunk(_combinedId, "__rp_scheduleEntityAuthorityTransfer", entityId,
-                  _combinedId, true, CLOCK.CurrentTick() + 30);
+  _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
+                 "__rp_scheduleEntityAuthorityTransfer", entityId, _combinedId,
+                 true, CLOCK.CurrentTick() + 30);
 }
 #endif
 
@@ -159,6 +175,21 @@ void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
   }
   // nothing to do (yet) for the chunk loosing the authority... more will come
   // in the future
+}
+
+void Chunk::SpawnPlayerOnNetwork(const std::string &clientId, float x, float y,
+                                 float z) {
+  _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
+                 "__rp_spawnPlayer", clientId, x, y, z);
+}
+
+void Chunk::ExecSpawnPlayer(const std::string &clientId, float x, float y,
+                            float z) {
+#ifdef CELTE_SERVER_MODE_ENABLED
+  HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId, x, y, z);
+#else
+  HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
+#endif
 }
 
 } // namespace chunks
