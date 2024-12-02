@@ -118,3 +118,16 @@ services:
     entrypoint: >
       sh -c "
       bin/pulsar-admin topics list public/default | xargs -I {} bin/pulsar-admin topics delete {}"
+
+  dekaf:
+      image: tealtools/dekaf:latest
+      container_name: dekaf
+      networks:
+        - pulsar
+      ports:
+        - "8090:8090"
+      environment:
+        - DEKAF_PULSAR_BROKER_URL=pulsar://broker:6650
+        - DEKAF_PULSAR_WEB_URL=http://broker:8080
+      depends_on:
+        - broker

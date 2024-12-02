@@ -3,7 +3,7 @@
     "boost",
     "glm",
     "msgpack",
-    "python3",
-    "pulsar-client-cpp"
+    "pulsar-client-cpp",
+    "python3"
   ]
 }

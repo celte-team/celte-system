@@ -1,7 +1,9 @@
+#pragma once
 #include "CelteRequest.hpp"
 #include "base64.hpp"
 namespace celte {
 namespace req {
+
 struct BinaryDataPacket : public celte::net::CelteRequest<BinaryDataPacket> {
   std::string binaryData;
   std::string peerUuid;
