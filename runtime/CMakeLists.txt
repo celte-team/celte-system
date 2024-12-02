@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 
-find_package(RdKafka CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 find_package(glm CONFIG REQUIRED)
@@ -18,7 +17,6 @@ find_package(unofficial-pulsar CONFIG)
 include_directories(
     include
     ${GLIB_INCLUDE_DIRS}
-    ${RDKAFKA_INCLUDE_DIRS}
     runtime/net/include
     ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/include
 )
@@ -46,7 +44,6 @@ set(COMMON_SOURCES
     src/CelteEntity.cpp
     src/CelteGrape.cpp
     src/CelteChunk.cpp
-    src/CelteRPC.cpp
     src/CelteGrapeManagementSystem.cpp
     src/CelteEntityManagementSystem.cpp
     src/CelteHooks.cpp
@@ -54,8 +51,7 @@ set(COMMON_SOURCES
     src/CelteClock.cpp
     src/Replicator.cpp
     src/Logger.cpp
-    src/KPool.cpp
-    src/KConsumerService.cpp
+    src/base64.cpp
 )
 
 set(SERVER_SOURCES
@@ -77,34 +73,16 @@ set(CLIENT_SOURCES
 # Runtime for server
 add_library(celtesystems_runtime_server SHARED ${COMMON_SOURCES} ${SERVER_SOURCES})
 target_compile_definitions(celtesystems_runtime_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(celtesystems_runtime_server PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} celtenet)
+target_link_libraries(celtesystems_runtime_server PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json  ${GLIB_LIBRARIES} celtenet)
 
 # Runtime for client
 add_library(celtesystems_runtime_client SHARED ${COMMON_SOURCES} ${CLIENT_SOURCES})
-target_link_libraries(celtesystems_runtime_client PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES} celtenet)
+target_link_libraries(celtesystems_runtime_client PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json  ${GLIB_LIBRARIES} celtenet)
 
 ######################################################################
 #  INSTALL DEPENDENCIES
 ######################################################################
 
-# RDKafka
-
-# Find RdKafka libraries
-find_library(RDKAFKA_LIBRARY NAMES rdkafka HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
-find_library(RDKAFKA++_LIBRARY NAMES rdkafka++ HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
-
-# Ensure the libraries are found
-if(NOT RDKAFKA_LIBRARY)
-    message(FATAL_ERROR "rdkafka library not found")
-endif()
-if(NOT RDKAFKA++_LIBRARY)
-    message(FATAL_ERROR "rdkafka++ library not found")
-endif()
-
-# install(FILES ${RDKAFKA_LIBRARY} ${RDKAFKA++_LIBRARY}
-#         DESTINATION celte-libraries)
-
-# Glib
 
 # Find Glib libraries
 find_library(GLIB_LIBRARY NAMES glib-2.0 HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)

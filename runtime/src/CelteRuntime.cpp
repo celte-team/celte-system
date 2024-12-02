@@ -21,6 +21,10 @@
 #include <cstdlib>
 #include <stdexcept>
 
+#ifndef CELTE_SERVER_MODE_ENABLED
+#include "ClientStatesDeclaration.hpp"
+#endif
+
 namespace tinyfsm {
 // This registers the initial state of the FSM for
 // client or server networking.
@@ -43,7 +47,7 @@ namespace runtime {
 // =================================================================================================
 // CELTE PUBLIC METHODS
 // =================================================================================================
-CelteRuntime::CelteRuntime() : _pool(nullptr), _work(_io) {
+CelteRuntime::CelteRuntime() : _work(_io) {
   for (int i = 0; i < 4; i++) { // TODO make this configurable
     _threads.create_thread(boost::bind(&boost::asio::io_service::run, &_io));
   }
@@ -51,20 +55,14 @@ CelteRuntime::CelteRuntime() : _pool(nullptr), _work(_io) {
 
 CelteRuntime::~CelteRuntime() {}
 
-rpc::Table &CelteRuntime::RPCTable() { return _rpcTable; }
-
 void CelteRuntime::Start(RuntimeMode mode) {
   _mode = mode;
   __initNetworkLayer(mode);
 }
 
 void CelteRuntime::Tick() {
-  // Executing tasks received from the network
-  // if (_pool) [[likely]] {
-  //   // _pool->CommitSubscriptions();
-  //   _pool->CatchUp();
-  // }
-
+  // Executing tasks received from the network and scheduled callbacks from
+  // async jobs
   NET.ExecThens();
 
   // Executing tasks that have been scheduled for delayed execution
@@ -126,10 +124,24 @@ void CelteRuntime::__initClientRPC() {}
 void CelteRuntime::__initClient() { __initClientRPC(); }
 
 void CelteRuntime::RequestSpawn(const std::string &clientId,
-                                const std::string &grapeId, float x, float y,
-                                float z) {
-  // TODO: check if spawn is authorized
-  RPC.InvokeGrape(grapeId, "__rp_onSpawnRequested", clientId, x, y, z);
+                                const std::string &grapeId, float _x, float _y,
+                                float _z) {
+  if (!IsConnectedToCluster()) {
+    throw std::runtime_error("Not connected to cluster");
+  }
+#ifdef CELTE_SERVER_MODE_ENABLED
+  throw std::logic_error("Server cannot request to spawn");
+#else
+  celte::client::states::ClientNet()
+      .rpcs()
+      .CallAsync<bool>(tp::PERSIST_DEFAULT + grapeId, "__rp_onSpawnRequested",
+                       clientId)
+      .Then(std::move([](bool success) {
+        if (!success) {
+          throw std::runtime_error("Failed to spawn player, server refused.");
+        }
+      }));
+#endif
 }
 
 #endif
@@ -160,14 +172,11 @@ void CelteRuntime::ConnectToCluster() {
   if (ip.empty()) {
     throw std::runtime_error("CELTE_CLUSTER_HOST not set");
   }
-  int port = 80;
+  int port = 6650;
   ConnectToCluster(ip, port);
 }
 
 void CelteRuntime::ConnectToCluster(const std::string &ip, int port) {
-  // _pool = std::make_shared<celte::nl::KPool>(celte::nl::KPool::Options{
-  //     .bootstrapServers = ip + std::string(":") + std::to_string(port)});
-
   NET.Connect(ip + ":" + std::to_string(port));
 
   // Launch the connection asynchronously
@@ -210,14 +219,6 @@ bool CelteRuntime::WaitForClusterConnection(int timeoutMs) {
       return false;
     }
   }
-}
-
-// nl::KafkaPool &CelteRuntime::KPool() {
-nl::KPool &CelteRuntime::KPool() {
-  if (!_pool) {
-    throw std::logic_error("Kafka pool not initialized");
-  }
-  return *_pool;
 }
 
 api::HooksTable &CelteRuntime::Hooks() { return _hooks; }

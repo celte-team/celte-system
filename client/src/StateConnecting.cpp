@@ -3,7 +3,6 @@
 #include "ClientStatesDeclaration.hpp"
 #include "Logger.hpp"
 #include "topics.hpp"
-#include <kafka/KafkaProducer.h>
 
 namespace celte {
 namespace client {
@@ -48,12 +47,10 @@ void Connecting::__subscribeToTopics() {
   ClientNet().Write(tp::MASTER_HELLO_CLIENT, RUNTIME.GetUUID(),
                     [this](auto result) {
                       if (result != pulsar::Result::ResultOk) {
-                        std::cout << "client connecting failed" << std::endl;
                         HOOKS.client.connection.onConnectionError();
                         HOOKS.client.connection.onClientDisconnected();
                         transit<Disconnected>();
                       } else {
-                        std::cout << "client connecting success" << std::endl;
                         dispatch(EConnectionSuccess());
                       }
                     });

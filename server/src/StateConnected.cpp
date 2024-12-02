@@ -2,7 +2,6 @@
 #include "CelteRuntime.hpp"
 #include "Requests.hpp"
 #include "ServerStatesDeclaration.hpp"
-#include "kafka/KafkaException.h"
 #include "topics.hpp"
 
 namespace celte {
@@ -22,31 +21,6 @@ void Connected::entry() {
         } catch (std::exception &e) {
           std::cerr << "Error in __rp_acceptNewClient: " << e.what()
                     << std::endl;
-          return false;
-        }
-      }));
-
-  rpcs.Register<bool>(
-      "__rp_onSpawnRequested",
-      std::function([this](std::string clientId, float x, float y, float z) {
-        try {
-          __rp_onSpawnRequested(clientId, x, y, z);
-          return true;
-        } catch (std::exception &e) {
-          std::cerr << "Error in __rp_onSpawnRequested: " << e.what()
-                    << std::endl;
-          return false;
-        }
-      }));
-
-  rpcs.Register<bool>(
-      "__rp_spawnPlayer",
-      std::function([this](std::string clientId, float x, float y, float z) {
-        try {
-          __rp_spawnPlayer(clientId, x, y, z);
-          return true;
-        } catch (std::exception &e) {
-          std::cerr << "Error in __rp_spawnPlayer: " << e.what() << std::endl;
           return false;
         }
       }));
@@ -119,7 +93,7 @@ Connected::__rp_getPlayerSpawnPosition(const std::string &clientInfo) {
 // }
 
 void Connected::__rp_assignGrape(std::string grapeId) {
-  __registerGrapeConsumers(grapeId);
+  HOOKS.server.grape.loadGrape(grapeId, true);
 }
 
 void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
@@ -127,52 +101,7 @@ void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
   // TODO: add client to correct chunk's authority
   HOOKS.server.newPlayerConnected.accept(clientId);
   ENTITIES.AddPendingSpawn(clientId, grapeId, x, y, z);
-  // RPC.InvokePeer(clientId, "__rp_forceConnectToChunk", grapeId, x, y, z);
   ServerNet().ConnectClientToGrape(clientId, grapeId, x, y, z);
-}
-
-void Connected::__rp_onSpawnRequested(const std::string &clientId, float x,
-                                      float y,
-                                      float z) { // TODO remove these arguments
-  try {
-    std::tuple<std::string, float, float, float> spawnInfo =
-        ENTITIES.GetPendingSpawn(clientId);
-    x = std::get<1>(spawnInfo);
-    y = std::get<2>(spawnInfo);
-    z = std::get<3>(spawnInfo);
-    auto chunkId = GRAPES.GetGrapeByPosition(x, y, z)
-                       .GetChunkByPosition(x, y, z)
-                       .GetCombinedId();
-    RPC.InvokeChunk(chunkId, "__rp_spawnPlayer", clientId, x, y, z);
-    ENTITIES.RemovePendingSpawn(clientId);
-  } catch (std::out_of_range &e) {
-    std::cerr << "Error in __rp_onSpawnRequested: " << e.what() << std::endl;
-  }
-}
-
-void Connected::__rp_spawnPlayer(std::string clientId, float x, float y,
-                                 float z) {
-  HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId, x, y, z);
-}
-
-void Connected::__registerGrapeConsumers(const std::string &grapeId) {
-  std::cout << "__registerGrapeConsumers -> registering consumers for grape "
-            << grapeId << std::endl;
-  // try {
-  // KPOOL.Subscribe(
-  //     {.topics{grapeId + "." + tp::RPCs},
-  //      .autoCreateTopic = true,
-  //      .callbacks{[this](auto r) { RPC.InvokeLocal(r); }},
-  //      .then = [grapeId]() {
-  //        std::cout << "__registerGrapeConsumer.then -> loading the grape"
-  //                  << std::endl;
-  //        HOOKS.server.grape.loadGrape(grapeId, true);
-  //      }});
-  // KPOOL.CommitSubscriptions();
-  // } catch (kafka::KafkaException &e) {
-  //   std::cerr << "Error in __registerGrapeConsumers: " << e.what() <<
-  //   std::endl;
-  // }
 }
 
 void Connected::__unregisterGrapeConsumers() {}

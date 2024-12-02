@@ -34,8 +34,7 @@ public:
         .Then([clientId](bool success) {
           if (!success) {
             std::cerr << "Error in ConnectClientToGrape: "
-                      << "Failed to connect client " << clientId << " to grape"
-                      << std::endl;
+                      << "Client failed to join: " << clientId << std::endl;
           }
         });
   }

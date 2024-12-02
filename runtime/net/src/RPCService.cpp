@@ -15,7 +15,6 @@ RPCService::RPCService(const RPCService::Options &options)
   }
 
   if (options.listenOn.size() != 0) {
-    std::cout << "calling init reader stream" << std::endl;
     __initReaderStream(options.listenOn);
   }
 }
@@ -36,14 +35,12 @@ void RPCService::__initReaderStream(const std::vector<std::string> &topic) {
        .messageHandler =
            [this](const pulsar::Consumer, RPRequest req) {
              if (!req.respondsTo.empty()) {
-               std::cout << "handling response" << std::endl;
                __handleResponse(req);
              }
            }});
 }
 
 void RPCService::__handleRemoteCall(const RPRequest &req) {
-  std::cout << "handling remote call " << req.name << std::endl;
   auto it = _rpcs.find(req.name);
   if (it == _rpcs.end()) {
     // no such rpc
@@ -53,7 +50,6 @@ void RPCService::__handleRemoteCall(const RPRequest &req) {
 
   auto f = it->second;
   auto result = f(req.args);
-  std::cout << "sending response to topic " << req.responseTopic << std::endl;
   RPRequest response{
       .name = req.name,
       .respondsTo = req.rpcId,
@@ -75,10 +71,8 @@ void RPCService::__handleResponse(const RPRequest &req) {
     return;
   }
 
-  std::cout << "setting promise value" << std::endl;
   auto promise = it->second;
   promise->set_value(req.args.dump());
-  std::cout << "value is set " << std::endl;
   rpcPromises.erase(it);
 }
 

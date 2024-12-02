@@ -50,7 +50,7 @@ def run_docker_pulsar():
     env['DOCKER_HOST_IP'] = ip_address
     # cd into the kafka directory
     os.chdir('pulsar')
-    current_process = subprocess.Popen(['docker', 'compose', 'down'])
+    current_process = subprocess.Popen(['docker', 'compose', 'down', '-v'])
     current_process.wait()
     current_process = subprocess.Popen(['docker', 'compose', 'up'], env=env)
     current_process.wait()

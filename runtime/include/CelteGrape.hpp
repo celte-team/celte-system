@@ -125,12 +125,15 @@ private:
    */
   void __subdivide();
 
+#ifdef CELTE_SERVER_MODE_ENABLED
   /**
-   * @brief This method waits in a non blocking way until all readers from the
-   * grape and its chunks are ready, and then queries a summary of the existing
-   * entities on the grape from the owner node.
+   * @brief This RPC will be called when a player requests to spawn in the game.
+   * It will instantiate the player in all peers listening to the chunk the
+   * player is spawning in by calling a __rp_spawnPlayer RPC to the chunk's rpc
+   * channel
    */
-  void __afterCreationGetEnttities();
+  bool __rp_onSpawnRequested(std::string &clientId);
+#endif
 
   std::optional<net::RPCService> _rpcs = std::nullopt;
 

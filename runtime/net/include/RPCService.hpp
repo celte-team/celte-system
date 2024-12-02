@@ -29,8 +29,9 @@ template <typename Ret> struct Awaitable {
       : _future(future), _io(io) {}
 
   void Then(std::function<void(Ret)> f) {
-    _io.post([this, f]() {
-      Ret ret = _future->get();
+    std::shared_ptr<std::future<Ret>> future = this->_future;
+    _io.post([this, f, future]() {
+      Ret ret = future->get();
       CelteNet::Instance().PushThen([f = std::move(f), ret]() { f(ret); });
     });
   }
@@ -65,25 +66,6 @@ struct RPRequest : public CelteRequest<RPRequest> {
   }
 };
 
-/*
-# Example usage:
-
-Peer1:
-```cpp
-RPCService l;
-l.Register("add", [](int a, int b) { return a + b; });
-l.Register("foo", []() { return "bar"; });
-```
-
-Peer2:
-```cpp
-l.Call("add", 1, 2); // returns 3, blocking
-l.CallAsync("foo").Then([](const std::string &result) { // then is pushed to the
-queue of callbacks to execute std::cout << result << std::endl;
-});
-```
-
-*/
 class RPCService : public CelteService {
 public:
   struct Options {
@@ -115,11 +97,27 @@ public:
     std::shared_ptr<std::promise<std::string>> promise =
         std::make_shared<std::promise<std::string>>();
     rpcPromises[req.rpcId] = promise;
-    std::cout << "calling writer pool write" << std::endl;
     _writerStreamPool.Write(topic, req);
 
     std::string result = promise->get_future().get(); // json of response.args
     return nlohmann::json::parse(result).get<Ret>();
+  }
+
+  template <typename... Args>
+  void CallVoid(const std::string &topic, const std::string &name,
+                Args... args) {
+    RPRequest req{
+        .name = name,
+        .respondsTo = "",
+        .responseTopic = "",
+        .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
+        .args = std::make_tuple(args...)};
+    _writerStreamPool.Write(topic, req, [topic, name](pulsar::Result r) {
+      if (r != pulsar::ResultOk) {
+        std::cerr << "Error calling rpc on topic " << topic << " with name "
+                  << name << std::endl;
+      }
+    });
   }
 
   template <typename Ret, typename... Args>
@@ -134,13 +132,15 @@ public:
     std::shared_ptr<std::promise<std::string>> promise =
         std::make_shared<std::promise<std::string>>();
     rpcPromises[req.rpcId] = promise;
-    _writerStreamPool.Write(topic, req);
 
     auto future = std::make_shared<std::future<Ret>>(
         std::async(std::launch::async, [promise]() {
           std::string result = promise->get_future().get();
-          return nlohmann::json::parse(result).get<Ret>();
+          Ret r = nlohmann::json::parse(result).get<Ret>();
+          return r;
         }));
+
+    _writerStreamPool.Write(topic, req);
     return Awaitable<Ret>(future, _io);
   }
 

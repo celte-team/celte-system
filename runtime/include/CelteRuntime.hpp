@@ -28,10 +28,8 @@
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteHooks.hpp"
 #include "CelteNet.hpp"
-#include "CelteRPC.hpp"
 #include "CelteRequest.hpp"
 #include "CelteService.hpp"
-#include "KPool.hpp"
 #include "Logger.hpp"
 #include "RPCService.hpp"
 #include "ReaderStream.hpp"
@@ -65,8 +63,6 @@ using Services =
 
 #define RUNTIME celte::runtime::CelteRuntime::GetInstance()
 #define HOOKS celte::runtime::CelteRuntime::GetInstance().Hooks()
-#define RPC celte::runtime::CelteRuntime::GetInstance().RPCTable()
-#define KPOOL celte::runtime::CelteRuntime::GetInstance().KPool()
 #define CLOCK celte::runtime::CelteRuntime::GetInstance().GetClock()
 #define ENTITIES celte::runtime::CelteRuntime::GetInstance().GetEntityManager()
 #define NET celte::net::CelteNet::Instance()
@@ -205,21 +201,6 @@ public:
   bool WaitForClusterConnection(int timeoutMs);
 
   /**
-   * @brief Returns the RPC table.
-   *
-   * @return rpc::Table&
-   */
-  rpc::Table &RPCTable();
-
-  /**
-   * @brief Returns a reference to the KafkaPool used to send and receive
-   * messages from kafka. If the kafka pool is not initialized, throws an
-   * std::logic_error.
-   */
-  // nl::KafkaPool &KPool();
-  nl::KPool &KPool();
-
-  /**
    * @brief Returns a reference to the hook table.
    */
   api::HooksTable &Hooks();
@@ -284,14 +265,6 @@ private:
 
   // either server or client, should be decided at compilation
   RuntimeMode _mode;
-
-  // The RPC table
-  rpc::Table _rpcTable;
-
-  // Kafka producer / consumer pool used to send and receive messages from
-  // kafka
-  // std::shared_ptr<nl::KafkaPool> _pool;
-  std::shared_ptr<nl::KPool> _pool;
 
   // Hooks table
   api::HooksTable _hooks;

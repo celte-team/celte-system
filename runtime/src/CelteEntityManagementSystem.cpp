@@ -1,6 +1,5 @@
 #include "CelteEntityManagementSystem.hpp"
 #include "CelteGrapeManagementSystem.hpp"
-#include "CelteRPC.hpp"
 #include "CelteRuntime.hpp"
 // #include <boost/json.hpp>
 #include "nlohmann/json.hpp"

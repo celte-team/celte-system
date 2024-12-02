@@ -77,7 +77,9 @@ struct ReaderStream {
           Req req;
           std::string data(static_cast<const char *>(msg.getData()),
                            msg.getLength());
-          std::cout << "reading message: " << data << std::endl;
+          // leave this debug here for now, we'll be using it a lot
+          std::cout << "reading message: " << data << " "
+                    << "from topic: " << msg.getTopicName() << std::endl;
           from_json(nlohmann::json::parse(data), req);
           if (options.messageHandler)
             options.messageHandler(consumer, req);

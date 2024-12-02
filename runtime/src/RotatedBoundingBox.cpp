@@ -38,18 +38,28 @@ bool RotatedBoundingBox::ContainsPosition(float x, float y, float z) const {
 
 std::vector<glm::vec3>
 RotatedBoundingBox::GetMeshedPoints(int subdivision) const {
-  std::vector<glm::vec3> points;
-  for (int i = 0; i < subdivision; i++) {
-    for (int j = 0; j < subdivision; j++) {
-      for (int k = 0; k < subdivision; k++) {
-        glm::vec3 point = _position + _halfX * (2.0f * i / subdivision - 0.5f) +
-                          _halfY * (2.0f * j / subdivision - 0.5f) +
-                          _halfZ * (2.0f * k / subdivision - 0.5f);
-        points.push_back(point);
+  std::vector<glm::vec3> centers;
+  if (subdivision <= 0) {
+    return centers;
+  }
+
+  // Calculate the centers of the segments along each axis
+  glm::vec3 stepX = 2.0f * _halfX / static_cast<float>(subdivision);
+  glm::vec3 stepY = 2.0f * _halfY / static_cast<float>(subdivision);
+  glm::vec3 stepZ = 2.0f * _halfZ / static_cast<float>(subdivision);
+
+  glm::vec3 start = _position - _halfX - _halfY - _halfZ;
+
+  for (int i = 0; i < subdivision; ++i) {
+    for (int j = 0; j < subdivision; ++j) {
+      for (int k = 0; k < subdivision; ++k) {
+        glm::vec3 center = start + (i + 0.5f) * stepX + (j + 0.5f) * stepY +
+                           (k + 0.5f) * stepZ;
+        centers.push_back(center);
       }
     }
   }
-  return points;
+  return centers;
 }
 } // namespace chunks
 } // namespace celte
