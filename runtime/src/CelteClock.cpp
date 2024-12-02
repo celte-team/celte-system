@@ -26,10 +26,7 @@ void Clock::Init() {
   });
 }
 
-void Clock::__updateCurrentTick(int tick) {
-  _tick = tick;
-  std::cout << "Clock tick: " << _tick << std::endl;
-}
+void Clock::__updateCurrentTick(int tick) { _tick = tick; }
 
 void Clock::ScheduleAt(int tick, std::function<void()> task) {
   if (tick < _tick) {

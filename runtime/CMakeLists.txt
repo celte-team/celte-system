@@ -79,6 +79,8 @@ target_link_libraries(celtesystems_runtime_server PRIVATE glm::glm msgpack-cxx B
 add_library(celtesystems_runtime_client SHARED ${COMMON_SOURCES} ${CLIENT_SOURCES})
 target_link_libraries(celtesystems_runtime_client PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json  ${GLIB_LIBRARIES} celtenet)
 
+
+
 ######################################################################
 #  INSTALL DEPENDENCIES
 ######################################################################

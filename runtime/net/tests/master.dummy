@@ -32,6 +32,7 @@ def call_rpc(topic, name, args: tuple):
     global client
     producer = client.create_producer(topic)
     producer.send(json.dumps(request).encode('utf-8'))
+
     print(f"\033[94m<Sent RPC request> {request} on topic {topic}\033[0m")
     # wait for the message to be sent
     producer.flush()
@@ -114,7 +115,6 @@ def clock_thread():
             "tick": tick
         }
         producer.send(json.dumps(msg).encode('utf-8'))
-        print(f"\033[94m<Sent clock tick> {msg}\033[0m")
         producer.flush()
         tick += 1
 
