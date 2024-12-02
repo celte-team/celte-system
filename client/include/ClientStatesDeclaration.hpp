@@ -1,11 +1,14 @@
 #pragma once
 #include "CelteClient.hpp"
 #include "ClientEvents.hpp"
+#include "ClientNetService.hpp"
 #include "tinyfsm.hpp"
 
 namespace celte {
 namespace client {
 namespace states {
+ClientNetService &ClientNet();
+
 /**
  * This is the default state for the client, before AKafkaLink
  * connects to kafka. It should initialize the client and wait for

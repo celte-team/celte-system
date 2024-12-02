@@ -17,19 +17,48 @@ void Connected::react(EDisconnectFromServer const &event) {
 }
 
 void Connected::__registerRPCs() {
-  REGISTER_RPC(__rp_forceConnectToChunk, celte::rpc::Table::Scope::PEER,
-               std::string, float, float, float);
-  REGISTER_RPC(__rp_spawnPlayer, celte::rpc::Table::Scope::CHUNK, std::string,
-               float, float, float);
-  REGISTER_RPC(__rp_loadExistingEntities, celte::rpc::Table::Scope::PEER,
-               std::string, std::string);
+  auto &rpcs = ClientNet().rpcs();
+
+  rpcs.Register<bool>(
+      "__rp_forceConnectToChunk",
+      std::function([this](std::string grapeId, float x, float y, float z) {
+        try {
+          __rp_forceConnectToChunk(grapeId, x, y, z);
+          return true;
+        } catch (std::exception &e) {
+          std::cerr << "Error in __rp_forceConnectToChunk: " << e.what()
+                    << std::endl;
+          return false;
+        }
+      }));
+
+  rpcs.Register<bool>(
+      "__rp_spawnPlayer",
+      std::function([this](std::string clientId, float x, float y, float z) {
+        try {
+          __rp_spawnPlayer(clientId, x, y, z);
+          return true;
+        } catch (std::exception &e) {
+          std::cerr << "Error in __rp_spawnPlayer: " << e.what() << std::endl;
+          return false;
+        }
+      }));
+
+  rpcs.Register<bool>(
+      "__rp_loadExistingEntities",
+      std::function([this](std::string grapeId, std::string summary) {
+        try {
+          __rp_loadExistingEntities(grapeId, summary);
+          return true;
+        } catch (std::exception &e) {
+          std::cerr << "Error in __rp_loadExistingEntities: " << e.what()
+                    << std::endl;
+          return false;
+        }
+      }));
 }
 
-void Connected::__unregisterRPCs() {
-  UNREGISTER_RPC(__rp_forceConnectToChunk);
-  UNREGISTER_RPC(__rp_spawnPlayer);
-  UNREGISTER_RPC(__rp_loadExistingEntities);
-}
+void Connected::__unregisterRPCs() {}
 
 void Connected::__rp_forceConnectToChunk(std::string grapeId, float x, float y,
                                          float z) {

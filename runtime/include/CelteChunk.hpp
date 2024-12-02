@@ -1,4 +1,5 @@
 #pragma once
+#include "RPCService.hpp"
 #include "Replicator.hpp"
 #include "RotatedBoundingBox.hpp"
 #include "topics.hpp"
@@ -28,7 +29,7 @@ struct ChunkConfig {
  *
  * Chunks handle entity replication and authority over entities.
  */
-class Chunk {
+class Chunk : public net::CelteService {
 public:
   Chunk(const ChunkConfig &config);
   ~Chunk();
@@ -129,8 +130,10 @@ private:
 
   const ChunkConfig _config;
   const std::string _combinedId;
+  net::RPCService _rpcs;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
+  std::shared_ptr<net::WriterStream> _replicationWS;
   std::map<std::string, std::string> _nextScheduledReplicationData;
   std::map<std::string, std::string> _nextScheduledActiveReplicationData;
 #endif

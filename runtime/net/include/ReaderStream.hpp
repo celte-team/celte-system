@@ -25,6 +25,8 @@ struct ReaderStream {
     std::function<void()> onConnectError = nullptr;
   };
 
+  ~ReaderStream() { _consumer.close(); }
+
   template <typename Req> void Open(Options<Req> &options) {
 
     auto &net = CelteNet::Instance();
@@ -75,6 +77,7 @@ struct ReaderStream {
           Req req;
           std::string data(static_cast<const char *>(msg.getData()),
                            msg.getLength());
+          std::cout << "reading message: " << data << std::endl;
           from_json(nlohmann::json::parse(data), req);
           if (options.messageHandler)
             options.messageHandler(consumer, req);

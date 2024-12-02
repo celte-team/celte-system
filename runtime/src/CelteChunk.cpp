@@ -3,6 +3,7 @@
 #include "CelteRPC.hpp"
 #include "CelteRuntime.hpp"
 #include "Logger.hpp"
+#include "Requests.hpp"
 #include "glm/glm.hpp"
 
 namespace celte {
@@ -10,7 +11,12 @@ namespace chunks {
 Chunk::Chunk(const ChunkConfig &config)
     : _config(config), _combinedId(config.grapeId + "-" + config.chunkId),
       _boundingBox(config.position, config.size, config.localX, config.localY,
-                   config.localZ) {}
+                   config.localZ),
+      _rpcs({
+          .thisPeerUuid = RUNTIME.GetUUID(),
+          .listenOn = {tp::PERSIST_DEFAULT + _combinedId + "." +
+                       celte::tp::RPCs},
+      }) {}
 
 Chunk::~Chunk() {}
 
@@ -22,8 +28,27 @@ std::string Chunk::Initialize() {
 
 void Chunk::__registerConsumers() {
   std::cout << "Registering consumers for chunk " << _combinedId << std::endl;
-  KPOOL.RegisterTopicCallback(_combinedId + "." + celte::tp::RPCs,
-                              [this](auto r) { RPC.InvokeLocal(r); });
+  if (not _config.isLocallyOwned) {
+    _createReaderStream<req::ReplicationDataPacket>({
+        .thisPeerUuid = RUNTIME.GetUUID(),
+        .topics = {_combinedId + "." + celte::tp::REPLICATION},
+        .subscriptionName = "",
+        .exclusive = false,
+        .messageHandlerSync =
+            [this](const pulsar::Consumer, req::ReplicationDataPacket req) {
+              ENTITIES.HandleReplicationData(req.data, req.active);
+            },
+
+    });
+  }
+#ifdef CELTE_SERVER_MODE_ENABLED
+  else { // if locally owned, we are the ones sending the data
+    _replicationWS = _createWriterStream<req::ReplicationDataPacket>({
+        .topic = _combinedId + "." + celte::tp::REPLICATION,
+        .exclusive = true, // only one writer per chunk, the owner of the chunk
+    });
+  }
+#endif
 }
 
 bool Chunk::ContainsPosition(float x, float y, float z) const {
@@ -31,9 +56,24 @@ bool Chunk::ContainsPosition(float x, float y, float z) const {
 }
 
 void Chunk::__registerRPCs() {
-  REGISTER_RPC(__rp_scheduleEntityAuthorityTransfer,
-               celte::rpc::Table::Scope::CHUNK, std::string, std::string, bool,
-               int);
+  // REGISTER_RPC(__rp_scheduleEntityAuthorityTransfer,
+  //              celte::rpc::Table::Scope::CHUNK, std::string, std::string,
+  //              bool, int);
+  _rpcs.Register<bool>(
+      "__rp_scheduleEntityAuthorityTransfer",
+      std::function([this](std::string entityUUID, std::string newOwnerChunkId,
+                           bool take, int tick) {
+        try {
+          __rp_scheduleEntityAuthorityTransfer(entityUUID, newOwnerChunkId,
+                                               take, tick);
+          return true;
+        } catch (std::exception &e) {
+          std::cerr << "Error in __rp_scheduleEntityAuthorityTransfer: "
+                    << e.what() << std::endl;
+
+          return false;
+        }
+      }));
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -92,9 +132,11 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
 }
 #endif
 
-/* -------------------------------------------------------------------------- */
-/*                                    RPCS                                    */
-/* -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+ */
+/*                                    RPCS */
+/* --------------------------------------------------------------------------
+ */
 
 void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
                                                  std::string newOwnerChunkId,

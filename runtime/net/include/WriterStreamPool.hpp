@@ -50,7 +50,9 @@ public:
    * @param topic The topic to write to.
    * @param req The request to write.
    */
-  template <typename Req> void Write(const std::string &topic, const Req &req) {
+  template <typename Req>
+  void Write(const std::string &topic, const Req &req,
+             std::function<void(pulsar::Result)> onDelivered = nullptr) {
     std::lock_guard<std::mutex> lock(_mutex);
     auto it = _streams.find(topic);
     if (it == _streams.end()) {
@@ -58,9 +60,9 @@ public:
       std::cout << "creating stream" << std::endl;
       std::shared_ptr<WriterStream> stream =
           std::make_shared<WriterStream>(WriterStream::Options{
-              .topic = topic, .onReady = [req](WriterStream &s) {
+              .topic = topic, .onReady = [req, onDelivered](WriterStream &s) {
                 std::cout << "producer is ready" << std::endl;
-                s.Write(req);
+                s.Write(req, onDelivered);
               }});
       std::cout << "opening stream" << std::endl;
       stream->Open<Req>();
@@ -77,17 +79,17 @@ public:
     auto stream = it->second;
     if (!stream.producer->Ready()) {
       std::cout << "post writing" << std::endl;
-      _io.post([this, topic, req, stream]() {
+      _io.post([this, topic, req, stream, onDelivered]() {
         // wait until the producer is ready
         std::cout << "waiting for producer to be ready" << std::endl;
         while (!stream.producer->Ready())
           ;
         std::cout << "sending" << std::endl;
-        stream.producer->Write(req);
+        stream.producer->Write(req, onDelivered);
       });
     } else {
       std::cout << "writing directly" << std::endl;
-      stream.producer->Write(req);
+      stream.producer->Write(req, onDelivered);
     }
 
     stream.lastUsed = std::chrono::system_clock::now();

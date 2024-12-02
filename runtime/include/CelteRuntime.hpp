@@ -27,12 +27,21 @@
 #include "CelteGrape.hpp"
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteHooks.hpp"
+#include "CelteNet.hpp"
 #include "CelteRPC.hpp"
+#include "CelteRequest.hpp"
+#include "CelteService.hpp"
 #include "KPool.hpp"
 #include "Logger.hpp"
+#include "RPCService.hpp"
+#include "ReaderStream.hpp"
+#include "WriterStream.hpp"
+#include "WriterStreamPool.hpp"
 #include "tinyfsm.hpp"
 #include "topics.hpp"
 #include <atomic>
+#include <boost/asio.hpp>
+#include <boost/thread.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <functional>
@@ -60,6 +69,7 @@ using Services =
 #define KPOOL celte::runtime::CelteRuntime::GetInstance().KPool()
 #define CLOCK celte::runtime::CelteRuntime::GetInstance().GetClock()
 #define ENTITIES celte::runtime::CelteRuntime::GetInstance().GetEntityManager()
+#define NET celte::net::CelteNet::Instance()
 
 /**
  * @brief This class contains all the logic necessary
@@ -243,6 +253,11 @@ public:
     return _entityManager;
   }
 
+  /**
+   * @brief Returns a reference to the io service.
+   */
+  inline boost::asio::io_service &IO() { return _io; }
+
 private:
   // =================================================================================================
   // PRIVATE METHODS
@@ -286,6 +301,11 @@ private:
 
   // Entity manager
   CelteEntityManagementSystem _entityManager;
+
+  // io service and thread pool for async operations if needed
+  boost::asio::io_service _io;
+  boost::asio::io_service::work _work;
+  boost::thread_group _threads;
 };
 } // namespace runtime
 } // namespace celte

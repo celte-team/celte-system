@@ -53,3 +53,12 @@ target_link_libraries(test_celtenet gtest gmock gtest_main celtenet unofficial::
 # add_test(NAME test_server COMMAND test_server)
 # add_test(NAME manual_test_replicator COMMAND manual_test_replicator)
 add_test(NAME test_celtenet COMMAND test_celtenet)
+
+add_executable(client.debug debug/client.cpp)
+target_link_libraries(client.debug gtest gmock gtest_main msgpack-cxx)
+target_link_libraries(client.debug celtesystems_runtime_client celtenet)
+
+add_executable(server.debug debug/server.cpp)
+target_compile_definitions(server.debug PRIVATE -DCELTE_SERVER_MODE_ENABLED)
+target_link_libraries(server.debug gtest gmock gtest_main msgpack-cxx)
+target_link_libraries(server.debug celtesystems_runtime_server celtenet)

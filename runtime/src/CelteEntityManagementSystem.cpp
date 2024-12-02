@@ -169,25 +169,28 @@ std::vector<std::string> CelteEntityManagementSystem::FilterEntities(
 void CelteEntityManagementSystem::RegisterReplConsumer(
     const std::vector<std::string> &chunkId) {
 
-  for (auto &topic : chunkId) {
-    KPOOL.RegisterTopicCallback(
-        // Parsing the record to extract the new values of the properties, and
-        // updating the entity
-        topic,
-        [this, topic](const kafka::clients::consumer::ConsumerRecord &record) {
-          std::unordered_map<std::string, std::string> replData;
-          for (const auto &header : record.headers()) {
-            auto value =
-                std::string(reinterpret_cast<const char *>(header.value.data()),
-                            header.value.size());
-            replData[header.key] = value;
-          }
-          bool active =
-              (std::string(static_cast<const char *>(record.value().data()),
-                           record.value().size())) == std::string("active");
-          __handleReplicationDataReceived(replData, active);
-        });
-  }
+  // for (auto &topic : chunkId) {
+  //   KPOOL.RegisterTopicCallback(
+  //       // Parsing the record to extract the new values of the properties,
+  //       and
+  //       // updating the entity
+  //       topic,
+  //       [this, topic](const kafka::clients::consumer::ConsumerRecord &record)
+  //       {
+  //         std::unordered_map<std::string, std::string> replData;
+  //         for (const auto &header : record.headers()) {
+  //           auto value =
+  //               std::string(reinterpret_cast<const char
+  //               *>(header.value.data()),
+  //                           header.value.size());
+  //           replData[header.key] = value;
+  //         }
+  //         bool active =
+  //             (std::string(static_cast<const char *>(record.value().data()),
+  //                          record.value().size())) == std::string("active");
+  //         __handleReplicationDataReceived(replData, active);
+  //       });
+  // }
 }
 
 void CelteEntityManagementSystem::__handleReplicationDataReceived(

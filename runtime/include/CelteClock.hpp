@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CelteService.hpp"
 #include <functional>
 #include <kafka/KafkaConsumer.h>
 #include <queue>
@@ -17,7 +18,7 @@ namespace runtime {
  * Ticks are used instead of real time because it allows for time scaling
  * to adapt the system to the game's needs.
  */
-class Clock {
+class Clock : public net::CelteService {
 public:
   /**
    * @brief Initializes the clock (subscribes to kafka).
@@ -60,7 +61,7 @@ private:
    *
    * @param r The record containing the tick.
    */
-  void __updateCurrentTick(const kafka::clients::consumer::ConsumerRecord &r);
+  void __updateCurrentTick(int tick);
 
   // Comparator to order tasks by tick in ascending order
   struct TaskComparator {

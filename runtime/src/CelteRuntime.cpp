@@ -43,7 +43,11 @@ namespace runtime {
 // =================================================================================================
 // CELTE PUBLIC METHODS
 // =================================================================================================
-CelteRuntime::CelteRuntime() : _pool(nullptr) {}
+CelteRuntime::CelteRuntime() : _pool(nullptr), _work(_io) {
+  for (int i = 0; i < 4; i++) { // TODO make this configurable
+    _threads.create_thread(boost::bind(&boost::asio::io_service::run, &_io));
+  }
+}
 
 CelteRuntime::~CelteRuntime() {}
 
@@ -56,10 +60,13 @@ void CelteRuntime::Start(RuntimeMode mode) {
 
 void CelteRuntime::Tick() {
   // Executing tasks received from the network
-  if (_pool) [[likely]] {
-    // _pool->CommitSubscriptions();
-    _pool->CatchUp();
-  }
+  // if (_pool) [[likely]] {
+  //   // _pool->CommitSubscriptions();
+  //   _pool->CatchUp();
+  // }
+
+  NET.ExecThens();
+
   // Executing tasks that have been scheduled for delayed execution
   _clock.CatchUp();
   for (auto &callback : _tickCallbacks) {
@@ -158,8 +165,10 @@ void CelteRuntime::ConnectToCluster() {
 }
 
 void CelteRuntime::ConnectToCluster(const std::string &ip, int port) {
-  _pool = std::make_shared<celte::nl::KPool>(celte::nl::KPool::Options{
-      .bootstrapServers = ip + std::string(":") + std::to_string(port)});
+  // _pool = std::make_shared<celte::nl::KPool>(celte::nl::KPool::Options{
+  //     .bootstrapServers = ip + std::string(":") + std::to_string(port)});
+
+  NET.Connect(ip + ":" + std::to_string(port));
 
   // Launch the connection asynchronously
   Services::dispatch(celte::EConnectToCluster{

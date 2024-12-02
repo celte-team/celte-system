@@ -1,6 +1,9 @@
 #pragma once
 #include "CelteChunk.hpp"
+#include "CelteService.hpp"
+#include "RPCService.hpp"
 #include "RotatedBoundingBox.hpp"
+#include "WriterStreamPool.hpp"
 #include <glm/vec3.hpp>
 #include <memory>
 #include <optional>
@@ -116,10 +119,20 @@ public:
 #endif
 
 private:
+  void __initNetwork();
   /**
    * Subdivide the grape bounding box into options.subdivision chunks.
    */
   void __subdivide();
+
+  /**
+   * @brief This method waits in a non blocking way until all readers from the
+   * grape and its chunks are ready, and then queries a summary of the existing
+   * entities on the grape from the owner node.
+   */
+  void __afterCreationGetEnttities();
+
+  std::optional<net::RPCService> _rpcs = std::nullopt;
 
   const GrapeOptions _options;
   std::unordered_map<std::string, std::shared_ptr<Chunk>> _chunks;

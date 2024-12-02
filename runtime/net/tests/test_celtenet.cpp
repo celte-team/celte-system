@@ -62,7 +62,7 @@ void caller() {
   std::cout << "Mode caller" << std::endl;
   RPCService rs({
       .thisPeerUuid = "dummyUUID",
-      .listenOn = "persistent://public/default/caller.rpc",
+      .listenOn = {"persistent://public/default/caller.rpc"},
   });
   std::cout << "Calling mode" << std::endl;
 
@@ -82,7 +82,7 @@ void callee() {
   std::cout << "mode calleee" << std::endl;
   RPCService rs({
       .thisPeerUuid = "dummyUUID",
-      .listenOn = "persistent://public/default/callee.rpc",
+      .listenOn = {"persistent://public/default/callee.rpc"},
   });
   std::cout << "Registering mode" << std::endl;
   rs.Register("add", std::function([](int a, int b) { return a + b; }));
