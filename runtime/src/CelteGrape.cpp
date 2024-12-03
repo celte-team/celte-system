@@ -177,22 +177,7 @@ namespace celte {
                 chunk->SendReplicationData();
             }
         }
-#endif
 
-        bool Grape::HasChunk(const std::string& chunkId) const
-        {
-            return _chunks.find(chunkId) != _chunks.end();
-        }
-
-        Chunk& Grape::GetChunk(const std::string& chunkId)
-        {
-            if (not HasChunk(chunkId)) {
-                throw std::out_of_range("Chunk " + chunkId + " does not exist in grape " + _options.grapeId);
-            }
-            return *_chunks[chunkId];
-        }
-
-#ifdef CELTE_SERVER_MODE_ENABLED
         bool Grape::__rp_onSpawnRequested(std::string& clientId)
         {
             auto [_, x, y, z] = ENTITIES.GetPendingSpawn(clientId);

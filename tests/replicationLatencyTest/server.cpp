@@ -82,30 +82,31 @@ void runTestLogic()
           property++;
       }
     }
+}
 
-    int main()
-    {
-        registerHooks();
-        RUNTIME.Start(celte::runtime::RuntimeMode::SERVER);
-        RUNTIME.ConnectToCluster();
+int main()
+{
+    registerHooks();
+    RUNTIME.Start(celte::runtime::RuntimeMode::SERVER);
+    RUNTIME.ConnectToCluster();
 
-        int connectionTimeoutMs = 5000;
-        auto connectionTimeout = std::chrono::system_clock::now() + std::chrono::milliseconds(connectionTimeoutMs);
-        while (RUNTIME.IsConnectedToCluster() == false and std::chrono::system_clock::now() < connectionTimeout) {
-            RUNTIME.Tick();
-        }
-        if (not RUNTIME.IsConnectedToCluster()) {
-            std::cout << "Connection failed" << std::endl;
-            KPOOL.ResetConsumers();
-            return 1;
-        }
-
-        std::cout << "Connected to cluster" << std::endl;
-
-        while (true) {
-            RUNTIME.Tick();
-            runTestLogic();
-        }
-
-        return 0;
+    int connectionTimeoutMs = 5000;
+    auto connectionTimeout = std::chrono::system_clock::now() + std::chrono::milliseconds(connectionTimeoutMs);
+    while (RUNTIME.IsConnectedToCluster() == false and std::chrono::system_clock::now() < connectionTimeout) {
+        RUNTIME.Tick();
     }
+    if (not RUNTIME.IsConnectedToCluster()) {
+        std::cout << "Connection failed" << std::endl;
+        KPOOL.ResetConsumers();
+        return 1;
+    }
+
+    std::cout << "Connected to cluster" << std::endl;
+
+    while (true) {
+        RUNTIME.Tick();
+        runTestLogic();
+    }
+
+    return 0;
+}

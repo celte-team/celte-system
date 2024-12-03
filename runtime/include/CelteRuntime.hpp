@@ -65,7 +65,6 @@ namespace celte {
 
 #define RUNTIME celte::runtime::CelteRuntime::GetInstance()
 #define HOOKS celte::runtime::CelteRuntime::GetInstance().Hooks()
-#define CINPUT celte::runtime::CelteRuntime::GetInstance().CelteInput()
 #define CLOCK celte::runtime::CelteRuntime::GetInstance().GetClock()
 #define ENTITIES celte::runtime::CelteRuntime::GetInstance().GetEntityManager()
 #define NET celte::net::CelteNet::Instance()
@@ -197,6 +196,14 @@ namespace celte {
             bool IsConnectingToCluster();
 
             /**
+             * @brief Returns a reference to the KafkaPool used to send and receive
+             * messages from kafka. If the kafka pool is not initialized, throws an
+             * std::logic_error.
+             */
+            // nl::KafkaPool &KPool();
+            CelteInputSystem& CelteInput();
+
+            /**
              * @brief Waits until the runtime is connected to the cluster. If timeout is
              * reached, returns false.
              *
@@ -272,7 +279,6 @@ namespace celte {
 
             // Input ptr
             std::shared_ptr<CelteInputSystem> _inputs;
-
             // Hooks table
             api::HooksTable _hooks;
 

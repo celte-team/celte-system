@@ -28,27 +28,6 @@ void loadEntitiesFromSummary(const nlohmann::json& summary)
               << " with info " << info << std::endl;
 }
 
-void loadEntitiesFromSummary(const nlohmann::json& summary)
-{
-    std::string uuid = summary["uuid"];
-    std::string chunk = summary["chunk"];
-    std::string info = summary["info"];
-    std::string passiveProps = summary["passiveProps"];
-    std::string activeProps = summary["activeProps"];
-
-    char repr = std::atoi(info.c_str());
-
-    game.AddObject(uuid, repr, 0, 0);
-
-    // set the current state of the object from the data received from the server
-    auto& obj = game.objects[uuid];
-    obj->entity->DownloadReplicationData(passiveProps, false);
-    obj->entity->DownloadReplicationData(activeProps, true);
-
-    std::cout << "[LOADED ENTITY] " << uuid << " in chunk " << chunk
-              << " with info " << info << std::endl;
-}
-
 void registerHooks()
 {
     HOOKS.server.grape.loadGrape = [](std::string grapeId, bool isLocallyOwned) {
@@ -169,13 +148,7 @@ void updateClientsPositions()
 
     // get the first player
     auto player = game.objects.begin()->second;
-    auto p_cbuf = CINPUT.getInputCircularBuf(player->entity->GetUUID(), "move");
-    // if (inputs->empty() || !p_cbuf || !p_cbuf->front().status)
-    //     return;
-
-    // get the first player
     player->x = (player->x + 1) % game.world.GetXDim();
-    std::cout << "NEW X POS : " << player->x << std::endl;
     game.world.Dump(game.objects);
 }
 
