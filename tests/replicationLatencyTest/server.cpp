@@ -66,12 +66,17 @@ void registerHooks()
     };
 }
 
-void runTestLogic()
-{
-    // if entity has spawned more that 10 seconds ago, change property once.
-    if (std::chrono::system_clock::now() - entitySpawnTimePoint > std::chrono::seconds(10)) {
-        std::cout << "EVERYTHING IS FINE\n";
-    }
+
+void runTestLogic() {
+  // if entity has spawned more that 10 seconds ago, change property once.
+  if (std::chrono::system_clock::now() - entitySpawnTimePoint >
+          std::chrono::seconds(10) and
+      // property == 0 and spawn) {
+      spawn) {
+    std::cout << "property set to one on server side" << std::endl;
+    // property = 1;
+    property++;
+  }
 }
 
 int main()

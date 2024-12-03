@@ -9,34 +9,30 @@ namespace celte {
 namespace nl {
 
 KPool::KPool(const Options &options)
-    : _options(options), _running(false), _records(100),
-      _consumerProps({{"bootstrap.servers", {options.bootstrapServers}},
-                      {"enable.auto.commit", {"true"}},
-                      {"log_level", {"3"}},
-                      {"retries", {"2"}},
-                      {"heartbeat.interval.ms", {"1000"}},
-                      {"session.timeout.ms", {"60000"}},
-                      {"group.id", {RUNTIME.GetUUID()}}}),
+    : _options(options),
+      // _running(false),
+      _records(100), _consumerProps({
+                         {"bootstrap.servers", {options.bootstrapServers}},
+                         {"enable.auto.commit", {"true"}},
+                         {"log_level", {"3"}},
+                         {"retries", {"2"}},
+                         {"heartbeat.interval.ms", {"1000"}},
+                         {"session.timeout.ms", {"60000"}},
+                         // {"group.id", {RUNTIME.GetUUID()}}
+                     }),
       _producerProps({
           {"bootstrap.servers", {options.bootstrapServers}},
           {"enable.idempotence", {"true"}},
-      }) {}
+      }),
+      _consumerService(_consumerProps, 5, _records) {}
 
-KPool::~KPool() {
-  _running = false;
-  if (_consumerThread.joinable()) {
-    _consumerThread.join();
-  }
-}
+KPool::~KPool() {}
 
 void KPool::Connect() {
   _producer =
       std::make_unique<kafka::clients::producer::KafkaProducer>(_producerProps);
-  _consumer =
-      std::make_unique<kafka::clients::consumer::KafkaConsumer>(_consumerProps);
   __initAdminClient();
-  _running = true;
-  _consumerThread = std::thread(&KPool::__consumerJob, this);
+  _consumerService.Start();
 }
 
 void KPool::CatchUp(unsigned int maxBlockingMs) {
@@ -50,18 +46,11 @@ void KPool::CatchUp(unsigned int maxBlockingMs) {
              std::chrono::milliseconds(maxBlockingMs) &&
          !_records.empty()) {
     auto record = _records.pop();
-    _callbacks[record.topic()](record);
+    if (_callbacks.find(record.topic()) != _callbacks.end()) {
+      _callbacks[record.topic()](record);
+    }
   }
-
-  // execute tasks scheduled locally
-  while (not _tasksToExecute.empty() and
-         std::chrono::duration_cast<std::chrono::milliseconds>(
-             std::chrono::system_clock::now().time_since_epoch()) -
-                 startMs <
-             std::chrono::milliseconds(maxBlockingMs)) {
-    auto task = _tasksToExecute.pop();
-    task();
-  }
+  _consumerService.ExecThens();
 }
 
 void KPool::__send(
@@ -217,29 +206,6 @@ void KPool::Subscribe(const SubscribeOptions &options) {
   });
 }
 
-void KPool::__consumerJob() {
-  while (_running) {
-    while (not _subscriptionsInProgress.empty()) {
-      auto sub = _subscriptionsInProgress.pop();
-      if (sub->future.wait_for(std::chrono::milliseconds(0)) !=
-          std::future_status::ready) {
-        _subscriptionsInProgress.push(sub);
-        break;
-      } else {
-        for (auto &then : sub->thens) {
-          _tasksToExecute.push(then);
-        }
-      }
-    }
-
-    std::shared_lock lock(_consumerMutex);
-    auto records = _consumer->poll(std::chrono::milliseconds(100));
-    for (auto &record : records) {
-      _records.push(record);
-    }
-  }
-}
-
 void KPool::CommitSubscriptions() {
   std::set<std::string> topics;
   std::vector<std::function<void()>> thens;
@@ -252,26 +218,12 @@ void KPool::CommitSubscriptions() {
     }
   }
 
-  std::future<void> future = std::async(std::launch::async, [this, topics]() {
-    std::unique_lock lock(_consumerMutex);
-    auto existingSubscriptions = _consumer->subscription();
-    for (const auto &topic : topics) {
-      existingSubscriptions.insert(topic);
-    }
-    _consumer->subscribe(existingSubscriptions);
-  });
-
-  _subscriptionsInProgress.push(
-      std::make_shared<BatchSubscription>(std::move(future), thens));
+  _consumerService.ExecSubscriptions(topics, thens);
 }
 
 void KPool::ResetConsumers() {
-  _consumer.reset();
-  _producer.reset();
-  _running = false;
-  if (_consumerThread.joinable()) {
-    _consumerThread.join();
-  }
+  _consumerService.Stop();
+  _consumerService.Start();
 }
 
 } // namespace nl

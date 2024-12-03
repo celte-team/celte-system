@@ -86,50 +86,53 @@ namespace celte {
 
 #endif
 
-            inline ChunkConfig GetConfig() const { return _config; }
+  inline ChunkConfig GetConfig() const { return _config; }
 
-        private:
-            /**
-             * @brief Registers all consumers for the chunk.
-             * The consumers listen for events in the chunk's topic and react to them.
-             */
-            void __registerConsumers();
+private:
+  /**
+   * @brief Registers all consumers for the chunk.
+   * The consumers listen for events in the chunk's topic and react to them.
+   */
+  void __registerConsumers();
 
-            /**
-             * @brief Registers RPCs for the available actions of the chunk.
-             * The RPCs are registered in the global RPC table.
-             */
-            void __registerRPCs();
+  /**
+   * @brief Registers RPCs for the available actions of the chunk.
+   * The RPCs are registered in the global RPC table.
+   */
+  void __registerRPCs();
 
-            /* --------------------------------------------------------------------------
-             */
-            /*                                    RPCS */
-            /* --------------------------------------------------------------------------
-             */
+  /* --------------------------------------------------------------------------
+   */
+  /*                                    RPCS */
+  /* --------------------------------------------------------------------------
+   */
 
-            /**
-             * @brief Schedules an entity authority transfer.
-             * The entity will be transferred to the new authority at the given global
-             * clock tick.
-             *
-             * @param entityId the id of the entity to transfer
-             * @param takeAuthority true if the chunk should take authority, false if it
-             * should drop it
-             * @param atTick the global clock tick at which the transfer should occur
-             */
-            void __rp_scheduleEntityAuthorityTransfer(std::string entityId,
-                bool takeAuthority, int atTick);
+  /**
+   * @brief Schedules an entity authority transfer.
+   * The entity will be transferred to the new authority at the given global
+   * clock tick.
+   *
+   * @param entityId the id of the entity to transfer
+   * @param newOwnerChunkId the id of the chunk that will take authority
+   * @param takeAuthority true if the chunk should take authority, false if it
+   * should drop it
+   * @param atTick the global clock tick at which the transfer should occur
+   */
+  void __rp_scheduleEntityAuthorityTransfer(std::string entityId,
+                                            std::string newOwnerChunkId,
+                                            bool takeAuthority, int atTick);
 
-            /* --------------------------------------------------------------------------
-             */
-            /*                                   Members */
-            /* --------------------------------------------------------------------------
-             */
+  /* --------------------------------------------------------------------------
+   */
+  /*                                   Members */
+  /* --------------------------------------------------------------------------
+   */
 
-            RotatedBoundingBox _boundingBox;
+  RotatedBoundingBox _boundingBox;
 
-            const ChunkConfig _config;
-            const std::string _combinedId;
+  const ChunkConfig _config;
+  const std::string _combinedId;
+
 
 #ifdef CELTE_SERVER_MODE_ENABLED
             std::map<std::string, std::string> _nextScheduledReplicationData;

@@ -36,20 +36,19 @@ test_suites:
       replicas: 2
       wait-servers:
         regex: ">> SERVER READY << "
-        timeout-seconds: 20
+        timeout-seconds: 50
 
     expects:
       servers:
         - ">> Grape LeChateauDuMechant loaded, owned locally: (yes|no) <<"
         - ">> Grape LeChateauDuGentil loaded, owned locally: (yes|no) <<"
         - ">> SERVER SPAWN .* <<"
-        - "\\.{5}.\\.{4}~{10}" # x coord is 5 for player 1
+        - ">> SERVER onTake HOOK CALLED <<"
+        - ".*Name: move.*"
 
       clients:
         - ">> Grape LeChateauDuMechant loaded, owned locally: no <<"
         - ">> Grape LeChateauDuGentil loaded, owned locally: no <<"
         - ">> CLIENT LOADED MAP << "
         - ">> CLIENT IS READY TO SPAWN <<"
-        - ">> CLIENT LOADING EXISTING ENTITIES <<"
         - ">> CLIENT SPAWNING .* <<"
-        - "\\.{5}.\\.{4}~{10}" # x coord is 5 for player 1

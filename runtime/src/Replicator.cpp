@@ -61,7 +61,7 @@ void Replicator::__overwriteData(const ReplBlob &blob,
   }
 }
 
-Replicator::ReplBlob Replicator::GetBlob() {
+Replicator::ReplBlob Replicator::GetBlob(bool peek) {
   ReplBlob blob;
   msgpack::sbuffer sbuf;
   msgpack::packer<msgpack::sbuffer> packer(sbuf);
@@ -70,7 +70,7 @@ Replicator::ReplBlob Replicator::GetBlob() {
     return blob;
   }
   for (const auto &entry : _replicatedData) {
-    if (entry.second.hasChanged) {
+    if (peek or entry.second.hasChanged) {
       packer.pack(entry.first);
       std::string binData(static_cast<char *>(entry.second.dataPtr),
                           entry.second.dataSize);
@@ -81,7 +81,7 @@ Replicator::ReplBlob Replicator::GetBlob() {
   return blob;
 }
 
-Replicator::ReplBlob Replicator::GetActiveBlob() {
+Replicator::ReplBlob Replicator::GetActiveBlob(bool peek) {
   ReplBlob blob;
   msgpack::sbuffer sbuf;
   msgpack::packer<msgpack::sbuffer> packer(sbuf);
@@ -90,9 +90,12 @@ Replicator::ReplBlob Replicator::GetActiveBlob() {
     return blob;
   }
   for (auto &[key, replData] : _activeReplicatedData) {
-    int checksum = __computeCheckSum(replData.dataPtr, replData.dataSize);
-    if (replData.hash != checksum) {
-      replData.hash = checksum;
+    int checksum = 0;
+    if (not peek)
+      checksum = __computeCheckSum(replData.dataPtr, replData.dataSize);
+    if (peek or replData.hash != checksum) {
+      if (not peek)
+        replData.hash = checksum;
       packer.pack(key);
       std::string binData(static_cast<char *>(replData.dataPtr),
                           replData.dataSize);

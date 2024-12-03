@@ -7,6 +7,27 @@ static bool t_isNode1 = false;
 
 char hash(std::string& s) { return s[7]; }
 
+void loadEntitiesFromSummary(const nlohmann::json& summary)
+{
+    std::string uuid = summary["uuid"];
+    std::string chunk = summary["chunk"];
+    std::string info = summary["info"];
+    std::string passiveProps = summary["passiveProps"];
+    std::string activeProps = summary["activeProps"];
+
+    char repr = std::atoi(info.c_str());
+
+    game.AddObject(uuid, repr, 0, 0);
+
+    // set the current state of the object from the data received from the server
+    auto& obj = game.objects[uuid];
+    obj->entity->DownloadReplicationData(passiveProps, false);
+    obj->entity->DownloadReplicationData(activeProps, true);
+
+    std::cout << "[LOADED ENTITY] " << uuid << " in chunk " << chunk
+              << " with info " << info << std::endl;
+}
+
 void registerHooks()
 {
     HOOKS.server.grape.loadGrape = [](std::string grapeId, bool isLocallyOwned) {
@@ -45,10 +66,69 @@ void registerHooks()
             std::cout << "Replication data received" << std::endl;
             game.world.Dump(game.objects);
         };
+
+    HOOKS.server.authority.onTake = [](std::string entityId,
+                                        std::string chunkId) {
+        std::cout << "Entity " << entityId << " has been assigned to chunk "
+                  << chunkId << std::endl;
+        std::cout << ">> SERVER onTake HOOK CALLED <<" << std::endl;
+    };
+
+    HOOKS.server.grape.onLoadExistingEntities = [](std::string grapeId,
+                                                    nlohmann::json summary) {
+        std::cout << ">> SERVER LOADING EXISTING ENTITIES <<" << std::endl;
+        loadEntitiesFromSummary(summary);
+        return true;
+    };
+}
+
+void moveEntity2()
+{
+    static std::chrono::time_point<std::chrono::system_clock> lastUpdate = std::chrono::system_clock::now();
+
+    if (game.objects.size() < 2) {
+        return;
+    }
+
+    // second entity to be registered will move horizontally and change node
+    std::shared_ptr<GameObject> obj = (*std::next(game.objects.begin(), 1)).second;
+    std::shared_ptr<celte::CelteEntity> entity = obj->entity;
+
+    if (entity == nullptr) {
+        return;
+    }
+
+    if (std::chrono::system_clock::now() - lastUpdate < std::chrono::seconds(2)) {
+        return;
+    }
+    lastUpdate = std::chrono::system_clock::now();
+
+    int prevY = obj->y;
+    obj->y = (obj->y + 1) % game.world.GetYDim();
+    std::cout << "NEW Y POS : " << obj->y << std::endl;
+
+    // if we cross a border, check for chunk authority change
+    if ((prevY < 10 and obj->y >= 10) or (prevY >= 10 and obj->y < 10)) {
+        if (not entity->GetOwnerChunk().IsLocallyOwned()) {
+            std::cout << "ENTITY NOT LOCALLY OWNED" << std::endl;
+            std::cout << "Clock tick: " << CLOCK.CurrentTick() << std::endl;
+            std::cout << "entity is owned by chunk"
+                      << entity->GetOwnerChunk().GetCombinedId() << std::endl;
+            return;
+        }
+
+        std::cout << "SERVER CHANGING AUTHORITY" << std::endl;
+        auto& currChunkByPosition = GRAPES.GetGrapeByPosition(obj->x, obj->y, 0)
+                                        .GetChunkByPosition(obj->x, obj->y, 0);
+        std::cout << "New owner is " << currChunkByPosition.GetCombinedId()
+                  << std::endl;
+        currChunkByPosition.OnEnterEntity(entity->GetUUID());
+    }
 }
 
 void updateClientsPositions()
 {
+    static auto inputs = CINPUT.getListInput();
     static std::chrono::time_point<std::chrono::system_clock> lastUpdate = std::chrono::system_clock::now();
 
     // update the position every 2 seconds
@@ -56,6 +136,13 @@ void updateClientsPositions()
         return;
     }
     lastUpdate = std::chrono::system_clock::now();
+
+    auto player2 = (*std::next(game.objects.begin(), 1)).second;
+    auto p2_cbuf = CINPUT.getInputCircularBuf(player2->entity->GetUUID(), "move");
+    // if (!inputs->empty() && p2_cbuf && p2_cbuf->front().status)
+    moveEntity2();
+
+    // second entity to be registered will move horizontally and change node
 
     if (not t_isNode1) {
         return;
@@ -67,7 +154,13 @@ void updateClientsPositions()
 
     // get the first player
     auto player = game.objects.begin()->second;
+    auto p_cbuf = CINPUT.getInputCircularBuf(player->entity->GetUUID(), "move");
+    // if (inputs->empty() || !p_cbuf || !p_cbuf->front().status)
+    //     return;
+
+    // get the first player
     player->x = (player->x + 1) % game.world.GetXDim();
+    std::cout << "NEW X POS : " << player->x << std::endl;
     game.world.Dump(game.objects);
 }
 

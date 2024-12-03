@@ -30,6 +30,7 @@ struct GrapeOptions {
   glm::vec3 localZ;
   // is this grape owned by the local node?
   bool isLocallyOwned = false;
+  std::function<void()> then = nullptr;
 };
 
 struct GrapeStatistics {
@@ -102,6 +103,10 @@ public:
     }
     return chunksIds;
   }
+
+  bool HasChunk(const std::string &chunkId) const;
+
+  Chunk &GetChunk(const std::string &chunkId);
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**

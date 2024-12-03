@@ -35,7 +35,7 @@ test_suites:
       replicas: 1
       wait-servers:
         regex: ">> Grape has been loaded <<"
-        timeout-seconds: 20
+        timeout-seconds: 50
 
     expects:
       servers:

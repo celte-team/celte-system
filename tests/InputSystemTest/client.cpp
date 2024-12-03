@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <nlohmann/json.hpp>
 #include <thread>
 #include <unistd.h>
 
@@ -28,34 +29,50 @@ void loadGrape()
         grapeOptions);
 }
 
+void loadEntitiesFromSummary(const nlohmann::json& summary)
+{
+    std::string uuid = summary["uuid"];
+    std::string chunk = summary["chunk"];
+    std::string info = summary["info"];
+    std::string passiveProps = summary["passiveProps"];
+    std::string activeProps = summary["activeProps"];
+
+    char repr = std::atoi(info.c_str());
+
+    // set the current state of the object from the data received from the server
+    std::cout << "[LOADED ENTITY] " << uuid << " in chunk " << chunk
+              << " with info " << info << std::endl;
+}
+
 void registerHooks()
 {
-    HOOKS.client.connection.onConnectionProcedureInitiated = []() {
-        std::cout << "Connection procedure initiated" << std::endl;
-        return true;
-    };
-    HOOKS.client.connection.onConnectionSuccess = []() {
-        std::cout << "Connection procedure success" << std::endl;
-        return true;
-    };
-    HOOKS.client.connection.onReadyToSpawn = [](const std::string& grapeId,
-                                                 float x, float y, float z) {
-        std::cout << "Client is ready to spawn : " << grapeId << std::endl;
-        RUNTIME.RequestSpawn(RUNTIME.GetUUID(), grapeId, x, y, z);
-        return true;
-    };
     HOOKS.client.grape.loadGrape = [](std::string grapeId) {
         std::cout << "Client is loading grape" << std::endl;
         loadGrape();
         std::cout << "Client laoded the grape" << std::endl;
+
+        return true;
+    };
+
+    HOOKS.client.connection.onReadyToSpawn = [](const std::string& grapeId,
+                                                 float x, float y, float z) {
+        // std::cout << ">> CLIENT IS READY TO SPAWN <<" << std::endl;
+        // RUNTIME.RequestSpawn(RUNTIME.GetUUID(), grapeId, x, y, z);
+        return true;
+    };
+
+    HOOKS.client.grape.onLoadExistingEntities = [](std::string grapeId,
+                                                    nlohmann::json summary) {
+        std::cout << ">> CLIENT LOADING EXISTING ENTITIES <<" << std::endl;
+        loadEntitiesFromSummary(summary);
         return true;
     };
 
     HOOKS.client.player.execPlayerSpawn = [](std::string clientId, int x, int y,
                                               int z) {
-        std::cout << "Spawning player " << clientId << " at " << x << ", " << y
-                  << ", " << z << std::endl;
-        // Create a new entity
+        std::cout << ">> CLIENT SPAWNING  " << clientId << " <<" << std::endl;
+        std::cout << "spawn coordinates are " << x << " " << y << " " << z
+                  << std::endl;
         entity = std::make_shared<celte::CelteEntity>();
         std::cout << ">> Called exec spawn hook <<" << std::endl;
         // no information to load because not on server side
@@ -63,13 +80,6 @@ void registerHooks()
 
         entity->RegisterActiveProperty("property", &property);
         Spawned = true;
-        return true;
-    };
-
-    HOOKS.client.grape.onLoadExistingEntities = [](std::string grapeId,
-                                                    boost::json::array summary) {
-        std::cout << ">> CLIENT LOADING EXISTING ENTITIES <<" << std::endl;
-
         return true;
     };
 
@@ -85,6 +95,7 @@ void runTestLogic()
 
     if (Spawned) {
         entity->sendInputToKafka("move forward", status);
+        std::cout << "send move forward\n";
         usleep(5000000);
         status = !status;
     }
