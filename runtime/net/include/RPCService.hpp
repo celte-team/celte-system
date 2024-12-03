@@ -17,6 +17,7 @@
 #include <boost/thread.hpp>
 #include <functional>
 #include <future>
+#include <mutex>
 #include <optional>
 #include <unordered_map>
 
@@ -68,10 +69,16 @@ private:
 
 class RPCService : public CelteService {
 public:
+  static std::unordered_map<std::string,
+                            std::shared_ptr<std::promise<std::string>>>
+      rpcPromises;
+  static std::mutex rpcPromisesMutex;
+
   struct Options {
     const std::string &thisPeerUuid;
     std::vector<std::string> listenOn;
     int nThreads = 1;
+    std::string reponseTopic = "";
     std::string serviceName = "";
   };
 
@@ -91,13 +98,16 @@ public:
     RPRequest req{
         .name = name,
         .respondsTo = "",
-        .responseTopic = *_options.listenOn.begin(),
+        .responseTopic = _options.reponseTopic,
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = std::make_tuple(args...)};
 
     std::shared_ptr<std::promise<std::string>> promise =
         std::make_shared<std::promise<std::string>>();
-    rpcPromises[req.rpcId] = promise;
+    {
+      std::lock_guard<std::mutex> lock(rpcPromisesMutex);
+      rpcPromises[req.rpcId] = promise;
+    }
     _writerStreamPool.Write(topic, req);
 
     std::string result = promise->get_future().get(); // json of response.args
@@ -131,7 +141,7 @@ public:
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = std::make_tuple(args...)};
     {
-      //debug
+      // debug
       nlohmann::json j;
       to_json(j, req);
       std::cout << "RPCService::CallAsync: " << j.dump() << std::endl;
@@ -178,8 +188,6 @@ private:
       _rpcs;
   Options _options;
   WriterStreamPool _writerStreamPool;
-  std::unordered_map<std::string, std::shared_ptr<std::promise<std::string>>>
-      rpcPromises;
 };
 } // namespace net
 } // namespace celte

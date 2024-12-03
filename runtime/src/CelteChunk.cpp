@@ -15,6 +15,7 @@ Chunk::Chunk(const ChunkConfig &config)
           .thisPeerUuid = RUNTIME.GetUUID(),
           .listenOn = {tp::PERSIST_DEFAULT + _combinedId + "." +
                        celte::tp::RPCs},
+          .reponseTopic = RUNTIME.GetUUID(),
           .serviceName =
               RUNTIME.GetUUID() + ".chunk." + _combinedId + "." + tp::RPCs,
       }) {}
