@@ -7,19 +7,19 @@ CelteNet &CelteNet::Instance() {
   return instance;
 }
 
-void CelteNet::Connect(const std::string &brokers, int timeoutMs) { __init(); }
+void CelteNet::Connect(const std::string &brokers, int timeoutMs) {
+  __init(brokers, timeoutMs);
+}
 
 void CelteNet::__init(const std::string &brokers, int timeoutMs) {
-  if (_client) {
-    return;
-  }
   pulsar::ClientConfiguration conf;
   conf.setOperationTimeoutSeconds(1);
   conf.setIOThreads(1);
   conf.setMessageListenerThreads(1);
   conf.setUseTls(false);
 
-  _client = std::make_unique<pulsar::Client>(brokers, conf);
+  std::string pulsarBrokers = "pulsar://" + brokers;
+  _client = std::make_unique<pulsar::Client>(pulsarBrokers, conf);
 }
 
 void CelteNet::CreateProducer(ProducerOptions &options) {
