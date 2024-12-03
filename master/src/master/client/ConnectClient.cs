@@ -12,16 +12,17 @@ class ConnectClient
 
     public static Dictionary<string, Client> _clients = new Dictionary<string, Client>();
 
-    public async void connectNewClient(byte[] messageByte)
+    public async void connectNewClient(string message)
     {
-        string message = System.Text.Encoding.UTF8.GetString(messageByte);
+        // string message = System.Text.Encoding.UTF8.GetString(messageByte);
         Console.WriteLine("New client connected to the cluster: " + message);
 
         // if _clients do not already contain the message, add the message to the _clients
         if (!_clients.ContainsKey(message))
             _clients.Add(message, new Client { uuid = message });
 
-        _master.kFKProducer._uuidProducerService.OpenTopic(message);
+        // _master.kFKProducer._uuidProducerService.OpenTopic(message);
+        _ = _master.pulsarProducer.OpenTopic(message);
         try
         {
             // select a random node from the list of nodes

@@ -1,135 +1,103 @@
-using System;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using DotPulsar;
 using DotPulsar.Extensions;
+using DotPulsar.Abstractions;
+using System.Buffers;
+
+public class SubscribeOptions
+{
+    public string Topics { get; set; } = string.Empty;
+    public string SubscriptionName { get; set; } = string.Empty;
+    // public Action<IConsumer<ReadOnlySequence<byte>>, byte[]>? Handler { get; set; }
+    public Action<IConsumer<ReadOnlySequence<byte>>, string>? Handler { get; set; }
+    public DotPulsar.Abstractions.IConsumer<ReadOnlySequence<byte>>? Consumer { get; set; } = null;
+}
 
 class PulsarConsumer
 {
-    private Master master = Master.GetInstance();
-    private DotPulsar.Abstractions.IPulsarClient? _client;
-    private DotPulsar.Abstractions.IConsumer? _consumer;
-    private readonly ConcurrentQueue<(string Topic, byte[] Message)> _buffer;
-    private readonly Dictionary<string, Action<byte[]>> _listOfTopics;
-    private CancellationTokenSource _cancellationTokenSource;
-    private readonly object _lock = new object();
+    private readonly IPulsarClient _client;
+    private readonly List<Task> _consumerTasks;
+    private readonly CancellationTokenSource _cancellationTokenSource;
 
     public PulsarConsumer()
     {
-        _buffer = new ConcurrentQueue<(string Topic, byte[] Message)>();
-        _listOfTopics = new Dictionary<string, Action<byte[]>>();
+        _client = PulsarClient.Builder()
+            .ServiceUrl(new Uri("pulsar://localhost:6650"))
+            .Build();
+        _consumerTasks = new List<Task>();
         _cancellationTokenSource = new CancellationTokenSource();
+    }
+
+    public void CreateConsumer(SubscribeOptions options)
+    {
+        if (options.Handler == null)
+            throw new ArgumentException("Message handler is not set.");
 
         try
         {
-            var configObject = master._setupConfig?.GetYamlObjectConfig();
-            var pulsarConfig = (configObject?["pulsar_brokers"]) ?? throw new Exception("Pulsar brokers not found in configuration");
-            string pulsarBrokers = pulsarConfig.ToString() ?? throw new Exception("Pulsar brokers not found in configuration");
-            Uri pulsarUri = new(pulsarBrokers);
-
-            _client = PulsarClient.Builder()
-                .ServiceUrl(pulsarUri)
-                .Build();
-            Console.WriteLine("Pulsar client initialized successfully.");
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Error initializing Pulsar consumer: {e.Message}");
-        }
-    }
-
-    public void AddTopic(string topic, Action<byte[]>? handler)
-    {
-        lock (_lock)
-        {
-            if (!_listOfTopics.ContainsKey(topic))
-            {
-                _listOfTopics.Add(topic, handler ?? (msg => { }));
-            }
-            else
-            {
-                Console.WriteLine($"Handler already registered for topic: {topic}");
-            }
-        }
-    }
-
-    public async Task StartConsumingAsync(string topic, string subscriptionName)
-    {
-        try
-        {
-            // Initialize the consumer
-            if (_client == null)
-            {
-                throw new InvalidOperationException("Pulsar client not initialized.");
-            }
-
-            // Create and subscribe to the topic using the correct DotPulsar API
-            List<string>? topics = new List<string>();
-            topics.Add(topic);
-            _consumer = _client.NewConsumer()
-                .Topic(topic)
-                .SubscriptionName(subscriptionName)
+            Console.WriteLine("Creating consumer...");
+            var consumer = _client.NewConsumer()
+                .Topic(options.Topics)
+                .SubscriptionName(options.SubscriptionName)
                 .Create();
 
+            options.Consumer = consumer;
+            Console.WriteLine("Consumer created!");
 
-            Console.WriteLine($"Consumer subscribed to topic: {topic}");
-
-            // Start consuming messages
-            while (!_cancellationTokenSource.Token.IsCancellationRequested)
-            {
-                var message = await _consumer.ReceiveAsync();
-                if (message != null)
-                {
-                    Console.WriteLine($"Received message from topic {topic}: {Encoding.UTF8.GetString(message.Data)}");
-                    _buffer.Enqueue((topic, message.Data));
-
-                    // Acknowledge the message after processing
-                    await _consumer.AcknowledgeAsync(message);
-                }
-            }
+            // Start a task to process messages from this consumer
+            var task = Task.Run(() => ConsumeMessagesAsync(options, _cancellationTokenSource.Token));
+            _consumerTasks.Add(task);
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Console.WriteLine($"Error while consuming message: {e.Message}");
+            Console.WriteLine($"Error creating consumer: {ex.Message}");
         }
     }
 
-    public void StartExecuteBuffer()
+    private async Task ConsumeMessagesAsync(SubscribeOptions options, CancellationToken cancellationToken)
     {
+        if (options.Consumer == null)
+        {
+            Console.WriteLine("Consumer is not initialized.");
+            return;
+        }
+
         try
         {
-            while (!_cancellationTokenSource.Token.IsCancellationRequested)
-            {
-                if (_buffer.TryDequeue(out var item))
-                {
-                    var (topic, message) = item;
+            Console.WriteLine($"Starting message consumption for subscription: {options.SubscriptionName}");
+            var consumer = options.Consumer;
 
-                    // Check if the topic has a handler and invoke it
-                    if (_listOfTopics.ContainsKey(topic))
-                    {
-                        _listOfTopics[topic]?.Invoke(message);
-                    }
-                }
-                else
-                {
-                    // Wait briefly if the buffer is empty
-                    Task.Delay(100).Wait();
-                }
+            await foreach (var message in consumer.Messages(cancellationToken))
+            {
+                var data = message.Data.ToArray();
+                Console.WriteLine($"Received message on {options.Topics}: {Encoding.UTF8.GetString(data)}");
+                var messageString = Encoding.UTF8.GetString(data);
+                options.Handler?.Invoke(consumer, messageString);
+
+                // Acknowledge the message
+                await consumer.Acknowledge(message, cancellationToken);
             }
         }
-        catch (Exception e)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            Console.WriteLine($"Error while executing buffer: {e.Message}");
+            Console.WriteLine($"Error consuming messages for subscription {options.SubscriptionName}: {ex.Message}");
         }
     }
 
-    public void StopConsuming()
+    ~PulsarConsumer()
     {
+        ShutdownAsync().Wait();
+    }
+
+    public async Task ShutdownAsync()
+    {
+        Console.WriteLine("Shutting down consumers...");
         _cancellationTokenSource.Cancel();
-        // _consumer?.Dispose();
-        Console.WriteLine("Consuming stopped.");
+
+        // Wait for all consumer tasks to complete
+        await Task.WhenAll(_consumerTasks);
+
+        Console.WriteLine("All consumers shut down.");
+        await _client.DisposeAsync();
     }
 }
