@@ -55,7 +55,7 @@ cmake --preset default -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" ..
 # Build the project
 echo "Building the project..."
 cd ..
-cmake --preset=default -S . -B build
+cmake --preset=default -G Ninja -S . -B build
 cd build && make -j
 cd ..
 
