@@ -141,7 +141,8 @@ std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
           << std::endl;
     }
   }
-
+  std::cout << "Returning json" << std::endl;
+  std::cout << j.dump() << std::endl;
   return j.dump();
 }
 #endif
@@ -224,15 +225,18 @@ void CelteEntityManagementSystem::__handleReplicationDataReceived(
 
 void CelteEntityManagementSystem::LoadExistingEntities(
     const std::string &grapeId, const std::string &summary) {
+      std::cout << "In LoadExistingEntities" << std::endl;
   try {
     nlohmann::json summaryJSON = nlohmann::json::parse(summary);
 
     for (nlohmann::json &partialSummary : summaryJSON) {
       std::string uuid = partialSummary["uuid"];
+      std::cout << "entity uuid: " << uuid << std::endl;
       if (_entities.find(uuid) != _entities.end() or
           uuid == RUNTIME.GetUUID()) {
         continue; // entity already loaded
       }
+      std::cout << "entity not found" << std::endl;
 #ifdef CELTE_SERVER_MODE_ENABLED
       HOOKS.server.grape.onLoadExistingEntities(grapeId, partialSummary);
 #else

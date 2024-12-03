@@ -130,6 +130,12 @@ public:
         .responseTopic = *_options.listenOn.begin(),
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = std::make_tuple(args...)};
+    {
+      //debug
+      nlohmann::json j;
+      to_json(j, req);
+      std::cout << "RPCService::CallAsync: " << j.dump() << std::endl;
+    }
     std::shared_ptr<std::promise<std::string>> promise =
         std::make_shared<std::promise<std::string>>();
     rpcPromises[req.rpcId] = promise;
@@ -141,7 +147,15 @@ public:
           return r;
         }));
 
-    _writerStreamPool.Write(topic, req);
+    _writerStreamPool.Write(topic, req, [topic, name](pulsar::Result r) {
+      if (r != pulsar::ResultOk) {
+        std::cerr << "Error calling rpc on topic " << topic << " with name "
+                  << name << std::endl;
+      } else {
+        std::cerr << "rpc call on topic " << topic << " with name " << name
+                  << " succeeded" << std::endl;
+      }
+    });
     return Awaitable<Ret>(future, _io);
   }
 
