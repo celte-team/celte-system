@@ -177,7 +177,7 @@ void CelteRuntime::ConnectToCluster() {
 }
 
 void CelteRuntime::ConnectToCluster(const std::string &ip, int port) {
-  NET.Connect(ip + ":" + std::to_string(port));
+  NET.Connect(ip + ":" + std::to_string(port), 1000);
 
   // Launch the connection asynchronously
   Services::dispatch(celte::EConnectToCluster{

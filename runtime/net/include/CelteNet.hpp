@@ -9,6 +9,9 @@
 
 namespace celte {
 namespace net {
+/**
+ * @brief Exception thrown by the CelteNet class.
+ */
 class CelteNetException : public std::exception {
 public:
   CelteNetException(const std::string &message) : message(message) {}
@@ -19,37 +22,57 @@ private:
   std::string message;
 };
 
+/**
+ * @brief Exception thrown when the connection to the cluster times out.
+ */
 class CelteNetTimeoutException : public CelteNetException {
 public:
   CelteNetTimeoutException()
       : CelteNetException("Timeout while connecting to CELTE") {}
 };
 
+/**
+ * @brief Singleton class that manages the connection to the cluster.
+ * Used by the ReaderStream and WriterStream classes to create producers and
+ * consumers.
+ */
 class CelteNet {
 public:
+  /**
+   * @brief Returns the singleton instance of the class.
+   */
   static CelteNet &Instance();
 
+  /**
+   * @brief Additional options for the producer, adding onto the existing
+   * puslar producer configuration.
+   *
+   */
   struct ProducerOptions {
-    pulsar::ProducerConfiguration conf; // The producer configuration
-    std::string topic;                  // The topic to produce to
+    pulsar::ProducerConfiguration conf; ///< Pulsar configuration.
+    std::string topic;                  ///< The topic to produce to.
     std::function<void(pulsar::Producer, const pulsar::Result &)> then =
-        nullptr; // called in the main thread once the producer is created.
+        nullptr; ///< called in the main thread once the producer is created.
     std::function<void(pulsar::Producer, const pulsar::Result &)> thenAsync =
-        nullptr; // called once the producer is created.
+        nullptr; ///< called asynchronously once the producer is created.
   };
 
-  // subscriptions are performed asynchronously
+  /**
+   * @brief Additional options for the consumer, adding onto the existing
+   * pulsar consumer configuration.
+   *
+   */
   struct SubscribeOptions {
-    std::vector<std::string> topics;    // The topics to subscribe to
-    std::string subscriptionName;       // The subscription name
-    pulsar::ConsumerConfiguration conf; // The consumer configuration
+    std::vector<std::string> topics;    ///< List of topics to subscribe to.
+    std::string subscriptionName;       ///< The name of the subscription.
+    pulsar::ConsumerConfiguration conf; ///< Pulsar configuration.
     std::function<void(const pulsar::Consumer, const pulsar::Result &)> then =
-        nullptr; // called once the subscription is done.
+        nullptr; ///< called once the subscription is done, in the main thread.
     std::function<void(const pulsar::Consumer &, const pulsar::Result &)>
-        thenAsync = nullptr; // called once the subscription is done.
+        thenAsync = nullptr; ///< called once the subscription is done (async).
     std::function<void(pulsar::Consumer &, const pulsar::Message &)>
-        messageHandler = nullptr; // callback called when a message is received
-                                  // by the consumer.
+        messageHandler = nullptr; ///< callback called when a message is
+                                  ///< received by the consumer.
   };
 
   /**
@@ -62,6 +85,10 @@ public:
   void Connect(const std::string &brokers = "localhost:6650",
                int timeoutMs = 1000);
 
+  /**
+   * @brief Returns a reference to the pulsar client in case any
+   * low-level operations are needed.
+   */
   inline pulsar::Client &GetClient() {
     if (!_client) {
       throw CelteNetException("Client not initialized");
@@ -69,6 +96,12 @@ public:
     return *_client;
   }
 
+  /**
+   * @brief Pushes a lambda expression to the queue of callbacks to be
+   * executed in the main thread, synchronously.
+   *
+   * @param options The options for the producer.
+   */
   inline void PushThen(std::function<void()> then) { _thens.push(then); }
 
   void CreateProducer(ProducerOptions &options);
