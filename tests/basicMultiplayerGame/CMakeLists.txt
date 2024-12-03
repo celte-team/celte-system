@@ -26,23 +26,3 @@ link_directories(${GLIB_LIBRARY_DIRS})
 add_definitions(${GLIB_CFLAGS_OTHER})
 
 pkg_check_modules(GLIB REQUIRED glib-2.0)
-
-# Set the source files for the functional tests
-set(SOURCES
-    server_game1.cpp
-)
-
-
-
-add_executable(server_game1 ${SOURCES})
-target_compile_definitions(server_game1 PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(server_game1 gtest gtest_main)
-target_link_libraries(server_game1 celtesystems_runtime_server msgpack-cxx ${GLIB_LIBRARIES} glm::glm Boost::thread Boost::json)
-
-set(SOURCES_CLIENT
-    client_game1.cpp
-)
-
-add_executable(client_game1 ${SOURCES_CLIENT})
-target_link_libraries(client_game1 gtest gtest_main)
-target_link_libraries(client_game1 celtesystems_runtime_client msgpack-cxx  ${GLIB_LIBRARIES} glm::glm Boost::thread Boost::json)

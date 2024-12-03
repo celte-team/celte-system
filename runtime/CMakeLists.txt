@@ -97,6 +97,13 @@ endif()
 install(FILES ${GLIB_LIBRARY}
         DESTINATION celte-libraries)
 
+find_library(PULSAR_LIBRARY NAMES pulsar HINTS ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib)
+install(FILES ${PULSAR_LIBRARY}
+        DESTINATION celte-libraries)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/include/pulsar
+        DESTINATION include)
+
+
 # Boost
 
 # Find Boost libraries

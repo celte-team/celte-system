@@ -15,6 +15,8 @@ Chunk::Chunk(const ChunkConfig &config)
           .thisPeerUuid = RUNTIME.GetUUID(),
           .listenOn = {tp::PERSIST_DEFAULT + _combinedId + "." +
                        celte::tp::RPCs},
+          .serviceName =
+              RUNTIME.GetUUID() + ".chunk." + _combinedId + "." + tp::RPCs,
       }) {}
 
 Chunk::~Chunk() {}
@@ -30,15 +32,15 @@ void Chunk::__registerConsumers() {
     _createReaderStream<req::ReplicationDataPacket>({
         .thisPeerUuid = RUNTIME.GetUUID(),
         .topics = {_combinedId + "." + celte::tp::REPLICATION},
-        .subscriptionName = "",
+        .subscriptionName = RUNTIME.GetUUID() + ".repl." + _combinedId,
         .exclusive = false,
         .messageHandlerSync =
             [this](const pulsar::Consumer, req::ReplicationDataPacket req) {
               ENTITIES.HandleReplicationData(req.data, req.active);
             },
-
     });
   }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   else { // if locally owned, we are the ones sending the data
     _replicationWS = _createWriterStream<req::ReplicationDataPacket>({
