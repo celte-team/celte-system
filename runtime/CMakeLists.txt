@@ -128,7 +128,7 @@ install(FILES ${BOOST_THREAD_LIBRARY} ${BOOST_JSON_LIBRARY}
 
 # CELTE Targets
 
-install(TARGETS celtesystems_runtime_server celtesystems_runtime_client
+install(TARGETS celtesystems_runtime_server celtesystems_runtime_client celtenet
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION celte-libraries
         ARCHIVE DESTINATION celte-libraries

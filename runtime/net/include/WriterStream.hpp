@@ -45,8 +45,8 @@ struct WriterStream {
     // conf.setSchema(schemaInfo);
 
     auto pOptions = CelteNet::ProducerOptions{
-        .topic = options.topic,
         .conf = conf,
+        .topic = options.topic,
         .then =
             [this](pulsar::Producer producer, const pulsar::Result &result) {
               if (result != pulsar::ResultOk and options.onConnectErrorSync) {

@@ -91,6 +91,7 @@ void Connecting::__rp_forceConnectToChunk(std::string grapeId, float x, float y,
       << "Force connect to chunk rp has been called" << std::endl;
   // loading the map will instantiate the chunks, thus subscribing to all the
   // required topics
+  std::cout << "Force connect to chunk rp has been called" << std::endl;
   HOOKS.client.grape.loadGrape(grapeId);
   // HOOKS.client.connection.onReadyToSpawn(grapeId, x, y, z);
 }
