@@ -1,6 +1,9 @@
 #pragma once
 #include "CelteChunk.hpp"
+#include "CelteService.hpp"
+#include "RPCService.hpp"
 #include "RotatedBoundingBox.hpp"
+#include "WriterStreamPool.hpp"
 #include <glm/vec3.hpp>
 #include <memory>
 #include <optional>
@@ -116,10 +119,23 @@ public:
 #endif
 
 private:
+  void __initNetwork();
   /**
    * Subdivide the grape bounding box into options.subdivision chunks.
    */
   void __subdivide();
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  /**
+   * @brief This RPC will be called when a player requests to spawn in the game.
+   * It will instantiate the player in all peers listening to the chunk the
+   * player is spawning in by calling a __rp_spawnPlayer RPC to the chunk's rpc
+   * channel
+   */
+  bool __rp_onSpawnRequested(std::string &clientId);
+#endif
+
+  std::optional<net::RPCService> _rpcs = std::nullopt;
 
   const GrapeOptions _options;
   std::unordered_map<std::string, std::shared_ptr<Chunk>> _chunks;

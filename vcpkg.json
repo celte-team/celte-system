@@ -2,8 +2,8 @@
   "dependencies": [
     "boost",
     "glm",
-    "python3",
-    "librdkafka",
-    "msgpack"
+    "msgpack",
+    "pulsar-client-cpp",
+    "python3"
   ]
 }

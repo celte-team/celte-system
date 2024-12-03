@@ -24,10 +24,11 @@ class Master
             }
             _setupConfig = new SetupConfig(Environment.GetCommandLineArgs());
             _setupConfig.SettingUpMaster();
-            kfkConsumerListener = new KfkConsumerListener(_setupConfig.GetYamlObjectConfig()["kafka_brokers"].ToString()
-            , "kafka-dotnet");
+            // kfkConsumerListener = new KfkConsumerListener(_setupConfig.GetYamlObjectConfig()["kafka_brokers"].ToString()
+            // , "kafka-dotnet");
 
-            StartKafkaSystem();
+            // StartKafkaSystem();
+            StartPulsarSystem();
         }
         catch (Exception e)
         {
@@ -39,23 +40,29 @@ class Master
     /// <summary>
     /// Start the Kafka system
     /// </summary>
-    public void StartKafkaSystem()
+    // public void StartKafkaSystem()
+    // {
+    //     var consumerThread = new Thread(() => kfkConsumerListener.StartConsuming(cancellationTokenSource.Token));
+    //     consumerThread.Start();
+    //     var StartExecuteBufferThread = new Thread(() => kfkConsumerListener.StartExecuteBuffer(cancellationTokenSource.Token));
+
+    //     StartExecuteBufferThread.Start();
+
+    //     ConnectNode connectNode = new ConnectNode();
+    //     ConnectClient connectClient = new ConnectClient();
+
+    //     kfkConsumerListener.AddTopic(M.Global.MasterHelloSn, connectNode.connectNewNode);
+    //     kfkConsumerListener.AddTopic(M.Global.MasterHelloClient, connectClient.connectNewClient);
+    //     kfkConsumerListener.AddTopic(M.Global.MasterRPC, null);
+
+
+    //     kFKProducer = new KFKProducer();
+    // }
+    public void StartPulsarSystem()
     {
-        var consumerThread = new Thread(() => kfkConsumerListener.StartConsuming(cancellationTokenSource.Token));
-        consumerThread.Start();
-        var StartExecuteBufferThread = new Thread(() => kfkConsumerListener.StartExecuteBuffer(cancellationTokenSource.Token));
-
-        StartExecuteBufferThread.Start();
-
-        ConnectNode connectNode = new ConnectNode();
-        ConnectClient connectClient = new ConnectClient();
-
-        kfkConsumerListener.AddTopic(M.Global.MasterHelloSn, connectNode.connectNewNode);
-        kfkConsumerListener.AddTopic(M.Global.MasterHelloClient, connectClient.connectNewClient);
-        kfkConsumerListener.AddTopic(M.Global.MasterRPC, null);
-
-
-        kFKProducer = new KFKProducer();
+        PulsarProducer pulsarProducer = new PulsarProducer();
+        Console.WriteLine("Pulsar system started 🥳");
+        pulsarProducer.ProduceMessageAsync("persistent://public/default/mytopic", "Hello World");
     }
 
     private void __handleRPC(string message)

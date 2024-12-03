@@ -2,7 +2,6 @@
 // #include <boost/json.hpp>
 #include "nlohmann/json.hpp"
 #include <functional>
-#include <kafka/KafkaConsumer.h>
 #include <string>
 #include <type_traits>
 

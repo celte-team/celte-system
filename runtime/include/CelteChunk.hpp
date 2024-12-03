@@ -1,4 +1,5 @@
 #pragma once
+#include "RPCService.hpp"
 #include "Replicator.hpp"
 #include "RotatedBoundingBox.hpp"
 #include "topics.hpp"
@@ -28,7 +29,7 @@ namespace celte {
          *
          * Chunks handle entity replication and authority over entities.
          */
-        class Chunk {
+        class Chunk : public net::CelteService {
         public:
             Chunk(const ChunkConfig& config);
             ~Chunk();
@@ -58,6 +59,13 @@ namespace celte {
 
             inline bool IsLocallyOwned() const { return _config.isLocallyOwned; }
 
+            /**
+             * @brief  Blocking call: waits until all the reader streams of the chunk
+             * are ready to receive messages. This includes the rpc channel of the chunk,
+             * as well as replication and input topics.
+             */
+            void WaitNetworkInitialized();
+
 #ifdef CELTE_SERVER_MODE_ENABLED
             /**
              * @brief Called when an entity enters the chunk. (This should be called by
@@ -86,57 +94,81 @@ namespace celte {
 
 #endif
 
-  inline ChunkConfig GetConfig() const { return _config; }
+            inline ChunkConfig GetConfig() const { return _config; }
 
-private:
-  /**
-   * @brief Registers all consumers for the chunk.
-   * The consumers listen for events in the chunk's topic and react to them.
-   */
-  void __registerConsumers();
+            /**
+             * @brief Schedules the spawn of the given client at the given position for
+             * all peers listening on this topic.
+             */
+            void SpawnPlayerOnNetwork(const std::string& clientId, float x, float y,
+                float z);
 
-  /**
-   * @brief Registers RPCs for the available actions of the chunk.
-   * The RPCs are registered in the global RPC table.
-   */
-  void __registerRPCs();
+            /**
+             * @brief This RPC will be called by clients when they want to spawn their
+             * player in the game world.
+             *
+             * # Hooks:
+             * This RPC refers to the following hooks:
+             * - celte::api::HooksTable::server::newPlayerConnected::spawnPlayer
+             *
+             * @param clientId The UUID of the client that connected to the server.
+             * @param x The x coordinate where the player should spawn.
+             * @param y The y coordinate where the player should spawn.
+             * @param z The z coordinate where the player should spawn.
+             */
+            void ExecSpawnPlayer(const std::string& clientId, float x, float y, float z);
 
-  /* --------------------------------------------------------------------------
-   */
-  /*                                    RPCS */
-  /* --------------------------------------------------------------------------
-   */
+        private:
+            /**
+             * @brief Registers all consumers for the chunk.
+             * The consumers listen for events in the chunk's topic and react to them.
+             */
+            void __registerConsumers();
 
-  /**
-   * @brief Schedules an entity authority transfer.
-   * The entity will be transferred to the new authority at the given global
-   * clock tick.
-   *
-   * @param entityId the id of the entity to transfer
-   * @param newOwnerChunkId the id of the chunk that will take authority
-   * @param takeAuthority true if the chunk should take authority, false if it
-   * should drop it
-   * @param atTick the global clock tick at which the transfer should occur
-   */
-  void __rp_scheduleEntityAuthorityTransfer(std::string entityId,
-                                            std::string newOwnerChunkId,
-                                            bool takeAuthority, int atTick);
+            /**
+             * @brief Registers RPCs for the available actions of the chunk.
+             * The RPCs are registered in the global RPC table.
+             */
+            void __registerRPCs();
 
-  /* --------------------------------------------------------------------------
-   */
-  /*                                   Members */
-  /* --------------------------------------------------------------------------
-   */
+            /* --------------------------------------------------------------------------
+             */
+            /*                                    RPCS */
+            /* --------------------------------------------------------------------------
+             */
 
-  RotatedBoundingBox _boundingBox;
+            /**
+             * @brief Schedules an entity authority transfer.
+             * The entity will be transferred to the new authority at the given global
+             * clock tick.
+             *
+             * @param entityId the id of the entity to transfer
+             * @param newOwnerChunkId the id of the chunk that will take authority
+             * @param takeAuthority true if the chunk should take authority, false if it
+             * should drop it
+             * @param atTick the global clock tick at which the transfer should occur
+             */
+            void __rp_scheduleEntityAuthorityTransfer(std::string entityId,
+                std::string newOwnerChunkId,
+                bool takeAuthority, int atTick);
 
-  const ChunkConfig _config;
-  const std::string _combinedId;
+            /* --------------------------------------------------------------------------
+             */
+            /*                                   Members */
+            /* --------------------------------------------------------------------------
+             */
 
+            RotatedBoundingBox _boundingBox;
+
+            const ChunkConfig _config;
+            const std::string _combinedId;
+            net::RPCService _rpcs;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-            std::map<std::string, std::string> _nextScheduledReplicationData;
-            std::map<std::string, std::string> _nextScheduledActiveReplicationData;
+            std::shared_ptr<net::WriterStream> _replicationWS;
+            std::unordered_map<std::string, std::string> _nextScheduledReplicationData;
+            std::unordered_map<std::string, std::string>
+                _nextScheduledActiveReplicationData;
 #endif
         };
     } // namespace chunks

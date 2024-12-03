@@ -5,11 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 find_package(glm CONFIG REQUIRED)
-find_package(RdKafka CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 
-include_directories(include ${GLIB_INCLUDE_DIRS} ${RDKAFKA_INCLUDE_DIRS})
+include_directories(include ${GLIB_INCLUDE_DIRS})
 
 # Add pkg-config flags for glib-2.0
 link_directories(${GLIB_LIBRARY_DIRS})
@@ -22,8 +21,7 @@ add_library(CelteClient SHARED
     src/StateDisconnected.cpp
 )
 
-target_link_libraries(CelteClient PRIVATE ${GLIB_LIBRARIES} RdKafka::rdkafka RdKafka::rdkafka++ glm::glm)
-# target_link_libraries(CelteClient PRIVATE KafkaLink  ${GLIB_LIBRARIES})
+target_link_libraries(CelteClient PRIVATE ${GLIB_LIBRARIES}glm::glm)
 
 install(TARGETS CelteClient
     LIBRARY DESTINATION celte-libraries

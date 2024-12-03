@@ -6,56 +6,31 @@ namespace celte {
 namespace server {
 namespace states {
 
+ServerNetService &ServerNet() {
+  static ServerNetService service;
+  return service;
+}
+
 void Connecting::entry() {
-  KPOOL.Connect();
   if (not HOOKS.server.connection.onConnectionProcedureInitiated()) {
     std::cerr << "Connection procedure hook failed" << std::endl;
     HOOKS.server.connection.onConnectionError();
     transit<Disconnected>();
   }
 
-  try {
-    RUNTIME.GetClock().Init();
+  RUNTIME.GetClock().Init();
 
-    KPOOL.Subscribe(
-        {.topics = {RUNTIME.GetUUID() + "." + celte::tp::RPCs},
-         .autoCreateTopic = true,
-         .callbacks = {[this](auto r) { RPC.InvokeLocal(r); }},
-
-         .then = [this]() {
-           KPOOL.Send({
-               .topic = celte::tp::MASTER_HELLO_SN,
-               .value = RUNTIME.GetUUID(),
-               .onDelivered =
-                   [this](auto metadata, auto error) {
-                     if (error) {
-                       HOOKS.server.connection.onConnectionError();
-                       HOOKS.server.connection.onServerDisconnected();
-                       transit<Disconnected>();
-                     } else {
-                       dispatch(EConnectionSuccess());
-                     }
-                   },
-           });
-         }});
-
-    KPOOL.CommitSubscriptions();
-
-    std::cout << "Registersing self as " << RUNTIME.GetUUID() << std::endl;
-
-  } catch (kafka::KafkaException &e) {
-    std::cerr << "Error in Connecting::entry: " << e.what() << std::endl;
-    HOOKS.server.connection.onConnectionError();
-    HOOKS.server.connection.onServerDisconnected();
-    transit<Disconnected>();
-    return;
-  } catch (std::exception &e) {
-    std::cerr << "Error in Connecting::entry: " << e.what() << std::endl;
-    HOOKS.server.connection.onConnectionError();
-    HOOKS.server.connection.onServerDisconnected();
-    transit<Disconnected>();
-    return;
-  }
+  ServerNet().Connect();
+  ServerNet().Write(tp::MASTER_HELLO_SN, RUNTIME.GetUUID(),
+                    [this](auto result) {
+                      if (result != pulsar::Result::ResultOk) {
+                        HOOKS.server.connection.onConnectionError();
+                        HOOKS.server.connection.onServerDisconnected();
+                        transit<Disconnected>();
+                      } else {
+                        dispatch(EConnectionSuccess());
+                      }
+                    });
 }
 
 void Connecting::exit() { std::cerr << "Exiting StateConnecting" << std::endl; }

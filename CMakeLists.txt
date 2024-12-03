@@ -14,10 +14,12 @@ endif()
 
 # Include directories
 include_directories(
-    # kafka/cpp/include
     client/include
     server/include
-    runtime/include)
+    runtime/include
+    runtime/net/include
+)
+
 
 include_directories(${CMAKE_PREFIX_PATH}/include)
 
@@ -39,45 +41,11 @@ add_subdirectory(tests/replicationLatencyTest)
 add_subdirectory(tests/InputSystemTest)
 add_subdirectory(tests/basicMultiplayerGame)
 
-# Find and configure RdKafka
-find_package(RdKafka CONFIG REQUIRED)
-
-
-
-# Include directories for librdkafka
-include_directories("build/vcpkg_installed/x64-linux/include/librdkafka")
-
-# For debugging purposes, print include directories
-message(STATUS "RDKAFKA_INCLUDE_DIRS: ${RDKAFKA_INCLUDE_DIRS}")
-message(STATUS "RDKAFKA_LIBRARY: ${RDKAFKA_LIBRARY}")
-
-# Install RdKafka libraries
-install(FILES ${RDKAFKA_LIBRARY} ${RDKAFKA++_LIBRARY}
-        DESTINATION celte-libraries)
-
-# Find and install RdKafka libraries
-find_library(RDKAFKA_LIBRARY NAMES rdkafka HINTS ${CMAKE_PREFIX_PATH}/lib)
-find_library(RDKAFKA++_LIBRARY NAMES rdkafka++ HINTS ${CMAKE_PREFIX_PATH}/lib)
-
-# Ensure the libraries are found
-if(NOT RDKAFKA_LIBRARY)
-    message(FATAL_ERROR "rdkafka library not found")
-endif()
-if(NOT RDKAFKA++_LIBRARY)
-    message(FATAL_ERROR "rdkafka++ library not found")
-endif()
-# Install header files
-
-message(STATUS "Installing headers")
 if (APPLE)
-    # Include directories for librdkafka
-    install(DIRECTORY "build/vcpkg_installed/arm64-osx/include/librdkafka" DESTINATION ${INSTALL_INCLUDE_DIR})
     install(DIRECTORY "build/vcpkg_installed/arm64-osx/include/glm" DESTINATION ${INSTALL_INCLUDE_DIR})
     install(DIRECTORY "build/vcpkg_installed/arm64-osx/include/msgpack" DESTINATION ${INSTALL_INCLUDE_DIR})
     install(FILES "build/vcpkg_installed/arm64-osx/include/msgpack.hpp" DESTINATION ${INSTALL_INCLUDE_DIR})
 else()
-    # Include directories for librdkafka
-    install(DIRECTORY "build/vcpkg_installed/x64-linux/include/librdkafka" DESTINATION ${INSTALL_INCLUDE_DIR})
     install(DIRECTORY "build/vcpkg_installed/x64-linux/include/glm" DESTINATION ${INSTALL_INCLUDE_DIR})
     install(DIRECTORY "build/vcpkg_installed/x64-linux/include/msgpack" DESTINATION ${INSTALL_INCLUDE_DIR})
     install(FILES "build/vcpkg_installed/x64-linux/include/msgpack.hpp" DESTINATION ${INSTALL_INCLUDE_DIR})

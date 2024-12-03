@@ -28,6 +28,27 @@ void loadEntitiesFromSummary(const nlohmann::json& summary)
               << " with info " << info << std::endl;
 }
 
+void loadEntitiesFromSummary(const nlohmann::json& summary)
+{
+    std::string uuid = summary["uuid"];
+    std::string chunk = summary["chunk"];
+    std::string info = summary["info"];
+    std::string passiveProps = summary["passiveProps"];
+    std::string activeProps = summary["activeProps"];
+
+    char repr = std::atoi(info.c_str());
+
+    game.AddObject(uuid, repr, 0, 0);
+
+    // set the current state of the object from the data received from the server
+    auto& obj = game.objects[uuid];
+    obj->entity->DownloadReplicationData(passiveProps, false);
+    obj->entity->DownloadReplicationData(activeProps, true);
+
+    std::cout << "[LOADED ENTITY] " << uuid << " in chunk " << chunk
+              << " with info " << info << std::endl;
+}
+
 void registerHooks()
 {
     HOOKS.server.grape.loadGrape = [](std::string grapeId, bool isLocallyOwned) {
@@ -105,7 +126,6 @@ void moveEntity2()
 
     int prevY = obj->y;
     obj->y = (obj->y + 1) % game.world.GetYDim();
-    std::cout << "NEW Y POS : " << obj->y << std::endl;
 
     // if we cross a border, check for chunk authority change
     if ((prevY < 10 and obj->y >= 10) or (prevY >= 10 and obj->y < 10)) {
@@ -128,7 +148,6 @@ void moveEntity2()
 
 void updateClientsPositions()
 {
-    static auto inputs = CINPUT.getListInput();
     static std::chrono::time_point<std::chrono::system_clock> lastUpdate = std::chrono::system_clock::now();
 
     // update the position every 2 seconds
@@ -137,12 +156,8 @@ void updateClientsPositions()
     }
     lastUpdate = std::chrono::system_clock::now();
 
-    auto player2 = (*std::next(game.objects.begin(), 1)).second;
-    auto p2_cbuf = CINPUT.getInputCircularBuf(player2->entity->GetUUID(), "move");
-    // if (!inputs->empty() && p2_cbuf && p2_cbuf->front().status)
-    moveEntity2();
-
     // second entity to be registered will move horizontally and change node
+    moveEntity2();
 
     if (not t_isNode1) {
         return;
@@ -184,7 +199,6 @@ int main()
 
     if (not RUNTIME.IsConnectedToCluster()) {
         std::cout << "Connection failed" << std::endl;
-        KPOOL.ResetConsumers();
         return 1;
     }
 

@@ -1,12 +1,15 @@
 #pragma once
 #include "CelteServer.hpp"
 #include "ServerEvents.hpp"
+#include "ServerNetService.hpp"
 #include "tinyfsm.hpp"
 #include <set>
 
 namespace celte {
 namespace server {
 namespace states {
+ServerNetService &ServerNet();
+
 /**
  * This is the default state for the server, before AKafkaLink
  * connects to kafka. It should initialize the server and wait for
@@ -105,48 +108,11 @@ class Connected : public AServer {
                             float y, float z);
 
   /**
-   * @brief This RPC will be called by clients when they want to spawn their
-   * player in the game world.
-   *
-   * # Hooks:
-   * This RPC refers to the following hooks:
-   * - celte::api::HooksTable::server::newPlayerConnected::spawnPlayer
-   *
-   * @param clientId The UUID of the client that connected to the server.
-   * @param x The x coordinate where the player should spawn.
-   * @param y The y coordinate where the player should spawn.
-   * @param z The z coordinate where the player should spawn.
-   */
-  void __rp_spawnPlayer(std::string clientId, float x, float y, float z);
-
-  /**
-   * @brief This RPC will be called when a player leaves the area of authority
-   * of this node.
-   *
-   */
-  void __rp_dropPlayerAuhority(std::string clientId);
-
-  /**
-   * @brief This RPC will be called when a player requests to spawn in the game.
-   * It will instantiate the player in all peers listening to the chunk the
-   * player is spawning in by calling a __rp_spawnPlayer RPC to the chunk's rpc
-   * channel
-   */
-  void __rp_onSpawnRequested(const std::string &clientId, float x, float y,
-                             float z);
-
-  /**
    * @brief The master can call on to this method to assign a grape to this
    * node. No other node should be actively listening to this grape's private
    * channels.
    */
   void __rp_assignGrape(std::string grapeId);
-
-  /**
-   * @brief Registers the basic consumers of this node's grape.
-   * This method is called by __rp_assignGrape.
-   */
-  void __registerGrapeConsumers(const std::string &grapeId);
 
   /**
    * @brief Unregisters the basic consumers of this node's grape.
@@ -161,14 +127,17 @@ class Connected : public AServer {
   std::tuple<std::string, std::string, float, float, float>
   __rp_getPlayerSpawnPosition(const std::string &clientInfo);
 
-  /**
-   * @brief This rp is called by the client when it is ready to spawn, connected
-   * to the grape and ready to play. The client has to be connected to chunk
-   * topics before calling this rp to ensure that no data created after the
-   * execution of this procedure is lost.
-   */
-  void __rp_sendExistingEntitiesSummary(std::string clientId,
-                                        std::string grapeId);
+  // /**
+  //  * @brief This rp is called by the client when it is ready to spawn,
+  //  connected
+  //  * to the grape and ready to play. The client has to be connected to chunk
+  //  * topics before calling this rp to ensure that no data created after the
+  //  * execution of this procedure is lost.
+  //  */
+  // void __rp_sendExistingEntitiesSummary(std::string clientId,
+  //                                       std::string grapeId);
+
+  void __rp_loadExistingEntities(std::string clientId, std::string summary);
 
   void __rp_loadExistingEntities(std::string clientId, std::string summary);
 

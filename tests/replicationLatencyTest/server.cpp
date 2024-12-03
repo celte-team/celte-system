@@ -66,42 +66,46 @@ void registerHooks()
     };
 }
 
-
-void runTestLogic() {
-  // if entity has spawned more that 10 seconds ago, change property once.
-  if (std::chrono::system_clock::now() - entitySpawnTimePoint >
-          std::chrono::seconds(10) and
-      // property == 0 and spawn) {
-      spawn) {
-    std::cout << "property set to one on server side" << std::endl;
-    // property = 1;
-    property++;
-  }
-}
-
-int main()
+void runTestLogic()
 {
-    registerHooks();
-    RUNTIME.Start(celte::runtime::RuntimeMode::SERVER);
-    RUNTIME.ConnectToCluster();
-
-    int connectionTimeoutMs = 5000;
-    auto connectionTimeout = std::chrono::system_clock::now() + std::chrono::milliseconds(connectionTimeoutMs);
-    while (RUNTIME.IsConnectedToCluster() == false and std::chrono::system_clock::now() < connectionTimeout) {
-        RUNTIME.Tick();
-    }
-    if (not RUNTIME.IsConnectedToCluster()) {
-        std::cout << "Connection failed" << std::endl;
-        KPOOL.ResetConsumers();
-        return 1;
-    }
-
-    std::cout << "Connected to cluster" << std::endl;
-
-    while (true) {
-        RUNTIME.Tick();
-        runTestLogic();
+    // if entity has spawned more that 10 seconds ago, change property once.
+    if (std::chrono::system_clock::now() - entitySpawnTimePoint > std::chrono::seconds(10) and
+        // property == 0 and spawn) {
+        spawn) {
+        // property == 0 and spawn) {
+      spawn)
+      {
+          std::cout << "property set to one on server side" << std::endl;
+          // property = 1;
+          property++;
+          // property = 1;
+          property++;
+      }
     }
 
-    return 0;
-}
+    int main()
+    {
+        registerHooks();
+        RUNTIME.Start(celte::runtime::RuntimeMode::SERVER);
+        RUNTIME.ConnectToCluster();
+
+        int connectionTimeoutMs = 5000;
+        auto connectionTimeout = std::chrono::system_clock::now() + std::chrono::milliseconds(connectionTimeoutMs);
+        while (RUNTIME.IsConnectedToCluster() == false and std::chrono::system_clock::now() < connectionTimeout) {
+            RUNTIME.Tick();
+        }
+        if (not RUNTIME.IsConnectedToCluster()) {
+            std::cout << "Connection failed" << std::endl;
+            KPOOL.ResetConsumers();
+            return 1;
+        }
+
+        std::cout << "Connected to cluster" << std::endl;
+
+        while (true) {
+            RUNTIME.Tick();
+            runTestLogic();
+        }
+
+        return 0;
+    }

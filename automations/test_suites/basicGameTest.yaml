@@ -10,8 +10,10 @@ build:
 
   - step: master
     run: |
-      cd master
-      /home/ebriand/dotnet/dotnet build
+      echo "todo: build master"
+
+    # cd master
+    # dotnet build
 
   - step: clock
     run: |
@@ -26,13 +28,14 @@ test_suites:
 
     cluster: yes
     master: yes
+    master-proxy: ./runtime/net/tests/master.dummy
 
     servers:
-      binary: ./build/tests/basicMultiplayerGame/server_game1
+      binary: ./build/tests/server.debug
       replicas: 2
 
     clients:
-      binary: ./build/tests/basicMultiplayerGame/client_game1
+      binary: ./build/tests/client.debug
       replicas: 2
       wait-servers:
         regex: ">> SERVER READY << "
@@ -44,7 +47,6 @@ test_suites:
         - ">> Grape LeChateauDuGentil loaded, owned locally: (yes|no) <<"
         - ">> SERVER SPAWN .* <<"
         - ">> SERVER onTake HOOK CALLED <<"
-        - ".*Name: move.*"
 
       clients:
         - ">> Grape LeChateauDuMechant loaded, owned locally: no <<"

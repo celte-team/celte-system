@@ -4,30 +4,46 @@ project(celtesystems)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Add the vcpkg toolchain file
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 
-find_package(RdKafka CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 find_package(glm CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread json)
+find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
+find_package(unofficial-pulsar CONFIG)
 
 
-include_directories(include ${GLIB_INCLUDE_DIRS} ${RDKAFKA_INCLUDE_DIRS})
+include_directories(
+    include
+    ${GLIB_INCLUDE_DIRS}
+    runtime/net/include
+    ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/include
+)
 
 # Add pkg-config flags for glib-2.0
 link_directories(${GLIB_LIBRARY_DIRS})
 add_definitions(${GLIB_CFLAGS_OTHER})
 
-find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
+
+
+set(NET_SOURCES
+    net/src/CelteNet.cpp
+    net/src/CelteService.cpp
+    net/src/RPCService.cpp
+    net/src/WriterStreamPool.cpp
+)
+
+add_library(celtenet SHARED ${NET_SOURCES})
+target_link_libraries(celtenet PRIVATE unofficial::pulsar::pulsar ${Boost_LIBRARIES})
+
+
 
 set(COMMON_SOURCES
     src/CelteRuntime.cpp
     src/CelteEntity.cpp
     src/CelteGrape.cpp
     src/CelteChunk.cpp
-    src/CelteRPC.cpp
     src/CelteGrapeManagementSystem.cpp
     src/CelteEntityManagementSystem.cpp
     src/CelteHooks.cpp
@@ -35,9 +51,9 @@ set(COMMON_SOURCES
     src/CelteClock.cpp
     src/Replicator.cpp
     src/Logger.cpp
+    src/base64.cpp
     src/KPool.cpp
     src/CelteInputSystem.cpp
-    # src/ConsumerWorker.cpp
     src/KConsumerService.cpp
 )
 
@@ -46,6 +62,7 @@ set(SERVER_SOURCES
     ../server/src/StateConnected.cpp
     ../server/src/StateConnecting.cpp
     ../server/src/StateDisconnected.cpp
+    ../server/src/ServerNetService.cpp
 )
 
 set(CLIENT_SOURCES
@@ -53,39 +70,24 @@ set(CLIENT_SOURCES
     ../client/src/StateConnected.cpp
     ../client/src/StateConnecting.cpp
     ../client/src/StateDisconnected.cpp
+    ../client/src/ClientNetService.cpp
 )
 
 # Runtime for server
 add_library(celtesystems_runtime_server SHARED ${COMMON_SOURCES} ${SERVER_SOURCES})
 target_compile_definitions(celtesystems_runtime_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(celtesystems_runtime_server PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES})
+target_link_libraries(celtesystems_runtime_server PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json  ${GLIB_LIBRARIES} celtenet)
 
 # Runtime for client
 add_library(celtesystems_runtime_client SHARED ${COMMON_SOURCES} ${CLIENT_SOURCES})
-target_link_libraries(celtesystems_runtime_client PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json RdKafka::rdkafka RdKafka::rdkafka++ ${GLIB_LIBRARIES})
+target_link_libraries(celtesystems_runtime_client PRIVATE glm::glm msgpack-cxx Boost::thread Boost::json  ${GLIB_LIBRARIES} celtenet)
+
+
 
 ######################################################################
 #  INSTALL DEPENDENCIES
 ######################################################################
 
-# RDKafka
-
-# Find RdKafka libraries
-find_library(RDKAFKA_LIBRARY NAMES rdkafka HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
-find_library(RDKAFKA++_LIBRARY NAMES rdkafka++ HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
-
-# Ensure the libraries are found
-if(NOT RDKAFKA_LIBRARY)
-    message(FATAL_ERROR "rdkafka library not found")
-endif()
-if(NOT RDKAFKA++_LIBRARY)
-    message(FATAL_ERROR "rdkafka++ library not found")
-endif()
-
-# install(FILES ${RDKAFKA_LIBRARY} ${RDKAFKA++_LIBRARY}
-#         DESTINATION celte-libraries)
-
-# Glib
 
 # Find Glib libraries
 find_library(GLIB_LIBRARY NAMES glib-2.0 HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
@@ -97,6 +99,13 @@ endif()
 
 install(FILES ${GLIB_LIBRARY}
         DESTINATION celte-libraries)
+
+find_library(PULSAR_LIBRARY NAMES pulsar HINTS ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib)
+install(FILES ${PULSAR_LIBRARY}
+        DESTINATION celte-libraries)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/include/pulsar
+        DESTINATION include)
+
 
 # Boost
 

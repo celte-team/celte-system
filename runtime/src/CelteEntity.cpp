@@ -99,35 +99,11 @@ namespace celte {
         _replicator.Overwrite(blob, active);
     }
 
-    void CelteEntity::sendInputToKafka(std::string inputName, bool pressed)
+    std::string CelteEntity::GetPassiveProps() { return _replicator.GetBlob(true); }
+
+    std::string CelteEntity::GetActiveProps()
     {
-
-        msgpack::sbuffer sbuf;
-        msgpack::packer<msgpack::sbuffer> packer(sbuf);
-
-        packer.pack(std::make_tuple(inputName, pressed, _uuid));
-        // packer.pack(pressed);
-
-        std::string value(sbuf.data(), sbuf.size());
-        std::cout << ("Inside test logic\n") << std::flush;
-
-        std::string chunkId = _ownerChunk->GetCombinedId();
-        std::string cp = chunkId + "." + tp::INPUT;
-
-        std::cout << "JE SUIS PASSER [" << chunkId << "]\n"
-                  << std::flush;
-
-        std::cout << "Send message to " << cp << std::endl
-                  << std::flush;
-
-        KPOOL.Send({ .topic = cp, .value = value });
+        return _replicator.GetActiveBlob(true);
     }
 
-std::string CelteEntity::GetPassiveProps() { return _replicator.GetBlob(true); }
-
-std::string CelteEntity::GetActiveProps() {
-  return _replicator.GetActiveBlob(true);
-}
-
 } // namespace celte
-

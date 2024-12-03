@@ -1,11 +1,14 @@
 #pragma once
 #include "CelteClient.hpp"
 #include "ClientEvents.hpp"
+#include "ClientNetService.hpp"
 #include "tinyfsm.hpp"
 
 namespace celte {
 namespace client {
 namespace states {
+ClientNetService &ClientNet();
+
 /**
  * This is the default state for the client, before AKafkaLink
  * connects to kafka. It should initialize the client and wait for
@@ -83,14 +86,6 @@ class Connected : public AClient {
    * assign it to a chunk when it first spawns in the game world.
    */
   void __rp_forceConnectToChunk(std::string grapeId, float x, float y, float z);
-
-  /**
-   * @brief This RPC is called by the server when it has spawned the player and
-   * the client should do the same.
-   *
-   * TODO: generalize for handling other entities and other players
-   */
-  void __rp_spawnPlayer(std::string clientId, float x, float y, float z);
 
   /**
    * @brief This RPC is called by the server when the client connects to a
