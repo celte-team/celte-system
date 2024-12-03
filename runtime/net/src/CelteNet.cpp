@@ -69,7 +69,7 @@ void CelteNet::CreateConsumer(SubscribeOptions &options) {
 
 void CelteNet::ExecThens() {
   if (!_client) {
-    throw CelteNetException("Client not initialized");
+    return;
   }
 
   while (!_thens.empty()) {
