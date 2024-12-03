@@ -12,6 +12,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include "base64.hpp"
 #include <algorithm>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
@@ -137,7 +138,7 @@ public:
     RPRequest req{
         .name = name,
         .respondsTo = "",
-        .responseTopic = *_options.listenOn.begin(),
+        .responseTopic = _options.reponseTopic,
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = std::make_tuple(args...)};
     {
@@ -148,7 +149,10 @@ public:
     }
     std::shared_ptr<std::promise<std::string>> promise =
         std::make_shared<std::promise<std::string>>();
-    rpcPromises[req.rpcId] = promise;
+    {
+      std::lock_guard<std::mutex> lock(rpcPromisesMutex);
+      rpcPromises[req.rpcId] = promise;
+    }
 
     auto future = std::make_shared<std::future<Ret>>(
         std::async(std::launch::async, [promise]() {

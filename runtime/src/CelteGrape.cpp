@@ -53,7 +53,7 @@ void Grape::__initNetwork() {
   _rpcs.emplace(net::RPCService::Options{
       .thisPeerUuid = RUNTIME.GetUUID(),
       .listenOn = rpcTopics,
-      .reponseTopic = RUNTIME.GetUUID(),
+      .reponseTopic = RUNTIME.GetUUID() + "." + tp::RPCs,
       .serviceName =
           RUNTIME.GetUUID() + ".grape." + _options.grapeId + "." + tp::RPCs,
   });

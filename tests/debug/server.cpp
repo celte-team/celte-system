@@ -1,4 +1,5 @@
 #include "Game2.hpp"
+#include "base64.hpp"
 #include <chrono>
 
 static Game game;

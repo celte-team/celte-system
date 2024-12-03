@@ -1,5 +1,6 @@
 #include "Logger.hpp"
 #include "Replicator.hpp"
+#include "base64.hpp"
 #include <cstring>
 #include <msgpack.hpp>
 

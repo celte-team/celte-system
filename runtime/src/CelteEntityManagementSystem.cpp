@@ -2,6 +2,7 @@
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteRuntime.hpp"
 // #include <boost/json.hpp>
+#include "base64.hpp"
 #include "nlohmann/json.hpp"
 #include <string>
 
@@ -129,8 +130,14 @@ std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
       obj["uuid"] = entity->GetUUID();
       obj["chunk"] = entity->GetOwnerChunk().GetCombinedId();
       obj["info"] = entity->GetInformationToLoad();
-      obj["passiveProps"] = entity->GetPassiveProps();
-      obj["activeProprs"] = entity->GetActiveProps();
+      std::string passiveProps = entity->GetPassiveProps();
+      obj["passiveProps"] = base64_encode(
+          reinterpret_cast<const unsigned char *>(passiveProps.c_str()),
+          passiveProps.size());
+      std::string activeProps = entity->GetActiveProps();
+      obj["activeProps"] = base64_encode(
+          reinterpret_cast<const unsigned char *>(activeProps.c_str()),
+          activeProps.size());
 
       // Add the object to the JSON array
       j.push_back(obj);
@@ -167,31 +174,7 @@ std::vector<std::string> CelteEntityManagementSystem::FilterEntities(
 }
 
 void CelteEntityManagementSystem::RegisterReplConsumer(
-    const std::vector<std::string> &chunkId) {
-
-  // for (auto &topic : chunkId) {
-  //   KPOOL.RegisterTopicCallback(
-  //       // Parsing the record to extract the new values of the properties,
-  //       and
-  //       // updating the entity
-  //       topic,
-  //       [this, topic](const kafka::clients::consumer::ConsumerRecord &record)
-  //       {
-  //         std::unordered_map<std::string, std::string> replData;
-  //         for (const auto &header : record.headers()) {
-  //           auto value =
-  //               std::string(reinterpret_cast<const char
-  //               *>(header.value.data()),
-  //                           header.value.size());
-  //           replData[header.key] = value;
-  //         }
-  //         bool active =
-  //             (std::string(static_cast<const char *>(record.value().data()),
-  //                          record.value().size())) == std::string("active");
-  //         __handleReplicationDataReceived(replData, active);
-  //       });
-  // }
-}
+    const std::vector<std::string> &chunkId) {}
 
 void CelteEntityManagementSystem::__handleReplicationDataReceived(
     std::unordered_map<std::string, std::string> &data, bool active) {
@@ -225,7 +208,7 @@ void CelteEntityManagementSystem::__handleReplicationDataReceived(
 
 void CelteEntityManagementSystem::LoadExistingEntities(
     const std::string &grapeId, const std::string &summary) {
-      std::cout << "In LoadExistingEntities" << std::endl;
+  std::cout << "In LoadExistingEntities" << std::endl;
   try {
     nlohmann::json summaryJSON = nlohmann::json::parse(summary);
 

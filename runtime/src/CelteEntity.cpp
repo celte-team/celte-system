@@ -5,6 +5,7 @@
 #include "CelteHooks.hpp"
 #include "CelteRuntime.hpp"
 #include "Logger.hpp"
+#include "base64.hpp"
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <iostream>
@@ -72,10 +73,15 @@ void CelteEntity::UploadReplicationData() {
   std::string activeBlob = _replicator.GetActiveBlob();
 
   if (not blob.empty()) {
+    blob = base64_encode(reinterpret_cast<const unsigned char *>(blob.c_str()),
+                         blob.size());
     _ownerChunk->ScheduleReplicationDataToSend(_uuid, blob);
   }
 
   if (not activeBlob.empty()) {
+    activeBlob = base64_encode(
+        reinterpret_cast<const unsigned char *>(activeBlob.c_str()),
+        activeBlob.size());
     _ownerChunk->ScheduleReplicationDataToSend(_uuid, activeBlob, true);
   }
 }
@@ -90,7 +96,8 @@ void CelteEntity::DownloadReplicationData(const std::string &blob,
   if (blob.empty()) {
     return;
   }
-  _replicator.Overwrite(blob, active);
+  std::string blobDecoded = base64_decode(blob);
+  _replicator.Overwrite(blobDecoded, active);
 }
 
 std::string CelteEntity::GetPassiveProps() { return _replicator.GetBlob(true); }
