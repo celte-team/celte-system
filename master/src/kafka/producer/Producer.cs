@@ -16,9 +16,9 @@ class KFKProducer : IDisposable
     {
         try
         {
-            var configObject = master._setupConfig.GetYamlObjectConfig();
-            var kafkaConfig = configObject["kafka_brokers"];
-            string kafka_brokers = kafkaConfig.ToString();
+            var configObject = master?._setupConfig?.GetYamlObjectConfig();
+            var kafkaConfig = configObject?["kafka_brokers"];
+            string kafka_brokers = kafkaConfig?.ToString() ?? throw new Exception("Kafka brokers not found in configuration");
 
             _config = new ProducerConfig
             {

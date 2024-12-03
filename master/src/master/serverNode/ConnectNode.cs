@@ -12,19 +12,22 @@ class ConnectNode
     }
     public static Dictionary<string, Node> _nodes = new Dictionary<string, Node>();
 
-    public void connectNewNode(byte[] messageByte)
+    // public void connectNewNode(byte[] messageByte)
+    public void connectNewNode(string messageByte)
     {
         try
         {
             // Deserialize the message
-            string message = System.Text.Encoding.UTF8.GetString(messageByte);
+            // string message = System.Text.Encoding.UTF8.GetString(messageByte);
+            string message = messageByte;
             Console.WriteLine("Deserialized message: " + message);
 
             // Assuming message is supposed to be a UUID or similar identifier
-            _master.kFKProducer._uuidProducerService.OpenTopic(message);
+            // Open a topic for the new node
+            _ = _master.pulsarProducer.OpenTopic(message);
+            // _master.kFKProducer._uuidProducerService.OpenTopic(message);
             // RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "LeChateauDuMechant");
             // each node gets a grape so the grape assigned to this node is the one with the same index as the current node
-            Console.WriteLine("Grape count: " + _master._setupConfig._grapes.Count);
             Console.WriteLine("Node count: " + _nodes.Count);
             string? grapeId = _master._setupConfig._grapes[_nodes.Count];
             if (grapeId != null)
