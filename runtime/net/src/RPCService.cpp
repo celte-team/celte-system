@@ -4,6 +4,10 @@
 
 namespace celte {
 namespace net {
+std::unordered_map<std::string, std::shared_ptr<std::promise<std::string>>>
+    RPCService::rpcPromises;
+std::mutex RPCService::rpcPromisesMutex;
+
 RPCService::RPCService(const RPCService::Options &options)
     : _work(_io), _options(options),
       _writerStreamPool(
@@ -64,6 +68,7 @@ void RPCService::__handleRemoteCall(const RPRequest &req) {
 }
 
 void RPCService::__handleResponse(const RPRequest &req) {
+  std::lock_guard<std::mutex> lock(rpcPromisesMutex);
   auto it = rpcPromises.find(req.respondsTo);
   if (it == rpcPromises.end()) {
     // no such promise
