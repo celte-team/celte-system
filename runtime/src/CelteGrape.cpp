@@ -30,10 +30,7 @@ Grape::Grape(const GrapeOptions &options) : _options(options) {
 }
 
 Grape::Grape(Grape &grape, std::vector<std::string> chunksIds)
-    : _options(grape._options),
-      _rpcs(net::RPCService::Options{.thisPeerUuid = RUNTIME.GetUUID(),
-                                     .listenOn = {"not implemented"},
-                                     .nThreads = 1}) {
+    : _options(grape._options) {
   throw std::logic_error(
       "Grape copy constructor not implemented, fix the options, grape id...");
   for (auto chunkId : chunksIds) {
@@ -56,6 +53,8 @@ void Grape::__initNetwork() {
   _rpcs.emplace(net::RPCService::Options{
       .thisPeerUuid = RUNTIME.GetUUID(),
       .listenOn = rpcTopics,
+      .serviceName =
+          RUNTIME.GetUUID() + ".grape." + _options.grapeId + "." + tp::RPCs,
   });
 
   // todo: register rpcs specific to the grape

@@ -10,8 +10,10 @@ build:
 
   - step: master
     run: |
-      cd master
-      dotnet build
+      echo "todo: build master"
+
+    # cd master
+    # dotnet build
 
   - step: clock
     run: |

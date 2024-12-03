@@ -23,7 +23,7 @@ void RPCService::__initReaderStream(const std::vector<std::string> &topic) {
   _createReaderStream<RPRequest>(
       {.thisPeerUuid = _options.thisPeerUuid,
        .topics = {topic},
-       .subscriptionName = "",
+       .subscriptionName = _options.serviceName,
        .exclusive = false,
        .messageHandlerSync =
            [this](const pulsar::Consumer, RPRequest req) {

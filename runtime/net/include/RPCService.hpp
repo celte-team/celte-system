@@ -72,6 +72,7 @@ public:
     const std::string &thisPeerUuid;
     std::vector<std::string> listenOn;
     int nThreads = 1;
+    std::string serviceName = "";
   };
 
   RPCService(const Options &options);
