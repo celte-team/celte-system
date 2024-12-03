@@ -53,7 +53,7 @@ set(COMMON_SOURCES
     src/Logger.cpp
     src/base64.cpp
     src/CelteInputSystem.cpp
-    src/KConsumerService.cpp
+    # src/KConsumerService.cpp
 )
 
 set(SERVER_SOURCES

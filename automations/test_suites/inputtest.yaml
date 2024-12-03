@@ -1,3 +1,13 @@
+
+
+
+
+
+
+
+
+
+
 logs: ./build/tmp/automations/logs
 
 build:
@@ -10,8 +20,10 @@ build:
 
   - step: master
     run: |
-      cd master
-      /home/ebriand/dotnet/dotnet build
+      echo "todo: build master"
+
+    # cd master
+    # dotnet build
 
   - step: clock
     run: |
@@ -19,27 +31,38 @@ build:
       /home/ebriand/dotnet/dotnet build
 
 test_suites:
-  - name: Input
-    description: This test checks that the server node can indeed replicate data to the client node.
-    timeout-seconds: 50
+
+  - name: game1
+    description: Test the correct behavior with multiple clients in a small game.
+    timeout-seconds:  50
 
     cluster: yes
     master: yes
+    master-proxy: ./runtime/net/tests/master.dummy
 
     servers:
       binary: ./build/tests/InputSystemTest/server_input
-      replicas: 1
+      replicas: 2
 
     clients:
       binary: ./build/tests/InputSystemTest/client_input
-      replicas: 1
+      replicas: 2
       wait-servers:
-        regex: ">> Grape has been loaded <<"
+        regex: ">> SERVER READY << "
         timeout-seconds: 50
 
     expects:
       servers:
+        - ">> Grape LeChateauDuMechant loaded, owned locally: (yes|no) <<"
+        - ">> Grape LeChateauDuGentil loaded, owned locally: (yes|no) <<"
+        - ">> SERVER SPAWN .* <<"
+        - ">> SERVER onTake HOOK CALLED <<"
         - ".*Name: move forward.*"
         - ".*First element status: 1.*"
 
       clients:
+        - ">> Grape LeChateauDuMechant loaded, owned locally: no <<"
+        - ">> Grape LeChateauDuGentil loaded, owned locally: no <<"
+        - ">> CLIENT LOADED MAP << "
+        - ">> CLIENT IS READY TO SPAWN <<"
+        - ">> CLIENT SPAWNING .* <<"

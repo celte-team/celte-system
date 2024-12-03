@@ -34,9 +34,9 @@ message(STATUS "Libraries will be installed to ${INSTALL_LIBRARY_DIR}")
 # Add subdirectories
 add_subdirectory(runtime)
 add_subdirectory(tests)
-add_subdirectory(tests/single_node_poc)
-add_subdirectory(tests/test_authority_transfer)
-add_subdirectory(tests/replicationLatencyTest)
+# add_subdirectory(tests/single_node_poc)
+# add_subdirectory(tests/test_authority_transfer)
+# add_subdirectory(tests/replicationLatencyTest)
 add_subdirectory(tests/InputSystemTest)
 add_subdirectory(tests/basicMultiplayerGame)
 

@@ -1,7 +1,14 @@
+#include "CelteEntity.hpp"
+#include "CelteRuntime.hpp"
 #include "Game1.hpp"
 #include <chrono>
 #include <iostream>
+#include <map>
+#include <memory>
+#include <mutex>
 #include <nlohmann/json.hpp>
+#include <thread>
+#include <unistd.h>
 static Game game;
 
 static bool Spawned = false;
@@ -66,6 +73,8 @@ void registerHooks()
         char repr = hash(clientId);
         game.AddObject(clientId, repr, x, y);
         game.world.Dump(game.objects);
+        Spawned = true;
+        id_p = clientId;
         return true;
     };
 
@@ -76,42 +85,24 @@ void registerHooks()
         };
 }
 
-void printMap()
-{
-    static std::chrono::time_point<std::chrono::system_clock> lastUpdate = std::chrono::system_clock::now();
-
-    if (game.GetNPlayers() == 0) {
-        return;
-    }
-
-    // update the position every 2 seconds
-    if (std::chrono::system_clock::now() - lastUpdate < std::chrono::seconds(2)) {
-        return;
-    }
-    lastUpdate = std::chrono::system_clock::now();
-}
-
-void doGameLoop()
+void runTestLogic()
 {
     static bool status = true;
-    static auto savedTime = std::chrono::steady_clock::now();
-    auto currentTime = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::seconds>(currentTime - savedTime).count();
 
-    RUNTIME.Tick();
-    printMap();
-
-    if (Spawned && duration > 5) {
-        game.objects.at(id_p)->entity->sendInputToKafka("move", status);
+    if (Spawned) {
+        game.objects[id_p]->entity->sendInputToKafka("move forward", status);
+        std::cout << "send move forward\n";
+        usleep(5000000);
         status = !status;
-        savedTime = std::chrono::steady_clock::now();
     }
+
+    // auto ilist = CINPUT.getListInput();
 }
 
 int main()
 {
     registerHooks();
-    RUNTIME.Start(celte::runtime::RuntimeMode::SERVER);
+    RUNTIME.Start(celte::runtime::RuntimeMode::CLIENT);
     RUNTIME.ConnectToCluster();
 
     int connectionTimeoutMs = 5000;
@@ -119,15 +110,20 @@ int main()
     while (RUNTIME.IsConnectedToCluster() == false and std::chrono::system_clock::now() < connectionTimeout) {
         RUNTIME.Tick();
     }
-
     if (not RUNTIME.IsConnectedToCluster()) {
         std::cout << "Connection failed" << std::endl;
         return 1;
     }
 
     std::cout << "Connected to cluster" << std::endl;
+
     while (true) {
-        doGameLoop();
+
+        RUNTIME.Tick();
+        runTestLogic();
     }
+
+    printf("FINISH PUTE\n");
+
     return 0;
 }

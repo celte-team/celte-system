@@ -1,5 +1,6 @@
 #include "CelteChunk.hpp"
 #include "CelteEntityManagementSystem.hpp"
+#include "CelteInputSystem.hpp"
 #include "CelteRuntime.hpp"
 #include "Logger.hpp"
 #include "Requests.hpp"
@@ -52,6 +53,17 @@ namespace celte {
                 });
             }
 #endif
+            _createReaderStream<celte::runtime::CelteInputSystem::InputUpdate_s>(
+                {
+                    .thisPeerUuid = RUNTIME.GetUUID(),
+                    .topics = { _combinedId + "." + celte::tp::INPUT },
+                    .subscriptionName = RUNTIME.GetUUID() + ".input." + _combinedId,
+                    .exclusive = false,
+                    .messageHandlerSync =
+                        [this](const pulsar::Consumer, celte::runtime::CelteInputSystem::InputUpdate_s req) {
+                            CINPUT.HandleInput(req.uuid, req.name, req.pressed);
+                        },
+                });
         }
 
         void Chunk::WaitNetworkInitialized()

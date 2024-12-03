@@ -80,12 +80,6 @@ namespace celte {
                 ENTITIES.LoadExistingEntities(grapeId, summary);
             }
 
-            void Connected::__rp_loadExistingEntities(std::string grapeId,
-                std::string summary)
-            {
-                ENTITIES.LoadExistingEntities(grapeId, summary);
-            }
-
             std::tuple<std::string, std::string, float, float, float>
             Connected::__rp_getPlayerSpawnPosition(const std::string& clientInfo)
             {

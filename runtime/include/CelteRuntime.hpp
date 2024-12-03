@@ -68,6 +68,7 @@ namespace celte {
 #define CLOCK celte::runtime::CelteRuntime::GetInstance().GetClock()
 #define ENTITIES celte::runtime::CelteRuntime::GetInstance().GetEntityManager()
 #define NET celte::net::CelteNet::Instance()
+#define CINPUT celte::runtime::CelteRuntime::GetInstance().CelteInput()
 
         /**
          * @brief This class contains all the logic necessary

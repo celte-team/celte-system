@@ -106,4 +106,14 @@ namespace celte {
         return _replicator.GetActiveBlob(true);
     }
 
+    void CelteEntity::sendInputToKafka(std::string inputName, bool pressed)
+    {
+        std::string chunkId = _ownerChunk->GetCombinedId();
+        std::string cp = chunkId + "." + tp::INPUT;
+        celte::runtime::CelteInputSystem::InputUpdate_s req = {
+            .name = inputName, .pressed = pressed, .uuid = _uuid
+        };
+        CINPUT.GetWriterPool().Write<celte::runtime::CelteInputSystem::InputUpdate_s>(cp, req);
+    }
+
 } // namespace celte
