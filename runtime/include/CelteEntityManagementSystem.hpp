@@ -74,8 +74,7 @@ public:
    */
   void RegisterReplConsumer(const std::vector<std::string> &chunkId);
 
-  void LoadExistingEntities(const std::string &grapeId,
-                            const std::string &summary);
+  void LoadExistingEntities(const std::string &summary);
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   inline void AddPendingSpawn(const std::string &uuid,

@@ -207,7 +207,7 @@ void CelteEntityManagementSystem::__handleReplicationDataReceived(
 }
 
 void CelteEntityManagementSystem::LoadExistingEntities(
-    const std::string &grapeId, const std::string &summary) {
+    const std::string &summary) {
   std::cout << "In LoadExistingEntities" << std::endl;
   try {
     nlohmann::json summaryJSON = nlohmann::json::parse(summary);
@@ -221,9 +221,9 @@ void CelteEntityManagementSystem::LoadExistingEntities(
       }
       std::cout << "entity not found" << std::endl;
 #ifdef CELTE_SERVER_MODE_ENABLED
-      HOOKS.server.grape.onLoadExistingEntities(grapeId, partialSummary);
+      HOOKS.server.grape.onLoadExistingEntities(partialSummary);
 #else
-      HOOKS.client.grape.onLoadExistingEntities(grapeId, partialSummary);
+      HOOKS.client.grape.onLoadExistingEntities(partialSummary);
 #endif
     }
 

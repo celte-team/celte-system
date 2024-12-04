@@ -36,18 +36,18 @@ void Connected::entry() {
         }
       }));
 
-  rpcs.Register<bool>(
-      "__rp_loadExistingEntities",
-      std::function([this](std::string grapeId, std::string summary) {
-        try {
-          __rp_loadExistingEntities(grapeId, summary);
-          return true;
-        } catch (std::exception &e) {
-          std::cerr << "Error in __rp_loadExistingEntities: " << e.what()
-                    << std::endl;
-          return false;
-        }
-      }));
+  // rpcs.Register<bool>(
+  //     "__rp_loadExistingEntities",
+  //     std::function([this](std::string grapeId, std::string summary) {
+  //       try {
+  //         __rp_loadExistingEntities(grapeId, summary);
+  //         return true;
+  //       } catch (std::exception &e) {
+  //         std::cerr << "Error in __rp_loadExistingEntities: " << e.what()
+  //                   << std::endl;
+  //         return false;
+  //       }
+  //     }));
 
   rpcs.Register<req::SpawnPositionRequest>(
       "__rp_getPlayerSpawnPosition",
@@ -74,10 +74,10 @@ void Connected::react(EDisconnectFromServer const &event) {}
 //                  ENTITIES.GetRegisteredEntitiesSummary());
 // }
 
-void Connected::__rp_loadExistingEntities(std::string grapeId,
-                                          std::string summary) {
-  ENTITIES.LoadExistingEntities(grapeId, summary);
-}
+// void Connected::__rp_loadExistingEntities(std::string grapeId,
+//                                           std::string summary) {
+//   ENTITIES.LoadExistingEntities(grapeId, summary);
+// }
 
 std::tuple<std::string, std::string, float, float, float>
 Connected::__rp_getPlayerSpawnPosition(const std::string &clientInfo) {

@@ -99,8 +99,8 @@ public:
        * @brief This hook is called by __rp_loadExistingEntities to load the
        * entities that are already registered to the grape.
        */
-      std::function<bool(std::string, nlohmann::json)> onLoadExistingEntities =
-          [](std::string grapeId, nlohmann::json summary) { return true; };
+      std::function<bool(nlohmann::json)> onLoadExistingEntities =
+          [](nlohmann::json summary) { return true; };
     } grape;
 
     /**
@@ -208,8 +208,8 @@ public:
        * @brief This hook is called by __rp_loadExistingEntities to load the
        * entities that are already registered to the grape.
        */
-      std::function<bool(std::string, nlohmann::json)> onLoadExistingEntities =
-          [](std::string grapeId, nlohmann::json summary) { return true; };
+      std::function<bool(nlohmann::json)> onLoadExistingEntities =
+          [](nlohmann::json summary) { return true; };
     } grape;
 
     /**

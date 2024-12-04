@@ -134,7 +134,7 @@ void Grape::__subdivide() {
                                    "__rp_sendExistingEntitiesSummary",
                                    RUNTIME.GetUUID(), _options.grapeId)
           .Then([this](std::string summary) {
-            ENTITIES.LoadExistingEntities(_options.grapeId, summary);
+            ENTITIES.LoadExistingEntities(summary);
           });
     }
     std::cout << "-----------------------------------" << std::endl;

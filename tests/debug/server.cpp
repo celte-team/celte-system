@@ -73,8 +73,7 @@ void registerHooks() {
     std::cout << ">> SERVER onTake HOOK CALLED <<" << std::endl;
   };
 
-  HOOKS.server.grape.onLoadExistingEntities = [](std::string grapeId,
-                                                 nlohmann::json summary) {
+  HOOKS.server.grape.onLoadExistingEntities = [](nlohmann::json summary) {
     std::cout << ">> SERVER LOADING EXISTING ENTITIES <<" << std::endl;
     loadEntitiesFromSummary(summary);
     return true;
