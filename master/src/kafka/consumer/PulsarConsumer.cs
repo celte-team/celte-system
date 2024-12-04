@@ -8,7 +8,6 @@ public class SubscribeOptions
 {
     public string Topics { get; set; } = string.Empty;
     public string SubscriptionName { get; set; } = string.Empty;
-    // public Action<IConsumer<ReadOnlySequence<byte>>, byte[]>? Handler { get; set; }
     public Action<IConsumer<ReadOnlySequence<byte>>, string>? Handler { get; set; }
     public DotPulsar.Abstractions.IConsumer<ReadOnlySequence<byte>>? Consumer { get; set; } = null;
 }
@@ -35,15 +34,21 @@ class PulsarConsumer
 
         try
         {
-            Console.WriteLine("Creating consumer...");
             var consumer = _client.NewConsumer()
                 .Topic(options.Topics)
                 .SubscriptionName(options.SubscriptionName)
                 .Create();
 
             options.Consumer = consumer;
-            Console.WriteLine("Consumer created!");
 
+            var redisClient = Redis.RedisClient.GetInstance();
+
+            redisClient.rLogger.LogActionAsync(new Redis.ActionLog
+            {
+                ActionType = "KafkaConsumerListener",
+                Timestamp = DateTime.Now,
+                Details = "topic: " + options.Topics
+            }).GetAwaiter().GetResult();
             // Start a task to process messages from this consumer
             var task = Task.Run(() => ConsumeMessagesAsync(options, _cancellationTokenSource.Token));
             _consumerTasks.Add(task);
@@ -64,13 +69,11 @@ class PulsarConsumer
 
         try
         {
-            Console.WriteLine($"Starting message consumption for subscription: {options.SubscriptionName}");
             var consumer = options.Consumer;
 
             await foreach (var message in consumer.Messages(cancellationToken))
             {
                 var data = message.Data.ToArray();
-                Console.WriteLine($"Received message on {options.Topics}: {Encoding.UTF8.GetString(data)}");
                 var messageString = Encoding.UTF8.GetString(data);
                 options.Handler?.Invoke(consumer, messageString);
 

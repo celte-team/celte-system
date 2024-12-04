@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using System.Threading;
 using MessagePack;
 
@@ -6,55 +7,46 @@ class ConnectNode
 {
     Master _master = Master.GetInstance();
 
-    public struct Node
+    /// <summary>
+    /// Get all nodes from redis
+    /// </summary>
+    /// <returns>
+    /// return a System.Collections.Generic.List`1[System.String]
+    /// you can use this to iterate over the list of nodes
+    /// </returns>
+    public async Task<List<string>> GetNodes()
     {
-        public string uuid;
+        return await Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes");
     }
-    public static Dictionary<string, Node> _nodes = new Dictionary<string, Node>();
 
-    // public void connectNewNode(byte[] messageByte)
-    public void connectNewNode(string messageByte)
+    // public async void AddNode(string uuid)
+    public async Task<bool> AddNode(string uuid)
+    {
+        await Redis.RedisClient.GetInstance().redisData.JSONPush("nodes", uuid, uuid);
+        return true;
+    }
+
+    public async void connectNewNode(string message)
     {
         try
         {
-            // Deserialize the message
-            // string message = System.Text.Encoding.UTF8.GetString(messageByte);
-            string message = messageByte;
-            Console.WriteLine("Deserialized message: " + message);
-
-            // Assuming message is supposed to be a UUID or similar identifier
-            // Open a topic for the new node
-            _ = _master.pulsarProducer.OpenTopic(message);
-            // _master.kFKProducer._uuidProducerService.OpenTopic(message);
-            // RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "LeChateauDuMechant");
-            // each node gets a grape so the grape assigned to this node is the one with the same index as the current node
-            Console.WriteLine("Node count: " + _nodes.Count);
-            string? grapeId = _master._setupConfig._grapes[_nodes.Count];
-            if (grapeId != null)
+            JsonDocument messageJson = JsonDocument.Parse(message);
+            JsonElement root = messageJson.RootElement;
+            string binaryData = root.GetProperty("binaryData").GetString() ?? throw new InvalidOperationException("binaryData property is missing or null");
+            _ = _master.pulsarProducer.OpenTopic(binaryData);
+            // check if the node already exists
+            if (Redis.RedisClient.GetInstance().redisData.JSONExists("nodes", binaryData))
             {
-                RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), grapeId);
+                await AddNode(binaryData);
             }
             else
             {
-                Console.WriteLine("No grapes available.");
-                return;
-            }
-
-            // Link node with the server
-            if (!_nodes.ContainsKey(message))
-            {
-                _nodes.Add(message, new Node { uuid = message });
-                Console.WriteLine("Node added: " + message);
-            }
-            else
-            {
-                Console.WriteLine("Node already exists: " + message);
+                Console.WriteLine("Node already exists: " + binaryData);
             }
         }
         catch (Exception e)
         {
             Console.WriteLine("Error deserializing message: " + e.Message);
-            Console.WriteLine("Inner exception: " + e.InnerException?.Message);
         }
     }
 }

@@ -23,7 +23,7 @@ class SetupConfig
 
     public Dictionary<string, object>? GetYamlObjectConfig()
     {
-        if (_yamlObject == null)
+        if (_yamlObject == null || _yamlObject.Count == 0)
         {
             Console.WriteLine("Yaml object is null.");
             return null;
@@ -80,8 +80,6 @@ class SetupConfig
             if (grapes != null)
             {
                 _grapes = grapes.Select(g => g.ToString()).ToList();
-                Console.WriteLine($"Found {_grapes.Count} grapes in the configuration file.");
-                Console.WriteLine("Grapes: " + string.Join(", ", _grapes));
                 return grapes.Count;
             }
         }
@@ -123,7 +121,6 @@ class SetupConfig
 
                     _yamlObject = deserializer.Deserialize<Dictionary<string, object>>(fileContents);
                     dockerSystem = new DockerSystem(_yamlObject);
-                    Console.WriteLine("Configuration file loaded successfully.");
                 }
                 else
                 {

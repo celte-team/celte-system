@@ -4,13 +4,14 @@ using System.Threading;
 class Master
 {
     public SetupConfig? _setupConfig;
-    public KafkaManager? kafkaManager;
     private static Master? _master;
     public KFKProducer kFKProducer;
     public PulsarConsumer pulsarConsumer;
     public PulsarProducer pulsarProducer;
     public CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
     public KfkConsumerListener kfkConsumerListener;
+
+    public RPC rPC = new RPC();
 
     private Master()
     {
@@ -56,19 +57,21 @@ class Master
             SubscriptionName = M.Global.MasterHelloClient,
             Handler = (consumer, message) => connectClient.connectNewClient(message)
         });
+        // master.rpc
+        // pulsarConsumer.CreateConsumer(new SubscribeOptions
+        // {
+        //     Topics = "persistent://public/default/" + M.Global.MasterRPC,
+        //     SubscriptionName = M.Global.MasterRPC,
+        //     Handler = (consumer, message) => {Console.WriteLine("Received RPC message: " + message);}
+        // });
+
+
         // pulsarConsumer.CreateConsumer(new SubscribeOptions
         // {
         //     Topics = "persistent://public/default/" + M.Global.MasterRPC,
         //     SubscriptionName = M.Global.MasterRPC,
         //     Handler = (consumer, message) => __handleRPC(message)
         // });
-        // coucou function test
-        pulsarConsumer.CreateConsumer(new SubscribeOptions
-        {
-            Topics = "persistent://public/default/my-topic",
-            SubscriptionName = "coucou",
-            Handler = (consumer, message) => Console.WriteLine($"Received message 🥳🥳🥳: {message}")
-        });
     }
 
     /// <summary>
@@ -99,10 +102,10 @@ class Master
     //     pulsarProducer.ProduceMessageAsync("persistent://public/default/mytopic", "Hello World");
     // }
 
-    private void __handleRPC(string message)
-    {
-        Console.WriteLine($"Received RPC message: {message}");
-    }
+    // private void __handleRPC(string message)
+    // {
+    //     Console.WriteLine($"Received RPC message: {message}");
+    // }
 
     public static Master GetInstance()
     {

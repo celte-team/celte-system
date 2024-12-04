@@ -1,12 +1,13 @@
-using System;
+
 using System.Text;
-using System.Threading.Tasks;
 using Pulsar.Client.Api;
 
 class PulsarProducer
 {
     private readonly PulsarClient _client;
     private Master master = Master.GetInstance();
+
+    RPC rpc = new RPC();
 
     public PulsarProducer()
     {
@@ -37,7 +38,8 @@ class PulsarProducer
             var producer = await _client.NewProducer()
                 .Topic(topic)
                 .CreateAsync();
-
+            Console.WriteLine($"topic is: {topic}");
+            Console.WriteLine($"Producing message!!!!!!!!!!: {message}");
             await producer.SendAsync(Encoding.UTF8.GetBytes(message));
         }
         catch (Exception e)
@@ -59,20 +61,8 @@ class PulsarProducer
             Console.WriteLine($"Error opening topic: {e.Message}");
         }
     }
-
-    public async Task SendMessageAwaitResponseAsyncRpc(string topic, byte[] message, string uuidProcess, Action<byte[]> callBackFunction)
-    {
-        // Here will be implemented the logic to send a message and wait for a response to trigger a callback function
-    }
-
-    public void Dispose()
-    {
-        // _client.Close();
-        // _client.Dispose();
-    }
-
     ~PulsarProducer()
     {
-        Dispose();
+        _client.CloseAsync().Wait();
     }
 }

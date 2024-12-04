@@ -8,7 +8,6 @@ class UUIDProducerService : IDisposable
 {
     private readonly ProducerConfig _config;
     private readonly string _topic;
-    private bool _disposed = false;
     private Master _master = Master.GetInstance();
 
     // store all the UUID that we have produced
@@ -49,7 +48,7 @@ class UUIDProducerService : IDisposable
 
 
     // open topic of each UUID
-    public async Task OpenTopic(string uuid)
+    public async Task OpenTopic(string uuid, int partitions = 3)
     {
         var bootstrapServers = _master._setupConfig.GetYamlObjectConfig()["kafka_brokers"].ToString();
 
@@ -58,7 +57,7 @@ class UUIDProducerService : IDisposable
             try
             {
                 await adminClient.CreateTopicsAsync(new TopicSpecification[] {
-                    new TopicSpecification { Name = uuid, NumPartitions = 1, ReplicationFactor = 1 } });
+                    new TopicSpecification { Name = uuid, NumPartitions = partitions, ReplicationFactor = 1 } });
 
                 // subscribe to the topic
             }

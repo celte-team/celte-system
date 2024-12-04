@@ -1,166 +1,146 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using MessagePack;
-using Confluent.Kafka;
+using System.Text.Json;
 
-public class Scope
+
+public struct RPRequest
 {
-    private string id;
+    public string name { get; set; }
+    public string respondsTo { get; set; }
+    public string responseTopic { get; set; }
+    public string rpcId { get; set; }
+    public JsonElement args { get; set; }
 
-    private Scope(string id)
+    public string ToJson()
     {
-        if (string.IsNullOrEmpty(id))
-        {
-            throw new ArgumentException("Scope ID cannot be null or empty.");
-        }
-        this.id = id + ".rpc";
+        return JsonSerializer.Serialize(this);
     }
 
-    public string Id => id;
-
-    public static Scope Peer(string id)
+    public static RPRequest FromJson(string jsonString)
     {
-        return new Scope(id);
-    }
-
-    public static Scope Chunk(string id)
-    {
-        return new Scope(id);
-    }
-
-    public static Scope Grape(string id)
-    {
-        return new Scope(id);
-    }
-
-    public static Scope Global()
-    {
-        return new Scope(null);
+        return JsonSerializer.Deserialize<RPRequest>(jsonString);
     }
 }
 
-
 /// <summary>
-/// Remote Procedure Call (RPC) class to invoke remote methods on other nodes or clients.
-/// This implementation does not support calling registering rpcs that can be called remotely to execute
-/// in the master server.
+///
+/// This class is a simple RPC system that allows you to register methods to be called remotely.
+/// Example usage:
+/// // creating a method that can be called on this peer by a remote process
+/// RPC.Register("myMethod", (args) => {
+///    Console.WriteLine("Received RPC call with args: " + args);
+///    return new JsonElement("Hello from RPC!");
+///    });
+///
+/// RPC.InitConsumer();
+///
+/// // calling the method on a remote peer
+///
+/// // do this registeration only once at the beginning of the program
+/// RPC.RegisterResponseHandler("myRemoteMethod", (args) => {
+///   Console.WriteLine("Received response from RPC call: " + args);
+///   });
+///
+/// RPC.Call("myRemotePeerTopic", "myRemoteMethod", new JsonElement("Hello from RPC!"));
+///
 /// </summary>
-class RPC
+public class RPC
 {
-    public static byte[] __str2bytes(string str)
+    private static Dictionary<string, Func<JsonElement, JsonElement?>> _rpcHandlers = new Dictionary<string, Func<JsonElement, JsonElement?>>();
+    private static Dictionary<string, Action<JsonElement>> _rpcResponseHandlers = new Dictionary<string, Action<JsonElement>>();
+
+    public static void Register(string methodName, Func<JsonElement, JsonElement?> handler)
     {
-        return System.Text.Encoding.UTF8.GetBytes(str);
+        _rpcHandlers[methodName] = handler;
     }
 
-    public static void __deserialize(string str, params object[] outObjects)
+    public static void RegisterResponseHandler(string methodName, Action<JsonElement> handler)
     {
-        try
-        {
-            // Convert the string to a byte array, assuming it's in Base64 format.
-            byte[] bytes = Convert.FromBase64String(str);
-
-            var deserializedObjects = MessagePackSerializer.Deserialize<object[]>(bytes);
-            for (int i = 0; i < deserializedObjects.Length; i++)
-            {
-                if (deserializedObjects[i] is int)
-                {
-                    outObjects[i] = (int)deserializedObjects[i];
-                }
-                else if (deserializedObjects[i] is string)
-                {
-                    outObjects[i] = (string)deserializedObjects[i];
-                }
-                else if (deserializedObjects[i] is float)
-                {
-                    outObjects[i] = (float)deserializedObjects[i];
-                }
-                else
-                {
-                    outObjects[i] = deserializedObjects[i];
-                }
-            }
-            Console.WriteLine($"Deserialized objects: {deserializedObjects}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Deserialization error: {ex.Message}");
-            throw;
-        }
+        _rpcResponseHandlers[methodName] = handler;
     }
 
-    public static void __deserialize(byte[] data, params object[] outObjects)
+    public static void InitConsumer()
     {
-        try
+        Master.GetInstance().pulsarConsumer.CreateConsumer(new SubscribeOptions
         {
-            // Deserialize the byte array into an array of objects using MessagePack
-            var deserializedObjects = MessagePackSerializer.Deserialize<object[]>(data);
-
-            // Loop through the deserialized objects and assign them to the output parameters
-            for (int i = 0; i < deserializedObjects.Length; i++)
-            {
-                if (deserializedObjects[i] is int)
-                {
-                    outObjects[i] = (int)deserializedObjects[i];
-                }
-                else if (deserializedObjects[i] is string)
-                {
-                    outObjects[i] = (string)deserializedObjects[i];
-                }
-                else if (deserializedObjects[i] is float)
-                {
-                    outObjects[i] = (float)deserializedObjects[i];
-                }
-                else if (deserializedObjects[i] is double)
-                {
-                    outObjects[i] = Convert.ToSingle(deserializedObjects[i]); // Handling possible double to float conversion
-                }
-                else
-                {
-                    outObjects[i] = deserializedObjects[i];
-                }
-            }
-
-            Console.WriteLine($"Deserialized objects: {string.Join(", ", deserializedObjects)}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Deserialization error: {ex.Message}");
-            throw;
-        }
-    }
-
-
-    public static void InvokeRemote(string rpcName, Scope scope, params object[] args)
-    {
-        if (string.IsNullOrEmpty(scope.Id))
-        {
-            throw new ArgumentException("Scope ID cannot be null or empty.");
-        }
-        byte[] data = MessagePackSerializer.Serialize(args);
-        // var headers = new List<Header> { new Header("rpName", __str2bytes(rpcName)) };
-        Headers headers;
-        headers = new Headers { new Header("rpName", __str2bytes(rpcName)) };
-        // display scope.id
-        Console.WriteLine("Invoking RPC: " + rpcName + " on scope: " + scope.Id);
-        Master.GetInstance().kFKProducer.SendMessageAsync(scope.Id, data, headers);
+            Topics = "persistent://public/default/master.rpc",
+            SubscriptionName = "master.rpc",
+            Handler = (consumer, message) => __handleRPC(message)
+        });
     }
 
     /// <summary>
-    /// this function is used to call a remote procedure on a specific node or client and wait for the response.
+    /// Handles an incoming RPC message. If the rpc expects a response, it will be sent back.
     /// </summary>
-    /// <param name="rpcName"></param>
-    /// <param name="scope"></param>
-    /// <param name="args"></param>
-    /// <param name="headers"></param>
-    /// <returns></returns>
-    public static async Task Call(string rpcName, Scope scope, Headers headers, string uuidProcess, Action<byte[]> callBackFunction, params object[]? args)
+    /// <param name="message"></param>
+    private static async void __handleRPC(string message)
     {
-        byte[] data = MessagePackSerializer.Serialize(args);
-        // faire une variable global de master uuid
-        Console.WriteLine("Calling RPC: " + rpcName);
-        await Master.GetInstance().kFKProducer.SendMessageAwaitResponseAsyncRpc(scope.Id, data, headers, uuidProcess, callBackFunction);
+        RPRequest request = RPRequest.FromJson(message);
+        if (request.respondsTo != "")
+        { // this is a response, not a call
+            if (_rpcResponseHandlers.TryGetValue(request.name, out Action<JsonElement>? v))
+            {
+                v(request.args);
+            }
+            return;
+        }
+
+        if (_rpcHandlers.TryGetValue(request.name, out Func<JsonElement, JsonElement?>? value))
+        {
+            JsonElement? response = value(request.args);
+            if (response is null)
+            {
+                return;
+            }
+            if (request.responseTopic != "") // if empty, the caller doesn't want a response
+            {
+                var responseRequest = new RPRequest
+                {
+                    name = request.name,
+                    respondsTo = request.respondsTo,
+                    responseTopic = "", // we don't want a response to this response
+                    rpcId = request.rpcId,
+                    args = response.Value
+                };
+                await Master.GetInstance().pulsarProducer.ProduceMessageAsync(request.responseTopic, responseRequest.ToJson());
+            }
+        }
+    }
+
+    /// <summary>
+    /// calls a method on the given remote topic, and *does not* wait for a response
+    /// The request object must be serializable to JSON.
+    /// </summary>
+    public async static void Call(string topic, string methodName, JsonElement Args)
+    {
+        var request = new RPRequest
+        {
+            name = methodName,
+            respondsTo = "",
+            responseTopic = "pulsar://persistent/default/master.rpc",
+            rpcId = Guid.NewGuid().ToString(),
+            args = Args
+        };
+        await Master.GetInstance().pulsarProducer.ProduceMessageAsync(topic, request.ToJson());
+    }
+
+    public void registerAllReponseHandlers()
+    {
+        if (_rpcResponseHandlers.Count > 0)
+        {
+            Console.WriteLine("Response handlers already registered");
+            return;
+        }
+        RegisterResponseHandler("__rp_getPlayerSpawnPosition", (args) =>
+        {
+            Console.WriteLine("Received response from getPlayerSpawnPosition: " + args);
+            string dataSpawnPosition = JsonSerializer.Serialize(new
+            {
+                clientId = args.GetProperty("clientId").GetString(),
+                grapeId = args.GetProperty("grapeId").GetString(),
+                x = args.GetProperty("x").GetSingle(),
+                y = args.GetProperty("y").GetSingle(),
+                z = args.GetProperty("z").GetSingle()
+            });
+            _ = Master.GetInstance().pulsarProducer.ProduceMessageAsync(args.GetProperty("clientId").GetString(), dataSpawnPosition);
+        });
     }
 }

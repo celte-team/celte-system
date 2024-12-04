@@ -16,14 +16,14 @@ class KFKProducer : IDisposable
     {
         try
         {
-            var configObject = master?._setupConfig?.GetYamlObjectConfig();
-            var kafkaConfig = configObject?["kafka_brokers"];
-            string kafka_brokers = kafkaConfig?.ToString() ?? throw new Exception("Kafka brokers not found in configuration");
+            var configObject = master._setupConfig.GetYamlObjectConfig();
+            var kafkaConfig = configObject["kafka_brokers"];
+            string kafka_brokers = kafkaConfig.ToString();
 
             _config = new ProducerConfig
             {
                 BootstrapServers = kafka_brokers,
-                Acks = Acks.All
+                Acks = Acks.All,
             };
 
             _producer = new ProducerBuilder<Null, byte[]>(_config).Build();
@@ -39,7 +39,6 @@ class KFKProducer : IDisposable
     {
         try
         {
-            Console.WriteLine($"Sending message to topic: {topic}");
             var producer = new ProducerBuilder<TKey, byte[]>(_config).Build();
             var result = await producer.ProduceAsync(topic, new Message<TKey, byte[]>
             {
@@ -112,6 +111,7 @@ class KFKProducer : IDisposable
     {
         Dispose(true);
         GC.SuppressFinalize(this);
+        Console.WriteLine("Kafka producer disposed.");
     }
 
     ~KFKProducer()

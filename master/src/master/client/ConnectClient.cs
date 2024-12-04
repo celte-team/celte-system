@@ -1,6 +1,7 @@
 using Confluent.Kafka;
 using System;
 using MessagePack;
+using System.Text.Json;
 class ConnectClient
 {
     private Master _master = Master.GetInstance();
@@ -14,74 +15,59 @@ class ConnectClient
 
     public async void connectNewClient(string message)
     {
-        // string message = System.Text.Encoding.UTF8.GetString(messageByte);
         Console.WriteLine("New client connected to the cluster: " + message);
-
-        // if _clients do not already contain the message, add the message to the _clients
         if (!_clients.ContainsKey(message))
             _clients.Add(message, new Client { uuid = message });
 
-        // _master.kFKProducer._uuidProducerService.OpenTopic(message);
         _ = _master.pulsarProducer.OpenTopic(message);
         try
         {
-            // select a random node from the list of nodes
-            int rand = new Random().Next(0, ConnectNode._nodes.Count);
-            string nodeId = ConnectNode._nodes.ElementAt(rand).Value.uuid;
-
-            // call the function to compute the grapeId then return the values
-            string clientId = message;
+            // Get the list of nodes from Redis
+            string nodeId = await GetRandomNode();
+            // peerUuid
+            JsonDocument messageJson = JsonDocument.Parse(message);
+            JsonElement root = messageJson.RootElement;
+            string clientId = root.GetProperty("peerUuid").GetString() ?? throw new InvalidOperationException("peerUuid property is missing or null");
             string uuidProcess = Guid.NewGuid().ToString();
             const string rpcName = "__rp_getPlayerSpawnPosition";
-            string masterRPC = M.Global.MasterRPC;
-            Headers headers = new Headers
-            {
-                { "rpName", RPC.__str2bytes(rpcName) },
-                { "rpcUUID", RPC.__str2bytes(uuidProcess) },
-                { "peer.uuid", RPC.__str2bytes(M.Global.MasterUUID) }
-            };
 
-            await RPC.Call(rpcName, Scope.Peer(nodeId), headers, uuidProcess, async (byte[] value) =>
-                {
-                    Console.WriteLine($">>>>>>>>>>> Received response from getPlayerSpawnPosition: {value} <<<<<<<<<<<");
-                    try
-                    {
-                        // Initialiser les variables de sortie
-                        string grapeId = string.Empty;
-                        string receivedClientId = string.Empty;
-                        float x = 0, y = 0, z = 0;
+            Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
+            await redisClient.redisData.JSONPush("clients_try_to_connect", clientId, clientId);
 
-                        var result = UnpackAny(value, typeof(string), typeof(string), typeof(int), typeof(int), typeof(int));
-                        grapeId = (string)result.Item1[0];
-                        receivedClientId = (string)result.Item1[1];
-                        x = (int)result.Item1[2];
-                        y = (int)result.Item1[3];
-                        z = (int)result.Item1[4];
+            _master.rPC.registerAllReponseHandlers();
+            string jsonArgsSpawnPosition = JsonSerializer.Serialize(new {
+                // name = rpcName,
+                clientId,
+                grapeId = nodeId,
+                // rpcId = uuidProcess,
+                // responseTopic = "persistent://public/default/master.rpc",
+                // respondsTo = "",
+            });
 
-                        string ownerNode = "";
-                        if (grapeId == "LeChateauDuMechant")
-                        {
-                            ownerNode = ConnectNode._nodes.ElementAt(0).Value.uuid;
-                        }
-                        else
-                        {
-                            ownerNode = ConnectNode._nodes.ElementAt(1).Value.uuid;
-                        }
-                        Console.WriteLine($"NODE OWNING CLIENT IS {ownerNode}");
-                        Console.WriteLine($"Sending response to acceptNewClient: {receivedClientId}, {grapeId}, {x}, {y}, {z}");
-                        RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(ownerNode), receivedClientId, grapeId, x, y, z);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine($"Error handling response from getPlayerSpawnPosition: {e.Message}");
-                    }
-
-                }, clientId);
+            JsonDocument jsonDocument = JsonDocument.Parse(jsonArgsSpawnPosition);
+            JsonElement jsonElement = jsonDocument.RootElement;
+            nodeId = "persistent://public/default/" + nodeId + ".rpc";
+            RPC.Call(nodeId, rpcName, jsonElement);
         }
         catch (Exception e)
         {
             Console.WriteLine($"Error connecting new client: {e.Message}");
         }
+    }
+
+    private async Task<string> GetRandomNode()
+    {
+        // fetch the list of nodes from Redis
+        var nodesJson = await Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes");
+        if (nodesJson == null || nodesJson.Count == 0)
+        {
+            throw new Exception("No nodes available.");
+        }
+        // Generate a random index
+        int rand = new Random().Next(0, nodesJson.Count);
+        // // Retrieve the node ID
+        string nodeId = nodesJson[rand];
+        return nodeId;
     }
 
     static Tuple<object[]> UnpackAny(byte[] serializedData, params Type[] types)
