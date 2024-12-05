@@ -1,5 +1,3 @@
-using Confluent.Kafka;
-using System;
 using MessagePack;
 using System.Text.Json;
 class ConnectClient
@@ -34,7 +32,7 @@ class ConnectClient
             Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
             await redisClient.redisData.JSONPush("clients_try_to_connect", clientId, clientId);
 
-            _master.rPC.registerAllReponseHandlers();
+            _master.rpc.registerAllReponseHandlers();
             string jsonArgsSpawnPosition = JsonSerializer.Serialize(new {
                 // name = rpcName,
                 clientId,

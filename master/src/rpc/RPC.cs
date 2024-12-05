@@ -140,7 +140,15 @@ public class RPC
                 y = args.GetProperty("y").GetSingle(),
                 z = args.GetProperty("z").GetSingle()
             });
-            _ = Master.GetInstance().pulsarProducer.ProduceMessageAsync(args.GetProperty("clientId").GetString(), dataSpawnPosition);
+            string? clientId = args.GetProperty("clientId").GetString();
+            if (clientId != null)
+            {
+                _ = Master.GetInstance().pulsarProducer.ProduceMessageAsync(clientId, dataSpawnPosition);
+            }
+            else
+            {
+                Console.WriteLine("Error: clientId is null");
+            }
         });
     }
 }

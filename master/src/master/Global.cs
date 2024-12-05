@@ -8,7 +8,6 @@ namespace M
         private static string masterHelloSn = "master.hello.sn";
         private static string masterHelloClient = "master.hello.client";
         private static string masterRPC = "master.rpc";
-        // private static string masterRedisID = DateTime.Now.ToString("ssmmHHddMMyyyy");
         private static string masterRedisID = "master";
 
 

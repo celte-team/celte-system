@@ -1,7 +1,3 @@
-using System;
-using System.Threading.Tasks;
-using NRedisStack;
-using NRedisStack.RedisStackCommands;
 using StackExchange.Redis;
 using Newtonsoft.Json;
 
@@ -39,11 +35,14 @@ namespace Redis {
             }
         }
 
-        public static RedisClient GetInstance(string connectionString = null)
+        public static RedisClient GetInstance(string connectionString = "localhost:6379")
         {
             if (_instance == null)
             {
-
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    throw new ArgumentNullException("Connection string cannot be null or empty");
+                }
                 _instance = new RedisClient(connectionString);
                 RedisData Rd = new RedisData(_instance.GetDatabase());
                 _instance.redisData = Rd;
