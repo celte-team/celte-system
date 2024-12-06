@@ -20,9 +20,7 @@ class ConnectClient
         _ = _master.pulsarProducer.OpenTopic(message);
         try
         {
-            // Get the list of nodes from Redis
             string nodeId = await GetRandomNode();
-            // peerUuid
             JsonDocument messageJson = JsonDocument.Parse(message);
             JsonElement root = messageJson.RootElement;
             string clientId = root.GetProperty("peerUuid").GetString() ?? throw new InvalidOperationException("peerUuid property is missing or null");
@@ -32,20 +30,10 @@ class ConnectClient
             Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
             await redisClient.redisData.JSONPush("clients_try_to_connect", clientId, clientId);
 
-            _master.rpc.registerAllReponseHandlers();
-            string jsonArgsSpawnPosition = JsonSerializer.Serialize(new {
-                // name = rpcName,
-                clientId,
-                grapeId = nodeId,
-                // rpcId = uuidProcess,
-                // responseTopic = "persistent://public/default/master.rpc",
-                // respondsTo = "",
-            });
-
-            JsonDocument jsonDocument = JsonDocument.Parse(jsonArgsSpawnPosition);
-            JsonElement jsonElement = jsonDocument.RootElement;
+            _master.rpc.RegisterAllResponseHandlers();
             nodeId = "persistent://public/default/" + nodeId + ".rpc";
-            RPC.Call(nodeId, rpcName, jsonElement);
+            JsonElement argsElement = JsonDocument.Parse($"[\"{clientId}\"]").RootElement;
+            RPC.Call(nodeId, rpcName, argsElement);
         }
         catch (Exception e)
         {
@@ -53,19 +41,50 @@ class ConnectClient
         }
     }
 
-    private async Task<string> GetRandomNode()
+    private static async Task<string> GetRandomNode()
     {
-        // fetch the list of nodes from Redis
-        var nodesJson = await Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes");
-        if (nodesJson == null || nodesJson.Count == 0)
+        JsonElement nodesJson = await Redis.RedisClient.GetInstance().redisData.JSONGetAll("nodes");
+        var nodesId = new List<string>();
+        if (nodesJson.ValueKind == JsonValueKind.Array)
         {
-            throw new Exception("No nodes available.");
+            foreach (JsonElement node in nodesJson.EnumerateArray())
+            {
+
+                if (node.ValueKind == JsonValueKind.String)
+                {
+                    using (JsonDocument nodeDoc = JsonDocument.Parse(node.GetString()))
+                    {
+                        JsonElement root = nodeDoc.RootElement;
+
+                        // Extract the "uuid" property
+                        if (root.TryGetProperty("uuid", out JsonElement uuidProperty) &&
+                            uuidProperty.ValueKind == JsonValueKind.String)
+                        {
+                            string uuid = uuidProperty.GetString();
+                            nodesId.Add(uuid);
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Error: Node is not a string.");
+                }
+            }
         }
-        // Generate a random index
-        int rand = new Random().Next(0, nodesJson.Count);
-        // // Retrieve the node ID
-        string nodeId = nodesJson[rand];
-        return nodeId;
+        else
+        {
+            Console.WriteLine("Error: nodesJson is not a JSON array.");
+        }
+
+        if (nodesId.Count > 0)
+        {
+            Console.WriteLine($"\n -> Random node ID: {nodesId[new Random().Next(0, nodesId.Count)]}\n");
+            return nodesId[new Random().Next(0, nodesId.Count)];
+        }
+        else
+        {
+            throw new InvalidOperationException("No valid nodes found in JSON data.");
+        }
     }
 
     static Tuple<object[]> UnpackAny(byte[] serializedData, params Type[] types)
@@ -88,30 +107,5 @@ class ConnectClient
             return Tuple.Create(result);
         }
         throw new InvalidOperationException("Invalid serialized data format.");
-    }
-
-
-    private void DeserializeSpawnPosition(byte[] value, out string grapeId, out string clientId, out float x, out float y, out float z)
-    {
-        grapeId = "";
-        clientId = "";
-        x = y = z = 0.0f;
-
-        try
-        {
-            object[] deserializedData = MessagePackSerializer.Deserialize<object[]>(value);
-            Console.WriteLine($"Deserialized objects: {string.Join(", ", deserializedData)}");
-            Console.WriteLine($"Deserialized Length: {deserializedData.Length}");
-            Console.WriteLine($"Deserialized objects tyeps: {deserializedData}");
-            grapeId = deserializedData[0] as string ?? "";
-            clientId = deserializedData[1] as string ?? "";
-            x = Convert.ToSingle(deserializedData[2]);
-            y = Convert.ToSingle(deserializedData[3]);
-            z = Convert.ToSingle(deserializedData[4]);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Deserialization error: {ex.Message}");
-        }
     }
 }

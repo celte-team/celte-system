@@ -1,5 +1,7 @@
 using StackExchange.Redis;
 using Newtonsoft.Json;
+using Docker.DotNet.Models;
+using System.Text.Json;
 
 
 namespace Redis {
@@ -18,7 +20,7 @@ namespace Redis {
     /// </summary>
     partial class RedisClient
     {
-        private static RedisClient _instance;
+        private static RedisClient? _instance;
         private readonly ConnectionMultiplexer _connection;
         private readonly IDatabase _db;
         public RedisData redisData;
@@ -172,14 +174,47 @@ namespace Redis {
             try {
                 if (!await _db.KeyExistsAsync(key))
                 {
-                    _db.Execute("JSON.SET", key, "$", "[]");
+                    await _db.ExecuteAsync("JSON.SET", key, "$", "[]");
                 }
+                Console.WriteLine($"Pushing JSON value: key = {key}, field = {field}, value = {value}\n");
                 await _db.ExecuteAsync("JSON.ARRAPPEND", key, "$",
                     JSONSerializer.Serialize(value));
-
             } catch (Exception ex) {
                 Console.WriteLine($"Error pushing JSON value: {ex.Message}");
             }
+            return true;
+        }
+
+        public async  Task<bool>UpdateGrapeList(string key, string field, string value)
+        {
+            if (!_db.KeyExists(key))
+            {
+                _db.Execute("JSON.SET", key, "$", "[]");
+            }
+
+            Console.WriteLine($"Updating JSON value: key = {key}, field = {field}, value = {value}\n");
+
+            string jsonValue = JSONSerializer.Serialize(value);
+
+            await _db.ExecuteAsync("JSON.ARRAPPEND", key, $"$.{field}", jsonValue);
+
+            return true;
+        }
+
+        // JSONUpdate is used to update a JSON field in a Redis key
+        public async Task<bool> JSONUpdate(string key, string field, object value)
+        {
+            if (!_db.KeyExists(key))
+            {
+                _db.Execute("JSON.SET", key, "$", "{}");
+            }
+
+            Console.WriteLine($"Updating JSON value: key = {key}, field = {field}, value = {value}");
+
+            string jsonValue = JSONSerializer.Serialize(value);
+
+            await _db.ExecuteAsync("JSON.ARRAPPEND", key, $"$.{field}", jsonValue);
+
             return true;
         }
 
@@ -188,13 +223,30 @@ namespace Redis {
             try
             {
                 var jsonValue = await _db.ExecuteAsync("JSON.GET", key);
-                T value = JSONSerializer.Deserialize<T>(jsonValue.ToString());
+                Console.WriteLine($"JSON value: {jsonValue}");
+                string jsonString = jsonValue.ToString();
+                T value = JSONSerializer.Deserialize<T>(jsonString);
+                Console.WriteLine($"JSON value: {value}");
                 return value;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error getting JSON value: {ex.Message}");
-                return default(T);
+                return default;
+            }
+        }
+        public async Task<JsonElement> JSONGetAll(string key)
+        {
+            try
+            {
+                var jsonValue = await _db.ExecuteAsync("JSON.GET", key);
+                string value = jsonValue.ToString();
+                return JsonDocument.Parse(value).RootElement;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting JSON value: {ex.Message}");
+                return default;
             }
         }
 
@@ -213,46 +265,10 @@ namespace Redis {
             }
         }
 
-        public async Task<string> JSONGetAll(string key)
-        {
-            try
-            {
-                var jsonValue = await _db.ExecuteAsync("JSON.GET", key);
-                string value = jsonValue.ToString();
-                return value;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting JSON value: {ex.Message}");
-                return null;
-            }
-        }
-
         public void JSONRemove(string key, string field)
         {
             _db.Execute("JSON.DEL", key, $"$.{field}");
         }
-
-        // JSON-specific operations
-        public async Task JSONSetValueAsync(string key, string field, object value)
-        {
-            try
-            {
-                // Ensure the key is created as a JSON object
-                if (!await _db.KeyExistsAsync(key))
-                {
-                    await _db.ExecuteAsync("JSON.SET", key, "$", "{}");
-                }
-
-                string jsonValue = JSONSerializer.Serialize(value);
-                await _db.ExecuteAsync("JSON.SET", key, $"$.{field}", jsonValue);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error setting JSON value: {ex.Message}");
-            }
-        }
-
 
         /// <summary>
         /// Check if a JSON field exists

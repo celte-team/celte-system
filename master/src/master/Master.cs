@@ -51,6 +51,7 @@ class Master
             SubscriptionName = M.Global.MasterHelloClient,
             Handler = (consumer, message) => connectClient.connectNewClient(message)
         });
+        rpc.InitConsumer();
     }
 
     public static Master GetInstance()

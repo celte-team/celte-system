@@ -57,7 +57,7 @@ public class RPC
         _rpcResponseHandlers[methodName] = handler;
     }
 
-    public static void InitConsumer()
+    public void InitConsumer()
     {
         Master.GetInstance().pulsarConsumer.CreateConsumer(new SubscribeOptions
         {
@@ -67,10 +67,6 @@ public class RPC
         });
     }
 
-    /// <summary>
-    /// Handles an incoming RPC message. If the rpc expects a response, it will be sent back.
-    /// </summary>
-    /// <param name="message"></param>
     private static async void __handleRPC(string message)
     {
         RPRequest request = RPRequest.FromJson(message);
@@ -82,7 +78,6 @@ public class RPC
             }
             return;
         }
-
         if (_rpcHandlers.TryGetValue(request.name, out Func<JsonElement, JsonElement?>? value))
         {
             JsonElement? response = value(request.args);
@@ -109,45 +104,52 @@ public class RPC
     /// calls a method on the given remote topic, and *does not* wait for a response
     /// The request object must be serializable to JSON.
     /// </summary>
-    public async static void Call(string topic, string methodName, JsonElement Args)
+    public async static void Call(string topic, string methodName, JsonElement args)
     {
+        int rpcId = new Random().Next();
         var request = new RPRequest
         {
             name = methodName,
             respondsTo = "",
-            responseTopic = "pulsar://persistent/default/master.rpc",
-            rpcId = Guid.NewGuid().ToString(),
-            args = Args
+            responseTopic = "persistent://public/default/master.rpc",
+            rpcId = rpcId.ToString(),
+            args = args
         };
         await Master.GetInstance().pulsarProducer.ProduceMessageAsync(topic, request.ToJson());
     }
 
-    public void registerAllReponseHandlers()
+    public string getUUIDFromJSON(JsonElement node)
+    {
+        string uuid = node.GetProperty("uuid").GetString();
+        Console.WriteLine($"<Calling RPC> getUUIDFromJSON with uuid {uuid}");
+        return uuid;
+    }
+
+    public void RegisterAllResponseHandlers()
     {
         if (_rpcResponseHandlers.Count > 0)
         {
             Console.WriteLine("Response handlers already registered");
             return;
         }
+        Console.WriteLine("Registering response handlers");
+        // this function is used to send the spawn position of the player to the client.
         RegisterResponseHandler("__rp_getPlayerSpawnPosition", (args) =>
         {
-            Console.WriteLine("Received response from getPlayerSpawnPosition: " + args);
-            string dataSpawnPosition = JsonSerializer.Serialize(new
+            string clientId = args.GetProperty("clientId").GetString();
+            string grapeId = args.GetProperty("grapeId").GetString();
+            float x = args.GetProperty("x").GetSingle();
+            float y = args.GetProperty("y").GetSingle();
+            float z = args.GetProperty("z").GetSingle();
+            var nodes = Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes").Result;
+            if (nodes.Count > 0)
             {
-                clientId = args.GetProperty("clientId").GetString(),
-                grapeId = args.GetProperty("grapeId").GetString(),
-                x = args.GetProperty("x").GetSingle(),
-                y = args.GetProperty("y").GetSingle(),
-                z = args.GetProperty("z").GetSingle()
-            });
-            string? clientId = args.GetProperty("clientId").GetString();
-            if (clientId != null)
-            {
-                _ = Master.GetInstance().pulsarProducer.ProduceMessageAsync(clientId, dataSpawnPosition);
-            }
-            else
-            {
-                Console.WriteLine("Error: clientId is null");
+                string uuid = getUUIDFromJSON(JsonDocument.Parse(nodes[0]).RootElement);
+                string topic = $"persistent://public/default/{uuid}.rpc";
+                var rpcArgs = JsonSerializer.Serialize(new { clientId, grapeId, x, y, z });
+                var rpcArgsList = JsonDocument.Parse($"[\"{clientId}\",\"{grapeId}\",{x},{y},{z}]");
+                Console.WriteLine($"<Calling RPC> __rp_acceptNewClient with args {rpcArgs} on topic {topic}");
+                RPC.Call(topic, "__rp_acceptNewClient", rpcArgsList.RootElement);
             }
         });
     }
