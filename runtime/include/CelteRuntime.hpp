@@ -279,7 +279,6 @@ namespace celte {
             RuntimeMode _mode;
 
             // Input ptr
-            std::shared_ptr<CelteInputSystem> _inputs;
             // Hooks table
             api::HooksTable _hooks;
 
@@ -293,6 +292,8 @@ namespace celte {
             boost::asio::io_service _io;
             boost::asio::io_service::work _work;
             boost::thread_group _threads;
+            
+            std::shared_ptr<CelteInputSystem> _inputs;
         };
     } // namespace runtime
 } // namespace celte

@@ -52,17 +52,17 @@ namespace celte {
                 });
             }
 #endif
-            // _createReaderStream<celte::runtime::CelteInputSystem::InputUpdate_s>(
-            //     {
-            //         .thisPeerUuid = RUNTIME.GetUUID(),
-            //         .topics = { _combinedId + "." + celte::tp::INPUT },
-            //         .subscriptionName = RUNTIME.GetUUID() + ".input." + _combinedId,
-            //         .exclusive = false,
-            //         .messageHandlerSync =
-            //             [this](const pulsar::Consumer, celte::runtime::CelteInputSystem::InputUpdate_s req) {
-            //                 CINPUT.HandleInput(req.uuid, req.name, req.pressed);
-            //             },
-            //     });
+            _createReaderStream<celte::runtime::CelteInputSystem::InputUpdate_s>(
+                {
+                    .thisPeerUuid = RUNTIME.GetUUID(),
+                    .topics = { _combinedId + "." + celte::tp::INPUT },
+                    .subscriptionName = RUNTIME.GetUUID() + ".input." + _combinedId,
+                    .exclusive = false,
+                    .messageHandlerSync =
+                        [this](const pulsar::Consumer, celte::runtime::CelteInputSystem::InputUpdate_s req) {
+                            CINPUT.HandleInput(req.uuid, req.name, req.pressed);
+                        },
+                });
         }
 
         void Chunk::WaitNetworkInitialized()

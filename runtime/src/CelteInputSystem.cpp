@@ -21,9 +21,9 @@
 
 namespace celte {
     namespace runtime {
-        CelteInputSystem::CelteInputSystem()
+        CelteInputSystem::CelteInputSystem(boost::asio::io_service& io)
             : _Wpool(celte::net::WriterStreamPool::Options { .idleTimeout = std::chrono::milliseconds(10000) },
-                  RUNTIME.IO())
+                  io)
         {
             _data = std::make_shared<LIST_INPUTS>();
         }

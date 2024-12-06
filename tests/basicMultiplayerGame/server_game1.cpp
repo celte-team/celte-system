@@ -120,6 +120,7 @@ void moveEntity2()
 
     int prevY = obj->y;
     obj->y = (obj->y + 1) % game.world.GetYDim();
+    std::cout << "New player 2 y is : " << obj->y << std::endl;
 
     // if we cross a border, check for chunk authority change
     if ((prevY < 10 and obj->y >= 10) or (prevY >= 10 and obj->y < 10)) {
@@ -142,6 +143,7 @@ void moveEntity2()
 
 void updateClientsPositions()
 {
+    static auto inputs = CINPUT.GetListInput();
     static std::chrono::time_point<std::chrono::system_clock> lastUpdate = std::chrono::system_clock::now();
 
     // update the position every 2 seconds
@@ -151,6 +153,12 @@ void updateClientsPositions()
     lastUpdate = std::chrono::system_clock::now();
 
     // second entity to be registered will move horizontally and change node
+    std::string uuidP2 = (*std::next(game.objects.begin(), 1)).second->entity->GetUUID();
+    auto last_input_P2 = CINPUT.GetInputCircularBuf(uuidP2, "move");
+
+    if (last_input_P2 && last_input_P2.front().status) {
+        std::cout << "Status 2 : " << last_input_P2.front().status << std::endl;
+    }
     moveEntity2();
 
     if (not t_isNode1) {
@@ -160,10 +168,16 @@ void updateClientsPositions()
     if (game.GetNPlayers() == 0) {
         return;
     }
+    std::string uuidP2 = (*std::next(game.objects.begin(), 1)).second->entity->GetUUID();
+    auto last_input_P1 = CINPUT.GetInputCircularBuf(uuidP2, "move");
 
-    // get the first player
+    if (last_input_P1 && last_input_P1->front().status) {
+        // get the first player
+        std::cout << "Status 1 : " << last_input_P1->front().status << std::endl;
+    }
     auto player = game.objects.begin()->second;
     player->x = (player->x + 1) % game.world.GetXDim();
+    std::cout << "New player 1 x is : " << player->x << std::endl;
     game.world.Dump(game.objects);
 }
 

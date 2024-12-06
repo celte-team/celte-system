@@ -56,7 +56,8 @@ namespace celte {
             typedef std::map<std::string, boost::circular_buffer<DataInput_t>> LIST_INPUT_BY_UUID;
             typedef boost::circular_buffer<DataInput_t> INPUT;
 
-            CelteInputSystem();
+            // CelteInputSystem();
+            CelteInputSystem(boost::asio::io_service& _io);
             // void HandleInputCallback(const std::vector<std::string>& chunkId);
             void HandleInput(std::string ChunkID, std::string InputName, bool status);
 
@@ -68,6 +69,7 @@ namespace celte {
 
         private:
             std::shared_ptr<LIST_INPUTS> _data;
+            boost::asio::io_service _io;
             net::WriterStreamPool _Wpool;
         };
 

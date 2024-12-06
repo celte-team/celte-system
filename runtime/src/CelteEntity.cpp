@@ -113,6 +113,9 @@ namespace celte {
         celte::runtime::CelteInputSystem::InputUpdate_s req = {
             .name = inputName, .pressed = pressed, .uuid = _uuid
         };
+        std::cout << "Input : " << inputName << std::endl
+                  << std::flush;
+
         CINPUT.GetWriterPool().Write<celte::runtime::CelteInputSystem::InputUpdate_s>(cp, req);
     }
 
