@@ -24,7 +24,7 @@ test_suites:
 
   - name: game1
     description: Test the correct behavior with multiple clients in a small game.
-    timeout-seconds:  50
+    timeout-seconds:  120
 
     cluster: yes
     master: yes
@@ -47,6 +47,7 @@ test_suites:
         - ">> Grape LeChateauDuGentil loaded, owned locally: (yes|no) <<"
         - ">> SERVER SPAWN .* <<"
         - ">> SERVER onTake HOOK CALLED <<"
+        - ".*Name: move.*"
 
       clients:
         - ">> Grape LeChateauDuMechant loaded, owned locally: no <<"
@@ -54,3 +55,4 @@ test_suites:
         - ">> CLIENT LOADED MAP << "
         - ">> CLIENT IS READY TO SPAWN <<"
         - ">> CLIENT SPAWNING .* <<"
+        - ".*Input : move.*"

@@ -55,10 +55,14 @@ namespace celte {
             for (int i = 0; i < 4; i++) { // TODO make this configurable
                 _threads.create_thread(boost::bind(&boost::asio::io_service::run, &_io));
             }
-            _inputs = std::make_shared<celte::runtime::CelteInputSystem>();
+            _inputs = std::make_shared<celte::runtime::CelteInputSystem>(_io);
         }
 
-        CelteRuntime::~CelteRuntime() { }
+        CelteRuntime::~CelteRuntime()
+        {
+            _io.stop();
+            _threads.join_all();
+        }
 
         void CelteRuntime::Start(RuntimeMode mode)
         {
