@@ -1,4 +1,5 @@
 #include "Game2.hpp"
+#include "base64.hpp"
 #include <chrono>
 
 static Game game;
@@ -74,7 +75,7 @@ void registerHooks()
         std::cout << ">> SERVER onTake HOOK CALLED <<" << std::endl;
     };
 
-    HOOKS.server.grape.onLoadExistingEntities = [](std::string grapeId,
+    HOOKS.server.grape.onLoadExistingEntities = [](
                                                     nlohmann::json summary) {
         std::cout << ">> SERVER LOADING EXISTING ENTITIES <<" << std::endl;
         loadEntitiesFromSummary(summary);

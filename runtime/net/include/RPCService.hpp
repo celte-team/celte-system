@@ -12,11 +12,13 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include "base64.hpp"
 #include <algorithm>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include <functional>
 #include <future>
+#include <mutex>
 #include <optional>
 #include <unordered_map>
 
@@ -68,10 +70,16 @@ private:
 
 class RPCService : public CelteService {
 public:
+  static std::unordered_map<std::string,
+                            std::shared_ptr<std::promise<std::string>>>
+      rpcPromises;
+  static std::mutex rpcPromisesMutex;
+
   struct Options {
     const std::string &thisPeerUuid;
     std::vector<std::string> listenOn;
     int nThreads = 1;
+    std::string reponseTopic = "";
     std::string serviceName = "";
   };
 
@@ -91,13 +99,16 @@ public:
     RPRequest req{
         .name = name,
         .respondsTo = "",
-        .responseTopic = *_options.listenOn.begin(),
+        .responseTopic = _options.reponseTopic,
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = std::make_tuple(args...)};
 
     std::shared_ptr<std::promise<std::string>> promise =
         std::make_shared<std::promise<std::string>>();
-    rpcPromises[req.rpcId] = promise;
+    {
+      std::lock_guard<std::mutex> lock(rpcPromisesMutex);
+      rpcPromises[req.rpcId] = promise;
+    }
     _writerStreamPool.Write(topic, req);
 
     std::string result = promise->get_future().get(); // json of response.args
@@ -127,12 +138,21 @@ public:
     RPRequest req{
         .name = name,
         .respondsTo = "",
-        .responseTopic = *_options.listenOn.begin(),
+        .responseTopic = _options.reponseTopic,
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = std::make_tuple(args...)};
+    {
+      // debug
+      nlohmann::json j;
+      to_json(j, req);
+      std::cout << "RPCService::CallAsync: " << j.dump() << std::endl;
+    }
     std::shared_ptr<std::promise<std::string>> promise =
         std::make_shared<std::promise<std::string>>();
-    rpcPromises[req.rpcId] = promise;
+    {
+      std::lock_guard<std::mutex> lock(rpcPromisesMutex);
+      rpcPromises[req.rpcId] = promise;
+    }
 
     auto future = std::make_shared<std::future<Ret>>(
         std::async(std::launch::async, [promise]() {
@@ -141,7 +161,15 @@ public:
           return r;
         }));
 
-    _writerStreamPool.Write(topic, req);
+    _writerStreamPool.Write(topic, req, [topic, name](pulsar::Result r) {
+      if (r != pulsar::ResultOk) {
+        std::cerr << "Error calling rpc on topic " << topic << " with name "
+                  << name << std::endl;
+      } else {
+        std::cerr << "rpc call on topic " << topic << " with name " << name
+                  << " succeeded" << std::endl;
+      }
+    });
     return Awaitable<Ret>(future, _io);
   }
 
@@ -164,8 +192,6 @@ private:
       _rpcs;
   Options _options;
   WriterStreamPool _writerStreamPool;
-  std::unordered_map<std::string, std::shared_ptr<std::promise<std::string>>>
-      rpcPromises;
 };
 } // namespace net
 } // namespace celte

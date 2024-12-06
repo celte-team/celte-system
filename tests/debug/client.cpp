@@ -1,4 +1,5 @@
 #include "Game2.hpp"
+#include "base64.hpp"
 #include <chrono>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -50,8 +51,7 @@ void registerHooks()
         return true;
     };
 
-    HOOKS.client.grape.onLoadExistingEntities = [](std::string grapeId,
-                                                    nlohmann::json summary) {
+    HOOKS.client.grape.onLoadExistingEntities = [](nlohmann::json summary) {
         std::cout << ">> CLIENT LOADING EXISTING ENTITIES <<" << std::endl;
         loadEntitiesFromSummary(summary);
         return true;

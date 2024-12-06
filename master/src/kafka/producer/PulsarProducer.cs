@@ -12,9 +12,13 @@ class PulsarProducer
     {
         try
         {
-            var configObject = master._setupConfig.GetYamlObjectConfig();
+            var configObject = master._setupConfig?.GetYamlObjectConfig();
+            if (configObject == null || configObject["pulsar_brokers"] == null)
+            {
+                throw new InvalidOperationException("Configuration object is null");
+            }
             var pulsarConfig = configObject["pulsar_brokers"];
-            string pulsar_brokers = pulsarConfig.ToString();
+            string pulsar_brokers = pulsarConfig?.ToString() ?? throw new InvalidOperationException("Pulsar brokers configuration is null");
             Uri uri = new Uri(pulsar_brokers);
             _client = new PulsarClientBuilder()
                 .ServiceUrl(pulsar_brokers)
@@ -39,6 +43,20 @@ class PulsarProducer
         catch (Exception e)
         {
             Console.WriteLine($"Error producing message: {e.Message}");
+        }
+    }
+
+    public async Task OpenTopic(string topic)
+    {
+        try
+        {
+            var producer = await _client.NewProducer()
+                .Topic(topic)
+                .CreateAsync();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error opening topic: {e.Message}");
         }
     }
 

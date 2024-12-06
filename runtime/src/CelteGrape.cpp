@@ -53,6 +53,7 @@ void Grape::__initNetwork() {
   _rpcs.emplace(net::RPCService::Options{
       .thisPeerUuid = RUNTIME.GetUUID(),
       .listenOn = rpcTopics,
+      .reponseTopic = RUNTIME.GetUUID() + "." + tp::RPCs,
       .serviceName =
           RUNTIME.GetUUID() + ".grape." + _options.grapeId + "." + tp::RPCs,
   });
@@ -107,11 +108,14 @@ void Grape::__subdivide() {
 
   RUNTIME.IO().post([this]() {
     // waiting until all readers are ready
+    std::cout << "Waiting for readers to be ready..." << std::endl;
     while (not _rpcs->Ready())
       ;
+    std::cout << "RPCs are ready." << std::endl;
     for (auto &[chunkId, chunk] : _chunks) {
       chunk->WaitNetworkInitialized();
     }
+    std::cout << "All readers are ready." << std::endl;
 
     NET.PushThen([this]() {
       // calling user defined callback
@@ -122,16 +126,18 @@ void Grape::__subdivide() {
 
     // When ready, requesting the owner of the grape to send the existing
     // data to load on the grape
+    std::cout << "Requesting existing entities summary..." << std::endl;
     if (not _options.isLocallyOwned) {
+      std::cout << "Requesting" << std::endl;
       _rpcs
-          ->CallAsync<std::string>(tp::PERSIST_DEFAULT + _options.grapeId +
-                                       tp::RPCs,
+          ->CallAsync<std::string>(tp::PERSIST_DEFAULT + _options.grapeId,
                                    "__rp_sendExistingEntitiesSummary",
                                    RUNTIME.GetUUID(), _options.grapeId)
           .Then([this](std::string summary) {
-            ENTITIES.LoadExistingEntities(_options.grapeId, summary);
+            ENTITIES.LoadExistingEntities(summary);
           });
     }
+    std::cout << "-----------------------------------" << std::endl;
   });
 }
 

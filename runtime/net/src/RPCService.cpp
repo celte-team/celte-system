@@ -4,6 +4,10 @@
 
 namespace celte {
 namespace net {
+std::unordered_map<std::string, std::shared_ptr<std::promise<std::string>>>
+    RPCService::rpcPromises;
+std::mutex RPCService::rpcPromisesMutex;
+
 RPCService::RPCService(const RPCService::Options &options)
     : _work(_io), _options(options),
       _writerStreamPool(
@@ -50,20 +54,22 @@ void RPCService::__handleRemoteCall(const RPRequest &req) {
   std::cout << "RPC handling call: " << req.name << std::endl;
   auto f = it->second;
   auto result = f(req.args);
-  RPRequest response{
-      .name = req.name,
-      .respondsTo = req.rpcId,
-      .responseTopic = "", // can't respond to a response
-      .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
-      .args = result,
-  };
 
   if (not req.responseTopic.empty()) {
+    RPRequest response{
+        .name = req.name,
+        .respondsTo = req.rpcId,
+        .responseTopic = "", // we are responding to the rpc so no need to set a
+                             // response topic
+        .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
+        .args = result,
+    };
     _writerStreamPool.Write(req.responseTopic, response);
   }
 }
 
 void RPCService::__handleResponse(const RPRequest &req) {
+  std::lock_guard<std::mutex> lock(rpcPromisesMutex);
   auto it = rpcPromises.find(req.respondsTo);
   if (it == rpcPromises.end()) {
     // no such promise

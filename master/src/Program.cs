@@ -1,8 +1,4 @@
-﻿using System;
-using System.Threading;
-using Confluent.Kafka;
-
-class Program
+﻿class Program
 {
     static void Main(string[] args)
     {
@@ -21,6 +17,5 @@ class Program
         {
             Thread.Sleep(100);
         }
-        master.Dispose();
     }
 }

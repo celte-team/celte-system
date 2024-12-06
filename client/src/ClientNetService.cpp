@@ -11,6 +11,7 @@ void ClientNetService::Connect() {
   _rpcs.emplace(net::RPCService::Options{
       .thisPeerUuid = RUNTIME.GetUUID(),
       .listenOn = {tp::PERSIST_DEFAULT + RUNTIME.GetUUID() + "." + tp::RPCs},
+      .reponseTopic = RUNTIME.GetUUID() + "." + tp::RPCs,
       .serviceName = RUNTIME.GetUUID() + ".peer." + tp::RPCs,
   });
 
