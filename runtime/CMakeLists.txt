@@ -52,6 +52,7 @@ set(COMMON_SOURCES
     src/Replicator.cpp
     src/Logger.cpp
     src/base64.cpp
+    src/CelteInputSystem.cpp
 )
 
 set(SERVER_SOURCES

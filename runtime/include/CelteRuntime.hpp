@@ -27,6 +27,7 @@
 #include "CelteGrape.hpp"
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteHooks.hpp"
+#include "CelteInputSystem.hpp"
 #include "CelteNet.hpp"
 #include "CelteRequest.hpp"
 #include "CelteService.hpp"
@@ -48,17 +49,18 @@
 #include <vector>
 
 namespace celte {
-namespace runtime {
-enum RuntimeMode { SERVER, CLIENT };
+    namespace runtime {
+        enum RuntimeMode { SERVER,
+            CLIENT };
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-using Services =
-    // tinyfsm::FsmList<celte::server::AServer, celte::nl::AKafkaLink>;
-    tinyfsm::FsmList<celte::server::AServer>;
+        using Services =
+            // tinyfsm::FsmList<celte::server::AServer, celte::nl::AKafkaLink>;
+            tinyfsm::FsmList<celte::server::AServer>;
 #else
-using Services =
-    // tinyfsm::FsmList<celte::client::AClient, celte::nl::AKafkaLink>;
-    tinyfsm::FsmList<celte::client::AClient>;
+        using Services =
+            // tinyfsm::FsmList<celte::client::AClient, celte::nl::AKafkaLink>;
+            tinyfsm::FsmList<celte::client::AClient>;
 #endif
 
 #define RUNTIME celte::runtime::CelteRuntime::GetInstance()
@@ -66,221 +68,234 @@ using Services =
 #define CLOCK celte::runtime::CelteRuntime::GetInstance().GetClock()
 #define ENTITIES celte::runtime::CelteRuntime::GetInstance().GetEntityManager()
 #define NET celte::net::CelteNet::Instance()
+#define CINPUT celte::runtime::CelteRuntime::GetInstance().CelteInput()
 
-/**
- * @brief This class contains all the logic necessary
- * for Celte to run in a Godot project.
- * Depending on the mode (client or server), the runtime
- * will get initialized differently to reduce checks at runtime.
- *
- */
-class CelteRuntime {
-public:
-  /**
-   * @brief Singleton pattern for the CelteRuntime.
-   *
-   */
-  static CelteRuntime &GetInstance();
+        /**
+         * @brief This class contains all the logic necessary
+         * for Celte to run in a Godot project.
+         * Depending on the mode (client or server), the runtime
+         * will get initialized differently to reduce checks at runtime.
+         *
+         */
+        class CelteRuntime {
+        public:
+            /**
+             * @brief Singleton pattern for the CelteRuntime.
+             *
+             */
+            static CelteRuntime& GetInstance();
 
-  CelteRuntime();
-  ~CelteRuntime();
+            CelteRuntime();
+            ~CelteRuntime();
 
-  /**
-   * @brief Updates the state of the runtime synchronously.
-   *
-   */
-  void Tick();
+            /**
+             * @brief Updates the state of the runtime synchronously.
+             *
+             */
+            void Tick();
 
-  /**
-   * @brief Register a new callback to be executed every time the
-   * Tick method is called.
-   *
-   * Returns a unique id for this callback.
-   *
-   * @param task
-   *
-   * @return int the id of the registered callback. Used to unregister it
-   * with UnregisterTickCallback.
-   */
-  int RegisterTickCallback(std::function<void()> callback);
+            /**
+             * @brief Register a new callback to be executed every time the
+             * Tick method is called.
+             *
+             * Returns a unique id for this callback.
+             *
+             * @param task
+             *
+             * @return int the id of the registered callback. Used to unregister it
+             * with UnregisterTickCallback.
+             */
+            int RegisterTickCallback(std::function<void()> callback);
 
-  /**
-   * @brief Unregister a callback by its id.
-   *
-   * @param id
-   */
-  void UnregisterTickCallback(int id);
+            /**
+             * @brief Unregister a callback by its id.
+             *
+             * @param id
+             */
+            void UnregisterTickCallback(int id);
 
-  /**
-   * @brief Starts all Celte services
-   *
-   */
-  void Start(RuntimeMode mode);
+            /**
+             * @brief Starts all Celte services
+             *
+             */
+            void Start(RuntimeMode mode);
 
-  /**
-   * @brief Returns a reference to the grape manager.
-   */
-  celte::chunks::CelteGrapeManagementSystem &GetGrapeManager();
+            /**
+             * @brief Returns a reference to the grape manager.
+             */
+            celte::chunks::CelteGrapeManagementSystem& GetGrapeManager();
 
 #ifndef CELTE_SERVER_MODE_ENABLED
-  /**
-   * @brief This method is only available in client mode.
-   * It requests the server to spawn a new entity for the player to possess.
-   * The client should have an RPC defined called onAuthorizeSpawn that will
-   * call a user defined hook responsible for spawning the entity.
-   */
-  void RequestSpawn(const std::string &clientId, const std::string &grapeId,
-                    float x, float y, float z);
+            /**
+             * @brief This method is only available in client mode.
+             * It requests the server to spawn a new entity for the player to possess.
+             * The client should have an RPC defined called onAuthorizeSpawn that will
+             * call a user defined hook responsible for spawning the entity.
+             */
+            void RequestSpawn(const std::string& clientId, const std::string& grapeId,
+                float x, float y, float z);
 #endif
 
-private:
+        private:
 // =================================================================================================
 // SERVER INIT
 // =================================================================================================
 #ifdef CELTE_SERVER_MODE_ENABLED
-  /**
-   * @brief Initialize the Celte runtime in server mode.
-   *
-   */
-  void __initServer();
+            /**
+             * @brief Initialize the Celte runtime in server mode.
+             *
+             */
+            void __initServer();
 
-  /**
-   * @brief Initialize the RPC table specific to the server.
-   */
-  void __initServerRPC();
+            /**
+             * @brief Initialize the RPC table specific to the server.
+             */
+            void __initServerRPC();
 #endif
 
 // =================================================================================================
 // CLIENT INIT
 // =================================================================================================
 #ifndef CELTE_SERVER_MODE_ENABLED
-  /**
-   * @brief Initialize the Celte runtime in client mode.
-   *
-   */
-  void __initClient();
+            /**
+             * @brief Initialize the Celte runtime in client mode.
+             *
+             */
+            void __initClient();
 
-  /**
-   * @brief Initialize the RPC table specific to the client.
-   */
-  void __initClientRPC();
+            /**
+             * @brief Initialize the RPC table specific to the client.
+             */
+            void __initClientRPC();
 #endif
 
-  // =================================================================================================
-  // Services API
-  // =================================================================================================
-public:
-  /**
-   * @brief Attempts to connect to a kafka cluster using the environment
-   * CELTE_CLUSTER_HOST, which must be under the format "host:port".
-   */
-  void ConnectToCluster();
+            // =================================================================================================
+            // Services API
+            // =================================================================================================
+        public:
+            /**
+             * @brief Attempts to connect to a kafka cluster using the environment
+             * CELTE_CLUSTER_HOST, which must be under the format "host:port".
+             */
+            void ConnectToCluster();
 
-  /**
-   * @brief Attemps a connection to a kafka cluster.
-   */
-  void ConnectToCluster(const std::string &ip, int port);
+            /**
+             * @brief Attemps a connection to a kafka cluster.
+             */
+            void ConnectToCluster(const std::string& ip, int port);
 
-  /**
-   * @brief Returns true if the runtime is currently connected to
-   * kafka
-   */
-  bool IsConnectedToCluster();
+            /**
+             * @brief Returns true if the runtime is currently connected to
+             * kafka
+             */
+            bool IsConnectedToCluster();
 
-  /**
-   * @brief Returns true if the runtime is currently connecting to
-   * kafka
-   */
-  bool IsConnectingToCluster();
+            /**
+             * @brief Returns true if the runtime is currently connecting to
+             * kafka
+             */
+            bool IsConnectingToCluster();
 
-  /**
-   * @brief Waits until the runtime is connected to the cluster. If timeout is
-   * reached, returns false.
-   *
-   */
-  bool WaitForClusterConnection(int timeoutMs);
+            /**
+             * @brief Returns a reference to the KafkaPool used to send and receive
+             * messages from kafka. If the kafka pool is not initialized, throws an
+             * std::logic_error.
+             */
+            // nl::KafkaPool &KPool();
+            CelteInputSystem& CelteInput();
 
-  /**
-   * @brief Returns a reference to the hook table.
-   */
-  api::HooksTable &Hooks();
+            /**
+             * @brief Waits until the runtime is connected to the cluster. If timeout is
+             * reached, returns false.
+             *
+             */
+            bool WaitForClusterConnection(int timeoutMs);
 
-  /**
-   * @brief Returns a reference to the logger info stream.
-   */
-  std::ostream &Info();
+            /**
+             * @brief Returns a reference to the hook table.
+             */
+            api::HooksTable& Hooks();
 
-  /**
-   * @brief Returns a reference to the logger error stream.
-   */
-  std::ostream &Err();
+            /**
+             * @brief Returns a reference to the logger info stream.
+             */
+            std::ostream& Info();
 
-  logs::Logger &Logger();
+            /**
+             * @brief Returns a reference to the logger error stream.
+             */
+            std::ostream& Err();
 
-  /**
-   * @brief Returns the UUID of the peer.
-   */
-  const std::string &GetUUID() const;
+            logs::Logger& Logger();
 
-  /**
-   * @brief Returns a reference to the global clock.
-   */
-  inline Clock &GetClock() { return _clock; }
+            /**
+             * @brief Returns the UUID of the peer.
+             */
+            const std::string& GetUUID() const;
 
-  /**
-   * @brief returns a reference to the entity manager.
-   */
-  inline CelteEntityManagementSystem &GetEntityManager() {
-    return _entityManager;
-  }
+            /**
+             * @brief Returns a reference to the global clock.
+             */
+            inline Clock& GetClock() { return _clock; }
 
-  /**
-   * @brief Returns a reference to the io service.
-   */
-  inline boost::asio::io_service &IO() { return _io; }
+            /**
+             * @brief returns a reference to the entity manager.
+             */
+            inline CelteEntityManagementSystem& GetEntityManager()
+            {
+                return _entityManager;
+            }
 
-private:
-  // =================================================================================================
-  // PRIVATE METHODS
-  // =================================================================================================
+            /**
+             * @brief Returns a reference to the io service.
+             */
+            inline boost::asio::io_service& IO() { return _io; }
 
-  /**
-   * @brief Create the network layer, either in server or client
-   * mode.
-   *
-   * @param mode
-   */
-  void __initNetworkLayer(RuntimeMode mode);
+        private:
+            // =================================================================================================
+            // PRIVATE METHODS
+            // =================================================================================================
 
-  // =================================================================================================
-  // PRIVATE MEMBERS
-  // =================================================================================================
+            /**
+             * @brief Create the network layer, either in server or client
+             * mode.
+             *
+             * @param mode
+             */
+            void __initNetworkLayer(RuntimeMode mode);
 
-  // list of tasks to be ran each frame.
-  // The key is the id of the task, used to unregister it if needed.
-  std::map<int, std::function<void()>> _tickCallbacks;
+            // =================================================================================================
+            // PRIVATE MEMBERS
+            // =================================================================================================
 
-  // id of the next callback to be registered
-  int _tickCallbackId = 0;
+            // list of tasks to be ran each frame.
+            // The key is the id of the task, used to unregister it if needed.
+            std::map<int, std::function<void()>> _tickCallbacks;
 
-  // either server or client, should be decided at compilation
-  RuntimeMode _mode;
+            // id of the next callback to be registered
+            int _tickCallbackId = 0;
 
-  // Hooks table
-  api::HooksTable _hooks;
+            // either server or client, should be decided at compilation
+            RuntimeMode _mode;
 
-  // Global Clock manager
-  Clock _clock;
+            // Input ptr
+            // Hooks table
+            api::HooksTable _hooks;
 
-  // Entity manager
-  CelteEntityManagementSystem _entityManager;
+            // Global Clock manager
+            Clock _clock;
 
-  // io service and thread pool for async operations if needed
-  boost::asio::io_service _io;
-  boost::asio::io_service::work _work;
-  boost::thread_group _threads;
-};
-} // namespace runtime
+            // Entity manager
+            CelteEntityManagementSystem _entityManager;
+
+            // io service and thread pool for async operations if needed
+            boost::asio::io_service _io;
+            boost::asio::io_service::work _work;
+            boost::thread_group _threads;
+            
+            std::shared_ptr<CelteInputSystem> _inputs;
+        };
+    } // namespace runtime
 } // namespace celte
 
 #endif // CELTE_RUNTIME_HPP
