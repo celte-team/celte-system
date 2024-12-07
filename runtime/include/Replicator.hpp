@@ -17,23 +17,6 @@ namespace runtime {
  */
 class Replicator {
 private:
-  /**
-   * @brief ReplData contains information about the data that can be
-   * replicated. It contains the size of the data, a pointer to the data and
-   * a flag to indicate if the data has changed.
-   */
-  struct ReplData {
-    size_t dataSize;
-    void *dataPtr;
-    bool hasChanged;
-  };
-
-  struct ActiveReplData {
-    size_t dataSize;
-    void *dataPtr;
-    int hash;
-  };
-
 public:
   /**
    * @brief ReplBlob is a structure that contains the data that needs to be
@@ -44,94 +27,30 @@ public:
   using ReplBlob = std::string;
 
   /**
-   * @brief Acknowledge that the value has chnaged and that it should be
-   * replicated to other peers.
-   */
-  void notifyDataChanged(const std::string &name);
-
-  /**
-   * @brief Resets the flag that indicates that the data has changed for all
-   * data.
-   */
-  void ResetDataChanged();
-
-  /**
-   * @brief Returns the a serialized version of the data to be replicated.
-   *
+   * @brief Returns a blob containing all of the changes to the data that is
+   * being actively watched for.
    */
   ReplBlob GetBlob(bool peek = false);
 
   /**
-   * @brief Returns a blob containing all of the changes to the data that is
-   * being actively watched for.
-   */
-  ReplBlob GetActiveBlob(bool peek = false);
-
-  /**
    * @brief Overwrite the data with the data in the blob.
    */
-  void Overwrite(const ReplBlob &blob, bool active = false);
+  void Overwrite(const ReplBlob &blob);
 
-  /**
-   * @brief Registers a value to be replicated.
-   *
-   */
-  template <typename T> void registerValue(const std::string &name, T *value) {
-    if (_replicatedData.find(name) != _replicatedData.end()) {
-      throw std::runtime_error("Value already registered: " + name);
-    }
-    ReplData replData = {sizeof(T), value, false};
-    _replicatedData[name] = replData;
-  }
-
-  /**
-   * @brief Registers a value to be replicated. Contrary to registerValue, this
-   * value will be actively watched over, meaning that any change to the value
-   * will be sent over the network without needing to call notifyDataChanged.
-   */
-  template <typename T>
-  void registerActiveValue(const std::string &name, T *value) {
-    if (_activeReplicatedData.find(name) != _activeReplicatedData.end()) {
-      throw std::runtime_error("Value already registered: " + name);
-    }
-    ActiveReplData replData = {
-        .dataSize = sizeof(T), .dataPtr = value, .hash = 0};
-    _activeReplicatedData[name] = replData;
-  }
-
-  /**
-   * @brief Get the value of a registered value.
-   */
-  template <typename T> T getValue(const std::string &name) {
-    return *static_cast<T *>(_replicatedData[name].dataPtr);
-  }
+  void RegisterReplicatedValue(const std::string &name,
+                               std::function<std::string()> get,
+                               std::function<void(const std::string &)> set);
 
 private:
-  int __computeCheckSum(void *dataptr, size_t size);
+  int __computeCheckSum(const std::string &data);
 
-  /**
-   * @brief This method is pretty much the same than __overwriteActiveData,
-   * except the destination is _replicatedData instead of _activeReplicatedData.
-   * This is code duplication, so not cool, but it will avoid a LOT of
-   * conditional statements at runtime.
-   * This will take a blob and update the local values of the properties
-   * described by the blob.
-   */
-  void __overwriteData(const ReplBlob &blob, msgpack::unpacker &unpacker);
+  struct GetSet {
+    std::function<std::string()> get;
+    std::function<void(const std::string &)> set;
+    int hash = 0;
+  };
 
-  /**
-   * @brief This method is pretty much the same than __overwriteData,
-   * except the destination is _activeReplicatedData instead of _replicatedData.
-   * This is code duplication, so not cool, but it will avoid a LOT of
-   * conditional statements at runtime.
-   * This will take a blob and update the local values of the properties
-   * described by the blob.
-   */
-  void __overwriteActiveData(const ReplBlob &blob, msgpack::unpacker &unpacker);
-
-  // Values to replicate, key is the name of the value to replicate
-  std::unordered_map<std::string, ReplData> _replicatedData;
-  std::unordered_map<std::string, ActiveReplData> _activeReplicatedData;
+  std::unordered_map<std::string, GetSet> _replicatedValues;
 };
 } // namespace runtime
 } // namespace celte
