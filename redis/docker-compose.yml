@@ -1,0 +1,51 @@
+# # Welcome to the Redis Docker Compose file
+# # This file is used to create a Redis Master-Slave setup with Sentinel and Redis Commander
+# # To get all the data you can get:
+# # redisinsight will be accessible at http://localhost:5540
+# # redis-commander will be accessible at http://localhost:5050
+
+services:
+  redis_master:
+    image: redis/redis-stack:latest
+    container_name: redis_master
+    restart: on-failure
+    ports:
+      - '6379:6379'
+
+  redis_slave:
+    image: redis/redis-stack:latest
+    container_name: redis_slave
+    command: redis-server --port 6380 --replicaof redis_master 6379
+    restart: on-failure
+    ports:
+      - '6380:6380'
+
+  sentinel:
+    build: ./sentinel
+    container_name: redis_sentinel
+    restart: on-failure
+    ports:
+      - '26379:26379'
+    environment:
+      - SENTINEL_NAME=mysentinel
+      - HOST_IP="${EXTERNAL_HOST}"
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    restart: on-failure
+    ports:
+      - '5540:5540'
+    environment:
+      - REDIS_URI=redis://redis_master:6379
+
+  redis-commander:
+    container_name: redis-commander
+    hostname: redis-commander
+    image: ghcr.io/joeferner/redis-commander:latest
+    restart: always
+    environment:
+      - REDIS_HOSTS=local:redis_master:6379,local:redis_slave:6380
+    ports:
+      - "5050:8081"
+    user: redis
