@@ -25,9 +25,7 @@ WriterStreamPool::WriterStreamPool(const Options &options,
 
 WriterStreamPool::~WriterStreamPool() {
   _running = false;
-  std::cout << "joining " << std::endl;
   _cleanupThread.join();
-  std::cout << "joined" << std::endl;
 }
 
 } // namespace net

@@ -12,7 +12,9 @@ namespace chunks {
 class CelteGrapeManagementSystem {
 public:
   CelteGrapeManagementSystem() {}
-  ~CelteGrapeManagementSystem() {}
+  ~CelteGrapeManagementSystem() {
+    std::cout << "Grape management system destructor called" << std::endl;
+  }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**

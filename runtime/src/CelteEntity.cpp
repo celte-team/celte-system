@@ -66,8 +66,6 @@ void CelteEntity::UploadReplicationData() {
     return;
   }
 
-  // lazy replication, only send data if user notified of change using
-  // NotifyDataChanged
   std::string blob = _replicator.GetBlob(false);
 
   if (not blob.empty()) {
@@ -93,7 +91,12 @@ void CelteEntity::DownloadReplicationData(const std::string &blob) {
     return;
   }
   std::string blobDecoded = base64_decode(blob);
-  _replicator.Overwrite(blobDecoded);
+  try {
+    _replicator.Overwrite(blobDecoded);
+  } catch (std::exception &e) {
+    std::cerr << "Error while downloading replication data: " << e.what()
+              << std::endl;
+  }
 }
 
 std::string CelteEntity::GetProps() { return _replicator.GetBlob(true); }

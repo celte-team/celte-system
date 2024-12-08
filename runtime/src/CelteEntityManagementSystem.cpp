@@ -130,16 +130,19 @@ std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
       obj["chunk"] = entity->GetOwnerChunk().GetCombinedId();
       obj["info"] = entity->GetInformationToLoad();
       std::string props = entity->GetProps();
-      obj["props"] = base64_encode(
-          reinterpret_cast<const unsigned char *>(props.c_str()), props.size());
-
+      if (props.empty()) {
+        obj["props"] = "";
+      } else {
+        obj["props"] = base64_encode(
+            reinterpret_cast<const unsigned char *>(props.c_str()),
+            props.size());
+      }
       // Add the object to the JSON array
       j.push_back(obj);
-    } catch (std::out_of_range &e) {
+    } catch (std::exception &e) {
       // If the entity is not associated with a chunk, log it
-      logs::Logger::getInstance().err()
-          << "Entity " << entity->GetUUID() << " is not owned by any chunk."
-          << std::endl;
+      std::cerr << "Error while packing entity " << entity->GetUUID()
+                << " to json: " << e.what() << std::endl;
     }
   }
   std::cout << "Returning json" << std::endl;
@@ -173,21 +176,28 @@ void CelteEntityManagementSystem::RegisterReplConsumer(
 void CelteEntityManagementSystem::__handleReplicationDataReceived(
     std::unordered_map<std::string, std::string> &data, bool active) {
   // dropping extra headers
+  std::cout << "In __handleReplicationDataReceived" << std::endl;
   data.erase(celte::tp::HEADER_PEER_UUID);
   for (auto &[entityId, blob] : data) {
     try {
       CelteEntity &entity = GetEntity(entityId);
-      entity.DownloadReplicationData(blob);
+      try {
+        entity.DownloadReplicationData(blob);
 #ifdef CELTE_SERVER_MODE_ENABLED
-      HOOKS.server.replication.onReplicationDataReceived(entityId, blob);
+        HOOKS.server.replication.onReplicationDataReceived(entityId, blob);
 #else
-      HOOKS.client.replication.onReplicationDataReceived(entityId, blob);
+        HOOKS.client.replication.onReplicationDataReceived(entityId, blob);
 #endif
+      } catch (std::exception &e) {
+        logs::Logger::getInstance().err()
+            << "Error while downloading replication data: " << e.what()
+            << std::endl;
+      }
     } catch (std::out_of_range &e) {
       logs::Logger::getInstance().err()
           << "Entity " << entityId << " not found."
-          << std::endl; // TODO: better handling for this, entities may need to
-                        // spawn or smth
+          << std::endl; // TODO: better handling for this, entities may need
+                        // to spawn or smth
     }
   }
 }

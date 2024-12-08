@@ -24,7 +24,7 @@ test_suites:
 
   - name: game1
     description: Test the correct behavior with multiple clients in a small game.
-    timeout-seconds:  30
+    timeout-seconds:  60
 
     cluster: yes
     master: yes

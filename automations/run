@@ -38,7 +38,7 @@ def get_ip_address():
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
-        print(f"{Fore.GREEN}Host IP Address: {ip}{Style.RESET_ALL}")
+        print(f"Host IP Address: {ip}")
         s.close()
         return ip
     except Exception as e:
@@ -187,13 +187,20 @@ def wait_for_all_logs(log_file, regexes, timeout_seconds):
 
     while time.time() - start_time < timeout_seconds or found_patterns == n_patterns_to_find:
         print(f"{Fore.GREEN}Waiting for logs... {Style.RESET_ALL}{wheel[int(time.time()) % 4]}", end='\r')
-        with open(log_file, 'r') as log:
-            for line in log:
-                for pattern in patterns:
-                    if pattern.search(line):
-                        print(f"{Fore.GREEN}Found pattern: {Fore.BLUE}{pattern.pattern}{Style.RESET_ALL}")
-                        patterns.remove(pattern)
-                        found_patterns += 1
+        try:
+            with open(log_file, 'r') as log:
+                for line in log:
+                    for pattern in patterns:
+                        if pattern.search(line):
+                            print(f"{Fore.GREEN}Found pattern: {Fore.BLUE}{pattern.pattern}{Style.RESET_ALL}")
+                            patterns.remove(pattern)
+                            found_patterns += 1
+        except UnicodeDecodeError:
+            print(f"{Fore.RED}Invalid log file encoding{Style.RESET_ALL}")
+            print(f"{Fore.RED}Error happened in file {log_file}{Style.RESET_ALL}")
+            error_line = line
+            print(f"{Fore.RED}Error line: {error_line}{Style.RESET_ALL}")
+            return False
         if found_patterns == n_patterns_to_find:
             return True
         time.sleep(1)
@@ -406,7 +413,6 @@ def usage():
 
 if __name__ == "__main__":
     try:
-        print(f"{Fore.GREEN}Checking dependencies{Style.RESET_ALL}")
         check_dependencies()
     except Exception as e:
         print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")

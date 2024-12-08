@@ -11,7 +11,21 @@
 namespace celte {
 namespace chunks {
 
-Grape::Grape(const GrapeOptions &options) : _options(options) {
+Grape::Grape(const GrapeOptions &options) : _options(options) {}
+
+Grape::Grape(Grape &grape, std::vector<std::string> chunksIds)
+    : _options(grape._options) {
+  throw std::logic_error(
+      "Grape copy constructor not implemented, fix the options, grape id...");
+  for (auto chunkId : chunksIds) {
+    _chunks[chunkId] = grape._chunks[chunkId];
+    grape._chunks.erase(chunkId);
+  }
+}
+
+Grape::~Grape() { std::cout << "Grape destructor called" << std::endl; }
+
+void Grape::Initialize() {
   if (_options.subdivision <= 0) {
     throw std::invalid_argument("Subdivision must be a positive integer.");
   }
@@ -25,27 +39,15 @@ Grape::Grape(const GrapeOptions &options) : _options(options) {
     logs::Logger::getInstance().err()
         << "Error, could not subdivide grape: " << e.what();
   }
-  logs::Logger::getInstance().info()
-      << "Grape " << _options.grapeId << " created.";
+  std::cout << "Grape has been created " << std::endl;
 }
-
-Grape::Grape(Grape &grape, std::vector<std::string> chunksIds)
-    : _options(grape._options) {
-  throw std::logic_error(
-      "Grape copy constructor not implemented, fix the options, grape id...");
-  for (auto chunkId : chunksIds) {
-    _chunks[chunkId] = grape._chunks[chunkId];
-    grape._chunks.erase(chunkId);
-  }
-}
-
-Grape::~Grape() {}
 
 void Grape::__initNetwork() {
   std::vector<std::string> rpcTopics{tp::PERSIST_DEFAULT + _options.grapeId +
                                      "." + tp::RPCs};
 #ifdef CELTE_SERVER_MODE_ENABLED
   if (_options.isLocallyOwned) {
+    std::cout << "Owning grape " << _options.grapeId << std::endl;
     rpcTopics.push_back(tp::PERSIST_DEFAULT + _options.grapeId);
   }
 #endif
@@ -88,11 +90,13 @@ void Grape::__subdivide() {
                                  _options.localX, _options.localY,
                                  _options.localZ);
   auto points = boundingBox.GetMeshedPoints(_options.subdivision);
+  std::cout << "creating " << points.size() << " chunks" << std::endl;
 
   for (auto point : points) {
     std::stringstream chunkId;
     glm::ivec3 pointInt = glm::ivec3(point);
-    chunkId << "." << pointInt.x << "." << pointInt.y << "." << pointInt.z;
+    chunkId << pointInt.x << "-" << pointInt.y << "-" << pointInt.z;
+
     ChunkConfig config = {.chunkId = chunkId.str(),
                           .grapeId = _options.grapeId,
                           .position = pointInt,
@@ -139,6 +143,7 @@ void Grape::__subdivide() {
     }
     std::cout << "-----------------------------------" << std::endl;
   });
+  std::cout << "subdivision done" << std::endl;
 }
 
 GrapeStatistics Grape::GetStatistics() const {

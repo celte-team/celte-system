@@ -22,25 +22,37 @@ void Replicator::RegisterReplicatedValue(
 }
 
 Replicator::ReplBlob Replicator::GetBlob(bool peek) {
-  nlohmann::json j;
-  for (auto &[key, value] : _replicatedValues) {
-    if (value.hash != __computeCheckSum(value.get())) {
-      j[key] = value.get();
-      if (not peek) {
-        value.hash = __computeCheckSum(value.get());
+  try {
+    nlohmann::json j;
+    for (auto &[key, value] : _replicatedValues) {
+      std::string raw = value.get();
+      if (value.hash != __computeCheckSum(raw)) {
+        j[key] = raw;
+        if (not peek) {
+          value.hash = __computeCheckSum(raw);
+        }
       }
     }
+    return j.dump();
+  } catch (std::exception &e) {
+    std::cerr << "Error while packing replication data: " << e.what()
+              << std::endl;
+    return "";
   }
-  return j.dump();
 }
 
 void Replicator::Overwrite(const ReplBlob &blob) {
-  nlohmann::json j = nlohmann::json::parse(blob);
-  for (auto &[key, value] : j.items()) {
-    auto it = _replicatedValues.find(key);
-    if (it != _replicatedValues.end()) {
-      it->second.set(value.get<std::string>());
+  try {
+    nlohmann::json j = nlohmann::json::parse(blob);
+    for (auto &[key, value] : j.items()) {
+      auto it = _replicatedValues.find(key);
+      if (it != _replicatedValues.end()) {
+        it->second.set(value.get<std::string>().c_str());
+      }
     }
+  } catch (std::exception &e) {
+    std::cerr << "Error while overwriting replication data: " << e.what()
+              << std::endl;
   }
 }
 

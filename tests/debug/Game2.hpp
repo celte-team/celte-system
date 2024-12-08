@@ -128,8 +128,9 @@ public:
                                     .localZ = glm::vec3(0, 0, 1),
                                     .isLocallyOwned = locallyOwned,
                                     .then = then};
-    celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER().RegisterGrape(
-        grapeOptions);
+    celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
+        .RegisterGrape(grapeOptions)
+        .Initialize();
     std::cout << ">> Grape " << name
               << " loaded, owned locally: " << ((locallyOwned) ? "yes" : "no")
               << " <<" << std::endl;
@@ -157,6 +158,7 @@ public:
           return std::to_string(objects[uuid]->y);
         },
         [uuid, this](std::string value) {
+          std::cout << "setting y to " << value << std::endl;
           objects[uuid]->y = std::stoi(value);
         });
   }
