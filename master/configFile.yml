@@ -1,8 +1,8 @@
+container_image: masterceltearm
 cpu: 1
-memory: 512
-container_image: "masterceltearm"
-kafka_brokers: "localhost:80"
-pulsar_brokers: "pulsar://localhost:6650"
 grapes:
-  - LeChateauDuMechant
-  - LeChateauDuGentil
+- LeChateauDuMechant
+- LeChateauDuGentil
+kafka_brokers: 192.168.123.190:80
+memory: 512
+pulsar_brokers: pulsar://localhost:6650

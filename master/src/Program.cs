@@ -1,7 +1,12 @@
-﻿class Program
+﻿
+using System;
+using System.Threading;
+
+class Program
 {
     static void Main(string[] args)
     {
+        Redis.RedisClient redisClient = Redis.RedisClient.GetInstance("localhost:6379");
         Master master = Master.GetInstance();
         Console.CancelKeyPress += (sender, e) =>
         {
@@ -11,8 +16,7 @@
             Environment.Exit(0);
         };
 
-
-        Console.WriteLine("Press Ctrl+C to exit...");
+        Console.WriteLine("\nPress Ctrl+C to exit...\n");
         while (true)
         {
             Thread.Sleep(100);

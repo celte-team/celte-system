@@ -1,6 +1,5 @@
-using Confluent.Kafka;
-using System;
 using MessagePack;
+using System.Text.Json;
 class ConnectClient
 {
     private Master _master = Master.GetInstance();
@@ -12,71 +11,29 @@ class ConnectClient
 
     public static Dictionary<string, Client> _clients = new Dictionary<string, Client>();
 
-    public async void connectNewClient(string message)
+    public async void ConnectNewClient(string message)
     {
-        // string message = System.Text.Encoding.UTF8.GetString(messageByte);
         Console.WriteLine("New client connected to the cluster: " + message);
-
-        // if _clients do not already contain the message, add the message to the _clients
         if (!_clients.ContainsKey(message))
             _clients.Add(message, new Client { uuid = message });
 
-        // _master.kFKProducer._uuidProducerService.OpenTopic(message);
         _ = _master.pulsarProducer.OpenTopic(message);
         try
         {
-            // select a random node from the list of nodes
-            int rand = new Random().Next(0, ConnectNode._nodes.Count);
-            string nodeId = ConnectNode._nodes.ElementAt(rand).Value.uuid;
-
-            // call the function to compute the grapeId then return the values
-            string clientId = message;
+            string nodeId = await GetRandomNode();
+            JsonDocument messageJson = JsonDocument.Parse(message);
+            JsonElement root = messageJson.RootElement;
+            string clientId = root.GetProperty("peerUuid").GetString() ?? throw new InvalidOperationException("peerUuid property is missing or null");
             string uuidProcess = Guid.NewGuid().ToString();
             const string rpcName = "__rp_getPlayerSpawnPosition";
-            string masterRPC = M.Global.MasterRPC;
-            Headers headers = new Headers
-            {
-                { "rpName", RPC.__str2bytes(rpcName) },
-                { "rpcUUID", RPC.__str2bytes(uuidProcess) },
-                { "peer.uuid", RPC.__str2bytes(M.Global.MasterUUID) }
-            };
 
-            await RPC.Call(rpcName, Scope.Peer(nodeId), headers, uuidProcess, async (byte[] value) =>
-                {
-                    Console.WriteLine($">>>>>>>>>>> Received response from getPlayerSpawnPosition: {value} <<<<<<<<<<<");
-                    try
-                    {
-                        // Initialiser les variables de sortie
-                        string grapeId = string.Empty;
-                        string receivedClientId = string.Empty;
-                        float x = 0, y = 0, z = 0;
+            Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
+            await redisClient.redisData.JSONPush("clients_try_to_connect", clientId, clientId);
 
-                        var result = UnpackAny(value, typeof(string), typeof(string), typeof(int), typeof(int), typeof(int));
-                        grapeId = (string)result.Item1[0];
-                        receivedClientId = (string)result.Item1[1];
-                        x = (int)result.Item1[2];
-                        y = (int)result.Item1[3];
-                        z = (int)result.Item1[4];
-
-                        string ownerNode = "";
-                        if (grapeId == "LeChateauDuMechant")
-                        {
-                            ownerNode = ConnectNode._nodes.ElementAt(0).Value.uuid;
-                        }
-                        else
-                        {
-                            ownerNode = ConnectNode._nodes.ElementAt(1).Value.uuid;
-                        }
-                        Console.WriteLine($"NODE OWNING CLIENT IS {ownerNode}");
-                        Console.WriteLine($"Sending response to acceptNewClient: {receivedClientId}, {grapeId}, {x}, {y}, {z}");
-                        RPC.InvokeRemote("__rp_acceptNewClient", Scope.Peer(ownerNode), receivedClientId, grapeId, x, y, z);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine($"Error handling response from getPlayerSpawnPosition: {e.Message}");
-                    }
-
-                }, clientId);
+            _master.rpc.RegisterAllResponseHandlers();
+            nodeId = "persistent://public/default/" + nodeId + ".rpc";
+            JsonElement argsElement = JsonDocument.Parse($"[\"{clientId}\"]").RootElement;
+            RPC.Call(nodeId, rpcName, argsElement);
         }
         catch (Exception e)
         {
@@ -84,50 +41,49 @@ class ConnectClient
         }
     }
 
-    static Tuple<object[]> UnpackAny(byte[] serializedData, params Type[] types)
+    private static async Task<string> GetRandomNode()
     {
-        var deserializedData = MessagePackSerializer.Deserialize<object>(serializedData);
-        Console.WriteLine($"Deserialized data: {deserializedData}");
-        if (deserializedData is object[] array && array.Length == 1 && array[0] is object[] innerArray)
+        JsonElement nodesJson = await Redis.RedisClient.GetInstance().redisData.JSONGetAll("nodes");
+        var nodesId = new List<string>();
+        if (nodesJson.ValueKind == JsonValueKind.Array)
         {
-            Console.WriteLine($"Inner array: {innerArray}");
-            if (innerArray.Length != types.Length)
+            foreach (JsonElement node in nodesJson.EnumerateArray())
             {
-                throw new InvalidOperationException("The number of types provided does not match the number of elements in the serialized data.");
+
+                if (node.ValueKind == JsonValueKind.String)
+                {
+                    using (JsonDocument nodeDoc = JsonDocument.Parse(node.GetString()))
+                    {
+                        JsonElement root = nodeDoc.RootElement;
+
+                        // Extract the "uuid" property
+                        if (root.TryGetProperty("uuid", out JsonElement uuidProperty) &&
+                            uuidProperty.ValueKind == JsonValueKind.String)
+                        {
+                            string uuid = uuidProperty.GetString();
+                            nodesId.Add(uuid);
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Error: Node is not a string.");
+                }
             }
-
-            object[] result = new object[types.Length];
-            for (int i = 0; i < types.Length; i++)
-            {
-                result[i] = Convert.ChangeType(innerArray[i], types[i]);
-            }
-            return Tuple.Create(result);
         }
-        throw new InvalidOperationException("Invalid serialized data format.");
-    }
-
-
-    private void DeserializeSpawnPosition(byte[] value, out string grapeId, out string clientId, out float x, out float y, out float z)
-    {
-        grapeId = "";
-        clientId = "";
-        x = y = z = 0.0f;
-
-        try
+        else
         {
-            object[] deserializedData = MessagePackSerializer.Deserialize<object[]>(value);
-            Console.WriteLine($"Deserialized objects: {string.Join(", ", deserializedData)}");
-            Console.WriteLine($"Deserialized Length: {deserializedData.Length}");
-            Console.WriteLine($"Deserialized objects tyeps: {deserializedData}");
-            grapeId = deserializedData[0] as string ?? "";
-            clientId = deserializedData[1] as string ?? "";
-            x = Convert.ToSingle(deserializedData[2]);
-            y = Convert.ToSingle(deserializedData[3]);
-            z = Convert.ToSingle(deserializedData[4]);
+            Console.WriteLine("Error: nodesJson is not a JSON array.");
         }
-        catch (Exception ex)
+
+        if (nodesId.Count > 0)
         {
-            Console.WriteLine($"Deserialization error: {ex.Message}");
+            Console.WriteLine($"\n -> Random node ID: {nodesId[new Random().Next(0, nodesId.Count)]}\n");
+            return nodesId[new Random().Next(0, nodesId.Count)];
+        }
+        else
+        {
+            throw new InvalidOperationException("No valid nodes found in JSON data.");
         }
     }
 }
