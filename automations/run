@@ -158,6 +158,9 @@ def run_command(command, log_file, folder=None):
             process = subprocess.Popen(command, stdout=log, stderr=log, cwd=folder)
             return process
     else:
+        print(f"Running command: {command}")
+        # get the current folder
+        print(f"Current folder: {os.getcwd()}")
         with open(log_file, 'w') as log:
             process = subprocess.Popen(command, stdout=log, stderr=log)
             return process
@@ -252,6 +255,7 @@ def run_tests(yaml_path):
     with open(yaml_path, 'r') as file:
         config = yaml.safe_load(file)
 
+    os.chdir('system')
     if not build(config):
         print(f"{Fore.RED} Build Failed. Exiting...{Style.RESET_ALL}")
         sys.exit(1)
@@ -265,7 +269,7 @@ def run_tests(yaml_path):
 
         server_binary = suite['servers']['binary']
         client_binary = suite['clients']['binary']
-
+        print(f"directory!!!!!!!!: {os.getcwd()}")
         if not os.path.exists(server_binary):
             print(f"{Fore.RED}Server binary not found: {server_binary}{Style.RESET_ALL}")
             print(f"{Fore.RED} FAILED{Style.RESET_ALL}")
@@ -280,6 +284,7 @@ def run_tests(yaml_path):
         server_processes_handles = []
         client_processes_handles = []
 
+        os.chdir('..')
         if suite.get('cluster') == True:
             print(f"{Fore.GREEN}Starting cluster{Style.RESET_ALL}")
             cluster_process_handle = run_command(["./automations/run", "--pulsar"], os.path.join(log_dir, 'cluster.log'))

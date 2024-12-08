@@ -1,4 +1,4 @@
-logs: ./build/tmp/automations/logs
+logs: ./system/build/tmp/automations/logs
 
 build:
   - step: systems
@@ -17,7 +17,7 @@ build:
 
   - step: clock
     run: |
-      cd ClockServer
+      cd ../ClockServer
       dotnet build
 
 test_suites:
@@ -28,7 +28,7 @@ test_suites:
 
     cluster: yes
     master: yes
-    master-proxy: ./runtime/net/tests/master.dummy
+    master-proxy: ./system/runtime/net/tests/master.dummy
 
     servers:
       binary: ./build/tests/server.debug
