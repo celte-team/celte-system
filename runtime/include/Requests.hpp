@@ -68,5 +68,39 @@ struct ReplicationDataPacket
   }
 };
 
+struct PerConnectionSubRequest
+    : public celte::net::CelteRequest<PerConnectionSubRequest> {
+  std::string entityId;
+  std::string connectionId;
+  std::string uploadTopic;
+
+  void to_json(nlohmann::json &j) const {
+    j = nlohmann::json{{"entityId", entityId},
+                       {"connectionId", connectionId},
+                       {"uploadTopic", uploadTopic}};
+  }
+
+  void from_json(const nlohmann::json &j) {
+    j.at("entityId").get_to(entityId);
+    j.at("connectionId").get_to(connectionId);
+    j.at("uploadTopic").get_to(uploadTopic);
+  }
+};
+
+struct PerConnectionUnsubRequest
+    : public celte::net::CelteRequest<PerConnectionUnsubRequest> {
+  std::string entityId;
+  std::string connectionId;
+
+  void to_json(nlohmann::json &j) const {
+    j = nlohmann::json{{"entityId", entityId}, {"connectionId", connectionId}};
+  }
+
+  void from_json(const nlohmann::json &j) {
+    j.at("entityId").get_to(entityId);
+    j.at("connectionId").get_to(connectionId);
+  }
+};
+
 } // namespace req
 } // namespace celte

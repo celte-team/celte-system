@@ -10,23 +10,46 @@
 namespace celte {
 namespace net {
 
+/**
+ * @struct ReaderStream
+ * @brief Manages the reading of messages from Pulsar topics.
+ */
 struct ReaderStream {
+
+  /**
+   * @struct Options
+   * @brief Configuration options for ReaderStream.
+   * @tparam Req The type of request.
+   */
   template <typename Req> struct Options {
-    std::string thisPeerUuid;
-    std::vector<std::string> topics;
-    std::string subscriptionName;
-    bool exclusive = false;
+    std::string thisPeerUuid;        ///< UUID of this peer.
+    std::vector<std::string> topics; ///< Topics to subscribe to.
+    std::string subscriptionName;    ///< Subscription name.
+    bool exclusive = false;          ///< Exclusive access mode.
     std::function<void(const pulsar::Consumer, Req)> messageHandlerSync =
-        nullptr;
-    std::function<void(const pulsar::Consumer, Req)> messageHandler = nullptr;
-    std::function<void()> onReadySync = nullptr;
-    std::function<void()> onConnectErrorSync = nullptr;
-    std::function<void()> onReady = nullptr;
-    std::function<void()> onConnectError = nullptr;
+        nullptr; ///< Synchronous message handler.
+    std::function<void(const pulsar::Consumer, Req)> messageHandler =
+        nullptr; ///< Asynchronous message handler.
+    std::function<void()> onReadySync =
+        nullptr; ///< Synchronous callback when ready.
+    std::function<void()> onConnectErrorSync =
+        nullptr; ///< Synchronous callback on connection error.
+    std::function<void()> onReady =
+        nullptr; ///< Asynchronous callback when ready.
+    std::function<void()> onConnectError =
+        nullptr; ///< Asynchronous callback on connection error.
   };
 
+  /**
+   * @brief Destructor for ReaderStream.
+   */
   ~ReaderStream() { _consumer.close(); }
 
+  /**
+   * @brief Opens a ReaderStream with the specified options.
+   * @tparam Req The type of request.
+   * @param options Configuration options for the ReaderStream.
+   */
   template <typename Req> void Open(Options<Req> &options) {
 
     auto &net = CelteNet::Instance();
@@ -88,11 +111,15 @@ struct ReaderStream {
     net.CreateConsumer(subOps);
   }
 
+  /**
+   * @brief Checks if the ReaderStream is ready.
+   * @return True if the ReaderStream is ready, false otherwise.
+   */
   bool Ready() { return _ready; }
 
 protected:
-  pulsar::Consumer _consumer;
-  std::atomic_bool _ready = false;
+  pulsar::Consumer _consumer;      ///< Pulsar consumer.
+  std::atomic_bool _ready = false; ///< Ready state.
 };
 } // namespace net
 } // namespace celte

@@ -1,4 +1,5 @@
 #pragma once
+#include "Awaitable.hpp"
 #include "CelteNet.hpp"
 #include "CelteRequest.hpp"
 #include "CelteService.hpp"
@@ -48,24 +49,6 @@ struct RPRequest : public CelteRequest<RPRequest> {
     j.at("rpcId").get_to(rpcId);
     j.at("args").get_to(args);
   }
-};
-
-template <typename Ret> struct Awaitable {
-  Awaitable(std::shared_ptr<std::future<Ret>> future,
-            boost::asio::io_service &io)
-      : _future(future), _io(io) {}
-
-  void Then(std::function<void(Ret)> f) {
-    std::shared_ptr<std::future<Ret>> future = this->_future;
-    _io.post([this, f, future]() {
-      Ret ret = future->get();
-      CelteNet::Instance().PushThen([f = std::move(f), ret]() { f(ret); });
-    });
-  }
-
-private:
-  std::shared_ptr<std::future<Ret>> _future;
-  boost::asio::io_service &_io;
 };
 
 class RPCService : public CelteService {
