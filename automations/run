@@ -220,6 +220,33 @@ def build(config):
             return False
     return True
 
+def run_redis_sentinel():
+    """Run the Redis Sentinel Docker container."""
+    # write the EXTERNAL_HOST_IP to the .env file inside the redis file
+    os.chdir('redis')
+    export_env_vars('EXTERNAL_HOST', ip_address)
+    print(f"{Fore.GREEN}Redis Sentinel is running, don't forget to go to http://localhost:5540 and http://localhost:5050 ;){Style.RESET_ALL}")
+    subprocess.run(['docker', 'compose', 'down'])
+    subprocess.run(['docker', 'compose', 'up'])
+    os.chdir('..')
+
+def run_master():
+    """Run the master configuration update."""
+    os.chdir('master')
+
+    config_file_path = 'configFile.yml'
+    with open(config_file_path, 'r') as f:
+        config = yaml.safe_load(f)
+
+    if 'kafka_brokers' in config:
+        config['kafka_brokers'] = f"{ip_address}:80"
+
+    # Write the updated configuration back to the file
+    with open(config_file_path, 'w') as f:
+        yaml.dump(config, f)
+
+    subprocess.run(['dotnet', 'run', '--config', 'configFile.yml'])
+
 def run_tests(yaml_path):
     """Run tests defined in the YAML file."""
     with open(yaml_path, 'r') as file:
@@ -402,7 +429,9 @@ launcher = {
     '--requirements': lambda: subprocess.run(['pip3', 'install', 'colorama']),
     '--help': lambda: usage(),
     '--bin': run_binary,
-    '--test': run_tests
+    '--test': run_tests,
+    '--redis': run_redis_sentinel,
+    '--master': run_master,
 }
 
 def usage():
