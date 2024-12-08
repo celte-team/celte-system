@@ -81,7 +81,6 @@ namespace Redis {
     /// <summary>
     /// Sends log actions to Redis
     /// </summary>
-
     public class RLogger
     {
         private readonly IDatabase _db;

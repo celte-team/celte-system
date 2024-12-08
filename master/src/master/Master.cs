@@ -49,7 +49,7 @@ class Master
         {
             Topics = "persistent://public/default/" + M.Global.MasterHelloClient,
             SubscriptionName = M.Global.MasterHelloClient,
-            Handler = (consumer, message) => connectClient.connectNewClient(message)
+            Handler = (consumer, message) => connectClient.ConnectNewClient(message)
         });
         rpc.InitConsumer();
     }

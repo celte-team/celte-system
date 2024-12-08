@@ -1,16 +1,15 @@
 using System.Text.Json;
-using Confluent.Kafka.Admin;
 
 class ConnectNode
 {
     Master _master = Master.GetInstance();
 
     // create a structure with node uuid and grapes list
-public class NodeStruct
-{
-    public string uuid { get; set; }
-    public List<string> grapes { get; set; }
-}
+    public class NodeStruct
+    {
+        public string uuid { get; set; }
+        public List<string> grapes { get; set; }
+    }
 
     public string ToString(NodeStruct node)
     {
@@ -32,53 +31,25 @@ public class NodeStruct
     public async Task<bool> AddNode(string uuid)
     {
         // Create a new node
+        Grape grape = new Grape();
+        string grapeStr = await grape.ReturnNextGrape();
+        List<string> grapes = new List<string>();
+        if (grapeStr == null)
+        {
+            grapes = new List<string>();
+        } else {
+            grapes = new List<string> { grapeStr };
+        }
         NodeStruct node = new NodeStruct
         {
             uuid = uuid,
-            grapes = getGrape()
+            grapes = grapes,
         };
 
         // Serialize the node
         string nodeJson = JsonSerializer.Serialize(node);
-
         // Push to Redis
         return await Redis.RedisClient.GetInstance().redisData.JSONPush("nodes", uuid, nodeJson);
-    }
-
-
-    public List<string> getGrape()
-    {
-        Dictionary<string, object>? yamlObject = _master._setupConfig.GetYamlObjectConfig();
-        var grapes = JsonSerializer.Serialize(yamlObject["grapes"]);
-        List<string> grapesStr = JsonSerializer.Deserialize<List<string>>(grapes);
-        if (grapes == null || grapesStr.Count == 0)
-        {
-            throw new InvalidOperationException("No grapes found in the configuration.");
-        }
-        return grapesStr;
-    }
-    public async Task AssignGrapeToNodeAsync(string node)
-    {
-        Dictionary<string, object>? yamlObject = _master._setupConfig.GetYamlObjectConfig();
-        if (yamlObject == null || !yamlObject.ContainsKey("grapes"))
-        {
-            throw new InvalidOperationException("Grapes configuration is missing.");
-        }
-        var grapes = JsonSerializer.Serialize(yamlObject["grapes"]);
-        List<string> grapesStr = JsonSerializer.Deserialize<List<string>>(grapes);
-        if (grapes == null || grapesStr.Count == 0)
-        {
-            throw new InvalidOperationException("No grapes found in the configuration.");
-        }
-
-        // RPC call to assign grape
-        var rpcNode = "persistent://public/default/" + node + ".rpc";
-        var assignGrape = JsonDocument.Parse($"[\"{grapesStr[0]}\"]").RootElement;
-        Console.WriteLine("Assigning grape to node: " + assignGrape);
-        RPC.Call(rpcNode, "__rp_assignGrape", assignGrape);
-        // update the redis node with the grape
-        NodeStruct nodeStruct = new NodeStruct { uuid = node, grapes = grapesStr };
-        await Redis.RedisClient.GetInstance().redisData.UpdateGrapeList("nodes", node, JsonSerializer.Serialize(nodeStruct));
     }
 
     public async void connectNewNode(string message)
@@ -91,11 +62,10 @@ public class NodeStruct
             _ = _master.pulsarProducer.OpenTopic(binaryData);
             Console.WriteLine("Node creating...: " + binaryData);
             var rpcNode = "persistent://public/default/" + binaryData + ".rpc";
-            var assignGrape = JsonDocument.Parse($"[\"LeChateauDuMechant\"]").RootElement;
-            Console.WriteLine("Assigning grape to node: " + assignGrape + " rpcNode: " + rpcNode);
+            string grapeToSpawn = await new Grape().ReturnNextGrape();
+            var assignGrape = JsonDocument.Parse($"[\"{grapeToSpawn}\"]").RootElement;
             RPC.Call(rpcNode, "__rp_assignGrape", assignGrape);
             await AddNode(binaryData);
-            Console.WriteLine("New node");
         }
         catch (Exception e)
         {

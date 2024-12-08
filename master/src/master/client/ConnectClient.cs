@@ -11,7 +11,7 @@ class ConnectClient
 
     public static Dictionary<string, Client> _clients = new Dictionary<string, Client>();
 
-    public async void connectNewClient(string message)
+    public async void ConnectNewClient(string message)
     {
         Console.WriteLine("New client connected to the cluster: " + message);
         if (!_clients.ContainsKey(message))
@@ -85,27 +85,5 @@ class ConnectClient
         {
             throw new InvalidOperationException("No valid nodes found in JSON data.");
         }
-    }
-
-    static Tuple<object[]> UnpackAny(byte[] serializedData, params Type[] types)
-    {
-        var deserializedData = MessagePackSerializer.Deserialize<object>(serializedData);
-        Console.WriteLine($"Deserialized data: {deserializedData}");
-        if (deserializedData is object[] array && array.Length == 1 && array[0] is object[] innerArray)
-        {
-            Console.WriteLine($"Inner array: {innerArray}");
-            if (innerArray.Length != types.Length)
-            {
-                throw new InvalidOperationException("The number of types provided does not match the number of elements in the serialized data.");
-            }
-
-            object[] result = new object[types.Length];
-            for (int i = 0; i < types.Length; i++)
-            {
-                result[i] = Convert.ChangeType(innerArray[i], types[i]);
-            }
-            return Tuple.Create(result);
-        }
-        throw new InvalidOperationException("Invalid serialized data format.");
     }
 }
