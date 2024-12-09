@@ -11,9 +11,9 @@ build:
   - step: master
     run: |
       echo "todo: build master"
-
-    # cd master
-    # dotnet build
+      cd master
+      dotnet add package DotPulsar
+      dotnet build
 
   - step: clock
     run: |

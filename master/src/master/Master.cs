@@ -42,7 +42,7 @@ class Master
         pulsarConsumer.CreateConsumer(new SubscribeOptions
         {
             Topics = "persistent://public/default/" + M.Global.MasterHelloSn,
-            SubscriptionName =M.Global.MasterHelloSn,
+            SubscriptionName = M.Global.MasterHelloSn,
             Handler = (consumer, message) => connectNode.connectNewNode(message)
         });
         pulsarConsumer.CreateConsumer(new SubscribeOptions

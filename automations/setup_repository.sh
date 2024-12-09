@@ -12,16 +12,6 @@ fi
 # Set the path to the godot project
 GODOT_PROJECT_PATH=$1
 
-# Define the build directory
-BUILD_DIR="build"
-
-# Create the build directory if it doesn't exist
-if [ ! -d "$BUILD_DIR" ]; then
-    mkdir "$BUILD_DIR"
-fi
-
-# Navigate to the build directory
-cd "$BUILD_DIR"
 
 # Set the install prefix dynamically
 INSTALL_PREFIX="$GODOT_PROJECT_PATH/bin/deps"
@@ -50,46 +40,37 @@ if [ -z "$VCPKG_ROOT" ]; then
 fi
 
 # Run CMake with the specified options using the preset
-cmake --preset default -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" ..
+# cmake --preset defaultP ..
 
-# Build the project
+# if installation dir does not exist, show error and show current dir
+if [ ! -d "$INSTALL_PREFIX" ]; then
+    echo "The specified install prefix does not exist: $INSTALL_PREFIX"
+    echo "Please create the directory and try again."
+    echo "Script currently running in: $(pwd)"
+    exit 1
+fi
+
+# print real path of the install prefix and ask for confirmation
+echo "The headers and libraries will be installed to $(cd "$INSTALL_PREFIX" && pwd)"
+read -p "Do you want to continue? (y/n) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Exiting..."
+    exit 1
+fi
+
+# setup cmake
+echo "Setting up the project..."
+mkdir -p system/build
+cmake --preset=default -G Ninja -S ./system -B ./system/build  -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"
+
+# build && install
 echo "Building the project..."
-cd ..
-cmake --preset=default -G Ninja -S . -B build
-cd build && make -j
-cd ..
+cmake --build ./system/build --target install
 
 if [ $? -ne 0 ]; then
     echo "Build failed. Exiting..."
     exit 1
-fi
-
-# Install the headers and libraries
-cd build
-echo "Installing the headers and libraries..."
-cmake --install . --prefix "$INSTALL_PREFIX"
-
-if [ $? -ne 0 ]; then
-    echo "Installation failed. Exiting..."
-    exit 1
-fi
-
-# Navigate back to the original directory
-cd ..
-
-echo "Headers and libraries have been installed to $GODOT_PROJECT_PATH/bin/deps"
-
-# Check for requirements. If not installed, signal the user to install them
-echo "Checking for requirements..."
-if ! command -v ansible &> /dev/null; then
-    echo "Ansible is not installed. Please install it using the following command:"
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        echo "sudo apt install ansible"
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "brew install ansible"
-    elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
-        echo "Please install Ansible manually"
-    fi
 fi
 
 # Check if the godot is installed (ie GODOT_PATH environment variable is set)
