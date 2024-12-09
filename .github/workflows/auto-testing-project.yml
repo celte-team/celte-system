@@ -1,48 +1,49 @@
 on:
-  push:
-      branches:
-          - main
+    # pull_request:
+    #     branches:
+    #         - main
+    push
 
 jobs:
-  run-tests:
-      runs-on: ubuntu-latest
+    run-tests:
+        runs-on: ubuntu-latest
 
-      steps:
-          - name: Checkout repository
-            uses: actions/checkout@v2
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v2
 
-          - name: Set up Python
-            uses: actions/setup-python@v2
-            with:
-              python-version: '3.x'
+            - name: Set up Python
+              uses: actions/setup-python@v2
+              with:
+                python-version: '3.x'
 
-          - name: Install dependencies
-            run: |
-              python -m pip install --upgrade pip
-              pip install colorama pyyaml
+            - name: Install dependencies
+              run: |
+                python -m pip install --upgrade pip
+                pip install colorama pyyaml
 
-          - name: Install build tools
-            run: |
-              sudo apt-get update
-              sudo apt-get install -y ninja-build
+            - name: Install build tools
+              run: |
+                sudo apt-get update
+                sudo apt-get install -y ninja-build
 
-          - name: Build project
-            run: |
-              mkdir -p system/build
-              cd system/build
-              if [ -z "$(ls -A .)" ]; then
-                  cmake --preset default -G Ninja ..
-              fi
-              cmake --build . --target all
+            - name: Build project
+              run: |
+                mkdir -p system/build
+                cd system/build
+                if [ -z "$(ls -A .)" ]; then
+                    cmake --preset default -G Ninja ..
+                fi
+                cmake --build . --target all
 
-          - name: Run unit tests
-            run: ./automations/run --test ./automations/test_suites/basicGameTest.yaml
-            continue-on-error: false
+            - name: Run unit tests
+              run: ./automations/run --test ./automations/test_suites/basicGameTest.yaml
+              continue-on-error: false
 
-          - name: Check test results
-            if: ${{ failure() }}
-            run: echo "❌ Tests failed. Please check the logs for more details."
+            - name: Check test results
+              if: ${{ failure() }}
+              run: echo "❌ Tests failed. Please check the logs for more details."
 
-          - name: Check test results
-            if: ${{ success() }}
-            run: echo "✅ Tests passed successfully."
+            - name: Check test results
+              if: ${{ success() }}
+              run: echo "✅ Tests passed successfully."
