@@ -1,4 +1,3 @@
-using MessagePack;
 using System.Text.Json;
 class ConnectClient
 {
@@ -17,7 +16,7 @@ class ConnectClient
         if (!_clients.ContainsKey(message))
             _clients.Add(message, new Client { uuid = message });
 
-        _ = _master.pulsarProducer.OpenTopic(message);
+        await _master.pulsarProducer.OpenTopic(message);
         try
         {
             string nodeId = await GetRandomNode();
@@ -52,7 +51,7 @@ class ConnectClient
 
                 if (node.ValueKind == JsonValueKind.String)
                 {
-                    using (JsonDocument nodeDoc = JsonDocument.Parse(node.GetString()))
+                    using (JsonDocument nodeDoc = JsonDocument.Parse(node.GetString() ?? throw new InvalidOperationException("Node is null.")))
                     {
                         JsonElement root = nodeDoc.RootElement;
 
@@ -60,8 +59,8 @@ class ConnectClient
                         if (root.TryGetProperty("uuid", out JsonElement uuidProperty) &&
                             uuidProperty.ValueKind == JsonValueKind.String)
                         {
-                            string uuid = uuidProperty.GetString();
-                            nodesId.Add(uuid);
+                            string uuid = uuidProperty.GetString() ?? throw new InvalidOperationException("UUID is null.");
+                            nodesId.Add(uuid ?? throw new InvalidOperationException("Node ID is null."));
                         }
                     }
                 }
