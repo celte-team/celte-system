@@ -6,7 +6,6 @@ class Program
 {
     static void Main(string[] args)
     {
-        Redis.RedisClient redisClient = Redis.RedisClient.GetInstance("localhost:6379");
         Master master = Master.GetInstance();
         Console.CancelKeyPress += (sender, e) =>
         {

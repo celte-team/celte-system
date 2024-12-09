@@ -5,7 +5,7 @@ using Pulsar.Client.Api;
 
 class PulsarProducer
 {
-    private readonly PulsarClient _client;
+    private readonly PulsarClient? _client;
     private Master master = Master.GetInstance();
 
     public PulsarProducer()
@@ -37,7 +37,12 @@ class PulsarProducer
             var producer = await _client.NewProducer()
                 .Topic(topic)
                 .CreateAsync();
-
+            Redis.ActionLog actionLog = new Redis.ActionLog
+            {
+                ActionType = "ProduceMessage",
+                Details = $"Produced message to topic {topic}"
+            };
+            Redis.RedisClient.GetInstance().rLogger.LogActionAsync(actionLog).Wait();
             await producer.SendAsync(Encoding.UTF8.GetBytes(message));
         }
         catch (Exception e)

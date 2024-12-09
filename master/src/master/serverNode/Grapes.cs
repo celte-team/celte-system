@@ -15,8 +15,12 @@ class Grape {
     /// <exception cref="InvalidOperationException"></exception>
     public List<string> getGrapesStr()
     {
+        if (_master._setupConfig == null)
+        {
+            throw new InvalidOperationException("Setup configuration is not initialized.");
+        }
         Dictionary<string, object>? yamlObject = _master._setupConfig.GetYamlObjectConfig();
-        var grapes = JsonSerializer.Serialize(yamlObject["grapes"]);
+        var grapes = JsonSerializer.Serialize(yamlObject?["grapes"]);
         List<string> grapesStr = JsonSerializer.Deserialize<List<string>>(grapes);
         if (grapes == null || grapesStr.Count == 0)
         {
