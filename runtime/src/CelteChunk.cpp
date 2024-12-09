@@ -150,8 +150,8 @@ namespace celte {
         void Chunk::OnEnterEntity(const std::string& entityId)
         {
             try {
-                auto& entity = ENTITIES.GetEntity(entityId);
-                if (entity.GetOwnerChunk().GetCombinedId() == _combinedId) {
+                auto entity = ENTITIES.GetEntity(entityId);
+                if (entity and entity.value()->GetOwnerChunk().GetCombinedId() == _combinedId) {
                     return;
                 }
             } catch (std::out_of_range& e) {
@@ -190,7 +190,12 @@ namespace celte {
         HOOKS.client.authority.onTake(entityUUID, newOwnerChunkId);
 #endif
                         auto& newOwnerChunk = GRAPES.GetChunkById(newOwnerChunkId);
-                        ENTITIES.GetEntity(entityUUID).OnChunkTakeAuthority(newOwnerChunk);
+                        auto entity = ENTITIES.GetEntity(entityUUID);
+                        if (entity)
+                            entity.value()->OnChunkTakeAuthority(newOwnerChunk);
+                        else
+                            logs::Logger::getInstance().err()
+                                << "Entity not found in GetEntity: " << entityUUID << std::endl;
                     } catch (std::out_of_range& e) {
                         logs::Logger::getInstance().err()
                             << "Entity not found: " << e.what() << std::endl;
