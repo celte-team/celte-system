@@ -128,8 +128,9 @@ public:
                                     .localZ = glm::vec3(0, 0, 1),
                                     .isLocallyOwned = locallyOwned,
                                     .then = then};
-    celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER().RegisterGrape(
-        grapeOptions);
+    celte::chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
+        .RegisterGrape(grapeOptions)
+        .Initialize();
     std::cout << ">> Grape " << name
               << " loaded, owned locally: " << ((locallyOwned) ? "yes" : "no")
               << " <<" << std::endl;
@@ -140,7 +141,25 @@ public:
     entity->SetInformationToLoad(std::to_string(repr));
     entity->OnSpawn(x, y, 0, uuid);
     objects[uuid] = std::make_shared<GameObject>(repr, entity, x, y);
-    entity->RegisterActiveProperty("x", &objects[uuid]->x);
-    entity->RegisterActiveProperty("y", &objects[uuid]->y);
+    // entity->RegisterActiveProperty("x", &objects[uuid]->x);
+    // entity->RegisterActiveProperty("y", &objects[uuid]->y);
+    entity->RegisterReplicatedValue(
+        "x",
+        [uuid, this]() -> std::string {
+          return std::to_string(objects[uuid]->x);
+        },
+        [uuid, this](std::string value) {
+          objects[uuid]->x = std::stoi(value);
+        });
+
+    entity->RegisterReplicatedValue(
+        "y",
+        [uuid, this]() -> std::string {
+          return std::to_string(objects[uuid]->y);
+        },
+        [uuid, this](std::string value) {
+          std::cout << "setting y to " << value << std::endl;
+          objects[uuid]->y = std::stoi(value);
+        });
   }
 };

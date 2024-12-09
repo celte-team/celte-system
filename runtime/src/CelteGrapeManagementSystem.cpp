@@ -6,9 +6,8 @@
 namespace celte {
 namespace chunks {
 Grape &CelteGrapeManagementSystem::RegisterGrape(const GrapeOptions &options) {
-  auto grape = std::make_shared<Grape>(options);
-  _grapes[grape->GetGrapeId()] = grape;
-  return *grape;
+  _grapes.insert({options.grapeId, std::make_shared<Grape>(options)});
+  return *_grapes[options.grapeId];
 }
 
 CelteGrapeManagementSystem &CelteGrapeManagementSystem::GRAPE_MANAGER() {

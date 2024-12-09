@@ -126,16 +126,6 @@ public:
       std::function<void(std::string, std::string)> onReplicationDataReceived =
           [](std::string entityId, std::string dataBlob) {};
 
-      /**
-       * @brief This hook is called when the server receives active replication
-       * data.
-       *
-       * @param entityId The id of the entity that the data is related to.
-       * @param dataBlob The data that has been received.
-       */
-      std::function<void(std::string, std::string)>
-          onActiveReplicationDataReceived =
-              [](std::string entityId, std::string dataBlob) {};
     } replication;
   } server;
 
@@ -238,17 +228,6 @@ public:
        */
       std::function<void(std::string, std::string)> onReplicationDataReceived =
           [](std::string entityId, std::string dataBlob) {};
-
-      /**
-       * @brief This hook is called when the client receives active replication
-       * data.
-       *
-       * @param entityId The id of the entity that the data is related to.
-       * @param dataBlob The data that has been received.
-       */
-      std::function<void(std::string, std::string)>
-          onActiveReplicationDataReceived =
-              [](std::string entityId, std::string dataBlob) {};
     } replication;
   } client;
 #endif

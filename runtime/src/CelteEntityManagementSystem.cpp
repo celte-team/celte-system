@@ -63,7 +63,6 @@ namespace celte {
         {
             for (auto& [uuid, entity] : _entities) {
                 entity->UploadReplicationData();
-                entity->ResetDataChanged();
             }
             GRAPES.ReplicateAllEntities();
         }
@@ -142,22 +141,20 @@ namespace celte {
                     obj["uuid"] = entity->GetUUID();
                     obj["chunk"] = entity->GetOwnerChunk().GetCombinedId();
                     obj["info"] = entity->GetInformationToLoad();
-                    std::string passiveProps = entity->GetPassiveProps();
-                    obj["passiveProps"] = base64_encode(
-                        reinterpret_cast<const unsigned char*>(passiveProps.c_str()),
-                        passiveProps.size());
-                    std::string activeProps = entity->GetActiveProps();
-                    obj["activeProps"] = base64_encode(
-                        reinterpret_cast<const unsigned char*>(activeProps.c_str()),
-                        activeProps.size());
-
+                    std::string props = entity->GetProps();
+                    if (props.empty()) {
+                        obj["props"] = "";
+                    } else {
+                        obj["props"] = base64_encode(
+                            reinterpret_cast<const unsigned char*>(props.c_str()),
+                            props.size());
+                    }
                     // Add the object to the JSON array
                     j.push_back(obj);
-                } catch (std::out_of_range& e) {
+                } catch (std::exception& e) {
                     // If the entity is not associated with a chunk, log it
-                    logs::Logger::getInstance().err()
-                        << "Entity " << entity->GetUUID() << " is not owned by any chunk."
-                        << std::endl;
+                    std::cerr << "Error while packing entity " << entity->GetUUID()
+                              << " to json: " << e.what() << std::endl;
                 }
             }
             std::cout << "Returning json" << std::endl;
@@ -197,25 +194,16 @@ namespace celte {
                 try {
                     auto entity = GetEntity(entityId);
                     if (entity)
-                        entity.value()->DownloadReplicationData(blob, active);
+                        entity.value()->DownloadReplicationData(blob);
 #ifdef CELTE_SERVER_MODE_ENABLED
-                    if (active)
-                        HOOKS.server.replication.onActiveReplicationDataReceived(entityId,
-                            blob);
-                    else
-                        HOOKS.server.replication.onReplicationDataReceived(entityId, blob);
+                    HOOKS.server.replication.onReplicationDataReceived(entityId, blob);
 #else
-                    if (active)
-                        HOOKS.client.replication.onActiveReplicationDataReceived(entityId,
-                            blob);
-                    else
-                        HOOKS.client.replication.onReplicationDataReceived(entityId, blob);
+                    HOOKS.client.replication.onReplicationDataReceived(entityId, blob);
 #endif
-                } catch (std::out_of_range& e) {
+                } catch (std::exception& e) {
                     logs::Logger::getInstance().err()
-                        << "Entity " << entityId << " not found."
-                        << std::endl; // TODO: better handling for this, entities may need to
-                                      // spawn or smth
+                        << "Error while downloading replication data: " << e.what()
+                        << std::endl;
                 }
             }
         }

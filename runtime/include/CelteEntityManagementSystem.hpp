@@ -40,6 +40,8 @@ namespace celte {
              */
             void Tick();
 
+            // void LoadExistingEntities(const std::string& summary);
+
             /**
              * @brief Applies a filter to a list of entity ids, returning only the ones
              * that match the filter. The filter must be a string among the following:
@@ -52,8 +54,7 @@ namespace celte {
              * - "owned": only entities that are owned by the current peer
              *
              */
-            std::vector<std::string>
-            FilterEntities(const std::vector<std::string>& entityIds,
+            std::vector<std::string> FilterEntities(const std::vector<std::string>& entityIds,
                 const std::string& filter);
 
             /**

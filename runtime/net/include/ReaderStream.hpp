@@ -77,7 +77,13 @@ struct ReaderStream {
           Req req;
           std::string data(static_cast<const char *>(msg.getData()),
                            msg.getLength());
-          from_json(nlohmann::json::parse(data), req);
+          try {
+            from_json(nlohmann::json::parse(data), req);
+          } catch (std::exception &e) {
+            std::cerr << "Error parsing message: " << e.what() << std::endl;
+            std::cerr << "json: " << data << std::endl;
+            return;
+          }
           if (options.messageHandler)
             options.messageHandler(consumer, req);
           if (options.messageHandlerSync)

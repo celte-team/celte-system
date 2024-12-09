@@ -52,6 +52,7 @@ struct GrapeStatistics {
 class Grape {
 public:
   Grape(const GrapeOptions &options);
+  void Initialize();
 
   /**
    * @brief Construct a grape from another grape.

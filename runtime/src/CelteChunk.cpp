@@ -20,7 +20,7 @@ namespace celte {
         {
         }
 
-        Chunk::~Chunk() { }
+        Chunk::~Chunk() { std::cout << "CHUNK DESTRUCTOR WAS CALLED" << std::endl; }
 
         std::string Chunk::Initialize()
         {
@@ -32,14 +32,23 @@ namespace celte {
         void Chunk::__registerConsumers()
         {
             if (not _config.isLocallyOwned) {
+                std::cout << "CLIENT REPLICATING CHUNK" << std::endl;
+                std::cout << "replication sub name is "
+                          << RUNTIME.GetUUID() + ".repl." + _combinedId << std::endl;
                 _createReaderStream<req::ReplicationDataPacket>({
                     .thisPeerUuid = RUNTIME.GetUUID(),
-                    .topics = { _combinedId + "." + celte::tp::REPLICATION },
+                    .topics = { celte::tp::PERSIST_DEFAULT + _combinedId + "." + celte::tp::REPLICATION },
                     .subscriptionName = RUNTIME.GetUUID() + ".repl." + _combinedId,
                     .exclusive = false,
                     .messageHandlerSync =
                         [this](const pulsar::Consumer, req::ReplicationDataPacket req) {
                             ENTITIES.HandleReplicationData(req.data, req.active);
+                        },
+                    .onReadySync =
+                        [this]() {
+                            std::cout << "Replication reader ready for topic "
+                                      << celte::tp::PERSIST_DEFAULT + _combinedId + "." + celte::tp::REPLICATION
+                                      << std::endl;
                         },
                 });
             }
@@ -52,17 +61,17 @@ namespace celte {
                 });
             }
 #endif
-            _createReaderStream<celte::runtime::CelteInputSystem::InputUpdate_s>(
-                {
-                    .thisPeerUuid = RUNTIME.GetUUID(),
-                    .topics = { _combinedId + "." + celte::tp::INPUT },
-                    .subscriptionName = RUNTIME.GetUUID() + ".input." + _combinedId,
-                    .exclusive = false,
-                    .messageHandlerSync =
-                        [this](const pulsar::Consumer, celte::runtime::CelteInputSystem::InputUpdate_s req) {
-                            CINPUT.HandleInput(req.uuid, req.name, req.pressed);
-                        },
-                });
+            _createReaderStream<celte::runtime::CelteInputSystem::InputUpdate_s>({
+                .thisPeerUuid = RUNTIME.GetUUID(),
+                .topics = { _combinedId + "." + celte::tp::INPUT },
+                .subscriptionName = RUNTIME.GetUUID() + ".input." + _combinedId,
+                .exclusive = false,
+                .messageHandlerSync =
+                    [this](const pulsar::Consumer,
+                        celte::runtime::CelteInputSystem::InputUpdate_s req) {
+                        CINPUT.HandleInput(req.uuid, req.name, req.pressed);
+                    },
+            });
         }
 
         void Chunk::WaitNetworkInitialized()
