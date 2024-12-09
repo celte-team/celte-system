@@ -1,6 +1,5 @@
 using StackExchange.Redis;
 using Newtonsoft.Json;
-using Docker.DotNet.Models;
 using System.Text.Json;
 
 
@@ -175,7 +174,6 @@ namespace Redis {
                 {
                     await _db.ExecuteAsync("JSON.SET", key, "$", "[]");
                 }
-                Console.WriteLine($"Pushing JSON value: key = {key}, field = {field}, value = {value}\n");
                 await _db.ExecuteAsync("JSON.ARRAPPEND", key, "$",
                     JSONSerializer.Serialize(value));
             } catch (Exception ex) {

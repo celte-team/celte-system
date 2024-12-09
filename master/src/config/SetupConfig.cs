@@ -35,23 +35,6 @@ class SetupConfig
     {
         GetConfigFile();
         GetNumberOfGrapes();
-        // if (_args.Contains("--local") || _args.Contains("-l"))
-        // {
-        //     SettingUpLocal();
-        // }
-        // else if (_args.Contains("--cloud") || _args.Contains("-c"))
-        // {
-        //     // TODO Implement cloud setup
-        //     // SettingUpCloud();
-        // }
-        // else
-        // {
-        //     // for the moment I allow the non usage of the flags for testing purposes
-
-        //     // Usage usage = new Usage();
-        //     // usage.UsageMessage();
-        //     // return;
-        // }
     }
 
     public void SettingUpLocal()

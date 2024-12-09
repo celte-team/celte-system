@@ -6,6 +6,7 @@ class Master
     public PulsarProducer pulsarProducer;
     public CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
     public RPC rpc = new RPC();
+    public string redisIp;
 
     private Master()
     {
@@ -21,6 +22,8 @@ class Master
             }
             _setupConfig = new SetupConfig(Environment.GetCommandLineArgs());
             _setupConfig.SettingUpMaster();
+            redisIp = _setupConfig.GetYamlObjectConfig()?["redis_host"]?.ToString() ?? "localhost:6379";
+            Redis.RedisClient redisClient = Redis.RedisClient.GetInstance(redisIp);
             pulsarConsumer = new PulsarConsumer();
             pulsarProducer = new PulsarProducer();
             StartPulsarConsumer();

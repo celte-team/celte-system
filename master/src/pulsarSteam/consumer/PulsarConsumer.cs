@@ -18,10 +18,17 @@ class PulsarConsumer
     private readonly List<Task> _consumerTasks;
     private readonly CancellationTokenSource _cancellationTokenSource;
 
+
     public PulsarConsumer()
     {
+        Master master = Master.GetInstance();
+        string pulsarBrokers = master._setupConfig.GetYamlObjectConfig()?["pulsar_brokers"]?.ToString() ?? string.Empty;
+        if (string.IsNullOrEmpty(pulsarBrokers))
+        {
+            throw new ArgumentException("Pulsar brokers are not set.");
+        }
         _client = PulsarClient.Builder()
-            .ServiceUrl(new Uri("pulsar://localhost:6650"))
+            .ServiceUrl(new Uri(pulsarBrokers))
             .Build();
         _consumerTasks = new List<Task>();
         _cancellationTokenSource = new CancellationTokenSource();
@@ -42,6 +49,12 @@ class PulsarConsumer
             // Start a task to process messages from this consumer
             var task = Task.Run(() => ConsumeMessagesAsync(options, _cancellationTokenSource.Token));
             _consumerTasks.Add(task);
+            Redis.ActionLog actionLog = new Redis.ActionLog
+            {
+                ActionType = "CreateConsumer",
+                Details = $"Created consumer for subscription {options.SubscriptionName}"
+            };
+            Redis.RedisClient.GetInstance().rLogger.LogActionAsync(actionLog).Wait();
         }
         catch (Exception ex)
         {
@@ -64,7 +77,7 @@ class PulsarConsumer
             await foreach (var message in consumer.Messages(cancellationToken))
             {
                 var data = message.Data.ToArray();
-                Console.WriteLine($"Received message on {options.Topics}: {Encoding.UTF8.GetString(data)}");
+                Console.WriteLine($" -> Received message on {options.Topics}:\n {Encoding.UTF8.GetString(data)}");
                 var messageString = Encoding.UTF8.GetString(data);
                 options.Handler?.Invoke(consumer, messageString);
 
