@@ -23,7 +23,27 @@ jobs:
                 pip install colorama pyyaml
 
 
+# Executing: mkdir -p system/build && cd system/build && if [ -z "$(ls -A .)" ]; then cmake --preset default -G Ninja ..; fi && cmake --build . --target all
+# Build step systems failed with command: mkdir -p system/build && cd system/build && if [ -z "$(ls -A .)" ]; then cmake --preset default -G Ninja ..; fi && cmake --build . --target all
+# Build Failed. Exiting...
+            - name: Build project
+              run: |
+                mkdir -p system/build
+                cd system/build
+                if [ -z "$(ls -A .)" ]; then
+                    cmake --preset default -G Ninja ..
+                fi
+                cmake --build . --target all
+# jobs:
+#   publish:
+            - uses: actions/checkout@master
+            - uses: seanmiddleditch/gha-setup-ninja@master
+            - run: |
+                mkdir build
+                cd build
+                cmake -G Ninja ..
 
+            - run: cmake --build build
             - name: Run unit tests
               run: ./automations/run --test ./automations/test_suites/basicGameTest.yaml
               continue-on-error: false
