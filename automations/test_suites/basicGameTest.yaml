@@ -3,8 +3,8 @@ logs: ./system/build/tmp/automations/logs
 build:
   - step: systems
     run: |
-      mkdir -p build
-      cd build
+      mkdir -p system/build
+      cd system/build
       if [ -z "$(ls -A .)" ]; then cmake --preset default -G Ninja ..; fi
       cmake --build . --target all
 
@@ -17,7 +17,7 @@ build:
 
   - step: clock
     run: |
-      cd ../ClockServer
+      cd ./ClockServer
       dotnet build
 
 test_suites:
@@ -31,11 +31,11 @@ test_suites:
     master-proxy: ./system/runtime/net/tests/master.dummy
 
     servers:
-      binary: ./build/tests/server.debug
+      binary: ./system/build/tests/server.debug
       replicas: 2
 
     clients:
-      binary: ./build/tests/client.debug
+      binary: ./system/build/tests/client.debug
       replicas: 2
       wait-servers:
         regex: ">> SERVER READY << "
