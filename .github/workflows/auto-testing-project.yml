@@ -21,6 +21,7 @@ jobs:
               run: |
                 sudo apt-get update
                 sudo apt-get install -y ninja-build g++ cmake
+                sudo apt-get install autoconf automake autoconf-archive
 
             - name: Set up vcpkg
               run: |
