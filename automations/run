@@ -153,6 +153,8 @@ def run_binary(binary_path):
 
 def run_command(command, log_file, folder=None):
     """Run a command and pipe the output to a log file."""
+    if not os.path.exists(os.path.dirname(log_file)):
+        os.makedirs(os.path.dirname(log_file))
     if folder:
         with open(log_file, 'w') as log:
             process = subprocess.Popen(command, stdout=log, stderr=log, cwd=folder)
@@ -170,6 +172,8 @@ def wait_for_log(log_file, regex, timeout_seconds, **kwargs):
     wheel = ['-', '\\', '|', '/']
     pattern = re.compile(regex)
     start_time = time.time()
+    if not os.path.exists(os.path.dirname(log_file)):
+        os.makedirs(os.path.dirname(log_file))
     while time.time() - start_time < timeout_seconds:
         print(f"{Fore.GREEN}Waiting for logs...{Style.RESET_ALL} {wheel[int(time.time()) % 4]}", end='\r')
         with open(log_file, 'r') as log:
@@ -255,11 +259,9 @@ def run_tests(yaml_path):
     with open(yaml_path, 'r') as file:
         config = yaml.safe_load(file)
 
-    os.chdir('system')
     if not build(config):
         print(f"{Fore.RED} Build Failed. Exiting...{Style.RESET_ALL}")
         sys.exit(1)
-
 
     for suite in config['test_suites']:
         log_dir = os.path.join(config['logs'], suite['name'])
@@ -284,7 +286,6 @@ def run_tests(yaml_path):
         server_processes_handles = []
         client_processes_handles = []
 
-        os.chdir('..')
         if suite.get('cluster') == True:
             print(f"{Fore.GREEN}Starting cluster{Style.RESET_ALL}")
             cluster_process_handle = run_command(["./automations/run", "--pulsar"], os.path.join(log_dir, 'cluster.log'))
@@ -472,6 +473,7 @@ if __name__ == "__main__":
                     usage()
                     sys.exit(1)
                 yaml_path = sys.argv[2]
+                print("curr dir: ", os.getcwd())
                 launcher[command](yaml_path)
                 break
             else:
