@@ -19,6 +19,27 @@ jobs:
 
             - name: Install dependencies
               run: |
+                sudo apt-get update
+                sudo apt-get install -y ninja-build g++ cmake
+
+            - name: Set up vcpkg
+              run: |
+                git clone https://github.com/microsoft/vcpkg.git
+                ./vcpkg/bootstrap-vcpkg.sh
+              env:
+                VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+
+            - name: Build project
+              run: |
+                mkdir -p system/build
+                cd system/build
+                if [ -z "$(ls -A .)" ]; then
+                    cmake -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -G Ninja ..
+                fi
+                cmake --build . --target all
+
+            - name: Install dependencies
+              run: |
                 python -m pip install --upgrade pip
                 pip install colorama pyyaml
 
