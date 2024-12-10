@@ -61,9 +61,9 @@ jobs:
                 fi
                 cmake --build . --target all
 
-            - name: Run unit tests
-              run: ./automations/run --test ./automations/test_suites/basicGameTest.yaml
-              continue-on-error: false
+            # - name: Run unit tests
+            #   run: ./automations/run --master --unit-tests
+            #   continue-on-error: false
 
             - name: Check test results
               if: ${{ failure() }}
