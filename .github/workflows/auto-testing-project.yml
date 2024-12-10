@@ -1,8 +1,10 @@
+name: Check it at least project is compiling
+run-name: ${{ github.actor }} at ${{ github.run_number }}
+
 on:
-    # pull_request:
-    #     branches:
-    #         - main
-    push
+  push:
+    branches:
+      - '*'
 
 jobs:
     run-tests:
@@ -65,10 +67,6 @@ jobs:
               run:
                 cd master &&
                 dotnet build
-
-            # - name: Run unit tests
-            #   run: ./automations/run --master --unit-tests
-            #   continue-on-error: false
 
             - name: Check test results
               if: ${{ failure() }}
