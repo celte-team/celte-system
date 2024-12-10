@@ -61,6 +61,11 @@ jobs:
                 fi
                 cmake --build . --target all
 
+            - name: Compile master
+              run:
+                cd master
+                dotnet build
+
             # - name: Run unit tests
             #   run: ./automations/run --master --unit-tests
             #   continue-on-error: false
@@ -71,4 +76,4 @@ jobs:
 
             - name: Check test results
               if: ${{ success() }}
-              run: echo "✅ Tests passed successfully."
+              run: echo "✅ Tests passed successfully. The project is compiling correctly.."
