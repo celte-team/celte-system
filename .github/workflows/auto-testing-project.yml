@@ -63,7 +63,7 @@ jobs:
 
             - name: Compile master
               run:
-                cd master
+                cd master &&
                 dotnet build
 
             # - name: Run unit tests
