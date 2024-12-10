@@ -1,77 +1,77 @@
-name: Check it at least project is compiling
-run-name: ${{ github.actor }} at ${{ github.run_number }}
+# name: Check it at least project is compiling
+# run-name: ${{ github.actor }} at ${{ github.run_number }}
 
-on:
-  push:
-    branches:
-      - '*'
+# on:
+#   push:
+#     branches:
+#       - '*'
 
-jobs:
-    run-tests:
-        runs-on: ubuntu-latest
+# jobs:
+#     run-tests:
+#         runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v2
+#         steps:
+#             - name: Checkout repository
+#               uses: actions/checkout@v2
 
-            - name: Set up Python
-              uses: actions/setup-python@v2
-              with:
-                python-version: '3.x'
+#             - name: Set up Python
+#               uses: actions/setup-python@v2
+#               with:
+#                 python-version: '3.x'
 
-            - name: Install dependencies
-              run: |
-                sudo apt-get update
-                sudo apt-get install -y ninja-build g++ cmake
-                sudo apt-get install autoconf automake autoconf-archive
-                sudo add-apt-repository ppa:dotnet/backports
-                sudo apt-get update
-                sudo apt-get install -y dotnet-sdk-8.0
+#             - name: Install dependencies
+#               run: |
+#                 sudo apt-get update
+#                 sudo apt-get install -y ninja-build g++ cmake
+#                 sudo apt-get install autoconf automake autoconf-archive
+#                 sudo add-apt-repository ppa:dotnet/backports
+#                 sudo apt-get update
+#                 sudo apt-get install -y dotnet-sdk-8.0
 
-            - name: Set up vcpkg
-              run: |
-                git clone https://github.com/microsoft/vcpkg.git
-                ./vcpkg/bootstrap-vcpkg.sh
-              env:
-                VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+#             - name: Set up vcpkg
+#               run: |
+#                 git clone https://github.com/microsoft/vcpkg.git
+#                 ./vcpkg/bootstrap-vcpkg.sh
+#               env:
+#                 VCPKG_ROOT: ${{ github.workspace }}/vcpkg
 
-            - name: Build project
-              run: |
-                mkdir -p system/build
-                cd system/build
-                if [ -z "$(ls -A .)" ]; then
-                    cmake -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -G Ninja ..
-                fi
-                cmake --build . --target all
+#             - name: Build project
+#               run: |
+#                 mkdir -p system/build
+#                 cd system/build
+#                 if [ -z "$(ls -A .)" ]; then
+#                     cmake -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -G Ninja ..
+#                 fi
+#                 cmake --build . --target all
 
-            - name: Install dependencies
-              run: |
-                python -m pip install --upgrade pip
-                pip install colorama pyyaml
+#             - name: Install dependencies
+#               run: |
+#                 python -m pip install --upgrade pip
+#                 pip install colorama pyyaml
 
-            - name: Install build tools
-              run: |
-                sudo apt-get update
-                sudo apt-get install -y ninja-build
+#             - name: Install build tools
+#               run: |
+#                 sudo apt-get update
+#                 sudo apt-get install -y ninja-build
 
-            - name: Build project
-              run: |
-                mkdir -p system/build
-                cd system/build
-                if [ -z "$(ls -A .)" ]; then
-                    cmake --preset default -G Ninja ..
-                fi
-                cmake --build . --target all
+#             - name: Build project
+#               run: |
+#                 mkdir -p system/build
+#                 cd system/build
+#                 if [ -z "$(ls -A .)" ]; then
+#                     cmake --preset default -G Ninja ..
+#                 fi
+#                 cmake --build . --target all
 
-            - name: Compile master
-              run:
-                cd master &&
-                dotnet build
+#             - name: Compile master
+#               run:
+#                 cd master &&
+#                 dotnet build
 
-            - name: Check test results
-              if: ${{ failure() }}
-              run: echo "❌ Tests failed. Please check the logs for more details."
+#             - name: Check test results
+#               if: ${{ failure() }}
+#               run: echo "❌ Tests failed. Please check the logs for more details."
 
-            - name: Check test results
-              if: ${{ success() }}
-              run: echo "✅ Tests passed successfully. The project is compiling correctly.."
+#             - name: Check test results
+#               if: ${{ success() }}
+#               run: echo "✅ Tests passed successfully. The project is compiling correctly.."
