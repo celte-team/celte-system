@@ -72,6 +72,8 @@ public:
     return *_ownerChunk;
   }
 
+  inline void SetUUID(const std::string &uuid) { _uuid = uuid; }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Calling the method will replicate the properties of this entity

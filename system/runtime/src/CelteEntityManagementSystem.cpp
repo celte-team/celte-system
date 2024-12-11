@@ -39,6 +39,15 @@ CelteEntityManagementSystem::GetEntity(const std::string &uuid) const {
   return *_entities.at(uuid);
 }
 
+std::shared_ptr<CelteEntity>
+CelteEntityManagementSystem::GetEntityPtr(const std::string &uuid) const {
+  auto it = _entities.find(uuid);
+  if (it != _entities.end()) {
+    return it->second;
+  }
+  return nullptr;
+}
+
 void CelteEntityManagementSystem::Tick() {
 #ifdef CELTE_SERVER_MODE_ENABLED
   if (GRAPES.MustSendReplicationData()) {
