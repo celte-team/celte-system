@@ -1,5 +1,6 @@
 #pragma once
 #include "CelteEntity.hpp"
+#include <optional>
 #include <set>
 #include <unordered_map>
 
@@ -32,7 +33,13 @@ public:
    *
    * @throws std::out_of_range if the entity is not found.
    */
-  celte::CelteEntity &GetEntity(const std::string &uuid) const;
+  CelteEntity &GetEntity(const std::string &uuid) const;
+
+  /**
+   * @brief Returns a shared_ptr to the entity with the given uuid. If the
+   * entity does not exist, the nullptr is returned.
+   */
+  std::shared_ptr<CelteEntity> GetEntityPtr(const std::string &uuid) const;
 
   /**
    * @brief Performs the logic common to all entities once. Call this as often
