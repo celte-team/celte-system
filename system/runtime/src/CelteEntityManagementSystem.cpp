@@ -185,7 +185,6 @@ void CelteEntityManagementSystem::RegisterReplConsumer(
 void CelteEntityManagementSystem::__handleReplicationDataReceived(
     std::unordered_map<std::string, std::string> &data, bool active) {
   // dropping extra headers
-  std::cout << "In __handleReplicationDataReceived" << std::endl;
   data.erase(celte::tp::HEADER_PEER_UUID);
   for (auto &[entityId, blob] : data) {
     try {
