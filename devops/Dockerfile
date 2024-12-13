@@ -82,10 +82,10 @@ ENV GODOT_PATH="/usr/bin/"
 
 RUN dnf install godot -y
 
-WORKDIR /celte-system
+# WORKDIR /celte-system/system
 
-RUN rm -fr build && mkdir build \
-    && cd build
+# RUN rm -fr build && mkdir build \
+#     && cd build
 
-RUN cmake --preset default ..
-RUN make -j
+# RUN cmake --preset default ..
+# RUN make -j
