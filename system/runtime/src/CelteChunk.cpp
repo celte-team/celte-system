@@ -120,6 +120,9 @@ void Chunk::__registerRPCs() {
 void Chunk::ScheduleReplicationDataToSend(const std::string &entityId,
                                           const std::string &blob,
                                           bool active) {
+  if (blob.empty()) {
+    return;
+  }
   if (active) {
     _nextScheduledActiveReplicationData[entityId] = blob;
   } else {

@@ -87,12 +87,16 @@ const std::string &CelteEntity::GetInformationToLoad() const {
 }
 
 void CelteEntity::DownloadReplicationData(const std::string &blob) {
+  std::cout << "celte entity download replication data" << std::endl;
   if (blob.empty()) {
     return;
   }
+  std::cout << "blob was not empty" << std::endl;
   std::string blobDecoded = base64_decode(blob);
   try {
+    std::cout << "before overwrite" << std::endl;
     _replicator.Overwrite(blobDecoded);
+    std::cout << "after overwrite" << std::endl;
   } catch (std::exception &e) {
     std::cerr << "Error while downloading replication data: " << e.what()
               << std::endl;

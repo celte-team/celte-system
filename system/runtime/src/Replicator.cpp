@@ -24,16 +24,23 @@ void Replicator::RegisterReplicatedValue(
 Replicator::ReplBlob Replicator::GetBlob(bool peek) {
   try {
     nlohmann::json j;
+    bool changed = false;
     for (auto &[key, value] : _replicatedValues) {
       std::string raw = value.get();
-      if (value.hash != __computeCheckSum(raw)) {
+      int currChecksum = __computeCheckSum(raw);
+      if (value.hash != currChecksum or peek) {
+        changed = true;
         j[key] = raw;
         if (not peek) {
-          value.hash = __computeCheckSum(raw);
+          value.hash = currChecksum;
         }
       }
     }
-    return j.dump();
+    if (changed or peek) {
+      std::cout << "value changed in replicator " << j.dump() << std::endl;
+      return j.dump();
+    }
+    return "";
   } catch (std::exception &e) {
     std::cerr << "Error while packing replication data: " << e.what()
               << std::endl;
@@ -48,6 +55,8 @@ void Replicator::Overwrite(const ReplBlob &blob) {
       auto it = _replicatedValues.find(key);
       if (it != _replicatedValues.end()) {
         it->second.set(value.get<std::string>().c_str());
+      } else {
+        std::cerr << "Key " << key << " not found in replicator" << std::endl;
       }
     }
   } catch (std::exception &e) {
