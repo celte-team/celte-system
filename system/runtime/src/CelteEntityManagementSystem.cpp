@@ -65,64 +65,7 @@ void CelteEntityManagementSystem::__replicateAllEntities() {
   GRAPES.ReplicateAllEntities();
 }
 
-// std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
-//   /*
-//   Format is :
-//   [
-//     {
-//       "uuid": "uuid",
-//       "chunk": "chunkCombinedId",
-//       "info": "info"
-//     },
-//     {
-//       "uuid": "uuid",
-//       "chunk": "chunkCombinedId",
-//       "info": "info"
-//     }
-//   ]
-//   */
-//   boost::json::array j;
-
-//   for (const auto &[uuid, entity] : _entities) {
-//     try {
-//       logs::Logger::getInstance().info()
-//           << "packing entity " << uuid << " to json." << std::endl;
-//       // Create a new object for each entity
-//       boost::json::object obj;
-
-//       obj["uuid"] = entity->GetUUID();
-//       obj["chunk"] = entity->GetOwnerChunk().GetCombinedId();
-//       obj["info"] = entity->GetInformationToLoad();
-
-//       // Add the object to the JSON array
-//       j.push_back(obj);
-//     } catch (std::out_of_range &e) {
-//       // If the entity is not associated with a chunk, log it
-//       logs::Logger::getInstance().err()
-//           << "Entity " << entity->GetUUID() << " is not owned by any chunk."
-//           << std::endl;
-//     }
-//   }
-
-//   return boost::json::serialize(j);
-// }
-
 std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
-  /*
-  Format is :
-  [
-    {
-      "uuid": "uuid",
-      "chunk": "chunkCombinedId",
-      "info": "info"
-    },
-    {
-      "uuid": "uuid",
-      "chunk": "chunkCombinedId",
-      "info": "info"
-    }
-  ]
-  */
   nlohmann::json j = nlohmann::json::array();
 
   for (const auto &[uuid, entity] : _entities) {
@@ -139,6 +82,8 @@ std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
       obj["chunk"] = entity->GetOwnerChunk().GetCombinedId();
       obj["info"] = entity->GetInformationToLoad();
       std::string props = entity->GetProps();
+      std::cout << "in get registered entities summary, props are " << props
+                << std::endl;
       if (props.empty()) {
         obj["props"] = "";
       } else {
