@@ -116,4 +116,10 @@ void CelteEntity::sendInputToKafka(std::string inputName, bool pressed) {
       cp, req);
 }
 
+bool CelteEntity::IsOwnedByCurrentPeer() const {
+  if (not _ownerChunk) {
+    return false;
+  }
+  return _ownerChunk->GetConfig().isLocallyOwned;
+}
 } // namespace celte
