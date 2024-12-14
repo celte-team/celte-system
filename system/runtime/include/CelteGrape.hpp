@@ -119,6 +119,8 @@ public:
   void ReplicateAllEntities();
 #endif
 
+  Chunk &GetClosestChunk(float x, float y, float z) const;
+
 private:
   void __initNetwork();
   /**

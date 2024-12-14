@@ -37,7 +37,6 @@ Replicator::ReplBlob Replicator::GetBlob(bool peek) {
       }
     }
     if (changed or peek) {
-      std::cout << "value changed in replicator " << j.dump() << std::endl;
       return j.dump();
     }
     return "";

@@ -19,7 +19,7 @@ Chunk::Chunk(const ChunkConfig &config)
               RUNTIME.GetUUID() + ".chunk." + _combinedId + "." + tp::RPCs,
       }) {}
 
-Chunk::~Chunk() { std::cout << "CHUNK DESTRUCTOR WAS CALLED" << std::endl; }
+Chunk::~Chunk() {}
 
 std::string Chunk::Initialize() {
   __registerConsumers();
@@ -29,9 +29,6 @@ std::string Chunk::Initialize() {
 
 void Chunk::__registerConsumers() {
   if (not _config.isLocallyOwned) {
-    std::cout << "CLIENT REPLICATING CHUNK" << std::endl;
-    std::cout << "replication sub name is "
-              << RUNTIME.GetUUID() + ".repl." + _combinedId << std::endl;
     _createReaderStream<req::ReplicationDataPacket>({
         .thisPeerUuid = RUNTIME.GetUUID(),
         .topics = {celte::tp::PERSIST_DEFAULT + _combinedId + "." +
@@ -41,13 +38,6 @@ void Chunk::__registerConsumers() {
         .messageHandlerSync =
             [this](const pulsar::Consumer, req::ReplicationDataPacket req) {
               ENTITIES.HandleReplicationData(req.data, req.active);
-            },
-        .onReadySync =
-            [this]() {
-              std::cout << "Replication reader ready for topic "
-                        << celte::tp::PERSIST_DEFAULT + _combinedId + "." +
-                               celte::tp::REPLICATION
-                        << std::endl;
             },
     });
   }
@@ -218,6 +208,10 @@ void Chunk::ExecSpawnPlayer(const std::string &clientId, float x, float y,
 #else
   HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
 #endif
+}
+
+float Chunk::GetDistanceToPosition(float x, float y, float z) const {
+  return _boundingBox.GetDistanceToPosition(x, y, z);
 }
 
 } // namespace chunks

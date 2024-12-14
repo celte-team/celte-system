@@ -69,6 +69,7 @@ void CelteEntity::UploadReplicationData() {
   std::string blob = _replicator.GetBlob(false);
 
   if (not blob.empty()) {
+    std::cout << "sending replication data" << std::endl;
     blob = base64_encode(reinterpret_cast<const unsigned char *>(blob.c_str()),
                          blob.size());
     _ownerChunk->ScheduleReplicationDataToSend(_uuid, blob);
@@ -87,16 +88,12 @@ const std::string &CelteEntity::GetInformationToLoad() const {
 }
 
 void CelteEntity::DownloadReplicationData(const std::string &blob) {
-  std::cout << "celte entity download replication data" << std::endl;
   if (blob.empty()) {
     return;
   }
-  std::cout << "blob was not empty" << std::endl;
   std::string blobDecoded = base64_decode(blob);
   try {
-    std::cout << "before overwrite" << std::endl;
     _replicator.Overwrite(blobDecoded);
-    std::cout << "after overwrite" << std::endl;
   } catch (std::exception &e) {
     std::cerr << "Error while downloading replication data: " << e.what()
               << std::endl;
@@ -110,7 +107,6 @@ void CelteEntity::sendInputToKafka(std::string inputName, bool pressed) {
   std::string cp = chunkId + "." + tp::INPUT;
   celte::runtime::CelteInputSystem::InputUpdate_s req = {
       .name = inputName, .pressed = pressed, .uuid = _uuid};
-  std::cout << "Input : " << inputName << std::endl << std::flush;
 
   CINPUT.GetWriterPool().Write<celte::runtime::CelteInputSystem::InputUpdate_s>(
       cp, req);

@@ -112,10 +112,8 @@ void Grape::__subdivide() {
 
   RUNTIME.IO().post([this]() {
     // waiting until all readers are ready
-    std::cout << "Waiting for readers to be ready..." << std::endl;
     while (not _rpcs->Ready())
       ;
-    std::cout << "RPCs are ready." << std::endl;
     for (auto &[chunkId, chunk] : _chunks) {
       chunk->WaitNetworkInitialized();
     }
@@ -130,9 +128,7 @@ void Grape::__subdivide() {
 
     // When ready, requesting the owner of the grape to send the existing
     // data to load on the grape
-    std::cout << "Requesting existing entities summary..." << std::endl;
     if (not _options.isLocallyOwned) {
-      std::cout << "Requesting" << std::endl;
       _rpcs
           ->CallAsync<std::string>(tp::PERSIST_DEFAULT + _options.grapeId,
                                    "__rp_sendExistingEntitiesSummary",
@@ -141,9 +137,7 @@ void Grape::__subdivide() {
             ENTITIES.LoadExistingEntities(summary);
           });
     }
-    std::cout << "-----------------------------------" << std::endl;
   });
-  std::cout << "subdivision done" << std::endl;
 }
 
 GrapeStatistics Grape::GetStatistics() const {
@@ -213,6 +207,22 @@ bool Grape::__rp_onSpawnRequested(std::string &clientId) {
   }
 }
 #endif
+
+Chunk &Grape::GetClosestChunk(float x, float y, float z) const {
+  Chunk *closestChunk = nullptr;
+  float closestDistance = std::numeric_limits<float>::max();
+  for (auto &[chunkId, chunk] : _chunks) {
+    float distance = chunk->GetDistanceToPosition(x, y, z);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestChunk = &*chunk;
+    }
+  }
+  if (closestChunk == nullptr) {
+    throw std::out_of_range("No chunks in grape " + _options.grapeId);
+  }
+  return *closestChunk;
+}
 
 } // namespace chunks
 } // namespace celte

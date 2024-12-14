@@ -91,6 +91,8 @@ public:
 
 #endif
 
+  float GetDistanceToPosition(float x, float y, float z) const;
+
   inline ChunkConfig GetConfig() const { return _config; }
 
   /**
