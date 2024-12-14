@@ -20,13 +20,40 @@ RotatedBoundingBox::RotatedBoundingBox(const glm::vec3 &position,
 RotatedBoundingBox::~RotatedBoundingBox() {}
 
 bool RotatedBoundingBox::ContainsPosition(float x, float y, float z) const {
+  std::cout << "rotated bounding box, contains position" << std::endl;
+  std::cout << "box center: " << _position.x << " " << _position.y << " "
+            << _position.z << std::endl;
+  std::cout << "box size: " << _size.x << " " << _size.y << " " << _size.z
+            << std::endl;
+  std::cout << "localX: " << _localX.x << " " << _localX.y << " " << _localX.z
+            << std::endl;
+  std::cout << "localY: " << _localY.x << " " << _localY.y << " " << _localY.z
+            << std::endl;
+  std::cout << "localZ: " << _localZ.x << " " << _localZ.y << " " << _localZ.z
+            << std::endl;
+  std::cout << "halfSize: " << _halfSize.x << " " << _halfSize.y << " "
+            << _halfSize.z << std::endl;
+  std::cout << "halfX: " << _halfX.x << " " << _halfX.y << " " << _halfX.z
+            << std::endl;
+  std::cout << "halfY: " << _halfY.x << " " << _halfY.y << " " << _halfY.z
+            << std::endl;
+  std::cout << "halfZ: " << _halfZ.x << " " << _halfZ.y << " " << _halfZ.z
+            << std::endl;
+  std::cout << "position: " << x << " " << y << " " << z << std::endl;
+
   // looking at the vector localOrigin to position
   glm::vec3 posLocalCoord(glm::vec3(x, y, z) - _position);
+
+  std::cout << "posLocalCoord: " << posLocalCoord.x << " " << posLocalCoord.y
+            << " " << posLocalCoord.z << std::endl;
 
   // projecting on local Axis (their norm is one)
   glm::vec3 posLocalCoordProj(glm::dot(posLocalCoord, _localX),
                               glm::dot(posLocalCoord, _localY),
                               glm::dot(posLocalCoord, _localZ));
+
+  std::cout << "posLocalCoord: " << posLocalCoord.x << " " << posLocalCoord.y
+            << " " << posLocalCoord.z << std::endl;
 
   // is any of the coords of the projection greater than the half size?
   bool contains = (glm::abs(posLocalCoordProj.x) <= _halfSize.x &&

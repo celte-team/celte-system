@@ -51,10 +51,6 @@ void CelteNet::CreateConsumer(SubscribeOptions &options) {
 
   options.conf.setMessageListener(
       [options](pulsar::Consumer &consumer, const pulsar::Message &msg) {
-        if (msg.getTopicName() != "persistent://public/default/global.clock") {
-          std::cout << "Received message: " << msg.getDataAsString()
-                    << std::endl;
-        }
         options.messageHandler(consumer, msg);
       });
 
