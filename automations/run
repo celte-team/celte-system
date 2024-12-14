@@ -271,7 +271,6 @@ def run_tests(yaml_path):
 
         server_binary = suite['servers']['binary']
         client_binary = suite['clients']['binary']
-        print(f"directory!!!!!!!!: {os.getcwd()}")
         if not os.path.exists(server_binary):
             print(f"{Fore.RED}Server binary not found: {server_binary}{Style.RESET_ALL}")
             print(f"{Fore.RED} FAILED{Style.RESET_ALL}")

@@ -126,6 +126,11 @@ public:
    */
   void sendInputToKafka(std::string inputName, bool pressed);
 
+  /**
+   * @brief Returns true if the entity is owned by the current peer.
+   */
+  bool IsOwnedByCurrentPeer() const;
+
 private:
   std::string _uuid;
   celte::chunks::Chunk *_ownerChunk = nullptr;
