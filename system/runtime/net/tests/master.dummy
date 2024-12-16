@@ -1,0 +1,151 @@
+#!/usr/bin/env python
+import threading
+import pulsar
+import json
+import time
+import sys
+
+client = pulsar.Client('pulsar://localhost:6650')
+# client = pulsar.Client('pulsar://localhost:8080')
+
+nodes = []
+
+def handle_playerPositionResponse(msg, json_data):
+    print(f"\033[94m<Received RPC response> {json_data}\033[0m")
+
+    # calling accept new client on the node
+    call_rpc(f"persistent://public/default/{nodes[0]}.rpc", "__rp_acceptNewClient", [
+        json_data['args']['clientId'],
+        json_data['args']['grapeId'],
+        json_data['args']['x'],
+        json_data['args']['y'],
+        json_data['args']['z']
+    ])
+
+def call_rpc(topic, name, args: tuple):
+    request = {
+        "name": name,
+        "respondsTo": "",
+        "responseTopic": "persistent://public/default/master.rpc",
+        "rpcId": "1",
+        "args": args
+    }
+    global client
+    producer = client.create_producer(topic)
+    producer.send(json.dumps(request).encode('utf-8'))
+
+    print(f"\033[94m<Sent RPC request> {request} on topic {topic}\033[0m")
+    # wait for the message to be sent
+    producer.flush()
+    producer.close()
+
+def rpc_thread(master_rpc):
+    while True:
+        msg = master_rpc.receive()
+        data = msg.data().decode('utf-8')
+        json_data = json.loads(data)
+
+        # Extract fields from the JSON data
+        headers = msg.properties()  # Get custom headers
+
+        # Display the data
+        print(f"\033[94mReceived message: id={id}, message={json_data}, headers={headers}\033[0m")
+        handlers_by_name = {
+            "__rp_getPlayerSpawnPosition": handle_playerPositionResponse,
+        }
+
+        try:
+            handlers_by_name[json_data['name']](msg, json_data)
+        except KeyError:
+            if json_data['respondsTo'] != "":
+                print(f"\033[91m<Response> Call <id> {json_data['respondsTo']} received response for RPC {json_data['name']}: {json_data}\033[0m")
+            else:
+                print(f"\033[91m<Error> No handler for RPC {json_data['name']}\033[0m")
+
+        master_rpc.acknowledge(msg)
+
+def hello_sn_thread(master_hello_sn):
+    while True:
+        msg = master_hello_sn.receive()
+        data = msg.data().decode('utf-8')
+        json_data = json.loads(data)
+
+        # Extract fields from the JSON data
+        headers = msg.properties()  # Get custom headers
+
+        # Display the data
+        print(f"\033[94mReceived message: id={id}, message={json_data}, headers={headers}\033[0m")
+
+        global nodes
+        nodes.append(json_data['peerUuid'])
+        print(f"\033[94m<Registered node> {json_data['peerUuid']}\033[0m")
+
+        master_hello_sn.acknowledge(msg)
+
+        # first grape gets LeChateauDuMechant, second grape gets LeChateauDuGentil
+        if len(nodes) == 1:
+            call_rpc(f"persistent://public/default/{nodes[0]}.rpc", "__rp_assignGrape", ["LeChateauDuMechant"])
+        elif len(nodes) == 2:
+            call_rpc(f"persistent://public/default/{nodes[1]}.rpc", "__rp_assignGrape", ["LeChateauDuGentil"])
+
+
+def hello_client_thread(master_hello_client):
+    while True:
+        msg = master_hello_client.receive()
+        data = msg.data().decode('utf-8')
+        json_data = json.loads(data)
+
+        # Extract fields from the JSON data
+        headers = msg.properties()  # Get custom headers
+
+        # Display the data
+        print(f"\033[94mReceived message: id={id}, message={json_data}, headers={headers}\033[0m")
+        master_hello_client.acknowledge(msg)
+
+        global nodes
+        call_rpc(f"persistent://public/default/{nodes[0]}.rpc", "__rp_getPlayerSpawnPosition", [json_data['peerUuid']])
+
+def clock_thread():
+    global client
+    producer = client.create_producer('persistent://public/default/global.clock')
+    tick = 0
+    while True:
+        # sleep 10 ms
+        time.sleep(0.01)
+        msg = {
+            "tick": tick
+        }
+        producer.send(json.dumps(msg).encode('utf-8'))
+        producer.flush()
+        tick += 1
+
+
+print("Go master!")
+master_rpc = client.subscribe('persistent://public/default/master.rpc', subscription_name='master-server')
+master_hello_sn = client.subscribe('persistent://public/default/master.hello.sn', subscription_name='master-server')
+master_hello_client = client.subscribe('persistent://public/default/master.hello.client', subscription_name='master-server')
+
+# one thread per topic
+hello_client_thread = threading.Thread(target=hello_client_thread, args=(master_hello_client,))
+hello_client_thread.start()
+
+hello_sn_thread = threading.Thread(target=hello_sn_thread, args=(master_hello_sn,))
+hello_sn_thread.start()
+
+rpc_thread = threading.Thread(target=rpc_thread, args=(master_rpc,))
+rpc_thread.start()
+
+clock_thread = threading.Thread(target=clock_thread)
+clock_thread.start()
+
+# wait for the connection to pulsar to be established
+time.sleep(2)
+print("Press Ctrl+C to exit...")
+# flush stdout
+sys.stdout.flush()
+
+# wait for the threads to finish
+hello_client_thread.join()
+hello_sn_thread.join()
+rpc_thread.join()
+clock_thread.join()

@@ -11,6 +11,7 @@ class SetupConfig
     private readonly string[] _args;
     private Dictionary<string, object>? _yamlObject;
     protected DockerSystem? dockerSystem;
+    public List<string> _grapes = new List<string>();
     public SetupConfig(string[] args)
     {
         _args = args;
@@ -22,7 +23,7 @@ class SetupConfig
 
     public Dictionary<string, object>? GetYamlObjectConfig()
     {
-        if (_yamlObject == null)
+        if (_yamlObject == null || _yamlObject.Count == 0)
         {
             Console.WriteLine("Yaml object is null.");
             return null;
@@ -33,33 +34,17 @@ class SetupConfig
     public void SettingUpMaster()
     {
         GetConfigFile();
-        if (_args.Contains("--local") || _args.Contains("-l"))
-        {
-            SettingUpLocal();
-        }
-        else if (_args.Contains("--cloud") || _args.Contains("-c"))
-        {
-            // TODO Implement cloud setup
-            // SettingUpCloud();
-        }
-        else
-        {
-            // for the moment I allow the non usage of the flags for testing purposes
-
-            // Usage usage = new Usage();
-            // usage.UsageMessage();
-            // return;
-        }
+        GetNumberOfGrapes();
     }
 
     public void SettingUpLocal()
     {
         if (_yamlObject != null)
         {
-            int chunks = GetNumberOfChunks();
-            Console.WriteLine($"Launching {chunks} containers...");
+            int nGrapes = _grapes.Count;
+            Console.WriteLine($"Launching {nGrapes} containers...");
 
-            for (int i = 0; i < chunks; i++)
+            for (int i = 0; i < nGrapes; i++)
             {
                 dockerSystem.LaunchContainer().Wait();
             }
@@ -70,14 +55,19 @@ class SetupConfig
         }
     }
 
-    private int GetNumberOfChunks()
+    private int GetNumberOfGrapes()
     {
-        if (_yamlObject != null && _yamlObject.ContainsKey("chunks"))
+        if (_yamlObject != null && _yamlObject.ContainsKey("grapes"))
         {
-            return Convert.ToInt32(_yamlObject["chunks"]);
+            var grapes = _yamlObject["grapes"] as List<object>;
+            if (grapes != null)
+            {
+                _grapes = grapes.Select(g => g.ToString()).ToList();
+                return grapes.Count;
+            }
         }
 
-        Console.WriteLine("No 'chunks' key found in the configuration file.");
+        Console.WriteLine("No 'grapes' key found in the configuration file or it is not a list.");
         return 0;
     }
 
@@ -114,7 +104,6 @@ class SetupConfig
 
                     _yamlObject = deserializer.Deserialize<Dictionary<string, object>>(fileContents);
                     dockerSystem = new DockerSystem(_yamlObject);
-                    Console.WriteLine("Configuration file loaded successfully.");
                 }
                 else
                 {

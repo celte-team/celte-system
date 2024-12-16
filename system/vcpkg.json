@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "boost",
+    "glm",
+    "msgpack",
+    "pulsar-client-cpp",
+    "python3"
+  ]
+}

@@ -1,44 +1,75 @@
-using System;
-using System.Threading;
-using MessagePack;
+using System.Text.Json;
 
 class ConnectNode
 {
     Master _master = Master.GetInstance();
 
-    public struct Node
+    // create a structure with node uuid and grapes list
+    public class NodeStruct
     {
-        public string uuid;
+        public string uuid { get; set; }
+        public List<string> grapes { get; set; }
     }
-    public static Dictionary<string, Node> _nodes = new Dictionary<string, Node>();
 
-    public void connectNewNode(byte[] messageByte)
+    public string ToString(NodeStruct node)
+    {
+        return JsonSerializer.Serialize(node);
+    }
+
+    /// <summary>
+    /// Get all nodes from redis
+    /// </summary>
+    /// <returns>
+    /// return a System.Collections.Generic.List`1[System.String]
+    /// you can use this to iterate over the list of nodes
+    /// </returns>
+    public async Task<List<string>> GetNodes()
+    {
+        return await Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes");
+    }
+
+    public async Task<bool> AddNode(string uuid)
+    {
+        // Create a new node
+        Grape grape = new Grape();
+        string grapeStr = await grape.ReturnNextGrape();
+        List<string> grapes = new List<string>();
+        if (grapeStr == null)
+        {
+            grapes = new List<string>();
+        } else {
+            grapes = new List<string> { grapeStr };
+        }
+        NodeStruct node = new NodeStruct
+        {
+            uuid = uuid,
+            grapes = grapes,
+        };
+
+        // Serialize the node
+        string nodeJson = JsonSerializer.Serialize(node);
+        // Push to Redis
+        return await Redis.RedisClient.GetInstance().redisData.JSONPush("nodes", uuid, nodeJson);
+    }
+
+    public async void connectNewNode(string message)
     {
         try
         {
-            // Deserialize the message
-            string message = System.Text.Encoding.UTF8.GetString(messageByte);
-            Console.WriteLine("Deserialized message: " + message);
-
-            // Assuming message is supposed to be a UUID or similar identifier
-            _master.kFKProducer._uuidProducerService.OpenTopic(message);
-            RPC.InvokeRemote("__rp_assignGrape", Scope.Peer(message), "leChateauDuMechant");
-
-            // Link node with the server
-            if (!_nodes.ContainsKey(message))
-            {
-                _nodes.Add(message, new Node { uuid = message });
-                Console.WriteLine("Node added: " + message);
-            }
-            else
-            {
-                Console.WriteLine("Node already exists: " + message);
-            }
+            JsonDocument messageJson = JsonDocument.Parse(message);
+            JsonElement root = messageJson.RootElement;
+            string binaryData = root.GetProperty("binaryData").GetString() ?? throw new InvalidOperationException("binaryData property is missing or null");
+            _ = _master.pulsarProducer.OpenTopic(binaryData);
+            Console.WriteLine("Node creating...: " + binaryData);
+            var rpcNode = "persistent://public/default/" + binaryData + ".rpc";
+            string grapeToSpawn = await new Grape().ReturnNextGrape();
+            var assignGrape = JsonDocument.Parse($"[\"{grapeToSpawn}\"]").RootElement;
+            RPC.Call(rpcNode, "__rp_assignGrape", assignGrape);
+            await AddNode(binaryData);
         }
         catch (Exception e)
         {
             Console.WriteLine("Error deserializing message: " + e.Message);
-            Console.WriteLine("Inner exception: " + e.InnerException?.Message);
         }
     }
 }

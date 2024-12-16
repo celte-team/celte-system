@@ -10,9 +10,15 @@ namespace GlobalClockService
     {
         static async Task Main(string[] args)
         {
+            string? celteClusterHost = System.Environment.GetEnvironmentVariable("CELTE_CLUSTER_HOST");
+            if (string.IsNullOrEmpty(celteClusterHost))
+            {
+                Console.WriteLine("Please set the CELTE_CLUSTER_HOST environment variable to the Kafka cluster host.");
+                return;
+            }
             var config = new ProducerConfig
             {
-                BootstrapServers = System.Environment.GetEnvironmentVariable("CELTE_HOST_CLUSTER") ?? "localhost:9092"
+                BootstrapServers = $"{celteClusterHost}:80"
             };
 
             int deltaMs = int.TryParse(System.Environment.GetEnvironmentVariable("CELTE_CLOCK_DELTA_MS"), out var result) ? result : 1000 / 10; // defaults at 10 fps
@@ -41,7 +47,8 @@ namespace GlobalClockService
 
         static async Task StartClockTicks(IProducer<string, string> producer, string topic, int deltaMs, CancellationToken cancellationToken)
         {
-            long tickId = 0;
+            int tickId = 0;
+
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -53,15 +60,13 @@ namespace GlobalClockService
 
                 var message = new Message<string, string>
                 {
-                    Key = tickId.ToString(),
-                    Value = Convert.ToBase64String(MessagePackSerializer.Serialize(tickId)),
+                    Value = tickId.ToString(),
                     Headers = headers
                 };
 
                 try
                 {
                     var deliveryResult = await producer.ProduceAsync(topic, message, cancellationToken);
-                    Console.WriteLine($"Tick {tickId} sent at {timestamp:O}");
                 }
                 catch (ProduceException<string, string> e)
                 {

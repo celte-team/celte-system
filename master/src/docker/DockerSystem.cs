@@ -71,7 +71,7 @@ class DockerSystem
             foreach (var containerIds in _containerIds)
             {
                 // delete the container
-                _client.Containers.RemoveContainerAsync(
+                await _client.Containers.RemoveContainerAsync(
                     containerIds,
                     new ContainerRemoveParameters
                     {

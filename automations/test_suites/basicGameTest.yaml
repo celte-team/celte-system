@@ -1,0 +1,56 @@
+logs: ./system/build/tmp/automations/logs
+
+build:
+  - step: systems
+    run: |
+      mkdir -p system/build
+      cd system/build
+      if [ -z "$(ls -A .)" ]; then cmake --preset default -G Ninja ..; fi
+      cmake --build . --target all
+
+  - step: master
+    run: |
+      cd master
+      dotnet add package DotPulsar
+      dotnet build
+
+  - step: clock
+    run: |
+      cd ./ClockServer
+      dotnet build
+
+test_suites:
+
+  - name: game1
+    description: Test the correct behavior with multiple clients in a small game.
+    timeout-seconds:  60
+
+    cluster: yes
+    master: yes
+
+    servers:
+      binary: ./system/build/tests/server.debug
+      replicas: 2
+
+    clients:
+      binary: ./system/build/tests/client.debug
+      replicas: 2
+      wait-servers:
+        regex: ">> SERVER READY << "
+        timeout-seconds: 20
+
+    expects:
+      servers:
+        - ">> Grape LeChateauDuMechant loaded, owned locally: (yes|no) <<"
+        - ">> Grape LeChateauDuGentil loaded, owned locally: (yes|no) <<"
+        - ">> SERVER SPAWN .* <<"
+        - ">> SERVER onTake HOOK CALLED <<"
+        - ".*Name: move.*"
+
+      clients:
+        - ">> Grape LeChateauDuMechant loaded, owned locally: no <<"
+        - ">> Grape LeChateauDuGentil loaded, owned locally: no <<"
+        - ">> CLIENT LOADED MAP << "
+        - ">> CLIENT IS READY TO SPAWN <<"
+        - ">> CLIENT SPAWNING .* <<"
+        - ".*Input : move.*"

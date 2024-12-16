@@ -1,14 +1,12 @@
-using System;
-using System.Threading;
-
 class Master
 {
     public SetupConfig? _setupConfig;
-    public KafkaManager? kafkaManager;
     private static Master? _master;
-    public KFKProducer kFKProducer;
+    public PulsarConsumer pulsarConsumer;
+    public PulsarProducer pulsarProducer;
     public CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-    public KfkConsumerListener kfkConsumerListener;
+    public RPC rpc = new RPC();
+    public string redisIp;
 
     private Master()
     {
@@ -24,10 +22,11 @@ class Master
             }
             _setupConfig = new SetupConfig(Environment.GetCommandLineArgs());
             _setupConfig.SettingUpMaster();
-            kfkConsumerListener = new KfkConsumerListener(_setupConfig.GetYamlObjectConfig()["kafka_brokers"].ToString()
-            , "kafka-dotnet");
-
-            StartKafkaSystem();
+            redisIp = _setupConfig.GetYamlObjectConfig()?["redis_host"]?.ToString() ?? "localhost:6379";
+            Redis.RedisClient redisClient = Redis.RedisClient.GetInstance(redisIp);
+            pulsarConsumer = new PulsarConsumer();
+            pulsarProducer = new PulsarProducer();
+            StartPulsarConsumer();
         }
         catch (Exception e)
         {
@@ -37,30 +36,25 @@ class Master
     }
 
     /// <summary>
-    /// Start the Kafka system
+    /// Start the Pulsar consumer required for the Master.
     /// </summary>
-    public void StartKafkaSystem()
+    public void StartPulsarConsumer()
     {
-        var consumerThread = new Thread(() => kfkConsumerListener.StartConsuming(cancellationTokenSource.Token));
-        consumerThread.Start();
-        var StartExecuteBufferThread = new Thread(() => kfkConsumerListener.StartExecuteBuffer(cancellationTokenSource.Token));
-
-        StartExecuteBufferThread.Start();
-
         ConnectNode connectNode = new ConnectNode();
         ConnectClient connectClient = new ConnectClient();
-
-        kfkConsumerListener.AddTopic(M.Global.MasterHelloSn, connectNode.connectNewNode);
-        kfkConsumerListener.AddTopic(M.Global.MasterHelloClient, connectClient.connectNewClient);
-        kfkConsumerListener.AddTopic(M.Global.MasterRPC, null);
-
-
-        kFKProducer = new KFKProducer();
-    }
-
-    private void __handleRPC(string message)
-    {
-        Console.WriteLine($"Received RPC message: {message}");
+        pulsarConsumer.CreateConsumer(new SubscribeOptions
+        {
+            Topics = "persistent://public/default/" + M.Global.MasterHelloSn,
+            SubscriptionName = M.Global.MasterHelloSn,
+            Handler = (consumer, message) => connectNode.connectNewNode(message)
+        });
+        pulsarConsumer.CreateConsumer(new SubscribeOptions
+        {
+            Topics = "persistent://public/default/" + M.Global.MasterHelloClient,
+            SubscriptionName = M.Global.MasterHelloClient,
+            Handler = (consumer, message) => connectClient.ConnectNewClient(message)
+        });
+        rpc.InitConsumer();
     }
 
     public static Master GetInstance()

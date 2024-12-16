@@ -1,14 +1,24 @@
-﻿using System;
+﻿
+using System;
 using System.Threading;
-using Confluent.Kafka;
 
 class Program
 {
     static void Main(string[] args)
     {
         Master master = Master.GetInstance();
-        Console.WriteLine("Press Enter to exit...");
-        Console.ReadLine();
-        master.Dispose();
+        Console.CancelKeyPress += (sender, e) =>
+        {
+            e.Cancel = true;
+            Console.WriteLine("Ctrl+C pressed, exiting...");
+            master.Dispose();
+            Environment.Exit(0);
+        };
+
+        Console.WriteLine("\nPress Ctrl+C to exit...\n");
+        while (true)
+        {
+            Thread.Sleep(100);
+        }
     }
 }
