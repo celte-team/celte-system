@@ -121,6 +121,29 @@ public:
 
   Chunk &GetClosestChunk(float x, float y, float z) const;
 
+  /**
+   * @brief Returns a handle to the rpc service of the grape.
+   *
+   * @throws std::runtime_error if the rpc service has not been initialized yet.
+   */
+  inline net::RPCService &GetRPCService() {
+    if (not _rpcs.has_value()) {
+      throw std::runtime_error("RPC service not initialized yet");
+    }
+    return _rpcs.value();
+  }
+
+  /**
+   * @brief Returns a handle to the rpc service of the chunk with the given
+   * id.api
+   *
+   * @throws std::out_of_range if the chunk does not exist.
+   * @throws std::runtime_error if the rpc service has not been initialized yet.
+   */
+  inline net::RPCService &GetChunkRPCService(const std::string &chunkId) {
+    return GetChunk(chunkId).GetRPCService();
+  }
+
 private:
   void __initNetwork();
   /**
@@ -130,12 +153,13 @@ private:
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
-   * @brief This RPC will be called when a player requests to spawn in the game.
-   * It will instantiate the player in all peers listening to the chunk the
-   * player is spawning in by calling a __rp_spawnPlayer RPC to the chunk's rpc
-   * channel
+   * @brief This RPC will be called when a player requests to spawn in the
+   * game. It will instantiate the player in all peers listening to the chunk
+   * the player is spawning in by calling a __rp_spawnPlayer RPC to the
+   * chunk's rpc channel
    */
   bool __rp_onSpawnRequested(std::string &clientId);
+
 #endif
 
   std::optional<net::RPCService> _rpcs = std::nullopt;

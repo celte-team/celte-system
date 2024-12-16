@@ -63,6 +63,12 @@ public:
    */
   void WaitNetworkInitialized();
 
+  /**
+   * @brief Returns a handle to the rpc service of the chunk.
+   *
+   */
+  inline net::RPCService &GetRPCService() { return _rpcs; }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Called when an entity enters the chunk. (This should be called by
