@@ -47,9 +47,9 @@ def get_ip_address():
 
 def run_docker_pulsar():
     global current_process
-    env['DOCKER_HOST_IP'] = ip_address
     os.chdir('pulsar')
-    current_process = subprocess.Popen(['docker', 'compose', 'down', '-v'])
+    env['DOCKER_HOST_IP'] = "localhost"
+    current_process = subprocess.Popen(['docker', 'compose', 'down', '-v'], env=env)
     current_process.wait()
     current_process = subprocess.Popen(['docker', 'compose', 'up'], env=env)
     current_process.wait()
@@ -231,7 +231,7 @@ def run_redis_sentinel():
     """Run the Redis Sentinel Docker container."""
     # write the EXTERNAL_HOST_IP to the .env file inside the redis file
     os.chdir('redis')
-    export_env_vars('EXTERNAL_HOST', ip_address)
+    export_env_vars('DOCKER_HOST_IP', ip_address)
     print(f"{Fore.GREEN}Redis Sentinel is running, don't forget to go to http://localhost:5540 and http://localhost:5050 ;){Style.RESET_ALL}")
     subprocess.run(['docker', 'compose', 'down'])
     subprocess.run(['docker', 'compose', 'up'])
@@ -239,20 +239,13 @@ def run_redis_sentinel():
 
 def run_master():
     """Run the master configuration update."""
+    os.environ['DOCKER_HOST_IP'] = ip_address
+    os.environ['PULSAR_BROKERS'] = f"pulsar://{ip_address}:6650"
+    os.environ['REDIS_HOST'] = f"{ip_address}:6379"
+
     os.chdir('master')
-
-    config_file_path = 'configFile.yml'
-    with open(config_file_path, 'r') as f:
-        config = yaml.safe_load(f)
-
-    if 'kafka_brokers' in config:
-        config['kafka_brokers'] = f"{ip_address}:80"
-
-    # Write the updated configuration back to the file
-    with open(config_file_path, 'w') as f:
-        yaml.dump(config, f)
-
     subprocess.run(['dotnet', 'run', '--config', 'configFile.yml'])
+    os.chdir('..')
 
 def run_tests(yaml_path):
     """Run tests defined in the YAML file."""
@@ -410,6 +403,22 @@ def run_tests(yaml_path):
             cluster_process_handle.wait()
             docker_down.wait()
 
+def run_all():
+    export_env_vars('DOCKER_HOST_IP', ip_address)
+    export_env_vars('PULSAR_BROKERS', f"pulsar://{ip_address}:6650")
+    export_env_vars('REDIS_HOST', f"{ip_address}:6379")
+    env['DOCKER_HOST_IP'] = ip_address
+    env['PULSAR_BROKERS'] = f"pulsar://{ip_address}:6650"
+    env['REDIS_HOST'] = f"{ip_address}:6379"
+    os.environ['DOCKER_HOST_IP'] = ip_address
+    os.environ['PULSAR_BROKERS'] = f"pulsar://{ip_address}:6650"
+    os.environ['REDIS_HOST'] = f"{ip_address}:6379"
+
+    print(f"{Fore.GREEN}Running all services with env : {env}{Style.RESET_ALL}")
+    subprocess.run(['docker', 'compose', 'down'])
+    print("env is : ", env)
+    subprocess.run(['docker', 'compose', 'up', '--no-deps', '--build'], env=env)
+
 def run_server():
     """Placeholder method to simulate running a server."""
     print("Server is running...")
@@ -437,6 +446,7 @@ launcher = {
     '--test': run_tests,
     '--redis': run_redis_sentinel,
     '--master': run_master,
+    '--all': run_all,
 }
 
 def usage():
