@@ -1,9 +1,3 @@
-container_image: masterceltearm
-cpu: 1
 grapes:
 - LeChateauDuMechant
 - LeChateauDuGentil
-kafka_brokers: 192.168.0.45:80
-memory: 512
-pulsar_brokers: pulsar://localhost:6650
-redis_host: localhost:6379

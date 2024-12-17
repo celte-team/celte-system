@@ -37,32 +37,16 @@ class SetupConfig
         GetNumberOfGrapes();
     }
 
-    public void SettingUpLocal()
-    {
-        if (_yamlObject != null)
-        {
-            int nGrapes = _grapes.Count;
-            Console.WriteLine($"Launching {nGrapes} containers...");
-
-            for (int i = 0; i < nGrapes; i++)
-            {
-                dockerSystem.LaunchContainer().Wait();
-            }
-        }
-        else
-        {
-            Console.WriteLine("Failed to load the configuration file.");
-        }
-    }
-
     private int GetNumberOfGrapes()
     {
+        // Console.WriteLine($"Getting number of grapes...: {_yamlObject["grapes"]}");
         if (_yamlObject != null && _yamlObject.ContainsKey("grapes"))
         {
             var grapes = _yamlObject["grapes"] as List<object>;
             if (grapes != null)
             {
                 _grapes = grapes.Select(g => g.ToString()).ToList();
+                Console.WriteLine($"Number of grapes: {grapes.Count}");
                 return grapes.Count;
             }
         }

@@ -22,7 +22,9 @@ class PulsarConsumer
     public PulsarConsumer()
     {
         Master master = Master.GetInstance();
-        string pulsarBrokers = master._setupConfig.GetYamlObjectConfig()?["pulsar_brokers"]?.ToString() ?? string.Empty;
+        // string pulsarBrokers = master._setupConfig.GetYamlObjectConfig()?["pulsar_brokers"]?.ToString() ?? string.Empty;
+        // get ip from env
+        string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
         if (string.IsNullOrEmpty(pulsarBrokers))
         {
             throw new ArgumentException("Pulsar brokers are not set.");
