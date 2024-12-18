@@ -1,0 +1,15 @@
+services:
+  master:
+    build:
+      context: ./master
+      dockerfile: Dockerfile
+    # /heatlh is the endpoint use by k8s
+    # the master will respond with a 200 status code if it is ready
+  healthcheck:
+    image: nginx:latest
+    container_name: healthcheck
+    ports:
+      - '8080:80'
+    command: /bin/sh -c "while true; do echo 'HTTP/1.1 200 OK\n\n'; sleep 1; done"
+
+

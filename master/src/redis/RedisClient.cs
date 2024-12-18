@@ -2,7 +2,6 @@ using StackExchange.Redis;
 using Newtonsoft.Json;
 using System.Text.Json;
 
-
 namespace Redis {
     /// <summary>
     /// Represents a log entry
@@ -25,9 +24,10 @@ namespace Redis {
         public RedisData redisData;
         public RLogger rLogger;
 
-        private RedisClient(string connectionString)
+        private RedisClient()
         {
             try {
+                string connectionString = Environment.GetEnvironmentVariable("REDIS_HOST") ?? string.Empty;
                 _connection = ConnectionMultiplexer.Connect(connectionString);
                 _db = _connection.GetDatabase();
                 Console.WriteLine("Connected to Redis\n");
@@ -36,15 +36,16 @@ namespace Redis {
             }
         }
 
-        public static RedisClient GetInstance(string connectionString = "localhost:6379")
+        public static RedisClient GetInstance()
         {
             if (_instance == null)
             {
+                string connectionString = Environment.GetEnvironmentVariable("REDIS_HOST") ?? string.Empty;
                 if (string.IsNullOrEmpty(connectionString))
                 {
                     throw new ArgumentNullException("Connection string cannot be null or empty");
                 }
-                _instance = new RedisClient(connectionString);
+                _instance = new RedisClient();
                 RedisData Rd = new RedisData(_instance.GetDatabase());
                 _instance.redisData = Rd;
                 RLogger Rl = new RLogger(_instance.GetDatabase());
