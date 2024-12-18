@@ -4,6 +4,9 @@
 #include "Logger.hpp"
 #include "Requests.hpp"
 #include "glm/glm.hpp"
+#include <iostream>
+#include <random>
+#include <string>
 
 namespace celte {
     namespace chunks {
@@ -115,6 +118,72 @@ namespace celte {
                         return true;
                     } catch (std::exception& e) {
                         std::cerr << "Error in __rp_spawnPlayer: " << e.what() << std::endl;
+                        return false;
+                    }
+                }));
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+
+            // _rpcs.Register<bool>(
+            //     "__rp_askSpawnEntity",
+            //     std::function([this](std::string clientId, std::string entityName, nlohmann::json& args, std::string tempId, TIMESTAMP timestamp) {
+            //         try {
+            //             if (_entityChecker[entityName](clientId, args))
+            //                 ExecSpawnEntity(clientId, entityName, args, tempId, timestamp);
+            //             return true;
+            //         } catch (std::exception& e) {
+            //             std::cerr << "Error in __rp_askSpawnEntity: " << e.what() << std::endl;
+            //             return false;
+            //         }
+            // }));
+#endif
+
+            _rpcs.Register<bool>(
+                "__rp_disconnectPlayer",
+                std::function([this](std::string entityId, std::string _) {
+                    try {
+                        std::cout << "Disconnecting player id : " << entityId << std::endl;
+                        _rpcs.CallVoid("__rp_deleteEntity", entityId, _);
+                        return true;
+                    } catch (std::exception& e) {
+                        std::cerr << "Error in __rp_disconnectPlayer: " << e.what() << std::endl;
+                        return false;
+                    }
+                }));
+
+            // _rpcs.Register<bool>(
+            //     "__rp_spawnEntity",
+            //     std::function([this](std::string clientId, std::string entityName, nlohmann::json& args, std::string tempId, TIMESTAMP timestamp, std::string entityId) {
+            //         try {
+            //             auto entity = ENTITIES.GetEntity(tempId);
+            //             if (RUNTIME.GetUUID() == clientId && entity)
+            //                 entity.value()->SetUUID(entityId);
+            //             else {
+            //                 std::shared_ptr<celte::CelteEntity> e = std::make_shared<celte::CelteEntity>();
+            //                 // TO COMPLETE OR ASK GODOT WHAT TO DO
+            //             }
+            //             return true;
+            //         } catch (std::exception& e) {
+            //             std::cerr << "Error in __rp_spawnEntity: " << e.what() << std::endl;
+            //             return false;
+            //         }
+            //     }));
+
+            _rpcs.Register<bool>(
+                "__rp_deleteEntity",
+                std::function([this](std::string entityId, std::string _) {
+                    try {
+                        auto entity = ENTITIES.GetEntity(entityId);
+                        if (entity) {
+                            ENTITIES.UnregisterEntity(entity.value());
+                            CINPUT.GetListInput()->erase(entityId);
+                            std::cout << "Succesfully delete entity id : " << entityId << std::endl;
+                            return true;
+                        }
+                        std::cerr << "No entity in the list with this id : " << entityId << std::endl;
+                        return false;
+                    } catch (std::exception& e) {
+                        std::cerr << "Error in __rp_deleteEntity: " << e.what() << std::endl;
                         return false;
                     }
                 }));
@@ -230,6 +299,40 @@ namespace celte {
 #else
             HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
 #endif
+        }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+
+        // void Chunk::ExecSpawnEntity(std::string clientId, std::string entityName, nlohmann::json& args, std::string tempId, TIMESTAMP timestamp)
+        // {
+        //     std::string entityId = clientId + "." + idGenerator(10);
+
+        //     _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
+        //         "__rp_spawnEntity", clientId, entityName, args, tempId, timestamp, entityId);
+        // }
+
+        void Chunk::ExecDeleteEntity(std::string entityId)
+        {
+            _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
+                "__rp_deleteEntity", entityId, "usless");
+        }
+#endif
+
+        std::string idGenerator(int length)
+        {
+            const std::string chars = "abcdefghijklmnopqrstuvwxyz"
+                                      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                      "0123456789";
+
+            std::random_device rd;
+            std::mt19937 generator(rd());
+            std::uniform_int_distribution<> dist(0, chars.size() - 1);
+
+            std::string randomString;
+            for (size_t i = 0; i < length; ++i)
+                randomString += chars[dist(generator)];
+
+            return randomString;
         }
 
     } // namespace chunks

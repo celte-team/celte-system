@@ -39,7 +39,7 @@ test_suites:
       replicas: 2
       wait-servers:
         regex: ">> SERVER READY << "
-        timeout-seconds: 20
+        timeout-seconds: 40
 
     expects:
       servers:
@@ -48,6 +48,8 @@ test_suites:
         - ">> SERVER SPAWN .* <<"
         - ">> SERVER onTake HOOK CALLED <<"
         - ".*Name: move.*"
+        - ".*Disconnecting player id : .*"
+        - ".*Succesfully delete entity.*"
 
       clients:
         - ">> Grape LeChateauDuMechant loaded, owned locally: no <<"
@@ -56,3 +58,6 @@ test_suites:
         - ">> CLIENT IS READY TO SPAWN <<"
         - ">> CLIENT SPAWNING .* <<"
         - ".*Input : move.*"
+        - ".*Disconnecting player id : .*"
+        - ".*DISCONNECTING MYSELF.*"
+        - ".*Succesfully delete entity.*"

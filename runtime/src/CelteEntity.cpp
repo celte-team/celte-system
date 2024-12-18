@@ -74,6 +74,14 @@ void CelteEntity::UploadReplicationData() {
     _ownerChunk->ScheduleReplicationDataToSend(_uuid, blob);
   }
 }
+
+#else
+
+
+        void CelteEntity::DisconnectPlayer(){
+          _ownerChunk->DisconnectPlayer(_uuid);
+        }
+
 #endif
 
 void CelteEntity::RegisterReplicatedValue(
