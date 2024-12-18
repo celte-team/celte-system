@@ -11,7 +11,22 @@
 namespace celte {
 namespace chunks {
 
-Grape::Grape(const GrapeOptions &options) : _options(options) {}
+Grape::Grape(const GrapeOptions &options) : _options(options) {
+  _rg.SetOwnerGrapeId(_options.grapeId);
+  _rg.SetInstantiateContainer([this]() {
+    ChunkConfig config = {.grapeId = _options.grapeId,
+                          .position = glm::ivec3(0),
+                          .localX = _options.localX,
+                          .localY = _options.localY,
+                          .localZ = _options.localZ,
+                          .size = _options.size,
+                          .isLocallyOwned = _options.isLocallyOwned};
+    auto chunk = std::make_shared<Chunk>(config);
+    chunk->Initialize();
+    _chunks[chunk->GetId()] = chunk;
+    return chunk;
+  });
+}
 
 Grape::Grape(Grape &grape, std::vector<std::string> chunksIds)
     : _options(grape._options) {
@@ -33,8 +48,6 @@ void Grape::Initialize() {
   try {
     __initNetwork();
     __subdivide();
-    logs::Logger::getInstance().info()
-        << "Grape " << _options.grapeId << " created.";
   } catch (std::exception &e) {
     logs::Logger::getInstance().err()
         << "Error, could not subdivide grape: " << e.what();
@@ -106,6 +119,7 @@ void Grape::__subdivide() {
                           .size = _options.size / (float)_options.subdivision,
                           .isLocallyOwned = _options.isLocallyOwned};
     std::shared_ptr<Chunk> chunk = std::make_shared<Chunk>(config);
+    _rg.RegisterEntityContainer(chunk);
     std::string combinedId = chunk->Initialize();
     _chunks[combinedId] = chunk;
   }
@@ -223,6 +237,8 @@ Chunk &Grape::GetClosestChunk(float x, float y, float z) const {
   }
   return *closestChunk;
 }
+
+void Grape::Tick() {}
 
 } // namespace chunks
 } // namespace celte

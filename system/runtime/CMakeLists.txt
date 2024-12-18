@@ -53,6 +53,7 @@ set(COMMON_SOURCES
     src/Logger.cpp
     src/base64.cpp
     src/CelteInputSystem.cpp
+    src/ReplicationGraph.cpp
 )
 
 set(SERVER_SOURCES

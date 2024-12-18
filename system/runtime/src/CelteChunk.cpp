@@ -8,18 +8,26 @@
 namespace celte {
 namespace chunks {
 Chunk::Chunk(const ChunkConfig &config)
-    : _config(config), _combinedId(config.grapeId + "-" + config.chunkId),
+    : IEntityContainer(config.grapeId + "-" + config.chunkId), _config(config),
+      _combinedId(config.grapeId + "-" + config.chunkId),
       _boundingBox(config.position, config.size, config.localX, config.localY,
-                   config.localZ),
-      _rpcs({
-          .thisPeerUuid = RUNTIME.GetUUID(),
-          .listenOn = {tp::PERSIST_DEFAULT + _combinedId + "." +
-                       celte::tp::RPCs},
-          .serviceName =
-              RUNTIME.GetUUID() + ".chunk." + _combinedId + "." + tp::RPCs,
-      }) {}
+                   config.localZ) {}
 
 Chunk::~Chunk() {}
+
+nlohmann::json Chunk::GetFeatures() const {
+  return {
+      {"chunkId", _config.chunkId},
+      {"grapeId", _config.grapeId},
+      {"position",
+       {_config.position.x, _config.position.y, _config.position.z}},
+      {"localX", {_config.localX.x, _config.localX.y, _config.localX.z}},
+      {"localY", {_config.localY.x, _config.localY.y, _config.localY.z}},
+      {"localZ", {_config.localZ.x, _config.localZ.y, _config.localZ.z}},
+      {"size", {_config.size.x, _config.size.y, _config.size.z}},
+      {"isLocallyOwned", _config.isLocallyOwned},
+  };
+}
 
 std::string Chunk::Initialize() {
   __registerConsumers();
@@ -146,7 +154,7 @@ void Chunk::SendReplicationData() {
 void Chunk::OnEnterEntity(const std::string &entityId) {
   try {
     auto &entity = ENTITIES.GetEntity(entityId);
-    if (entity.GetOwnerChunk().GetCombinedId() == _combinedId) {
+    if (entity.GetContainerId() == _combinedId) {
       return;
     }
   } catch (std::out_of_range &e) {
@@ -163,6 +171,7 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
                  "__rp_scheduleEntityAuthorityTransfer", entityId, _combinedId,
                  true, CLOCK.CurrentTick() + 30);
 }
+
 #endif
 
 /* --------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 #pragma once
 #include "RPCService.hpp"
+#include "ReplicationGraph.hpp"
 #include "Replicator.hpp"
 #include "RotatedBoundingBox.hpp"
 #include "topics.hpp"
@@ -29,7 +30,7 @@ struct ChunkConfig {
  *
  * Chunks handle entity replication and authority over entities.
  */
-class Chunk : public net::CelteService {
+class Chunk : public IEntityContainer {
 public:
   Chunk(const ChunkConfig &config);
   ~Chunk();
@@ -41,7 +42,9 @@ public:
    *
    * @return std::string the combined id of the chunk
    */
-  std::string Initialize();
+  std::string Initialize() override;
+
+  nlohmann::json GetFeatures() const override;
 
   /**
    * @brief Returns true if the given position is inside the chunk.
@@ -54,14 +57,14 @@ public:
 
   inline const std::string &GetCombinedId() const { return _combinedId; }
 
-  inline bool IsLocallyOwned() const { return _config.isLocallyOwned; }
+  inline bool IsLocallyOwned() const override { return _config.isLocallyOwned; }
 
   /**
    * @brief  Blocking call: waits until all the reader streams of the chunk
    * are ready to receive messages. This includes the rpc channel of the chunk,
    * as well as replication and input topics.
    */
-  void WaitNetworkInitialized();
+  void WaitNetworkInitialized() override;
 
   /**
    * @brief Returns a handle to the rpc service of the chunk.
@@ -78,6 +81,13 @@ public:
    * chunk.
    */
   void OnEnterEntity(const std::string &entityId);
+
+  /**
+   * @brief Wrapper for the legacy OnEnterEntity method.
+   */
+  inline void TakeEntity(const std::string &entityId) override {
+    OnEnterEntity(entityId);
+  }
 
   /**
    * @brief Adds the data of this entity to the list of data to
@@ -167,14 +177,6 @@ private:
 
   const ChunkConfig _config;
   const std::string _combinedId;
-  net::RPCService _rpcs;
-
-#ifdef CELTE_SERVER_MODE_ENABLED
-  std::shared_ptr<net::WriterStream> _replicationWS;
-  std::unordered_map<std::string, std::string> _nextScheduledReplicationData;
-  std::unordered_map<std::string, std::string>
-      _nextScheduledActiveReplicationData;
-#endif
 };
 } // namespace chunks
 } // namespace celte

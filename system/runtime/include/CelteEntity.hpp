@@ -72,6 +72,10 @@ public:
     return *_ownerChunk;
   }
 
+  inline std::string GetContainerId() const {
+    return GetOwnerChunk().GetCombinedId();
+  }
+
   inline void SetUUID(const std::string &uuid) { _uuid = uuid; }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -131,10 +135,24 @@ public:
    */
   bool IsOwnedByCurrentPeer() const;
 
+  /**
+   * @brief Registers a pointer to this entity's wrapper in the engine's API
+   * so that it can be accessed by the user.
+   */
+  inline void RegisterWrapper(void *wrapper) { _wrapper = wrapper; }
+
+  /**
+   * @brief Returns the pointer to the wrapper of this entity.
+   * @warning possible nullptr if the entity has not been registered,
+   * verify before using.
+   */
+  inline void *GetWrapper() const { return _wrapper; }
+
 private:
   std::string _uuid;
   celte::chunks::Chunk *_ownerChunk = nullptr;
   bool _isSpawned = false;
+  void *_wrapper = nullptr;
 
   /**
    * @brief In server mode, this object is used to collect

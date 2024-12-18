@@ -2,6 +2,7 @@
 #include "CelteChunk.hpp"
 #include "CelteService.hpp"
 #include "RPCService.hpp"
+#include "ReplicationGraph.hpp"
 #include "RotatedBoundingBox.hpp"
 #include "WriterStreamPool.hpp"
 #include <glm/vec3.hpp>
@@ -53,6 +54,12 @@ class Grape {
 public:
   Grape(const GrapeOptions &options);
   void Initialize();
+
+  /**
+   * @brief This method should be called at each tick of the game loop, in the
+   * game engine Celte API.
+   */
+  void Tick();
 
   /**
    * @brief Construct a grape from another grape.
@@ -144,6 +151,8 @@ public:
     return GetChunk(chunkId).GetRPCService();
   }
 
+  inline ReplicationGraph &GetReplicationGraph() { return _rg; }
+
 private:
   void __initNetwork();
   /**
@@ -163,6 +172,8 @@ private:
 #endif
 
   std::optional<net::RPCService> _rpcs = std::nullopt;
+
+  ReplicationGraph _rg;
 
   const GrapeOptions _options;
   std::unordered_map<std::string, std::shared_ptr<Chunk>> _chunks;
