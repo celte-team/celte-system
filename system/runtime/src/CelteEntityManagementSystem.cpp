@@ -70,7 +70,7 @@ std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
 
   for (const auto &[uuid, entity] : _entities) {
     try {
-      if (not entity->GetOwnerChunk().GetConfig().isLocallyOwned) {
+      if (entity->GetOwnerChunk().GetConfig().isLocallyOwned) {
         continue;
       }
       logs::Logger::getInstance().info()
@@ -91,6 +91,10 @@ std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
       }
       // Add the object to the JSON array
       j.push_back(obj);
+
+    } catch (std::out_of_range &e) {
+      continue; // entity is not associated with a chunk (just spawned,
+                // initialisation not done yet)
     } catch (std::exception &e) {
       // If the entity is not associated with a chunk, log it
       std::cerr << "Error while packing entity " << entity->GetUUID()

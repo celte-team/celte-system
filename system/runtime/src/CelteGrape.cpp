@@ -12,7 +12,7 @@ namespace celte {
 namespace chunks {
 
 Grape::Grape(const GrapeOptions &options) : _options(options) {
-  _rg.SetOwnerGrapeId(_options.grapeId);
+  _rg.RegisterOwnerGrapeId(_options.grapeId);
   _rg.SetInstantiateContainer([this]() {
     ChunkConfig config = {.grapeId = _options.grapeId,
                           .position = glm::ivec3(0),
@@ -96,6 +96,12 @@ void Grape::__initNetwork() {
         }
       }));
 #endif
+
+  _rpcs->Register<bool>(
+      "__rp_spawnPlayer",
+      std::function([this](std::string clientId, float x, float y, float z) {
+        return __rp_spawnPlayer(clientId, x, y, z);
+      }));
 }
 
 void Grape::__subdivide() {
@@ -209,18 +215,70 @@ Chunk &Grape::GetChunk(const std::string &chunkId) {
 #ifdef CELTE_SERVER_MODE_ENABLED
 bool Grape::__rp_onSpawnRequested(std::string &clientId) {
   auto [_, x, y, z] = ENTITIES.GetPendingSpawn(clientId);
+  ENTITIES.RemovePendingSpawn(clientId);
+  std::cout << "on spawn requested grape " << _options.grapeId << std::endl;
+  // spawn entity
   try {
-    auto &chunk =
-        GRAPES.GetGrapeByPosition(x, y, z).GetChunkByPosition(x, y, z);
-    chunk.SpawnPlayerOnNetwork(clientId, x, y, z);
-    ENTITIES.RemovePendingSpawn(clientId);
-    return true;
-  } catch (std::out_of_range &e) {
+#ifdef CELTE_SERVER_MODE_ENABLED
+    HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId, x, y, z);
+#else
+    HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
+#endif
+
+  } catch (std::exception &e) {
     std::cerr << "Error in __rp_onSpawnRequested: " << e.what() << std::endl;
     return false;
   }
+  __attachEntityAsync(clientId, x, y, z, 30);
+  return true;
+}
+
+void Grape::__attachEntityAsync(std::string clientId, float x, float y, float z,
+                                int retries) {
+  if (not ENTITIES.IsEntityRegistered(clientId)) {
+    if (retries <= 0) {
+      std::cerr << "Entity spawn timed out, won't spawn on the network"
+                << std::endl;
+      return;
+    }
+    // RUNTIME.IO().post([this, clientId, x, y, z, retries]() {
+    //   __attachEntityAsync(clientId, x, y, z, retries - 1);
+    // });
+    CLOCK.ScheduleAfter(10, [this, clientId, x, y, z, retries]() {
+      __attachEntityAsync(clientId, x, y, z, retries - 1);
+    });
+    return;
+  }
+
+  auto &entity = ENTITIES.GetEntity(clientId);
+  // std::shared_ptr<IEntityContainer> container =
+  //     _rg.GetBestContainerForEntity(entity);
+  std::optional<ReplicationGraph::ContainerAffinity> best =
+      _rg.GetBestContainerForEntity(entity);
+  if (not best.has_value()) {
+    throw std::runtime_error(
+        "No container has enough affinity with the entity");
+  }
+
+  // best->container->TakeEntityLocally(entity.GetUUID());
+  _rg.TakeEntityLocally(entity.GetUUID(), best->container);
+  best->container->SpawnEntityOnNetwork(entity.GetUUID(), x, y, z);
 }
 #endif
+
+bool Grape::__rp_spawnPlayer(std::string clientId, float x, float y, float z) {
+  // if entity already exist in the grape, do not spawn it again
+  if (ENTITIES.IsEntityRegistered(clientId)) {
+    return false;
+  }
+#ifdef CELTE_SERVER_MODE_ENABLED
+  HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId, x, y, z);
+#else
+  HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
+#endif
+
+  return true;
+}
 
 Chunk &Grape::GetClosestChunk(float x, float y, float z) const {
   Chunk *closestChunk = nullptr;

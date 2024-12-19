@@ -20,14 +20,26 @@ void CelteEntity::SetInformationToLoad(const std::string &info) {
 }
 
 void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
-  try {
-    auto &chunk = chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
-                      .GetGrapeByPosition(x, y, z)
-                      .GetChunkByPosition(x, y, z);
-    OnChunkTakeAuthority(chunk);
-  } catch (std::out_of_range &e) {
-    RUNTIME.Err() << "Entity is not in any grape: " << e.what() << std::endl;
-  }
+  // try {
+  // auto &chunk = chunks::CelteGrapeManagementSystem::GRAPE_MANAGER()
+  //                   .GetGrapeByPosition(x, y, z)
+  //                   .GetChunkByPosition(x, y, z);
+  // OnChunkTakeAuthority(chunk);
+  // } catch (std::out_of_range &e) {
+  //   RUNTIME.Err() << "Entity is not in any grape: " << e.what() << std::endl;
+  // }
+
+  // std::shared_ptr<IEntityContainer> container =
+  //     GRAPES.GetContainerById(containerId);
+  // if (not container) {
+  //   std::cerr << "Container not found: " << containerId
+  //             << ", cannot assign entity to it." << std::endl;
+  // }
+
+  // // temporary until hard references to chunks are removed
+  // celte::chunks::Chunk &chunk =
+  //     dynamic_cast<celte::chunks::Chunk &>(*container);
+  // OnChunkTakeAuthority(chunk);
 
   if (uuid.empty()) {
     _uuid = boost::uuids::to_string(boost::uuids::random_generator()());
@@ -51,7 +63,16 @@ void CelteEntity::OnChunkTakeAuthority(celte::chunks::Chunk &chunk) {
 }
 
 void CelteEntity::Tick() {
-  // nothing yet :)
+// nothing yet :)
+#ifdef CELTE_SERVER_MODE_ENABLED
+  if (_ownerChunk == nullptr) {
+    return; // not in the network yet
+  }
+  auto &ownerGrape = GRAPES.GetGrape(_ownerChunk->GetGrapeId());
+  if (ownerGrape.IsLocallyOwned()) {
+    ownerGrape.GetReplicationGraph().AssignEntityByAffinity(*this);
+  }
+#endif
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -103,6 +124,9 @@ void CelteEntity::DownloadReplicationData(const std::string &blob) {
 std::string CelteEntity::GetProps() { return _replicator.GetBlob(true); }
 
 void CelteEntity::sendInputToKafka(std::string inputName, bool pressed) {
+  if (_ownerChunk == nullptr) {
+    return; // can't send inputs if not owned by a chunk
+  }
   std::string chunkId = _ownerChunk->GetCombinedId();
   std::string cp = chunkId + "." + tp::INPUT;
   celte::runtime::CelteInputSystem::InputUpdate_s req = {

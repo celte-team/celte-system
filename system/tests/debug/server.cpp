@@ -146,6 +146,10 @@ void updateClientsPositions() {
     return;
   }
 
+  if (game.objects.empty()) {
+    return;
+  }
+
   std::string uuidP2 =
       (*std::next(game.objects.begin(), 1)).second->entity->GetUUID();
   std::string uuidP1 =

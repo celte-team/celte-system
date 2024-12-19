@@ -53,9 +53,13 @@ public:
 
   inline const std::string &GetChunkId() const { return _config.chunkId; }
 
-  inline const std::string &GetGrapeId() const { return _config.grapeId; }
+  inline const std::string &GetGrapeId() const override {
+    return _config.grapeId;
+  }
 
   inline const std::string &GetCombinedId() const { return _combinedId; }
+
+  inline std::string GetId() const override { return _combinedId; }
 
   inline bool IsLocallyOwned() const override { return _config.isLocallyOwned; }
 
@@ -71,6 +75,8 @@ public:
    *
    */
   inline net::RPCService &GetRPCService() { return _rpcs; }
+
+  void TakeEntityLocally(const std::string &entityId) override;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
@@ -105,18 +111,18 @@ public:
    */
   void SendReplicationData();
 
+  /**
+   * @brief Schedules the spawn of the given client at the given position for
+   * all peers listening on this topic.
+   */
+  void SpawnEntityOnNetwork(const std::string &entity, float x, float y,
+                            float z) override;
+
 #endif
 
   float GetDistanceToPosition(float x, float y, float z) const;
 
   inline ChunkConfig GetConfig() const { return _config; }
-
-  /**
-   * @brief Schedules the spawn of the given client at the given position for
-   * all peers listening on this topic.
-   */
-  void SpawnPlayerOnNetwork(const std::string &clientId, float x, float y,
-                            float z);
 
   /**
    * @brief This RPC will be called by clients when they want to spawn their
@@ -134,6 +140,8 @@ public:
   void ExecSpawnPlayer(const std::string &clientId, float x, float y, float z);
 
 private:
+  void __attachEntityAsync(const std::string &entityId, int retries);
+
   /**
    * @brief Registers all consumers for the chunk.
    * The consumers listen for events in the chunk's topic and react to them.

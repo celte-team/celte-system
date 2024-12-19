@@ -22,6 +22,7 @@ public:
    * It will generate a uuid for the entity and forward it to the chunk
    * that the entity is spawning in.
    *
+   * @param containerId: The id of the container that the entity is spawning in.
    * @param x, y, z: The position of the entity in the world, necessary to
    * determine the chunk.
    * @param uuid: The uuid of the entity. If empty, a random uuid will be

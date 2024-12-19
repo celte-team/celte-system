@@ -152,21 +152,11 @@ void Chunk::SendReplicationData() {
 }
 
 void Chunk::OnEnterEntity(const std::string &entityId) {
-  try {
-    auto &entity = ENTITIES.GetEntity(entityId);
-    if (entity.GetContainerId() == _combinedId) {
-      return;
-    }
-  } catch (std::out_of_range &e) {
-    logs::Logger::getInstance().err()
-        << "Entity not found in OnEnterEntity: " << e.what() << std::endl;
-    std::cerr << "Entity not found in OnEnterEntity: " << std::endl;
-  }
-
   // the current method is only called when the entity enters the chunk in the
   // server node, calling the RPC will trigger the behavior of transfering
   // authority over to the chunk in all the peers listening to the chunk's
   // topic.
+  std::cout << "in chunk::onenterentity, calling on network" << std::endl;
   _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
                  "__rp_scheduleEntityAuthorityTransfer", entityId, _combinedId,
                  true, CLOCK.CurrentTick() + 30);
@@ -183,32 +173,60 @@ void Chunk::OnEnterEntity(const std::string &entityId) {
 void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
                                                  std::string newOwnerChunkId,
                                                  bool take, int tick) {
-  std::cout << "Scheduling entity authority transfer" << std::endl;
-  if (take) {
-    CLOCK.ScheduleAt(tick, [this, entityUUID, newOwnerChunkId]() {
-      try {
+
+  std::cout << "Chunk " << _combinedId
+            << " scheduling entity authority transfer to " << newOwnerChunkId
+            << std::endl;
+
 #ifdef CELTE_SERVER_MODE_ENABLED
-        HOOKS.server.authority.onTake(entityUUID, newOwnerChunkId);
+  HOOKS.server.authority.onTake(entityUUID, newOwnerChunkId);
 #else
-        HOOKS.client.authority.onTake(entityUUID, newOwnerChunkId);
+  HOOKS.client.authority.onTake(entityUUID, newOwnerChunkId);
 #endif
-        auto &newOwnerChunk = GRAPES.GetChunkById(newOwnerChunkId);
-        ENTITIES.GetEntity(entityUUID).OnChunkTakeAuthority(newOwnerChunk);
-      } catch (std::out_of_range &e) {
-        logs::Logger::getInstance().err()
-            << "Entity not found: " << e.what() << std::endl;
-      }
-    });
-  }
+  auto &newOwnerChunk =
+      GRAPES.GetChunkById(newOwnerChunkId); // TODO use containers instead
+  newOwnerChunk.TakeEntityLocally(entityUUID);
+
+  //   std::cout << "Scheduling entity authority transfer" << std::endl;
+  //   std::cout << "current tick is " << CLOCK.CurrentTick()
+  //             << " and scheduling for tick " << tick << std::endl;
+  //   if (take) {
+  //     CLOCK.ScheduleAt(tick, [this, entityUUID, newOwnerChunkId]() {
+  //       try {
+  // #ifdef CELTE_SERVER_MODE_ENABLED
+  //         HOOKS.server.authority.onTake(entityUUID, newOwnerChunkId);
+  // #else
+  //         HOOKS.client.authority.onTake(entityUUID, newOwnerChunkId);
+  // #endif
+  //         auto &newOwnerChunk =
+  //             GRAPES.GetChunkById(newOwnerChunkId); // TODO use containers
+  //             instead
+  //         newOwnerChunk.TakeEntityLocally(entityUUID);
+  //       } catch (std::out_of_range &e) {
+  //         logs::Logger::getInstance().err()
+  //             << "Entity not found: " << e.what() << std::endl;
+  //       }
+  //     });
+  // }
   // nothing to do (yet) for the chunk loosing the authority... more will come
   // in the future
 }
 
-void Chunk::SpawnPlayerOnNetwork(const std::string &clientId, float x, float y,
+void Chunk::TakeEntityLocally(const std::string &entityId) {
+  try {
+    ENTITIES.GetEntity(entityId).OnChunkTakeAuthority(*this);
+  } catch (std::out_of_range &e) {
+    std::cerr << "Error in TakeEntityLocally: " << e.what() << std::endl;
+  }
+}
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void Chunk::SpawnEntityOnNetwork(const std::string &clientId, float x, float y,
                                  float z) {
   _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
                  "__rp_spawnPlayer", clientId, x, y, z);
 }
+#endif
 
 void Chunk::ExecSpawnPlayer(const std::string &clientId, float x, float y,
                             float z) {
@@ -217,6 +235,25 @@ void Chunk::ExecSpawnPlayer(const std::string &clientId, float x, float y,
 #else
   HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
 #endif
+  __attachEntityAsync(clientId, 30);
+  // wait until
+}
+
+void Chunk::__attachEntityAsync(const std::string &entityId, int retries) {
+  if (retries <= 0) {
+    std::cerr << "Entity spawn timed out, won't spawn on the network"
+              << std::endl;
+    return;
+  }
+  if (not ENTITIES.IsEntityRegistered(entityId)) {
+    // RUNTIME.IO().post([this, entityId, retries]() {
+    //   __attachEntityAsync(entityId, retries - 1);
+    // });
+    CLOCK.ScheduleAfter(10, [this, entityId, retries]() {
+      __attachEntityAsync(entityId, retries - 1);
+    });
+  }
+  TakeEntityLocally(entityId);
 }
 
 float Chunk::GetDistanceToPosition(float x, float y, float z) const {

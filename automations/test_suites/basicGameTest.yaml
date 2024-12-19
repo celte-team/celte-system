@@ -27,6 +27,7 @@ test_suites:
 
     cluster: yes
     master: yes
+    master-proxy: ./system/runtime/net/tests/master.dummy
 
     servers:
       binary: ./system/build/tests/server.debug

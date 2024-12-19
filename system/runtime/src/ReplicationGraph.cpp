@@ -1,3 +1,4 @@
+#include "CelteGrape.hpp"
 #include "CelteRuntime.hpp"
 #include "ReplicationGraph.hpp"
 #include <algorithm>
@@ -19,92 +20,116 @@ void ReplicationGraph::TakeEntity(const std::string &entityId) {
           "No container available and no way to create one");
     }
     {
-      std::lock_guard<std::mutex> lock(*_containersMutex);
+      std::lock_guard<std::mutex> lock(_containersMutex);
       _containers.push_back(_instantiateContainer());
     }
   }
 
   try {
+    std::cout << "in replicator graph's take entity" << std::endl;
     CelteEntity &e = RUNTIME.GetEntityManager().GetEntity(entityId);
-    __assignEntityByAffinity(e);
+    AssignEntityByAffinity(e);
   } catch (std::out_of_range &e) {
     std::cout << "TakeEntity: " << e.what() << std::endl;
   }
-
-  std::lock_guard<std::mutex> lock(*_entitiesMutex);
-  _entities.push_back(entityId);
 }
-#endif
 
-ReplicationGraph::~ReplicationGraph() {
-#ifdef CELTE_SERVER_MODE_ENABLED
-  _reassignThreadRunning = false;
-  if (_reassignThread.joinable()) {
-    _reassignThread.join();
+void ReplicationGraph::TakeEntityLocally(
+    const std::string &entityId, std::shared_ptr<IEntityContainer> container) {
+  if (container == nullptr) {
+    throw std::runtime_error("Container is null");
   }
-#endif
+  if (not container->IsLocallyOwned()) {
+    throw std::runtime_error("Container is not locally owned");
+  }
+  container->TakeEntityLocally(entityId);
 }
+
+#endif
+
+ReplicationGraph::~ReplicationGraph() {}
 
 void ReplicationGraph::RegisterEntityContainer(
     std::shared_ptr<IEntityContainer> container) {
-  std::lock_guard<std::mutex> lock(*_containersMutex);
+  std::lock_guard<std::mutex> lock(_containersMutex);
   _containers.push_back(container);
 }
 
-ReplicationGraph::ReplicationGraph()
-    : _entitiesMutex(new std::mutex()), _containersMutex(new std::mutex) {}
+ReplicationGraph::ReplicationGraph() {}
 
-void ReplicationGraph::SetOwnerGrapeId(const std::string &grapeId) {
+void ReplicationGraph::RegisterOwnerGrapeId(const std::string &grapeId) {
   _ownerGrapeId = grapeId;
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-void ReplicationGraph::__reassignEntities() {
-  if (_entities.empty() or _containers.empty()) {
+std::optional<ReplicationGraph::ContainerAffinity>
+ReplicationGraph::GetBestContainerForEntity(CelteEntity &entity) {
+  std::vector<float> scores;
+  scores.reserve(_containers.size());
+
+  for (const auto &container : _containers) {
+    scores.push_back(_getAffinity(entity, container));
+  }
+
+  auto maxIt = std::max_element(scores.begin(), scores.end());
+  if (maxIt != scores.end()) {
+    size_t index = std::distance(scores.begin(), maxIt);
+    float maxScore = *maxIt;
+
+    if (maxScore < 0.01) {
+      return std::nullopt;
+    }
+
+    std::shared_ptr<IEntityContainer> bestContainer = _containers[index];
+    return ContainerAffinity{.container = bestContainer, .affinity = maxScore};
+  }
+  return std::nullopt;
+}
+
+void ReplicationGraph::AssignEntityByAffinity(CelteEntity &entity) {
+  std::optional<ContainerAffinity> bestContainerScore =
+      GetBestContainerForEntity(entity);
+  if (not bestContainerScore.has_value()) {
+    // no container has enough affinity with the entity, look in other grapes
+    std::cout
+        << "no container has enough affinity with the entity, looking elsewhere"
+        << std::endl;
+    __lookupBestContainerInOtherGrapes(entity);
     return;
   }
-  // avoid locking for too long by copying the entities
-  std::vector<std::string> entities;
-  {
-    std::lock_guard<std::mutex> lock(*_entitiesMutex);
-    entities = _entities;
-  }
-
-  for (auto &entity : entities) {
-    // find the best container for the entity
-    try {
-      CelteEntity &e = RUNTIME.GetEntityManager().GetEntity(entity);
-      __assignEntityByAffinity(e);
-    } catch (std::out_of_range &e) {
-      std::cout << "__reassign Entities: " << e.what() << std::endl;
-    }
+  if (bestContainerScore->container->GetId() != entity.GetContainerId()) {
+    bestContainerScore->container->TakeEntity(entity.GetUUID());
   }
 }
 
-void ReplicationGraph::__assignEntityByAffinity(CelteEntity &entity) {
-  std::shared_ptr<IEntityContainer> bestContainer = nullptr;
-  decltype(_containers) containers;
-  {
-    std::lock_guard<std::mutex> lock(*_containersMutex);
-    containers = _containers;
-  }
-
-  auto bestIt = std::max_element(
-      containers.begin(), containers.end(),
-      [&](const std::shared_ptr<IEntityContainer> &a,
-          const std::shared_ptr<IEntityContainer> &b) {
-        return _getAffinity(entity, a) < _getAffinity(entity, b);
-      });
-
-  if (bestIt != containers.end()) {
-    bestContainer = *bestIt;
-    if (bestContainer->GetId() != entity.GetContainerId()) {
-      bestContainer->TakeEntity(entity.GetUUID());
+void ReplicationGraph::__lookupBestContainerInOtherGrapes(CelteEntity &entity) {
+  std::optional<ContainerAffinity> bestContainerScore;
+  for (auto &grape : GRAPES.GetGrapes()) {
+    if (grape->GetGrapeId() == _ownerGrapeId) {
+      continue;
     }
-  } else {
-    throw std::runtime_error("No container available to assign entity to.");
+    std::optional<ContainerAffinity> score =
+        grape->GetReplicationGraph().GetBestContainerForEntity(entity);
+    if (not score.has_value()) {
+      continue;
+    }
+    if (not bestContainerScore.has_value() or
+        score->affinity > bestContainerScore->affinity) {
+      bestContainerScore = score;
+    }
   }
+  if (not bestContainerScore.has_value()) {
+    std::cerr << "No container or grape known to this server node "
+                 "has enough affinity with the entity"
+              << std::endl;
+    return;
+  }
+  std::cout << "lookup : best container is "
+            << bestContainerScore->container->GetId() << " with affinity "
+            << bestContainerScore->affinity << std::endl;
+  bestContainerScore->container->TakeEntity(entity.GetUUID());
 }
+
 #endif
 
 void ReplicationGraph::Validate() {
@@ -120,24 +145,8 @@ void ReplicationGraph::Validate() {
   }
   if (_ownerGrapeId.empty()) {
     throw std::runtime_error("OwnerGrapeId not set. Set it using "
-                             "SetOwnerGrapeId");
+                             "RegisterOwnerGrapeId");
   }
-
-#ifdef CELTE_SERVER_MODE_ENABLED
-  _reassignThreadRunning = true;
-  _reassignThread = std::thread([this]() {
-    while (_reassignThreadRunning) {
-      __reassignThreadWorker();
-    }
-  });
-#endif
 }
-
-#ifdef CELTE_SERVER_MODE_ENABLED
-void ReplicationGraph::__reassignThreadWorker() {
-  __reassignEntities();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-}
-#endif
 
 } // namespace celte

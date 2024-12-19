@@ -29,6 +29,14 @@ public:
   void UnregisterEntity(std::shared_ptr<celte::CelteEntity> entity);
 
   /**
+   * @brief Returns true if the entity with the given uuid is registered with
+   * the system, false otherwise.
+   */
+  inline bool IsEntityRegistered(const std::string &uuid) const {
+    return _entities.find(uuid) != _entities.end();
+  }
+
+  /**
    * @brief Returns a reference to the entity with the given uuid.
    *
    * @throws std::out_of_range if the entity is not found.
@@ -66,9 +74,9 @@ public:
   /**
    * @brief This method will register the consumer meant to handle property
    * replication handling. The server automatically sends the data to the
-   * chunk's repl topic when there is an update but the client needs to be able
-   * to receive the data and udpate it locally. This is achieved by registering
-   * a consumer dedicated to this task.
+   * chunk's repl topic when there is an update but the client needs to be
+   * able to receive the data and udpate it locally. This is achieved by
+   * registering a consumer dedicated to this task.
    *
    * @note a server is technically a client of other servers when it comes to
    * other server's chunks.
@@ -76,8 +84,8 @@ public:
    * @param chunkId The id of the chunk to register the consumer for. Both
    * server nodes and clients can register a consumer for a chunk if there are
    * interested in the updates that are published in the chunk. A server node
-   * will tipically not create this consumer for the chunks it manages but will
-   * do so for chunks managed by other nodes.
+   * will tipically not create this consumer for the chunks it manages but
+   * will do so for chunks managed by other nodes.
    */
   void RegisterReplConsumer(const std::vector<std::string> &chunkId);
 
@@ -100,9 +108,9 @@ public:
   }
 
   /**
-   * @brief Returns a summary of all the entities that are currently registered
-   * with celte, along with information about how to instantiate them (see
-   * CelteEntity::SetInformationToLoad).
+   * @brief Returns a summary of all the entities that are currently
+   * registered with celte, along with information about how to instantiate
+   * them (see CelteEntity::SetInformationToLoad).
    *
    * The data is sent under serialized JSON format.
    * The returned data is under the format:
@@ -141,9 +149,10 @@ private:
 #endif
 
   /**
-   * @brief this method is called as a callback when an update is received from
-   * a chunk's replication data topic. It will iterate over the entities and
-   * update their properties to reflect the values dictated by the server node.
+   * @brief this method is called as a callback when an update is received
+   * from a chunk's replication data topic. It will iterate over the entities
+   * and update their properties to reflect the values dictated by the server
+   * node.
    */
   void __handleReplicationDataReceived(
       std::unordered_map<std::string, std::string> &data, bool active = false);

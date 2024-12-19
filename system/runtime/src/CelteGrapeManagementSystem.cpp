@@ -55,5 +55,23 @@ void CelteGrapeManagementSystem::ReplicateAllEntities() {
   }
 }
 #endif
+
+std::shared_ptr<IEntityContainer> CelteGrapeManagementSystem::GetContainerById(
+    const std::string &containerId) { // TODO: store a global map of containers
+                                      // for faster access
+  for (auto &[grapeId, grape] : _grapes) {
+    auto container = grape->GetReplicationGraph().GetContainerById(containerId);
+  }
+  throw std::out_of_range("No container with id " + containerId + " exists.");
+}
+
+std::vector<std::shared_ptr<Grape>> CelteGrapeManagementSystem::GetGrapes() {
+  std::vector<std::shared_ptr<Grape>> grapes;
+  for (auto &[grapeId, grape] : _grapes) {
+    grapes.push_back(grape);
+  }
+  return grapes;
+}
+
 } // namespace chunks
 } // namespace celte

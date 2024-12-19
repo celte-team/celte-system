@@ -1,6 +1,7 @@
 #pragma once
 #include "RPCService.hpp"
 #include "nlohmann/json.hpp"
+#include "queue.hpp"
 #include "topics.hpp"
 #include <atomic>
 #include <functional>
@@ -19,6 +20,11 @@ class IEntityContainer : public net::CelteService {
 public:
   IEntityContainer(const std::string &_combinedId);
   virtual ~IEntityContainer() = default;
+
+  /**
+   * @brief Returns a reference to the Grape that owns this container.
+   */
+  virtual const std::string &GetGrapeId() const = 0;
 
   /**
    * @brief Returns the features of this container.
@@ -62,11 +68,21 @@ public:
 
   virtual std::string GetId() const { return _id; }
 
+  /**
+   * @brief This method is called to assign an entity to this container, in
+   * response to an order from the rightful owner of the entity.
+   */
+  virtual void TakeEntityLocally(const std::string &entityId) = 0;
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Takes ownership of an entity.
    */
   virtual void TakeEntity(const std::string &entityId) = 0;
+
+  virtual void SpawnEntityOnNetwork(const std::string &entityId, float x,
+                                    float y, float z) = 0;
+
 #endif
 
 protected:
@@ -107,7 +123,7 @@ public:
   void RegisterEntityContainer(std::shared_ptr<IEntityContainer> container);
 
   inline void AddContainer() {
-    std::lock_guard<std::mutex> lock(*_containersMutex);
+    std::lock_guard<std::mutex> lock(_containersMutex);
     _containers.push_back(_instantiateContainer());
   }
 
@@ -115,13 +131,33 @@ public:
    * @brief Registers the Id of the owner grape so that directives can be
    * broadcasted to the right channel.
    */
-  void SetOwnerGrapeId(const std::string &grapeId);
+  void RegisterOwnerGrapeId(const std::string &grapeId);
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Sets the logic used to reassign nodes to containers.
    */
   void SetAssignmentReplNode(AssignmentReplNode arn) { _getAffinity = arn; }
+
+  struct ContainerAffinity {
+    std::shared_ptr<IEntityContainer> container;
+    float affinity;
+  };
+
+  std::optional<ContainerAffinity>
+  GetBestContainerForEntity(CelteEntity &entity);
+
+  void __lookupBestContainerInOtherGrapes(CelteEntity &entity);
+
+  /**
+   * @brief Given a container and an entity, this method will assign the entity
+   * to the container (without checking if it is the best container for the
+   * entity and without broadcasting the change to the network). The entity will
+   * be added to the list of entities managed by the graph. This method should
+   * be called when the entity spawns in this grape.
+   */
+  void TakeEntityLocally(const std::string &entityId,
+                         std::shared_ptr<IEntityContainer> container);
 #endif
 
   inline void SetInstantiateContainer(
@@ -132,44 +168,40 @@ public:
   /**
    * @brief Validates that the hooks and information necessary for this
    * replication graph have been setup correctly.
-   * If that is the case, the graph is considered valid and the thread that
-   * will reassign entities will be started.
    *
    * @throws std::runtime_error if the graph is not valid.
    */
   void Validate();
 
-protected:
-#ifdef CELTE_SERVER_MODE_ENABLED
-  /**
-   * @brief iterates on all known entities an reassigns them to the most
-   * suitable container. If all containers return a low affinity score,
-   * replication graphs from other server nodes will be queried.
-   */
-  void __reassignEntities();
+  inline std::shared_ptr<IEntityContainer> // TODO: store containers in an
+                                           // unordered map to avoid the loop
+  GetContainerById(const std::string &id) {
+    std::lock_guard<std::mutex> lock(_containersMutex);
+    for (auto &container : _containers) {
+      if (container->GetId() == id) {
+        return container;
+      }
+    }
+    return nullptr;
+  }
 
   /**
    * @brief Chooses the best container for a single entity and assigns it to
    * that container.
    */
-  void __assignEntityByAffinity(CelteEntity &entity);
+  void AssignEntityByAffinity(CelteEntity &entity);
+
+protected:
+#ifdef CELTE_SERVER_MODE_ENABLED
   AssignmentReplNode _getAffinity = nullptr;
 #endif
 
   std::string _ownerGrapeId;
-  std::vector<std::string> _entities;
-  std::unique_ptr<std::mutex> _entitiesMutex;
 
   std::vector<std::shared_ptr<IEntityContainer>> _containers;
-  std::unique_ptr<std::mutex> _containersMutex;
+  std::mutex _containersMutex;
 
   std::function<std::shared_ptr<IEntityContainer>()> _instantiateContainer;
-
-#ifdef CELTE_SERVER_MODE_ENABLED
-  std::thread _reassignThread;
-  std::atomic_bool _reassignThreadRunning = false;
-  void __reassignThreadWorker();
-#endif
 };
 
 } // namespace celte

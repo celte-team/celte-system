@@ -105,17 +105,23 @@ public:
     // we should call the request spawn RP after the zone is done loading. This
     // is done in the .then of the grape registration to ensure that the client
     // is done connecting to the grape's topics before requesting to spawn.
-    std::function<void()> then = nullptr;
+    std::function<void()> then = [name]() {
 #ifndef CELTE_SERVER_MODE_ENABLED
-    if (name == "LeChateauDuMechant") { // spawn zone is hard coded here but
-                                        // it's technically just the zone called
-                                        // in the loadGrape hook.
-      then = [name]() {
+      if (name == "LeChateauDuMechant") { // spawn zone is hard coded here but
+                                          // it's technically just the zone
+                                          // called in the loadGrape hook.
         std::cout << ">> CLIENT IS READY TO SPAWN <<" << std::endl;
         RUNTIME.RequestSpawn(RUNTIME.GetUUID(), name, 0, 0, 0);
-      };
-    }
+      }
+#else
+      auto &grape = GRAPES.GetGrape(name);
+      grape.GetReplicationGraph().SetAssignmentReplNode(
+          [](celte::CelteEntity &, std::shared_ptr<celte::IEntityContainer>) {
+            return 1.0f;
+          });
+      grape.GetReplicationGraph().Validate();
 #endif
+    };
 
     glm::vec3 grapePosition(x, y, 0);
     auto grapeOptions =
@@ -141,8 +147,6 @@ public:
     entity->SetInformationToLoad(std::to_string(repr));
     entity->OnSpawn(x, y, 0, uuid);
     objects[uuid] = std::make_shared<GameObject>(repr, entity, x, y);
-    // entity->RegisterActiveProperty("x", &objects[uuid]->x);
-    // entity->RegisterActiveProperty("y", &objects[uuid]->y);
     entity->RegisterReplicatedValue(
         "x",
         [uuid, this]() -> std::string {

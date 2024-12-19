@@ -60,6 +60,9 @@ public:
 
   Chunk &GetChunkById(const std::string &chunkId);
 
+  std::shared_ptr<IEntityContainer>
+  GetContainerById(const std::string &containerId);
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief This method is called by the CelteEntityManagementSystem and will
@@ -84,6 +87,8 @@ public:
     _lastReplicationDataSent = std::chrono::high_resolution_clock::now();
   }
 #endif
+
+  std::vector<std::shared_ptr<Grape>> GetGrapes();
 
 private:
   std::unordered_map<std::string, std::shared_ptr<Grape>> _grapes;

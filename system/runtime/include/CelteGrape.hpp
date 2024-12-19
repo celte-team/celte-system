@@ -55,6 +55,8 @@ public:
   Grape(const GrapeOptions &options);
   void Initialize();
 
+  inline bool IsLocallyOwned() const { return _options.isLocallyOwned; }
+
   /**
    * @brief This method should be called at each tick of the game loop, in the
    * game engine Celte API.
@@ -124,6 +126,11 @@ public:
    * @brief Replicates all entities in the grape to their respective chunks.
    */
   void ReplicateAllEntities();
+
+  inline void TakeEntity(const std::string &entityId) {
+    _rg.TakeEntity(entityId);
+  }
+
 #endif
 
   Chunk &GetClosestChunk(float x, float y, float z) const;
@@ -169,7 +176,20 @@ private:
    */
   bool __rp_onSpawnRequested(std::string &clientId);
 
+  /**
+   * @brief Assigns an entity to a container and sends the order to spawn the
+   * entity over the network. If the entity has not been instantiated in the
+   * game yet, this method will retry until the entity is instantiated or the
+   * number of retries is depleted.
+   * @param clientId: The id of the entity to spawn.
+   * @param x, y, z: The position of the entity in the world.
+   * @param retries: The number of retries before giving up.
+   */
+  void __attachEntityAsync(std::string clientId, float x, float y, float z,
+                           int retries = 10);
 #endif
+
+  bool __rp_spawnPlayer(std::string clientId, float x, float y, float z);
 
   std::optional<net::RPCService> _rpcs = std::nullopt;
 
