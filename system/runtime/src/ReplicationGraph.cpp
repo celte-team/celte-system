@@ -149,4 +149,17 @@ void ReplicationGraph::Validate() {
   }
 }
 
+nlohmann::json ReplicationGraph::Dump() const {
+  nlohmann::json j;
+  j["number of containers"] = _containers.size();
+  for (const auto &container : _containers) {
+    j["containers"].push_back(std::map<std::string, std::string>{
+        {"id", container->GetId()},
+        {"locally owned", container->IsLocallyOwned() ? "true" : "false"},
+        {"owned entities", std::to_string(container->GetNOwnedEntities())},
+    });
+  }
+  return j;
+}
+
 } // namespace celte

@@ -74,6 +74,8 @@ public:
    */
   virtual void TakeEntityLocally(const std::string &entityId) = 0;
 
+  inline void IncNOwnedEntities(int n) { _nOwnedEntities += n; }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Takes ownership of an entity.
@@ -85,9 +87,12 @@ public:
 
 #endif
 
+  unsigned int GetNOwnedEntities() const { return _nOwnedEntities; }
+
 protected:
   std::string _id;
   net::RPCService _rpcs;
+  unsigned int _nOwnedEntities = 0;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::shared_ptr<net::WriterStream> _replicationWS;
@@ -126,6 +131,12 @@ public:
     std::lock_guard<std::mutex> lock(_containersMutex);
     _containers.push_back(_instantiateContainer());
   }
+
+  /**
+   * @brief Returns a json object containing data about the replication graph,
+   * its containers and the replicated entities.
+   */
+  nlohmann::json Dump() const;
 
   /**
    * @brief Registers the Id of the owner grape so that directives can be

@@ -121,6 +121,12 @@ public:
 
   Chunk &GetChunk(const std::string &chunkId);
 
+  /**
+   * @brief Returns a json string containing information about the current state
+   * of the grape.
+   */
+  nlohmann::json Dump() const;
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Replicates all entities in the grape to their respective chunks.

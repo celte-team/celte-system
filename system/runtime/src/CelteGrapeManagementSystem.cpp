@@ -1,5 +1,6 @@
 #include "CelteGrapeManagementSystem.hpp"
 #include "Logger.hpp"
+#include "nlohmann/json.hpp"
 #include <sstream>
 #include <stdexcept>
 
@@ -71,6 +72,14 @@ std::vector<std::shared_ptr<Grape>> CelteGrapeManagementSystem::GetGrapes() {
     grapes.push_back(grape);
   }
   return grapes;
+}
+
+std::string CelteGrapeManagementSystem::DumpGrapes() const {
+  nlohmann::json j;
+  for (auto &[grapeId, grape] : _grapes) {
+    j[grapeId] = grape->Dump();
+  }
+  return j.dump();
 }
 
 } // namespace chunks

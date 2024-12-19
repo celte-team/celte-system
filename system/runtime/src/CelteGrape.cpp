@@ -241,9 +241,6 @@ void Grape::__attachEntityAsync(std::string clientId, float x, float y, float z,
                 << std::endl;
       return;
     }
-    // RUNTIME.IO().post([this, clientId, x, y, z, retries]() {
-    //   __attachEntityAsync(clientId, x, y, z, retries - 1);
-    // });
     CLOCK.ScheduleAfter(10, [this, clientId, x, y, z, retries]() {
       __attachEntityAsync(clientId, x, y, z, retries - 1);
     });
@@ -251,16 +248,12 @@ void Grape::__attachEntityAsync(std::string clientId, float x, float y, float z,
   }
 
   auto &entity = ENTITIES.GetEntity(clientId);
-  // std::shared_ptr<IEntityContainer> container =
-  //     _rg.GetBestContainerForEntity(entity);
   std::optional<ReplicationGraph::ContainerAffinity> best =
       _rg.GetBestContainerForEntity(entity);
   if (not best.has_value()) {
     throw std::runtime_error(
         "No container has enough affinity with the entity");
   }
-
-  // best->container->TakeEntityLocally(entity.GetUUID());
   _rg.TakeEntityLocally(entity.GetUUID(), best->container);
   best->container->SpawnEntityOnNetwork(entity.GetUUID(), x, y, z);
 }
@@ -297,6 +290,15 @@ Chunk &Grape::GetClosestChunk(float x, float y, float z) const {
 }
 
 void Grape::Tick() {}
+
+nlohmann::json Grape::Dump() const {
+  nlohmann::json j;
+  j["locally owned"] = _options.isLocallyOwned;
+
+  nlohmann::json replicationDump = _rg.Dump();
+  j["replication graph"] = replicationDump;
+  return j;
+}
 
 } // namespace chunks
 } // namespace celte

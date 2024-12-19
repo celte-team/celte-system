@@ -166,6 +166,7 @@ void CelteEntityManagementSystem::LoadExistingEntities(
           uuid == RUNTIME.GetUUID()) {
         continue; // entity already loaded
       }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
       HOOKS.server.grape.onLoadExistingEntities(partialSummary);
 #else

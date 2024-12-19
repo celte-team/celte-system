@@ -174,10 +174,6 @@ void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
                                                  std::string newOwnerChunkId,
                                                  bool take, int tick) {
 
-  std::cout << "Chunk " << _combinedId
-            << " scheduling entity authority transfer to " << newOwnerChunkId
-            << std::endl;
-
 #ifdef CELTE_SERVER_MODE_ENABLED
   HOOKS.server.authority.onTake(entityUUID, newOwnerChunkId);
 #else
@@ -185,31 +181,11 @@ void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
 #endif
   auto &newOwnerChunk =
       GRAPES.GetChunkById(newOwnerChunkId); // TODO use containers instead
-  newOwnerChunk.TakeEntityLocally(entityUUID);
 
-  //   std::cout << "Scheduling entity authority transfer" << std::endl;
-  //   std::cout << "current tick is " << CLOCK.CurrentTick()
-  //             << " and scheduling for tick " << tick << std::endl;
-  //   if (take) {
-  //     CLOCK.ScheduleAt(tick, [this, entityUUID, newOwnerChunkId]() {
-  //       try {
-  // #ifdef CELTE_SERVER_MODE_ENABLED
-  //         HOOKS.server.authority.onTake(entityUUID, newOwnerChunkId);
-  // #else
-  //         HOOKS.client.authority.onTake(entityUUID, newOwnerChunkId);
-  // #endif
-  //         auto &newOwnerChunk =
-  //             GRAPES.GetChunkById(newOwnerChunkId); // TODO use containers
-  //             instead
-  //         newOwnerChunk.TakeEntityLocally(entityUUID);
-  //       } catch (std::out_of_range &e) {
-  //         logs::Logger::getInstance().err()
-  //             << "Entity not found: " << e.what() << std::endl;
-  //       }
-  //     });
-  // }
-  // nothing to do (yet) for the chunk loosing the authority... more will come
-  // in the future
+  auto &entity = ENTITIES.GetEntity(entityUUID);
+  auto &ownerContainer = entity.GetOwnerChunk(); // TODO use containers instead
+
+  newOwnerChunk.TakeEntityLocally(entityUUID);
 }
 
 void Chunk::TakeEntityLocally(const std::string &entityId) {

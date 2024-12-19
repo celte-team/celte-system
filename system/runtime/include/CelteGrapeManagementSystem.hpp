@@ -63,6 +63,12 @@ public:
   std::shared_ptr<IEntityContainer>
   GetContainerById(const std::string &containerId);
 
+  /**
+   * @brief Returns a json string containing information about the current state
+   * of the grapes.
+   */
+  std::string DumpGrapes() const;
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief This method is called by the CelteEntityManagementSystem and will
