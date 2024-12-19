@@ -13,4 +13,7 @@ COPY . .
 WORKDIR /master
 
 # Set the entry point for the container
+# dotnet run --config configFile.yml
+# go to /master and run the app
+
 ENTRYPOINT ["dotnet", "run", "--config", "configFile.yml"]

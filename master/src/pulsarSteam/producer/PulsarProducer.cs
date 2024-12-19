@@ -12,14 +12,16 @@ class PulsarProducer
     {
         try
         {
-            string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
-            if (string.IsNullOrEmpty(pulsarBrokers))
+            var configObject = master._setupConfig?.GetYamlObjectConfig();
+            if (configObject == null || configObject["pulsar_brokers"] == null)
             {
-                throw new ArgumentException("Pulsar brokers are not set.");
+                throw new InvalidOperationException("Configuration object is null");
             }
-            Uri uri = new Uri(pulsarBrokers);
+            var pulsarConfig = configObject["pulsar_brokers"];
+            string pulsar_brokers = pulsarConfig?.ToString() ?? throw new InvalidOperationException("Pulsar brokers configuration is null");
+            Uri uri = new Uri(pulsar_brokers);
             _client = new PulsarClientBuilder()
-                .ServiceUrl(pulsarBrokers)
+                .ServiceUrl(pulsar_brokers)
                 .BuildAsync().Result;
         }
         catch (Exception e)
