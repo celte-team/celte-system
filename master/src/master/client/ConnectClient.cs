@@ -13,10 +13,12 @@ class ConnectClient
     public async void ConnectNewClient(string message)
     {
         Console.WriteLine("New client connected to the cluster: " + message);
-        if (!_clients.ContainsKey(message))
-            _clients.Add(message, new Client { uuid = message });
-
-        await _master.pulsarProducer.OpenTopic(message);
+        string binaryData = message.Split("\"peerUuid\":\"")[1].Split("\"")[0];
+        Console.WriteLine("binaryData = " + binaryData);
+        if (!_clients.ContainsKey(binaryData))
+            _clients.Add(binaryData, new Client { uuid = binaryData });
+        string newTopic = "persistent://public/default/" + binaryData;
+        await _master.pulsarProducer.OpenTopic(newTopic);
         try
         {
             string nodeId = await GetRandomNode();
