@@ -1,37 +1,18 @@
-using System;
 using System.Text;
-using System.Threading.Tasks;
 using DotPulsar.Extensions;
 class PulsarProducer
 {
-    // private readonly PulsarClient? _client;
     private Master master = Master.GetInstance();
 
     public PulsarProducer()
     {
-        // try
-        // {
-        //     string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
-        //     if (string.IsNullOrEmpty(pulsarBrokers))
-        //     {
-        //         throw new ArgumentException("Pulsar brokers are not set.");
-        //     }
-        //     Uri uri = new Uri(pulsarBrokers);
-        //     _client = new PulsarClientBuilder()
-        //         .ServiceUrl(pulsarBrokers)
-        //         .BuildAsync().Result;
-        // }
-        // catch (Exception e)
-        // {
-        //     Console.WriteLine($"Error initializing Pulsar producer: {e.Message}");
-        // }
     }
 
     public async Task ProduceMessageAsync(string topic, string message)
     {
         try
         {
-            var producer = (Master.GetInstance().GetPulsarClient()).NewProducer()
+            var producer = Master.GetInstance().GetPulsarClient().NewProducer()
                 .Topic(topic)
                 .Create();
             Redis.ActionLog actionLog = new Redis.ActionLog
@@ -62,19 +43,7 @@ class PulsarProducer
         }
     }
 
-    public async Task SendMessageAwaitResponseAsyncRpc(string topic, byte[] message, string uuidProcess, Action<byte[]> callBackFunction)
-    {
-        // Here will be implemented the logic to send a message and wait for a response to trigger a callback function
-    }
-
-    public void Dispose()
-    {
-        // _client.Close();
-        // _client.Dispose();
-    }
-
     ~PulsarProducer()
     {
-        Dispose();
     }
 }

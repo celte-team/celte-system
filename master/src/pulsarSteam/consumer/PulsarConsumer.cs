@@ -45,6 +45,7 @@ class PulsarConsumer
             var consumer = Master.GetInstance().GetPulsarClient().NewConsumer()
                 .Topic(options.Topics)
                 .SubscriptionName(options.SubscriptionName)
+                .SubscriptionType(SubscriptionType.Shared)
                 .Create();
 
             options.Consumer = consumer;

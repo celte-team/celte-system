@@ -78,6 +78,7 @@ public class RPC
             }
             return;
         }
+        Console.WriteLine($"<RPC> Received RPC call {request.name} with args {request.args}");
         if (_rpcHandlers.TryGetValue(request.name, out Func<JsonElement, JsonElement?>? value))
         {
             JsonElement? response = value(request.args);
