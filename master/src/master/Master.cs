@@ -1,3 +1,7 @@
+
+using DotPulsar;
+// using DotPulsar.Abstractions;
+
 class Master
 {
     public SetupConfig? _setupConfig;
@@ -6,6 +10,7 @@ class Master
     public PulsarProducer pulsarProducer;
     public CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
     public RPC rpc = new RPC();
+    private readonly DotPulsar.PulsarClient _client;
 
     private Master()
     {
@@ -23,6 +28,14 @@ class Master
             _setupConfig = new SetupConfig(Environment.GetCommandLineArgs());
             _setupConfig.SettingUpMaster();
             Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
+            string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
+            if (string.IsNullOrEmpty(pulsarBrokers))
+            {
+                throw new ArgumentException("Pulsar brokers are not set.");
+            }
+            _client = (PulsarClient)PulsarClient.Builder()
+                .ServiceUrl(new Uri(pulsarBrokers))
+                .Build();
             pulsarConsumer = new PulsarConsumer();
             pulsarProducer = new PulsarProducer();
             StartPulsarConsumer();
@@ -32,6 +45,11 @@ class Master
             Console.WriteLine($"Error initializing Master: {e.Message}");
 
         }
+    }
+
+    public PulsarClient GetPulsarClient()
+    {
+        return _client;
     }
 
     /// <summary>

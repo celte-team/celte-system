@@ -37,7 +37,9 @@ class ConnectNode
         if (grapeStr == null)
         {
             grapes = new List<string>();
-        } else {
+        }
+        else
+        {
             grapes = new List<string> { grapeStr };
         }
         NodeStruct node = new NodeStruct
