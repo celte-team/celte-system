@@ -18,7 +18,7 @@ class ConnectClient
         if (!_clients.ContainsKey(binaryData))
             _clients.Add(binaryData, new Client { uuid = binaryData });
         string newTopic = "persistent://public/default/" + binaryData;
-        await _master.pulsarProducer.OpenTopic(newTopic);
+        // await _master.pulsarProducer.OpenTopic(newTopic);
         try
         {
             string nodeId = await GetRandomNode();
