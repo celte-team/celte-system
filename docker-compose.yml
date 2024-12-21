@@ -1,6 +1,8 @@
 networks:
   pulsar:
     driver: bridge
+  redis:
+    driver: bridge
 
 services:
   master1:
@@ -8,33 +10,49 @@ services:
       context: ./master
       dockerfile: Dockerfile
     container_name: master1
+    networks:
+      - pulsar
     restart: on-failure
     environment:
       - REDIS_HOST=${REDIS_HOST}
       - PULSAR_BROKERS=${PULSAR_BROKERS}
       - DOCKER_HOST_IP=${DOCKER_HOST_IP}
+      - CONFIG_FILE=/config/configFile.yml
+    volumes:
+      - ./master/configFile.yml:/config/configFile.yml
 
   master2:
     build:
       context: ./master
       dockerfile: Dockerfile
     container_name: master2
+    networks:
+      - pulsar
     restart: on-failure
     environment:
       - REDIS_HOST=${REDIS_HOST}
       - PULSAR_BROKERS=${PULSAR_BROKERS}
       - DOCKER_HOST_IP=${DOCKER_HOST_IP}
+      - CONFIG_FILE=/config/configFile.yml
+    volumes:
+      - ./master/configFile.yml:/config/configFile.yml
 
   master3:
     build:
       context: ./master
       dockerfile: Dockerfile
     container_name: master3
+    networks:
+      - pulsar
+      - redis
     restart: on-failure
     environment:
       - REDIS_HOST=${REDIS_HOST}
       - PULSAR_BROKERS=${PULSAR_BROKERS}
       - DOCKER_HOST_IP=${DOCKER_HOST_IP}
+      - CONFIG_FILE=/config/configFile.yml
+    volumes:
+      - ./master/configFile.yml:/config/configFile.yml
     depends_on:
       - redis_master
       - redis_slave
@@ -50,6 +68,8 @@ services:
     image: redis/redis-stack:latest
     container_name: redis_master
     restart: on-failure
+    networks:
+      - redis
     ports:
       - '6379:6379'
 
@@ -58,6 +78,8 @@ services:
     container_name: redis_slave
     command: redis-server --port 6380 --replicaof redis_master 6379
     restart: on-failure
+    networks:
+      - redis
     ports:
       - '6380:6380'
 
@@ -65,6 +87,8 @@ services:
     build: ./redis/sentinel
     container_name: redis_sentinel
     restart: on-failure
+    networks:
+      - redis
     ports:
       - '26379:26379'
     environment:
@@ -75,6 +99,8 @@ services:
     image: redis/redisinsight:latest
     container_name: redisinsight
     restart: on-failure
+    networks:
+      - redis
     ports:
       - '5540:5540'
     environment:
@@ -87,6 +113,8 @@ services:
     restart: always
     environment:
       - REDIS_HOSTS=local:redis_master:6379,local:redis_slave:6380
+    networks:
+      - redis
     ports:
       - "5050:8081"
     user: redis

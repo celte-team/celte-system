@@ -14,24 +14,24 @@ public class SubscribeOptions
 
 class PulsarConsumer
 {
-    private readonly IPulsarClient _client;
+    // private readonly IPulsarClient _client;
     private readonly List<Task> _consumerTasks;
     private readonly CancellationTokenSource _cancellationTokenSource;
 
 
     public PulsarConsumer()
     {
-        Master master = Master.GetInstance();
-        // string pulsarBrokers = master._setupConfig.GetYamlObjectConfig()?["pulsar_brokers"]?.ToString() ?? string.Empty;
-        // get ip from env
-        string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
-        if (string.IsNullOrEmpty(pulsarBrokers))
-        {
-            throw new ArgumentException("Pulsar brokers are not set.");
-        }
-        _client = PulsarClient.Builder()
-            .ServiceUrl(new Uri(pulsarBrokers))
-            .Build();
+        // Master master = Master.GetInstance();
+        // // string pulsarBrokers = master._setupConfig.GetYamlObjectConfig()?["pulsar_brokers"]?.ToString() ?? string.Empty;
+        // // get ip from env
+        // string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
+        // if (string.IsNullOrEmpty(pulsarBrokers))
+        // {
+        //     throw new ArgumentException("Pulsar brokers are not set.");
+        // }
+        // _client = PulsarClient.Builder()
+        //     .ServiceUrl(new Uri(pulsarBrokers))
+        //     .Build();
         _consumerTasks = new List<Task>();
         _cancellationTokenSource = new CancellationTokenSource();
     }
@@ -42,7 +42,7 @@ class PulsarConsumer
             throw new ArgumentException("Message handler is not set.");
         try
         {
-            var consumer = _client.NewConsumer()
+            var consumer = Master.GetInstance().GetPulsarClient().NewConsumer()
                 .Topic(options.Topics)
                 .SubscriptionName(options.SubscriptionName)
                 .Create();
@@ -107,6 +107,6 @@ class PulsarConsumer
         await Task.WhenAll(_consumerTasks);
 
         Console.WriteLine("All consumers shut down.");
-        await _client.DisposeAsync();
+        await Master.GetInstance().GetPulsarClient().DisposeAsync();
     }
 }
