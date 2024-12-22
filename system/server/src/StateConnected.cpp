@@ -60,14 +60,6 @@ Connected::__rp_getPlayerSpawnPosition(const std::string &clientInfo) {
   return HOOKS.server.connection.onSpawnPositionRequest(clientInfo);
 }
 
-// void Connected::__unregisterRPCs() {
-//   UNREGISTER_RPC(__rp_acceptNewClient);
-//   UNREGISTER_RPC(__rp_onSpawnRequested);
-//   UNREGISTER_RPC(__rp_spawnPlayer);
-//   UNREGISTER_RPC(__rp_assignGrape);
-//   UNREGISTER_RPC(__rp_getPlayerSpawnPosition);
-// }
-
 void Connected::__rp_assignGrape(std::string grapeId) {
   HOOKS.server.grape.loadGrape(grapeId, true);
 }

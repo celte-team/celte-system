@@ -149,11 +149,22 @@ public:
    */
   inline void *GetWrapper() const { return _wrapper; }
 
+  /**
+   * @brief Calls a function from the context of the game engine loop, thus
+   * ensuring that it is thread safe relatively to the game engine's
+   * functionalities.
+   */
+  inline void ExecInEngineLoop(std::function<void()> func) {
+    _engineLoopCallbackQueue.push(func);
+  }
+
 private:
   std::string _uuid;
   celte::chunks::Chunk *_ownerChunk = nullptr;
   bool _isSpawned = false;
   void *_wrapper = nullptr;
+
+  ubn::queue<std::function<void()>> _engineLoopCallbackQueue;
 
   /**
    * @brief In server mode, this object is used to collect

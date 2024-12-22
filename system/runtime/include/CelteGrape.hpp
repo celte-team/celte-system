@@ -5,6 +5,7 @@
 #include "ReplicationGraph.hpp"
 #include "RotatedBoundingBox.hpp"
 #include "WriterStreamPool.hpp"
+#include <functional>
 #include <glm/vec3.hpp>
 #include <memory>
 #include <optional>
@@ -21,17 +22,13 @@ namespace chunks {
  */
 struct GrapeOptions {
   std::string grapeId;
-  int subdivision = 1;
+  const int subdivision = 1;
+  const glm::vec3 size;
+  const glm::vec3 localX;
+  const glm::vec3 localY;
+  const glm::vec3 localZ;
   // The center of the grape
   const glm::vec3 position;
-  // The size of the grape along each axis
-  glm::vec3 size;
-  // Local x axis of the grape
-  glm::vec3 localX;
-  // Local y axis of the grape
-  glm::vec3 localY;
-  // Local z axis of the grape
-  glm::vec3 localZ;
   // is this grape owned by the local node?
   bool isLocallyOwned = false;
   std::function<void()> then = nullptr;
@@ -84,25 +81,9 @@ public:
   GrapeStatistics GetStatistics() const;
 
   /**
-   * @brief Returns true if the given position is inside the grape.
-   */
-  bool ContainsPosition(float x, float y, float z) const;
-
-  /**
    * @brief Returns the id of the grape.
    */
   inline const std::string &GetGrapeId() const { return _options.grapeId; }
-
-  /**
-   * @brief Returns the chunk at the given position.
-   * This method is used to forward entities to the correct chunk
-   * when they are spawned.
-   *
-   * # EXCEPTIONS
-   * If the position is not in the grape, this method will throw a
-   * std::out_of_range exception.
-   */
-  Chunk &GetChunkByPosition(float x, float y, float z);
 
   /**
    * @brief Returns the options used to create the grape.
@@ -127,6 +108,11 @@ public:
    */
   nlohmann::json Dump() const;
 
+  void inline SetEntityPositionGetter(
+      std::function<glm::vec3(const std::string &)> getter) {
+    _entityPositionGetter = getter;
+  }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Replicates all entities in the grape to their respective chunks.
@@ -138,8 +124,6 @@ public:
   }
 
 #endif
-
-  Chunk &GetClosestChunk(float x, float y, float z) const;
 
   /**
    * @brief Returns a handle to the rpc service of the grape.
@@ -173,6 +157,9 @@ private:
    */
   void __subdivide();
 
+  std::shared_ptr<IEntityContainer>
+  __defaultInstantiateContainer(const std::string &containerId);
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief This RPC will be called when a player requests to spawn in the
@@ -182,22 +169,32 @@ private:
    */
   bool __rp_onSpawnRequested(std::string &clientId);
 
-  /**
-   * @brief Assigns an entity to a container and sends the order to spawn the
-   * entity over the network. If the entity has not been instantiated in the
-   * game yet, this method will retry until the entity is instantiated or the
-   * number of retries is depleted.
-   * @param clientId: The id of the entity to spawn.
-   * @param x, y, z: The position of the entity in the world.
-   * @param retries: The number of retries before giving up.
-   */
-  void __attachEntityAsync(std::string clientId, float x, float y, float z,
-                           int retries = 10);
+  void __spawnEntityOnNetwork(const std::string &entityId,
+                              const std::string &containerId, float x, float y,
+                              float z);
+
+  void __ownerExecEntitySpawnProcess(const std::string &entityId, float x,
+                                     float y, float z);
 #endif
 
-  bool __rp_spawnPlayer(std::string clientId, float x, float y, float z);
+  void __execEntitySpawnProcess(const std::string &entityId,
+                                const std::string &containerId, float x,
+                                float y, float z);
+
+  void __spawnEntityLocally(const std::string &entityId, glm::vec3 position,
+                            std::function<void()> then);
+
+  void __waitEntityReady(const std::string &entityId,
+                         std::function<void()> then);
+
+  void __callSpawnHook(const std::string &entityId, glm::vec3 position);
+
+  void __attachEntityToContainer(const std::string &entityId,
+                                 std::shared_ptr<IEntityContainer> container);
 
   std::optional<net::RPCService> _rpcs = std::nullopt;
+
+  std::function<glm::vec3(const std::string &)> _entityPositionGetter = nullptr;
 
   ReplicationGraph _rg;
 

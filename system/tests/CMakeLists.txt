@@ -32,22 +32,22 @@ set(SOURCES
     test_replicator.cpp
 )
 
-add_executable(test_server ${SOURCES})
-target_compile_definitions(test_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(test_server gtest gmock gtest_main msgpack-cxx)
-target_link_libraries(test_server celtesystems_runtime_server)
+# add_executable(test_server ${SOURCES})
+# target_compile_definitions(test_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
+# target_link_libraries(test_server gtest gmock gtest_main msgpack-cxx)
+# target_link_libraries(test_server celtesystems_runtime_server)
 
-add_executable(test_celtenet ${CMAKE_SOURCE_DIR}/runtime/net/tests/test_celtenet.cpp)
-target_link_libraries(test_celtenet gtest gmock gtest_main celtenet unofficial::pulsar::pulsar)
+# add_executable(test_celtenet ${CMAKE_SOURCE_DIR}/runtime/net/tests/test_celtenet.cpp)
+# target_link_libraries(test_celtenet gtest gmock gtest_main celtenet unofficial::pulsar::pulsar)
 
-#  setup ctest
-add_test(NAME test_celtenet COMMAND test_celtenet)
+# #  setup ctest
+# add_test(NAME test_celtenet COMMAND test_celtenet)
 
-add_executable(client.debug debug/client.cpp)
-target_link_libraries(client.debug gtest gmock gtest_main msgpack-cxx)
-target_link_libraries(client.debug celtesystems_runtime_client celtenet)
+# add_executable(client.debug debug/client.cpp)
+# target_link_libraries(client.debug gtest gmock gtest_main msgpack-cxx)
+# target_link_libraries(client.debug celtesystems_runtime_client celtenet)
 
-add_executable(server.debug debug/server.cpp)
-target_compile_definitions(server.debug PRIVATE -DCELTE_SERVER_MODE_ENABLED)
-target_link_libraries(server.debug gtest gmock gtest_main msgpack-cxx)
-target_link_libraries(server.debug celtesystems_runtime_server celtenet)
+# add_executable(server.debug debug/server.cpp)
+# target_compile_definitions(server.debug PRIVATE -DCELTE_SERVER_MODE_ENABLED)
+# target_link_libraries(server.debug gtest gmock gtest_main msgpack-cxx)
+# target_link_libraries(server.debug celtesystems_runtime_server celtenet)

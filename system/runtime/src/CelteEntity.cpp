@@ -46,7 +46,11 @@ void CelteEntity::OnChunkTakeAuthority(celte::chunks::Chunk &chunk) {
 }
 
 void CelteEntity::Tick() {
-// nothing yet :)
+  while (not _engineLoopCallbackQueue.empty()) {
+    auto callback = _engineLoopCallbackQueue.pop();
+    if (callback)
+      callback();
+  }
 #ifdef CELTE_SERVER_MODE_ENABLED
   if (_ownerChunk == nullptr) {
     return; // not in the network yet

@@ -14,11 +14,8 @@ namespace chunks {
 struct ChunkConfig {
   const std::string chunkId;
   const std::string grapeId;
-  const glm::ivec3 position;
-  const glm::vec3 localX;
-  const glm::vec3 localY;
-  const glm::vec3 localZ;
-  const glm::vec3 size;
+  const unsigned int preferredEntityCount;
+  const float preferredContainerSize;
   const bool isLocallyOwned;
 };
 
@@ -32,7 +29,7 @@ struct ChunkConfig {
  */
 class Chunk : public IEntityContainer {
 public:
-  Chunk(const ChunkConfig &config);
+  Chunk(const nlohmann::json &config);
   ~Chunk();
 
   /**
@@ -44,12 +41,9 @@ public:
    */
   std::string Initialize() override;
 
-  nlohmann::json GetFeatures() const override;
-
-  /**
-   * @brief Returns true if the given position is inside the chunk.
-   */
-  bool ContainsPosition(float x, float y, float z) const;
+#ifdef CELTE_SERVER_MODE_ENABLED
+  nlohmann::json GetFeatures() override;
+#endif
 
   inline const std::string &GetChunkId() const { return _config.chunkId; }
 
@@ -86,14 +80,7 @@ public:
    * entered it, and trigger the process of transfering authority over to the
    * chunk.
    */
-  void OnEnterEntity(const std::string &entityId);
-
-  /**
-   * @brief Wrapper for the legacy OnEnterEntity method.
-   */
-  inline void TakeEntity(const std::string &entityId) override {
-    OnEnterEntity(entityId);
-  }
+  inline void TakeEntity(const std::string &entityId) override;
 
   /**
    * @brief Adds the data of this entity to the list of data to
@@ -111,33 +98,43 @@ public:
    */
   void SendReplicationData();
 
-  /**
-   * @brief Schedules the spawn of the given client at the given position for
-   * all peers listening on this topic.
-   */
-  void SpawnEntityOnNetwork(const std::string &entity, float x, float y,
-                            float z) override;
+  // /**
+  //  * @brief Schedules the spawn of the given client at the given position for
+  //  * all peers listening on this topic.
+  //  */
+  // void SpawnEntityOnNetwork(const std::string &entity, float x, float y,
+  //                           float z) override;
 
 #endif
 
-  float GetDistanceToPosition(float x, float y, float z) const;
-
   inline ChunkConfig GetConfig() const { return _config; }
 
+  // /**
+  //  * @brief This RPC will be called by clients when they want to spawn their
+  //  * player in the game world.
+  //  *
+  //  * # Hooks:
+  //  * This RPC refers to the following hooks:
+  //  * - celte::api::HooksTable::server::newPlayerConnected::spawnPlayer
+  //  *
+  //  * @param clientId The UUID of the client that connected to the server.
+  //  * @param x The x coordinate where the player should spawn.
+  //  * @param y The y coordinate where the player should spawn.
+  //  * @param z The z coordinate where the player should spawn.
+  //  */
+  // void ExecSpawnPlayer(const std::string &clientId, float x, float y, float
+  // z);
+
+  std::set<std::string> GetOwnedEntities() const;
+
   /**
-   * @brief This RPC will be called by clients when they want to spawn their
-   * player in the game world.
-   *
-   * # Hooks:
-   * This RPC refers to the following hooks:
-   * - celte::api::HooksTable::server::newPlayerConnected::spawnPlayer
-   *
-   * @param clientId The UUID of the client that connected to the server.
-   * @param x The x coordinate where the player should spawn.
-   * @param y The y coordinate where the player should spawn.
-   * @param z The z coordinate where the player should spawn.
+   * @brief The position of entities is needed to determine which entities
+   * to keep in the container. However this information is not available in the
+   * systems as it is only available in the engine. Setting a getter using this
+   * method allows the chunk to get the position of entities when needed.
    */
-  void ExecSpawnPlayer(const std::string &clientId, float x, float y, float z);
+  void
+  SetEntityPositionGetter(std::function<glm::vec3(const std::string &)> getter);
 
 private:
   void __attachEntityAsync(const std::string &entityId, int retries);
@@ -175,16 +172,27 @@ private:
                                             std::string newOwnerChunkId,
                                             bool takeAuthority, int atTick);
 
+#ifdef CELTE_SERVER_MODE_ENABLED
+  void __rememberEntity(const std::string &entityId);
+  void __forgetEntity(const std::string &entityId);
+  void __refreshCentroid();
+  glm::vec3 _centroid;
+#endif
+
   /* --------------------------------------------------------------------------
    */
   /*                                   Members */
   /* --------------------------------------------------------------------------
    */
 
-  RotatedBoundingBox _boundingBox;
-
-  const ChunkConfig _config;
+  ChunkConfig _config;
   const std::string _combinedId;
+
+  std::function<glm::vec3(const std::string &)> _entityPositionGetter = nullptr;
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  std::set<std::string> _ownedEntities;
+#endif
 };
 } // namespace chunks
 } // namespace celte

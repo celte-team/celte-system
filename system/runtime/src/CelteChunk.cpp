@@ -7,27 +7,35 @@
 
 namespace celte {
 namespace chunks {
-Chunk::Chunk(const ChunkConfig &config)
-    : IEntityContainer(config.grapeId + "-" + config.chunkId), _config(config),
-      _combinedId(config.grapeId + "-" + config.chunkId),
-      _boundingBox(config.position, config.size, config.localX, config.localY,
-                   config.localZ) {}
+Chunk::Chunk(const nlohmann::json &config)
+    : IEntityContainer(config["chunkId"].get<std::string>()),
+      _combinedId(config["chunkId"].get<std::string>()),
+      _config({
+          .chunkId = config["chunkId"],
+          .grapeId = config["grapeId"],
+          .preferredEntityCount = config["preferredEntityCount"],
+          .preferredContainerSize = config["preferredContainerSize"],
+          .isLocallyOwned = config["isLocallyOwned"],
+      }) {
+  std::cout << "\n\n[[creating chunk]] " << config.dump() << "\n\n"
+            << std::endl;
+}
 
 Chunk::~Chunk() {}
 
-nlohmann::json Chunk::GetFeatures() const {
+#ifdef CELTE_SERVER_MODE_ENABLED
+nlohmann::json Chunk::GetFeatures() {
+  __refreshCentroid();
   return {
       {"chunkId", _config.chunkId},
       {"grapeId", _config.grapeId},
-      {"position",
-       {_config.position.x, _config.position.y, _config.position.z}},
-      {"localX", {_config.localX.x, _config.localX.y, _config.localX.z}},
-      {"localY", {_config.localY.x, _config.localY.y, _config.localY.z}},
-      {"localZ", {_config.localZ.x, _config.localZ.y, _config.localZ.z}},
-      {"size", {_config.size.x, _config.size.y, _config.size.z}},
+      {"preferredEntityCount", _config.preferredEntityCount},
+      {"preferredContainerSize", _config.preferredContainerSize},
+      {"position", {_centroid.x, _centroid.y, _centroid.z}},
       {"isLocallyOwned", _config.isLocallyOwned},
   };
 }
+#endif
 
 std::string Chunk::Initialize() {
   __registerConsumers();
@@ -48,6 +56,7 @@ void Chunk::__registerConsumers() {
               ENTITIES.HandleReplicationData(req.data, req.active);
             },
     });
+
   }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -80,10 +89,6 @@ void Chunk::WaitNetworkInitialized() {
   }
 }
 
-bool Chunk::ContainsPosition(float x, float y, float z) const {
-  return _boundingBox.ContainsPosition(x, y, z);
-}
-
 void Chunk::__registerRPCs() {
   _rpcs.Register<bool>(
       "__rp_scheduleEntityAuthorityTransfer",
@@ -97,18 +102,6 @@ void Chunk::__registerRPCs() {
           std::cerr << "Error in __rp_scheduleEntityAuthorityTransfer: "
                     << e.what() << std::endl;
 
-          return false;
-        }
-      }));
-
-  _rpcs.Register<bool>(
-      "__rp_spawnPlayer",
-      std::function([this](std::string clientId, float x, float y, float z) {
-        try {
-          ExecSpawnPlayer(clientId, x, y, z);
-          return true;
-        } catch (std::exception &e) {
-          std::cerr << "Error in __rp_spawnPlayer: " << e.what() << std::endl;
           return false;
         }
       }));
@@ -151,12 +144,15 @@ void Chunk::SendReplicationData() {
   }
 }
 
-void Chunk::OnEnterEntity(const std::string &entityId) {
+void Chunk::TakeEntity(const std::string &entityId) {
   // the current method is only called when the entity enters the chunk in the
   // server node, calling the RPC will trigger the behavior of transfering
   // authority over to the chunk in all the peers listening to the chunk's
   // topic.
-  std::cout << "in chunk::onenterentity, calling on network" << std::endl;
+  std::cout << "in chunk::take entity, calling on network" << std::endl;
+  if (not _config.isLocallyOwned) {
+    throw std::runtime_error("Cannot take entity in a non locally owned chunk");
+  }
   _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
                  "__rp_scheduleEntityAuthorityTransfer", entityId, _combinedId,
                  true, CLOCK.CurrentTick() + 30);
@@ -179,41 +175,39 @@ void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
 #else
   HOOKS.client.authority.onTake(entityUUID, newOwnerChunkId);
 #endif
-  auto &newOwnerChunk =
-      GRAPES.GetChunkById(newOwnerChunkId); // TODO use containers instead
 
   auto &entity = ENTITIES.GetEntity(entityUUID);
   auto &ownerContainer = entity.GetOwnerChunk(); // TODO use containers instead
 
-  newOwnerChunk.TakeEntityLocally(entityUUID);
+#ifdef CELTE_SERVER_MODE_ENABLED
+  ownerContainer.__forgetEntity(entityUUID);
+#endif
+
+  TakeEntityLocally(entityUUID);
 }
 
 void Chunk::TakeEntityLocally(const std::string &entityId) {
   try {
     ENTITIES.GetEntity(entityId).OnChunkTakeAuthority(*this);
+#ifdef CELTE_SERVER_MODE_ENABLED
+    if (_config.isLocallyOwned) {
+      __rememberEntity(entityId);
+    }
+#endif
   } catch (std::out_of_range &e) {
     std::cerr << "Error in TakeEntityLocally: " << e.what() << std::endl;
   }
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-void Chunk::SpawnEntityOnNetwork(const std::string &clientId, float x, float y,
-                                 float z) {
-  _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
-                 "__rp_spawnPlayer", clientId, x, y, z);
+void Chunk::__forgetEntity(const std::string &entityId) {
+  _ownedEntities.erase(entityId);
 }
-#endif
 
-void Chunk::ExecSpawnPlayer(const std::string &clientId, float x, float y,
-                            float z) {
-#ifdef CELTE_SERVER_MODE_ENABLED
-  HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId, x, y, z);
-#else
-  HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
-#endif
-  __attachEntityAsync(clientId, 30);
-  // wait until
+void Chunk::__rememberEntity(const std::string &entityId) {
+  _ownedEntities.insert(entityId);
 }
+#endif
 
 void Chunk::__attachEntityAsync(const std::string &entityId, int retries) {
   if (retries <= 0) {
@@ -222,9 +216,6 @@ void Chunk::__attachEntityAsync(const std::string &entityId, int retries) {
     return;
   }
   if (not ENTITIES.IsEntityRegistered(entityId)) {
-    // RUNTIME.IO().post([this, entityId, retries]() {
-    //   __attachEntityAsync(entityId, retries - 1);
-    // });
     CLOCK.ScheduleAfter(10, [this, entityId, retries]() {
       __attachEntityAsync(entityId, retries - 1);
     });
@@ -232,9 +223,30 @@ void Chunk::__attachEntityAsync(const std::string &entityId, int retries) {
   TakeEntityLocally(entityId);
 }
 
-float Chunk::GetDistanceToPosition(float x, float y, float z) const {
-  return _boundingBox.GetDistanceToPosition(x, y, z);
+void Chunk::SetEntityPositionGetter(
+    std::function<glm::vec3(const std::string &)> getter) {
+  _entityPositionGetter = getter;
 }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void Chunk::__refreshCentroid() {
+  if (_entityPositionGetter == nullptr) {
+    std::cerr << "Entity position getter not set, cannot refresh centroid"
+              << std::endl;
+    return;
+  }
+  glm::vec3 sum = glm::vec3(0);
+  unsigned int n = 0;
+  for (const auto &entityId : _ownedEntities) {
+    sum += _entityPositionGetter(entityId);
+    n++;
+  }
+  if (n == 0) {
+    return;
+  }
+  _centroid = sum / static_cast<float>(n);
+}
+#endif
 
 } // namespace chunks
 } // namespace celte

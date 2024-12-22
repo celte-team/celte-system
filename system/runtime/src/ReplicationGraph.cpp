@@ -12,6 +12,22 @@ IEntityContainer::IEntityContainer(const std::string &id)
       }),
       _id(id) {}
 
+std::shared_ptr<IEntityContainer> ReplicationGraph::AddContainer() {
+  std::lock_guard<std::mutex> lock(_containersMutex);
+  auto container = _instantiateContainer(
+      boost::uuids::to_string(boost::uuids::random_generator()()));
+  _containers.push_back(container);
+  return container;
+}
+
+std::shared_ptr<IEntityContainer>
+ReplicationGraph::AddContainer(const std::string &id) {
+  std::lock_guard<std::mutex> lock(_containersMutex);
+  auto container = _instantiateContainer(id);
+  _containers.push_back(container);
+  return container;
+}
+
 #ifdef CELTE_SERVER_MODE_ENABLED
 void ReplicationGraph::TakeEntity(const std::string &entityId) {
   if (_containers.empty()) {
@@ -19,10 +35,7 @@ void ReplicationGraph::TakeEntity(const std::string &entityId) {
       throw std::runtime_error(
           "No container available and no way to create one");
     }
-    {
-      std::lock_guard<std::mutex> lock(_containersMutex);
-      _containers.push_back(_instantiateContainer());
-    }
+    AddContainer();
   }
 
   try {
@@ -64,6 +77,9 @@ void ReplicationGraph::RegisterOwnerGrapeId(const std::string &grapeId) {
 #ifdef CELTE_SERVER_MODE_ENABLED
 std::optional<ReplicationGraph::ContainerAffinity>
 ReplicationGraph::GetBestContainerForEntity(CelteEntity &entity) {
+  if (_containers.empty()) {
+    return std::nullopt;
+  }
   std::vector<float> scores;
   scores.reserve(_containers.size());
 
@@ -160,6 +176,17 @@ nlohmann::json ReplicationGraph::Dump() const {
     });
   }
   return j;
+}
+
+std::optional<std::shared_ptr<IEntityContainer>>
+ReplicationGraph::GetContainerOpt(const std::string &id) {
+  std::lock_guard<std::mutex> lock(_containersMutex);
+  for (auto &container : _containers) {
+    if (container->GetId() == id) {
+      return container;
+    }
+  }
+  return std::nullopt;
 }
 
 } // namespace celte

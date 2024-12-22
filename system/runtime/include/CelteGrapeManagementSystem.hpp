@@ -53,11 +53,6 @@ public:
    */
   Grape &GetGrape(std::string grapeId);
 
-  /**
-   * @brief Get the grape of an object by its position.
-   */
-  Grape &GetGrapeByPosition(float x, float y, float z);
-
   Chunk &GetChunkById(const std::string &chunkId);
 
   std::shared_ptr<IEntityContainer>

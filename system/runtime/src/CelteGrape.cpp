@@ -8,23 +8,16 @@
 #include <string>
 #include <vector>
 
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 namespace celte {
 namespace chunks {
 
 Grape::Grape(const GrapeOptions &options) : _options(options) {
   _rg.RegisterOwnerGrapeId(_options.grapeId);
-  _rg.SetInstantiateContainer([this]() {
-    ChunkConfig config = {.grapeId = _options.grapeId,
-                          .position = glm::ivec3(0),
-                          .localX = _options.localX,
-                          .localY = _options.localY,
-                          .localZ = _options.localZ,
-                          .size = _options.size,
-                          .isLocallyOwned = _options.isLocallyOwned};
-    auto chunk = std::make_shared<Chunk>(config);
-    chunk->Initialize();
-    _chunks[chunk->GetId()] = chunk;
-    return chunk;
+  _rg.SetInstantiateContainer([this](const std::string &containerId) {
+    return __defaultInstantiateContainer(containerId);
   });
 }
 
@@ -98,9 +91,11 @@ void Grape::__initNetwork() {
 #endif
 
   _rpcs->Register<bool>(
-      "__rp_spawnPlayer",
-      std::function([this](std::string clientId, float x, float y, float z) {
-        return __rp_spawnPlayer(clientId, x, y, z);
+      "__rp_spawnEntity",
+      std::function([this](std::string clientId, std::string containerId,
+                           float x, float y, float z) {
+        __execEntitySpawnProcess(clientId, containerId, x, y, z);
+        return true;
       }));
 }
 
@@ -108,36 +103,10 @@ void Grape::__subdivide() {
   RotatedBoundingBox boundingBox(_options.position, _options.size,
                                  _options.localX, _options.localY,
                                  _options.localZ);
-  auto points = boundingBox.GetMeshedPoints(_options.subdivision);
-  std::cout << "creating " << points.size() << " chunks" << std::endl;
-
-  for (auto point : points) {
-    std::stringstream chunkId;
-    glm::ivec3 pointInt = glm::ivec3(point);
-    chunkId << pointInt.x << "-" << pointInt.y << "-" << pointInt.z;
-
-    ChunkConfig config = {.chunkId = chunkId.str(),
-                          .grapeId = _options.grapeId,
-                          .position = pointInt,
-                          .localX = _options.localX,
-                          .localY = _options.localY,
-                          .localZ = _options.localZ,
-                          .size = _options.size / (float)_options.subdivision,
-                          .isLocallyOwned = _options.isLocallyOwned};
-    std::shared_ptr<Chunk> chunk = std::make_shared<Chunk>(config);
-    _rg.RegisterEntityContainer(chunk);
-    std::string combinedId = chunk->Initialize();
-    _chunks[combinedId] = chunk;
-  }
-
   RUNTIME.IO().post([this]() {
     // waiting until all readers are ready
     while (not _rpcs->Ready())
       ;
-    for (auto &[chunkId, chunk] : _chunks) {
-      chunk->WaitNetworkInitialized();
-    }
-    std::cout << "All readers are ready." << std::endl;
 
     NET.PushThen([this]() {
       // calling user defined callback
@@ -160,6 +129,34 @@ void Grape::__subdivide() {
   });
 }
 
+std::shared_ptr<IEntityContainer>
+Grape::__defaultInstantiateContainer(const std::string &containerId) {
+
+  nlohmann::json config = {
+      {"chunkId", containerId},
+      {"grapeId", _options.grapeId},
+      {"preferredEntityCount", 100},
+      {"preferredContainerSize", 10},
+      {"isLocallyOwned", _options.isLocallyOwned},
+  };
+
+  std::shared_ptr<Chunk> chunk = std::make_shared<Chunk>(config);
+  chunk->SetEntityPositionGetter([this](const std::string &entityId) {
+    if (_entityPositionGetter == nullptr) {
+      std::cerr << "Entity position getter not set, cannot get position"
+                << std::endl;
+      return glm::vec3(0);
+    }
+    return _entityPositionGetter(entityId);
+  });
+  // _rg.RegisterEntityContainer(chunk);// this is a deadlock
+  std::cout << "[[chunk initialize]]" << std::endl;
+  std::string combinedId = chunk->Initialize();
+  _chunks[combinedId] = chunk;
+  std::cout << "default instantiate container returning chunk" << std::endl;
+  return chunk;
+}
+
 GrapeStatistics Grape::GetStatistics() const {
   GrapeStatistics stats = {.grapeId = _options.grapeId,
                            .numberOfChunks = _chunks.size()};
@@ -167,26 +164,6 @@ GrapeStatistics Grape::GetStatistics() const {
     stats.chunksIds.push_back(chunkId);
   }
   return stats;
-}
-
-bool Grape::ContainsPosition(float x, float y, float z) const {
-  for (auto &[chunkId, chunk] : _chunks) {
-    if (chunk->ContainsPosition(x, y, z)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-Chunk &Grape::GetChunkByPosition(float x, float y, float z) {
-  for (auto &[chunkId, chunk] : _chunks) {
-    if (chunk->ContainsPosition(x, y, z)) {
-      return *chunk;
-    }
-  }
-  throw std::out_of_range("Position (" + std::to_string(x) + ", " +
-                          std::to_string(y) + ", " + std::to_string(z) +
-                          ") is not in grape " + _options.grapeId);
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -212,83 +189,6 @@ Chunk &Grape::GetChunk(const std::string &chunkId) {
   return *_chunks[chunkId];
 }
 
-#ifdef CELTE_SERVER_MODE_ENABLED
-bool Grape::__rp_onSpawnRequested(std::string &clientId) {
-  auto [_, x, y, z] = ENTITIES.GetPendingSpawn(clientId);
-  ENTITIES.RemovePendingSpawn(clientId);
-  std::cout << "on spawn requested grape " << _options.grapeId << std::endl;
-  // spawn entity
-  try {
-#ifdef CELTE_SERVER_MODE_ENABLED
-    HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId, x, y, z);
-#else
-    HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
-#endif
-
-  } catch (std::exception &e) {
-    std::cerr << "Error in __rp_onSpawnRequested: " << e.what() << std::endl;
-    return false;
-  }
-  __attachEntityAsync(clientId, x, y, z, 30);
-  return true;
-}
-
-void Grape::__attachEntityAsync(std::string clientId, float x, float y, float z,
-                                int retries) {
-  if (not ENTITIES.IsEntityRegistered(clientId)) {
-    if (retries <= 0) {
-      std::cerr << "Entity spawn timed out, won't spawn on the network"
-                << std::endl;
-      return;
-    }
-    CLOCK.ScheduleAfter(10, [this, clientId, x, y, z, retries]() {
-      __attachEntityAsync(clientId, x, y, z, retries - 1);
-    });
-    return;
-  }
-
-  auto &entity = ENTITIES.GetEntity(clientId);
-  std::optional<ReplicationGraph::ContainerAffinity> best =
-      _rg.GetBestContainerForEntity(entity);
-  if (not best.has_value()) {
-    throw std::runtime_error(
-        "No container has enough affinity with the entity");
-  }
-  _rg.TakeEntityLocally(entity.GetUUID(), best->container);
-  best->container->SpawnEntityOnNetwork(entity.GetUUID(), x, y, z);
-}
-#endif
-
-bool Grape::__rp_spawnPlayer(std::string clientId, float x, float y, float z) {
-  // if entity already exist in the grape, do not spawn it again
-  if (ENTITIES.IsEntityRegistered(clientId)) {
-    return false;
-  }
-#ifdef CELTE_SERVER_MODE_ENABLED
-  HOOKS.server.newPlayerConnected.execPlayerSpawn(clientId, x, y, z);
-#else
-  HOOKS.client.player.execPlayerSpawn(clientId, x, y, z);
-#endif
-
-  return true;
-}
-
-Chunk &Grape::GetClosestChunk(float x, float y, float z) const {
-  Chunk *closestChunk = nullptr;
-  float closestDistance = std::numeric_limits<float>::max();
-  for (auto &[chunkId, chunk] : _chunks) {
-    float distance = chunk->GetDistanceToPosition(x, y, z);
-    if (distance < closestDistance) {
-      closestDistance = distance;
-      closestChunk = &*chunk;
-    }
-  }
-  if (closestChunk == nullptr) {
-    throw std::out_of_range("No chunks in grape " + _options.grapeId);
-  }
-  return *closestChunk;
-}
-
 void Grape::Tick() {}
 
 nlohmann::json Grape::Dump() const {
@@ -298,6 +198,109 @@ nlohmann::json Grape::Dump() const {
   nlohmann::json replicationDump = _rg.Dump();
   j["replication graph"] = replicationDump;
   return j;
+}
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+bool Grape::__rp_onSpawnRequested(std::string &clientId) {
+  std::cout << "[[on spawn requested]]" << std::endl;
+  try {
+    auto [_, x, y, z] = ENTITIES.GetPendingSpawn(clientId);
+    ENTITIES.RemovePendingSpawn(clientId);
+    RUNTIME.IO().post([this, clientId, x, y, z]() {
+      __ownerExecEntitySpawnProcess(clientId, x, y, z);
+    });
+  } catch (std::out_of_range &e) {
+    std::cerr << "Error in __rp_onSpawnRequested: " << e.what() << std::endl;
+    return false;
+  }
+  return true;
+}
+
+void Grape::__ownerExecEntitySpawnProcess(const std::string &entityId, float x,
+                                          float y, float z) {
+  std::cout << "[[owner exec entity spawn process]]" << std::endl;
+  __spawnEntityLocally(
+      entityId, glm::vec3(x, y, z), [this, entityId, x, y, z]() {
+        auto &entity = ENTITIES.GetEntity(entityId);
+        entity.ExecInEngineLoop([this, &entity, entityId, x, y, z]() {
+          std::shared_ptr<IEntityContainer> container =
+              _rg.GetBestContainerForEntity(entity)
+                  .value_or(ReplicationGraph::ContainerAffinity{
+                      .container = _rg.AddContainer(),
+                      .affinity = ReplicationGraph::DEFAULT_AFFINITY_SCORE})
+                  .container;
+          container->WaitNetworkInitialized();
+          container->TakeEntityLocally(entityId);
+          __spawnEntityOnNetwork(entityId, container->GetId(), x, y, z);
+        });
+      });
+}
+
+void Grape::__spawnEntityOnNetwork(const std::string &entityId,
+                                   const std::string &containerId, float x,
+                                   float y, float z) {
+  std::cout << "[[spawn entity on network]]" << std::endl;
+  _rpcs->CallVoid(tp::PERSIST_DEFAULT + _options.grapeId + "." + tp::RPCs,
+                  "__rp_spawnEntity", entityId, containerId, x, y, z);
+}
+
+#endif
+
+void Grape::__execEntitySpawnProcess(const std::string &entityId,
+                                     const std::string &containerId, float x,
+                                     float y, float z) {
+  std::cout << "[[exec entity spawn process]]" << std::endl;
+  if (_options.isLocallyOwned) {
+    return; // done already in ownerExecEntitySpawnProcess
+  } else {
+    __spawnEntityLocally(entityId, glm::vec3(x, y, z),
+                         [this, entityId, containerId, x, y, z]() {
+                           std::shared_ptr<IEntityContainer> container =
+                               _rg.GetContainerOpt(containerId)
+                                   .value_or(_rg.AddContainer(containerId));
+                           container->WaitNetworkInitialized();
+                           container->TakeEntityLocally(entityId);
+                         });
+  }
+}
+
+void Grape::__spawnEntityLocally(const std::string &entityId,
+                                 glm::vec3 position,
+                                 std::function<void()> then) {
+  std::cout << "[[spawn entity locally]]" << std::endl;
+  __callSpawnHook(entityId, position);
+  __waitEntityReady(entityId, then);
+}
+
+void Grape::__waitEntityReady(const std::string &entityId,
+                              std::function<void()> then) {
+  std::cout << "[[wait entity ready]]" << std::endl;
+  if (not ENTITIES.IsEntityRegistered(entityId)) {
+    std::cout << "no ready... waiting" << std::endl;
+    RUNTIME.IO().post(
+        [this, entityId, then]() { __waitEntityReady(entityId, then); });
+    return;
+  }
+  try {
+    then();
+  } catch (std::exception &e) {
+    std::cerr << "Error in __waitEntityReady: " << e.what() << std::endl;
+  }
+}
+
+void Grape::__callSpawnHook(const std::string &entityId, glm::vec3 position) {
+  std::cout << "[[call spawn hook]]" << std::endl;
+  try {
+#ifdef CELTE_SERVER_MODE_ENABLED
+    HOOKS.server.newPlayerConnected.execPlayerSpawn(entityId, position.x,
+                                                    position.y, position.z);
+#else
+    HOOKS.client.player.execPlayerSpawn(entityId, position.x, position.y,
+                                        position.z);
+#endif
+  } catch (std::exception &e) {
+    std::cerr << "Error in __callSpawnHook: " << e.what() << std::endl;
+  }
 }
 
 } // namespace chunks

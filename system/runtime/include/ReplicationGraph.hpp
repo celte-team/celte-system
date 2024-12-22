@@ -8,6 +8,9 @@
 #include <thread>
 #include <vector>
 
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 namespace celte {
 class CelteEntity;
 
@@ -26,12 +29,14 @@ public:
    */
   virtual const std::string &GetGrapeId() const = 0;
 
+#ifdef CELTE_SERVER_MODE_ENABLED
   /**
    * @brief Returns the features of this container.
    * Features describe the container and can be used for debugging or by
    * other containers / nodes whishing to anaylize the replication graph.
    */
-  virtual nlohmann::json GetFeatures() const = 0;
+  virtual nlohmann::json GetFeatures() = 0;
+#endif
 
   /**
    * @brief Initializes the container. This method should be called only once.
@@ -68,6 +73,8 @@ public:
 
   virtual std::string GetId() const { return _id; }
 
+  virtual void SetId(const std::string &id) { _id = id; }
+
   /**
    * @brief This method is called to assign an entity to this container, in
    * response to an order from the rightful owner of the entity.
@@ -82,8 +89,8 @@ public:
    */
   virtual void TakeEntity(const std::string &entityId) = 0;
 
-  virtual void SpawnEntityOnNetwork(const std::string &entityId, float x,
-                                    float y, float z) = 0;
+  // virtual void SpawnEntityOnNetwork(const std::string &entityId, float x,
+  //                                   float y, float z) = 0;
 
 #endif
 
@@ -104,6 +111,7 @@ protected:
 
 class ReplicationGraph {
 public:
+  static constexpr float DEFAULT_AFFINITY_SCORE = 0.5f;
   using AssignmentReplNode = std::function<float(
       CelteEntity &entity, std::shared_ptr<IEntityContainer> container)>;
 
@@ -127,10 +135,8 @@ public:
    */
   void RegisterEntityContainer(std::shared_ptr<IEntityContainer> container);
 
-  inline void AddContainer() {
-    std::lock_guard<std::mutex> lock(_containersMutex);
-    _containers.push_back(_instantiateContainer());
-  }
+  std::shared_ptr<IEntityContainer> AddContainer();
+  std::shared_ptr<IEntityContainer> AddContainer(const std::string &id);
 
   /**
    * @brief Returns a json object containing data about the replication graph,
@@ -169,10 +175,12 @@ public:
    */
   void TakeEntityLocally(const std::string &entityId,
                          std::shared_ptr<IEntityContainer> container);
+
 #endif
 
   inline void SetInstantiateContainer(
-      std::function<std::shared_ptr<IEntityContainer>()> instantiateContainer) {
+      std::function<std::shared_ptr<IEntityContainer>(const std::string &)>
+          instantiateContainer) {
     _instantiateContainer = instantiateContainer;
   }
 
@@ -196,6 +204,9 @@ public:
     return nullptr;
   }
 
+  std::optional<std::shared_ptr<IEntityContainer>>
+  GetContainerOpt(const std::string &containerId);
+
   /**
    * @brief Chooses the best container for a single entity and assigns it to
    * that container.
@@ -212,7 +223,8 @@ protected:
   std::vector<std::shared_ptr<IEntityContainer>> _containers;
   std::mutex _containersMutex;
 
-  std::function<std::shared_ptr<IEntityContainer>()> _instantiateContainer;
+  std::function<std::shared_ptr<IEntityContainer>(const std::string &)>
+      _instantiateContainer = nullptr;
 };
 
 } // namespace celte
