@@ -57,9 +57,7 @@ namespace celte {
             inline const std::string& GetCombinedId() const { return _combinedId; }
             void DisconnectPlayer(std::string ClientId)
             {
-                std::cout << "PUTE\n"
-                          << std::flush;
-                _rpcs.CallVoid("__rp_disconnectPlayer", ClientId, "usless");
+                _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs, "__rp_disconnectPlayer", ClientId, ClientId);
             }
 
             inline bool IsLocallyOwned() const { return _config.isLocallyOwned; }

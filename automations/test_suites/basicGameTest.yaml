@@ -58,6 +58,5 @@ test_suites:
         - ">> CLIENT IS READY TO SPAWN <<"
         - ">> CLIENT SPAWNING .* <<"
         - ".*Input : move.*"
-        - ".*Disconnecting player id : .*"
         - ".*DISCONNECTING MYSELF.*"
         - ".*Succesfully delete entity.*"

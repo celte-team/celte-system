@@ -136,20 +136,19 @@ namespace celte {
             //             return false;
             //         }
             // }));
-#endif
-
             _rpcs.Register<bool>(
                 "__rp_disconnectPlayer",
                 std::function([this](std::string entityId, std::string _) {
                     try {
                         std::cout << "Disconnecting player id : " << entityId << std::endl;
-                        _rpcs.CallVoid("__rp_deleteEntity", entityId, _);
+                        _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs, "__rp_deleteEntity", entityId, _);
                         return true;
                     } catch (std::exception& e) {
                         std::cerr << "Error in __rp_disconnectPlayer: " << e.what() << std::endl;
                         return false;
                     }
                 }));
+#endif
 
             // _rpcs.Register<bool>(
             //     "__rp_spawnEntity",
