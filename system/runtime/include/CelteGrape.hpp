@@ -189,27 +189,32 @@ private:
    * the player is spawning in by calling a __rp_spawnPlayer RPC to the
    * chunk's rpc channel
    */
-  bool __rp_onSpawnRequested(std::string &clientId);
+  bool __rp_onSpawnRequested(std::string &clientId, std::string &payload);
 
   void __spawnEntityOnNetwork(const std::string &entityId,
-                              const std::string &containerId, float x, float y,
+                              const std::string &containerId,
+                              const std::string &payload, float x, float y,
                               float z);
 
-  void __ownerExecEntitySpawnProcess(const std::string &entityId, float x,
+  void __ownerExecEntitySpawnProcess(const std::string &entityId,
+                                     const std::string &payload, float x,
                                      float y, float z);
 #endif
 
   void __execEntitySpawnProcess(const std::string &entityId,
-                                const std::string &containerId, float x,
-                                float y, float z);
+                                const std::string &containerId,
+                                const std::string &payload, float x, float y,
+                                float z);
 
-  void __spawnEntityLocally(const std::string &entityId, glm::vec3 position,
+  void __spawnEntityLocally(const std::string &entityId,
+                            const std::string &payload, glm::vec3 position,
                             std::function<void()> then);
 
   void __waitEntityReady(const std::string &entityId,
                          std::function<void()> then);
 
-  void __callSpawnHook(const std::string &entityId, glm::vec3 position);
+  void __callSpawnHook(const std::string &entityId, const std::string &payload,
+                       glm::vec3 position);
 
   void __attachEntityToContainer(const std::string &entityId,
                                  std::shared_ptr<IEntityContainer> container);

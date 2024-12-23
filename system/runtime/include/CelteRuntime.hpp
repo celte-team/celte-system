@@ -132,7 +132,7 @@ public:
    * call a user defined hook responsible for spawning the entity.
    */
   void RequestSpawn(const std::string &clientId, const std::string &grapeId,
-                    float x, float y, float z);
+                    const std::string &payload);
 #endif
 
 private:

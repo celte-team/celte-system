@@ -78,8 +78,9 @@ public:
        * @brief This hook is called when a new player connects to the server,
        * and must be instantiated in the game world.
        */
-      std::function<bool(std::string, int, int, int)> execPlayerSpawn =
-          [](std::string clientId, int x, int y, int z) { return true; };
+      std::function<bool(std::string, std::string, int, int, int)>
+          execPlayerSpawn = [](std::string clientId, std::string payload, int x,
+                               int y, int z) { return true; };
     } newPlayerConnected;
 
     /**
@@ -180,8 +181,9 @@ public:
        * @brief This hook is called when the client is authorized to spawn a new
        * entity. It should implement the logic to spawn the entity in the game.
        */
-      std::function<bool(std::string, int x, int y, int z)> execPlayerSpawn =
-          [](std::string clientId, int x, int y, int z) { return true; };
+      std::function<bool(std::string, std::string, int x, int y, int z)>
+          execPlayerSpawn = [](std::string clientId, std::string payload, int x,
+                               int y, int z) { return true; };
     } player;
 
     struct {

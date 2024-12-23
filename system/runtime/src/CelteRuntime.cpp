@@ -128,8 +128,8 @@ void CelteRuntime::__initClientRPC() {}
 void CelteRuntime::__initClient() { __initClientRPC(); }
 
 void CelteRuntime::RequestSpawn(const std::string &clientId,
-                                const std::string &grapeId, float _x, float _y,
-                                float _z) {
+                                const std::string &grapeId,
+                                const std::string &payload) {
   if (!IsConnectedToCluster()) {
     throw std::runtime_error("Not connected to cluster");
   }
@@ -139,7 +139,7 @@ void CelteRuntime::RequestSpawn(const std::string &clientId,
   celte::client::states::ClientNet()
       .rpcs()
       .CallAsync<bool>(tp::PERSIST_DEFAULT + grapeId, "__rp_onSpawnRequested",
-                       clientId)
+                       clientId, payload)
       .Then(std::move([](bool success) {
         if (!success) {
           throw std::runtime_error("Failed to spawn player, server refused.");

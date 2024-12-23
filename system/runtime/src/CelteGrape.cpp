@@ -145,9 +145,10 @@ void Grape::__initNetwork() {
   }
 
   _rpcs->Register<bool>(
-      "__rp_onSpawnRequested", std::function([this](std::string clientId) {
+      "__rp_onSpawnRequested",
+      std::function([this](std::string clientId, std::string payload) {
         try {
-          __rp_onSpawnRequested(clientId);
+          __rp_onSpawnRequested(clientId, payload);
           return true;
         } catch (std::exception &e) {
           std::cerr << "Error in __rp_onSpawnRequested: " << e.what()
@@ -160,8 +161,8 @@ void Grape::__initNetwork() {
   _rpcs->Register<bool>(
       "__rp_spawnEntity",
       std::function([this](std::string clientId, std::string containerId,
-                           float x, float y, float z) {
-        __execEntitySpawnProcess(clientId, containerId, x, y, z);
+                           std::string payload, float x, float y, float z) {
+        __execEntitySpawnProcess(clientId, containerId, payload, x, y, z);
         return true;
       }));
 
@@ -211,13 +212,13 @@ nlohmann::json Grape::Dump() const {
 #pragma region spawnprocess
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-bool Grape::__rp_onSpawnRequested(std::string &clientId) {
+bool Grape::__rp_onSpawnRequested(std::string &clientId, std::string &payload) {
   std::cout << "[[on spawn requested]]" << std::endl;
   try {
     auto [_, x, y, z] = ENTITIES.GetPendingSpawn(clientId);
     ENTITIES.RemovePendingSpawn(clientId);
-    RUNTIME.IO().post([this, clientId, x, y, z]() {
-      __ownerExecEntitySpawnProcess(clientId, x, y, z);
+    RUNTIME.IO().post([this, clientId, payload, x, y, z]() {
+      __ownerExecEntitySpawnProcess(clientId, payload, x, y, z);
     });
   } catch (std::out_of_range &e) {
     std::cerr << "Error in __rp_onSpawnRequested: " << e.what() << std::endl;
@@ -226,13 +227,15 @@ bool Grape::__rp_onSpawnRequested(std::string &clientId) {
   return true;
 }
 
-void Grape::__ownerExecEntitySpawnProcess(const std::string &entityId, float x,
+void Grape::__ownerExecEntitySpawnProcess(const std::string &entityId,
+                                          const std::string &payload, float x,
                                           float y, float z) {
   std::cout << "[[owner exec entity spawn process]]" << std::endl;
   __spawnEntityLocally(
-      entityId, glm::vec3(x, y, z), [this, entityId, x, y, z]() {
+      entityId, payload, glm::vec3(x, y, z),
+      [this, entityId, payload, x, y, z]() {
         auto &entity = ENTITIES.GetEntity(entityId);
-        entity.ExecInEngineLoop([this, &entity, entityId, x, y, z]() {
+        entity.ExecInEngineLoop([this, &entity, entityId, payload, x, y, z]() {
           std::shared_ptr<IEntityContainer> container =
               _rg.GetBestContainerForEntity(entity)
                   .value_or(ReplicationGraph::ContainerAffinity{
@@ -241,29 +244,32 @@ void Grape::__ownerExecEntitySpawnProcess(const std::string &entityId, float x,
                   .container;
           container->WaitNetworkInitialized();
           container->TakeEntityLocally(entityId);
-          __spawnEntityOnNetwork(entityId, container->GetId(), x, y, z);
+          __spawnEntityOnNetwork(entityId, container->GetId(), payload, x, y,
+                                 z);
         });
       });
 }
 
 void Grape::__spawnEntityOnNetwork(const std::string &entityId,
-                                   const std::string &containerId, float x,
-                                   float y, float z) {
+                                   const std::string &containerId,
+                                   const std::string &payload, float x, float y,
+                                   float z) {
   std::cout << "[[spawn entity on network]]" << std::endl;
   _rpcs->CallVoid(tp::PERSIST_DEFAULT + _options.grapeId + "." + tp::RPCs,
-                  "__rp_spawnEntity", entityId, containerId, x, y, z);
+                  "__rp_spawnEntity", entityId, containerId, payload, x, y, z);
 }
 
 #endif
 
 void Grape::__execEntitySpawnProcess(const std::string &entityId,
-                                     const std::string &containerId, float x,
+                                     const std::string &containerId,
+                                     const std::string &payload, float x,
                                      float y, float z) {
   std::cout << "[[exec entity spawn process]]" << std::endl;
   if (_options.isLocallyOwned) {
     return; // done already in ownerExecEntitySpawnProcess
   } else {
-    __spawnEntityLocally(entityId, glm::vec3(x, y, z),
+    __spawnEntityLocally(entityId, payload, glm::vec3(x, y, z),
                          [this, entityId, containerId, x, y, z]() {
                            std::shared_ptr<IEntityContainer> container =
                                _rg.GetContainerOpt(containerId)
@@ -275,10 +281,10 @@ void Grape::__execEntitySpawnProcess(const std::string &entityId,
 }
 
 void Grape::__spawnEntityLocally(const std::string &entityId,
-                                 glm::vec3 position,
+                                 const std::string &payload, glm::vec3 position,
                                  std::function<void()> then) {
   std::cout << "[[spawn entity locally]]" << std::endl;
-  __callSpawnHook(entityId, position);
+  __callSpawnHook(entityId, payload, position);
   __waitEntityReady(entityId, then);
 }
 
@@ -298,15 +304,16 @@ void Grape::__waitEntityReady(const std::string &entityId,
   }
 }
 
-void Grape::__callSpawnHook(const std::string &entityId, glm::vec3 position) {
+void Grape::__callSpawnHook(const std::string &entityId,
+                            const std::string &payload, glm::vec3 position) {
   std::cout << "[[call spawn hook]]" << std::endl;
   try {
 #ifdef CELTE_SERVER_MODE_ENABLED
-    HOOKS.server.newPlayerConnected.execPlayerSpawn(entityId, position.x,
-                                                    position.y, position.z);
+    HOOKS.server.newPlayerConnected.execPlayerSpawn(
+        entityId, payload, position.x, position.y, position.z);
 #else
-    HOOKS.client.player.execPlayerSpawn(entityId, position.x, position.y,
-                                        position.z);
+    HOOKS.client.player.execPlayerSpawn(entityId, payload, position.x,
+                                        position.y, position.z);
 #endif
   } catch (std::exception &e) {
     std::cerr << "Error in __callSpawnHook: " << e.what() << std::endl;
