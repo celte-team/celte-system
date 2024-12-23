@@ -212,7 +212,10 @@ def build(config):
     """Build the project using the build steps defined in the configuration."""
     for step in config['build']:
         print(f"Running build step: {step['step']}")
-        commands = ' && '.join(step['run'].strip().split('\n'))
+        if (platform.system() != 'Windows'):
+            commands = ' && '.join(step['run'].strip().split('\n'))
+        else:
+            commands = step['run'].strip().replace('\n', '; ')
         print(f"Executing: {commands}")
         result = subprocess.run(commands, shell=True, cwd=os.getcwd())
         if result.returncode != 0:

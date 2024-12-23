@@ -25,4 +25,6 @@ find_package(Boost REQUIRED COMPONENTS thread json)
 link_directories(${GLIB_LIBRARY_DIRS})
 add_definitions(${GLIB_CFLAGS_OTHER})
 
-pkg_check_modules(GLIB REQUIRED glib-2.0)
+if (NOT WIN32)
+    pkg_check_modules(GLIB REQUIRED glib-2.0)
+endif()

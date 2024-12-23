@@ -19,7 +19,9 @@ enable_testing()
 find_package(PkgConfig REQUIRED)
 find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
 
-pkg_check_modules(GLIB REQUIRED glib-2.0)
+if (NOT WIN32)
+    pkg_check_modules(GLIB REQUIRED glib-2.0)
+endif()
 
 include_directories(include
     ${GLIB_INCLUDE_DIRS}
@@ -35,12 +37,7 @@ set(SOURCES
 add_executable(test_server ${SOURCES})
 target_compile_definitions(test_server PRIVATE -DCELTE_SERVER_MODE_ENABLED)
 target_link_libraries(test_server gtest gmock gtest_main msgpack-cxx)
-target_link_libraries(test_server
-    celtesystems_runtime_server
-    ${RDKAFKA_LIBRARY}
-    ${RDKAFKA++_LIBRARY}
-    lz4::lz4
-)
+target_link_libraries(test_server celtesystems_runtime_server)
 
 add_executable(test_celtenet ${CMAKE_SOURCE_DIR}/runtime/net/tests/test_celtenet.cpp)
 target_link_libraries(test_celtenet gtest gmock gtest_main celtenet unofficial::pulsar::pulsar)

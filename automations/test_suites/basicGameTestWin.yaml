@@ -1,0 +1,60 @@
+logs: ./system/build/tmp/automations/logs
+
+build:
+  - step: systems
+    run: |
+      powershell -Command "& { New-Item -ItemType Directory -Force -Path 'system/build'
+      Set-Location 'system/build'
+      if ((Get-ChildItem -Force | Measure-Object).Count -eq 0) { cmake --preset windows -G "Visual Studio 17 2022" .. }
+      cmake --build . --target ALL_BUILD }"
+
+  - step: master
+    run: |
+      powershell -Command "& { Write-Output "todo: build master"
+      Set-Location "master"
+      dotnet add package DotPulsar
+      dotnet build }"
+
+
+  - step: clock
+    run: |
+      powershell -Command "& { Set-Location "./ClockServer"
+      dotnet build }"
+
+
+test_suites:
+
+  - name: game1
+    description: Test the correct behavior with multiple clients in a small game.
+    timeout-seconds:  120
+
+    cluster: yes
+    master: yes
+    master-proxy: ./system/runtime/net/tests/master.dummy
+
+    servers:
+      binary: ./system/build/tests/server.debug
+      replicas: 2
+
+    clients:
+      binary: ./system/build/tests/client.debug
+      replicas: 2
+      wait-servers:
+        regex: ">> SERVER READY << "
+        timeout-seconds: 20
+
+    expects:
+      servers:
+        - ">> Grape LeChateauDuMechant loaded, owned locally: (yes|no) <<"
+        - ">> Grape LeChateauDuGentil loaded, owned locally: (yes|no) <<"
+        - ">> SERVER SPAWN .* <<"
+        - ">> SERVER onTake HOOK CALLED <<"
+        - ".*Name: move.*"
+
+      clients:
+        - ">> Grape LeChateauDuMechant loaded, owned locally: no <<"
+        - ">> Grape LeChateauDuGentil loaded, owned locally: no <<"
+        - ">> CLIENT LOADED MAP << "
+        - ">> CLIENT IS READY TO SPAWN <<"
+        - ">> CLIENT SPAWNING .* <<"
+        - ".*Input : move.*"

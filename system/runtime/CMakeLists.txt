@@ -7,7 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(GLIB REQUIRED glib-2.0)
+
+if (NOT WIN32)
+    pkg_check_modules(GLIB REQUIRED glib-2.0)
+endif()
+
 find_package(glm CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread json)
 find_package(msgpack CONFIG REQUIRED NAMES msgpack-cxx)
@@ -86,40 +90,44 @@ target_link_libraries(celtesystems_runtime_client PRIVATE glm::glm msgpack-cxx B
 #  INSTALL DEPENDENCIES
 ######################################################################
 
+if (NOT WIN32)
+    # Find Glib libraries
+    find_library(GLIB_LIBRARY NAMES glib-2.0 HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
 
-# Find Glib libraries
-find_library(GLIB_LIBRARY NAMES glib-2.0 HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
+    # Ensure the libraries are found
+    if(NOT GLIB_LIBRARY)
+        message(FATAL_ERROR "glib-2.0 library not found")
+    endif()
 
-# Ensure the libraries are found
-if(NOT GLIB_LIBRARY)
-    message(FATAL_ERROR "glib-2.0 library not found")
+    install(FILES ${GLIB_LIBRARY}
+            DESTINATION celte-libraries)
+
+    find_library(PULSAR_LIBRARY NAMES pulsar HINTS ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib)
+    install(FILES ${PULSAR_LIBRARY}
+            DESTINATION celte-libraries)
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/include/pulsar
+            DESTINATION include)
 endif()
-
-install(FILES ${GLIB_LIBRARY}
-        DESTINATION celte-libraries)
-
-find_library(PULSAR_LIBRARY NAMES pulsar HINTS ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib)
-install(FILES ${PULSAR_LIBRARY}
-        DESTINATION celte-libraries)
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/include/pulsar
-        DESTINATION include)
-
 
 # Boost
 
-# Find Boost libraries
-find_library(BOOST_SYSTEM_LIBRARY NAMES boost_system HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
-find_library(BOOST_PROGRAM_OPTIONS_LIBRARY NAMES boost_program_options HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
-find_library(BOOST_THREAD_LIBRARY NAMES boost_thread HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
-find_library(BOOST_JSON_LIBRARY NAMES boost_json HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
+if (NOT WIN32)
 
-# Ensure the libraries are found
-if(NOT BOOST_SYSTEM_LIBRARY)
-    message(FATAL_ERROR "boost_system library not found")
-endif()
+    # Find Boost libraries
+    find_library(BOOST_SYSTEM_LIBRARY NAMES boost_system HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
+    find_library(BOOST_PROGRAM_OPTIONS_LIBRARY NAMES boost_program_options HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
+    find_library(BOOST_THREAD_LIBRARY NAMES boost_thread HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
+    find_library(BOOST_JSON_LIBRARY NAMES boost_json HINTS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
 
-if(NOT BOOST_PROGRAM_OPTIONS_LIBRARY)
-    message(FATAL_ERROR "boost_program_options library not found")
+    # Ensure the libraries are found
+    if(NOT BOOST_SYSTEM_LIBRARY)
+        message(FATAL_ERROR "boost_system library not found")
+    endif()
+
+    if(NOT BOOST_PROGRAM_OPTIONS_LIBRARY)
+        message(FATAL_ERROR "boost_program_options library not found")
+    endif()
+
 endif()
 
 install(FILES ${BOOST_SYSTEM_LIBRARY} ${BOOST_PROGRAM_OPTIONS_LIBRARY}

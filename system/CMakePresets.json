@@ -46,6 +46,21 @@
                     "value": "$env{VCPKG_DIR}/x64-linux-dynamic/share/lz4"
                 }
             }
+        },
+        {
+            "name": "windows",
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+                },
+                "CMAKE_PREFIX_PATH": {
+                    "type": "STRING",
+                    "value": "$env{VCPKG_ROOT}/installed/$env{VCPKG_TARGET_TRIPLET}"
+                }
+            }
         }
     ],
     "buildPresets": [
