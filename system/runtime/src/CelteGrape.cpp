@@ -14,6 +14,7 @@
 namespace celte {
 namespace chunks {
 
+#pragma region init
 Grape::Grape(const GrapeOptions &options) : _options(options) {
   _rg.RegisterOwnerGrapeId(_options.grapeId);
   _rg.SetInstantiateContainer([this](const std::string &containerId) {
@@ -37,7 +38,6 @@ void Grape::Initialize() {
   if (_options.subdivision <= 0) {
     throw std::invalid_argument("Subdivision must be a positive integer.");
   }
-  logs::Logger::getInstance().info() << "Subdividing grape...";
   try {
     __initNetwork();
     __subdivide();
@@ -45,58 +45,6 @@ void Grape::Initialize() {
     logs::Logger::getInstance().err()
         << "Error, could not subdivide grape: " << e.what();
   }
-  std::cout << "Grape has been created " << std::endl;
-}
-
-void Grape::__initNetwork() {
-  std::vector<std::string> rpcTopics{tp::PERSIST_DEFAULT + _options.grapeId +
-                                     "." + tp::RPCs};
-#ifdef CELTE_SERVER_MODE_ENABLED
-  if (_options.isLocallyOwned) {
-    std::cout << "Owning grape " << _options.grapeId << std::endl;
-    rpcTopics.push_back(tp::PERSIST_DEFAULT + _options.grapeId);
-  }
-#endif
-
-  _rpcs.emplace(net::RPCService::Options{
-      .thisPeerUuid = RUNTIME.GetUUID(),
-      .listenOn = rpcTopics,
-      .reponseTopic = RUNTIME.GetUUID() + "." + tp::RPCs,
-      .serviceName =
-          RUNTIME.GetUUID() + ".grape." + _options.grapeId + "." + tp::RPCs,
-  });
-
-  // todo: register rpcs specific to the grape
-
-#ifdef CELTE_SERVER_MODE_ENABLED
-  if (_options.isLocallyOwned) {
-    _rpcs->Register<std::string>(
-        "__rp_sendExistingEntitiesSummary",
-        std::function([this](std::string clientId, std::string grapeId) {
-          return ENTITIES.GetRegisteredEntitiesSummary();
-        }));
-  }
-
-  _rpcs->Register<bool>(
-      "__rp_onSpawnRequested", std::function([this](std::string clientId) {
-        try {
-          __rp_onSpawnRequested(clientId);
-          return true;
-        } catch (std::exception &e) {
-          std::cerr << "Error in __rp_onSpawnRequested: " << e.what()
-                    << std::endl;
-          return false;
-        }
-      }));
-#endif
-
-  _rpcs->Register<bool>(
-      "__rp_spawnEntity",
-      std::function([this](std::string clientId, std::string containerId,
-                           float x, float y, float z) {
-        __execEntitySpawnProcess(clientId, containerId, x, y, z);
-        return true;
-      }));
 }
 
 void Grape::__subdivide() {
@@ -166,6 +114,65 @@ GrapeStatistics Grape::GetStatistics() const {
   return stats;
 }
 
+#pragma endregion init
+
+#pragma region network
+void Grape::__initNetwork() {
+  std::vector<std::string> rpcTopics{tp::PERSIST_DEFAULT + _options.grapeId +
+                                     "." + tp::RPCs};
+#ifdef CELTE_SERVER_MODE_ENABLED
+  if (_options.isLocallyOwned) {
+    std::cout << "Owning grape " << _options.grapeId << std::endl;
+    rpcTopics.push_back(tp::PERSIST_DEFAULT + _options.grapeId);
+  }
+#endif
+
+  _rpcs.emplace(net::RPCService::Options{
+      .thisPeerUuid = RUNTIME.GetUUID(),
+      .listenOn = rpcTopics,
+      .reponseTopic = RUNTIME.GetUUID() + "." + tp::RPCs,
+      .serviceName =
+          RUNTIME.GetUUID() + ".grape." + _options.grapeId + "." + tp::RPCs,
+  });
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  if (_options.isLocallyOwned) {
+    _rpcs->Register<std::string>(
+        "__rp_sendExistingEntitiesSummary",
+        std::function([this](std::string clientId, std::string grapeId) {
+          return ENTITIES.GetRegisteredEntitiesSummary();
+        }));
+  }
+
+  _rpcs->Register<bool>(
+      "__rp_onSpawnRequested", std::function([this](std::string clientId) {
+        try {
+          __rp_onSpawnRequested(clientId);
+          return true;
+        } catch (std::exception &e) {
+          std::cerr << "Error in __rp_onSpawnRequested: " << e.what()
+                    << std::endl;
+          return false;
+        }
+      }));
+#endif
+
+  _rpcs->Register<bool>(
+      "__rp_spawnEntity",
+      std::function([this](std::string clientId, std::string containerId,
+                           float x, float y, float z) {
+        __execEntitySpawnProcess(clientId, containerId, x, y, z);
+        return true;
+      }));
+
+  _rpcs->Register<unsigned int>(
+      "GetNumberOfContainers",
+      std::function([this]() { return _rg.GetNumberOfContainers(); }));
+}
+
+#pragma endregion network
+
+#pragma region runtime_logic_and_getters
 #ifdef CELTE_SERVER_MODE_ENABLED
 void Grape::ReplicateAllEntities() {
   if (not _options.isLocallyOwned) {
@@ -199,6 +206,9 @@ nlohmann::json Grape::Dump() const {
   j["replication graph"] = replicationDump;
   return j;
 }
+#pragma endregion runtime_logic_and_getters
+
+#pragma region spawnprocess
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 bool Grape::__rp_onSpawnRequested(std::string &clientId) {
@@ -302,6 +312,40 @@ void Grape::__callSpawnHook(const std::string &entityId, glm::vec3 position) {
     std::cerr << "Error in __callSpawnHook: " << e.what() << std::endl;
   }
 }
+
+#pragma endregion spawnprocess
+
+#pragma region remote_grapes_communication
+
+nlohmann::json Grape::FetchContainerFeatures() {
+  if (_options.isLocallyOwned) {
+    throw std::logic_error(
+        "Cannot fetch container features from a locally owned grape.");
+  }
+
+  std::string response = _rpcs->Call<std::string>(
+      tp::PERSIST_DEFAULT + _options.grapeId, "__rp_fetchContainerFeatures");
+
+  return nlohmann::json::parse(response);
+}
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+std::string Grape::__rp_fetchContainerFeatures() {
+  nlohmann::json j;
+  if (not _options.isLocallyOwned) {
+    throw std::logic_error(
+        "Cannot fetch container features from a locally owned grape.");
+  }
+  std::vector<std::shared_ptr<IEntityContainer>> containers =
+      _rg.GetContainers();
+  for (auto &container : containers) {
+    j[container->GetId()] = container->GetFeatures();
+  }
+  return j.dump();
+}
+#endif
+
+#pragma endregion remote_grapes_communication
 
 } // namespace chunks
 } // namespace celte

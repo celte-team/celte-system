@@ -112,6 +112,11 @@ protected:
 class ReplicationGraph {
 public:
   static constexpr float DEFAULT_AFFINITY_SCORE = 0.5f;
+
+  /**
+   * @brief ARN is used to decide if an entity should be transferred to another
+   * grape.
+   */
   using AssignmentReplNode = std::function<float(
       CelteEntity &entity, std::shared_ptr<IEntityContainer> container)>;
 
@@ -212,6 +217,12 @@ public:
    * that container.
    */
   void AssignEntityByAffinity(CelteEntity &entity);
+
+  unsigned int GetNumberOfContainers() const;
+
+  inline std::vector<std::shared_ptr<IEntityContainer>> &GetContainers() {
+    return _containers;
+  }
 
 protected:
 #ifdef CELTE_SERVER_MODE_ENABLED

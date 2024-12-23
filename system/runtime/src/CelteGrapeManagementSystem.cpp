@@ -23,23 +23,6 @@ Grape &CelteGrapeManagementSystem::GetGrape(std::string grapeId) {
   return *_grapes[grapeId];
 }
 
-// Grape &CelteGrapeManagementSystem::GetGrapeByPosition(float x, float y,
-//                                                       float z) {
-//   for (auto &[grapeId, grape] : _grapes) {
-//     if (grape->ContainsPosition(x, y, z)) {
-//       return *grape;
-//     }
-//   }
-//   std::stringstream ss;
-//   ss << "No grape contains the position (" << x << ", " << y << ", " << z
-//      << ").";
-//   ss << "List of the grapes searched for : \n";
-//   for (auto &[grapeId, grape] : _grapes) {
-//     ss << grapeId << "\n";
-//   }
-//   throw std::out_of_range(ss.str());
-// }
-
 Chunk &CelteGrapeManagementSystem::GetChunkById(const std::string &chunkId) {
   for (auto &[grapeId, grape] : _grapes) {
     if (grape->HasChunk(chunkId)) {

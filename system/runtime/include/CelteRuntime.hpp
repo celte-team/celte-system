@@ -101,7 +101,7 @@ public:
    *
    * @param task
    *
-   * @return int the id of the registered callback. Used to unregister it
+   * @return int the id of the registered callback used to unregister it
    * with UnregisterTickCallback.
    */
   int RegisterTickCallback(std::function<void()> callback);

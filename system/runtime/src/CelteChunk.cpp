@@ -26,6 +26,10 @@ Chunk::~Chunk() {}
 #ifdef CELTE_SERVER_MODE_ENABLED
 nlohmann::json Chunk::GetFeatures() {
   __refreshCentroid();
+  auto &ownerGrape = GRAPES.GetGrape(_config.grapeId);
+  glm::vec3 grapePosition = ownerGrape.GetPosition();
+  glm::vec3 grapeSize = ownerGrape.GetSize();
+
   return {
       {"chunkId", _config.chunkId},
       {"grapeId", _config.grapeId},
@@ -33,6 +37,8 @@ nlohmann::json Chunk::GetFeatures() {
       {"preferredContainerSize", _config.preferredContainerSize},
       {"position", {_centroid.x, _centroid.y, _centroid.z}},
       {"isLocallyOwned", _config.isLocallyOwned},
+      {"grapePosition", {grapePosition.x, grapePosition.y, grapePosition.z}},
+      {"grapeSize", {grapeSize.x, grapeSize.y, grapeSize.z}},
   };
 }
 #endif

@@ -8,6 +8,7 @@
 #include <functional>
 #include <glm/vec3.hpp>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -80,6 +81,9 @@ public:
    */
   GrapeStatistics GetStatistics() const;
 
+  inline glm::vec3 GetPosition() const { return _options.position; }
+  inline glm::vec3 GetSize() const { return _options.size; }
+
   /**
    * @brief Returns the id of the grape.
    */
@@ -101,6 +105,15 @@ public:
   bool HasChunk(const std::string &chunkId) const;
 
   Chunk &GetChunk(const std::string &chunkId);
+
+  /**
+   * @brief Returns the number of entity containers in the grape.
+   * @warning This method will fetch this information over the network if not
+   * available, so use it asynchronously if possible.
+   */
+  inline unsigned int GetNumberOfContainers() const {
+    return _rg.GetNumberOfContainers();
+  }
 
   /**
    * @brief Returns a json string containing information about the current state
@@ -150,7 +163,16 @@ public:
 
   inline ReplicationGraph &GetReplicationGraph() { return _rg; }
 
+  /**
+   * @brief Fetches the features of all containers owned by the grape.
+   */
+  nlohmann::json FetchContainerFeatures();
+
 private:
+#ifdef CELTE_SERVER_MODE_ENABLED
+  std::string __rp_fetchContainerFeatures();
+#endif
+
   void __initNetwork();
   /**
    * Subdivide the grape bounding box into options.subdivision chunks.

@@ -140,9 +140,6 @@ void ReplicationGraph::__lookupBestContainerInOtherGrapes(CelteEntity &entity) {
               << std::endl;
     return;
   }
-  std::cout << "lookup : best container is "
-            << bestContainerScore->container->GetId() << " with affinity "
-            << bestContainerScore->affinity << std::endl;
   bestContainerScore->container->TakeEntity(entity.GetUUID());
 }
 
@@ -187,6 +184,17 @@ ReplicationGraph::GetContainerOpt(const std::string &id) {
     }
   }
   return std::nullopt;
+}
+
+unsigned int ReplicationGraph::GetNumberOfContainers() const {
+  auto &ownerGrape = GRAPES.GetGrape(_ownerGrapeId);
+  if (ownerGrape.GetOptions().isLocallyOwned) {
+    return _containers.size();
+  } else {
+    // not calling on rpc channel to only target the owner node
+    return ownerGrape.GetRPCService().Call<unsigned int>(
+        tp::PERSIST_DEFAULT + _ownerGrapeId, "GetNumberOfContainers");
+  }
 }
 
 } // namespace celte
