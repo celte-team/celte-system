@@ -24,11 +24,11 @@ class Master
             {
                 _master = this;
             }
-            // DotEnv.Load("../.env");
             _setupConfig = new SetupConfig(Environment.GetCommandLineArgs());
             _setupConfig.SettingUpMaster();
             Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
             string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
+            Console.WriteLine($"Pulsar brokers: {pulsarBrokers}");
             if (string.IsNullOrEmpty(pulsarBrokers))
             {
                 throw new ArgumentException("Pulsar brokers are not set.");

@@ -12,6 +12,7 @@ services:
     container_name: master1
     networks:
       - pulsar
+      - redis
     restart: on-failure
     environment:
       - REDIS_HOST=${REDIS_HOST}
@@ -20,6 +21,15 @@ services:
       - CONFIG_FILE=/config/configFile.yml
     volumes:
       - ./master/configFile.yml:/config/configFile.yml
+    depends_on:
+      - redis_master
+      - redis_slave
+      - sentinel
+      - redisinsight
+      - zookeeper
+      - pulsar-init
+      - bookie
+      - broker
 
   master2:
     build:
@@ -28,6 +38,7 @@ services:
     container_name: master2
     networks:
       - pulsar
+      - redis
     restart: on-failure
     environment:
       - REDIS_HOST=${REDIS_HOST}
@@ -36,6 +47,15 @@ services:
       - CONFIG_FILE=/config/configFile.yml
     volumes:
       - ./master/configFile.yml:/config/configFile.yml
+    depends_on:
+      - redis_master
+      - redis_slave
+      - sentinel
+      - redisinsight
+      - zookeeper
+      - pulsar-init
+      - bookie
+      - broker
 
   master3:
     build:
@@ -128,7 +148,8 @@ services:
     networks:
       - pulsar
     volumes:
-      - ./data/zookeeper:/pulsar/data/zookeeper
+      - ./pulsar/data/zookeeper:/pulsar/data/zookeeper
+      # - zookeeper-data:/pulsar/data/zookeeper
     environment:
       - metadataStoreUrl=zk:zookeeper:2181
       - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
@@ -180,7 +201,8 @@ services:
         condition: service_completed_successfully
     # Map the local directory to the container to avoid bookie startup failure due to insufficient container disks.
     volumes:
-      - ./data/bookkeeper:/pulsar/data/bookkeeper
+      - ./pulsar/data/bookkeeper:/pulsar/data/bookkeeper
+      # - bookkeeper-data:/pulsar/data/bookkeeper
     ports:
       - "3181:3181"
     command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie"
@@ -273,4 +295,11 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=eliotisthebest
     volumes:
-      - ./grafana:/var/lib/grafana
+      # - pulsar-data:/var/lib/grafana
+      - ./pulsar/grafana:/var/lib/grafana
+
+volumes:
+  pulsar-data:
+  redis-data:
+  bookkeeper-data:
+  zookeeper-data:
