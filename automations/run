@@ -239,9 +239,7 @@ def run_redis_sentinel():
 
 def run_master():
     """Run the master configuration update."""
-    os.environ['DOCKER_HOST_IP'] = ip_address
-    os.environ['PULSAR_BROKERS'] = f"pulsar://{ip_address}:6650"
-    os.environ['REDIS_HOST'] = f"{ip_address}:6379"
+    export_all_vars()
 
     os.chdir('master')
     subprocess.run(['dotnet', 'run', '--config', 'configFile.yml'])
@@ -403,7 +401,7 @@ def run_tests(yaml_path):
             cluster_process_handle.wait()
             docker_down.wait()
 
-def run_all():
+def export_all_vars():
     export_env_vars('DOCKER_HOST_IP', ip_address)
     export_env_vars('PULSAR_BROKERS', f"pulsar://{ip_address}:6650")
     export_env_vars('REDIS_HOST', f"{ip_address}:6379")
@@ -414,9 +412,11 @@ def run_all():
     os.environ['PULSAR_BROKERS'] = f"pulsar://{ip_address}:6650"
     os.environ['REDIS_HOST'] = f"{ip_address}:6379"
 
+def run_all():
+    export_all_vars()
+    flush_pulsar()
     print(f"{Fore.GREEN}Running all services with env : {env}{Style.RESET_ALL}")
     subprocess.run(['docker', 'compose', 'down'])
-    print("env is : ", env)
     subprocess.run(['docker', 'compose', 'up', '--no-deps', '--build'], env=env)
 
 def run_server():
@@ -432,11 +432,18 @@ def signal_handler(sig, frame):
         current_process.terminate()
     sys.exit(0)
 
+def flush_pulsar():
+    """Flush the Pulsar topics."""
+    print("Flushing Pulsar topics...")
+    os.chdir('pulsar')
+    subprocess.run(['rm', '-fr', 'data'])
+    subprocess.run(['mkdir', '-p', 'data/bookkeeper/', 'data/zookeeper/'])
+    os.chdir('..')
+
 signal.signal(signal.SIGINT, signal_handler)
 
 launcher = {
     '--pulsar': run_docker_pulsar,
-    '--kafka': run_docker_kafka,
     '--cpp': run_docker_cpp,
     '--join-cpp': join_docker_cpp,
     '--build': build_docker_image,
@@ -447,6 +454,7 @@ launcher = {
     '--redis': run_redis_sentinel,
     '--master': run_master,
     '--all': run_all,
+    '--flush': flush_pulsar
 }
 
 def usage():
