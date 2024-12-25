@@ -99,6 +99,7 @@ struct WriterStream {
 
   bool Ready() { return _ready; }
   bool HasPending() { return _pending > 0; }
+  inline void Close() { _producer.close(); }
 
 private:
   pulsar::Producer _producer;

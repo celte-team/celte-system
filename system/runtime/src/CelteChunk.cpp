@@ -23,6 +23,16 @@ Chunk::Chunk(const nlohmann::json &config)
 
 Chunk::~Chunk() {}
 
+nlohmann::json Chunk::GetConfigJSON() const {
+  return {
+      {"chunkId", _config.chunkId},
+      {"grapeId", _config.grapeId},
+      {"preferredEntityCount", _config.preferredEntityCount},
+      {"preferredContainerSize", _config.preferredContainerSize},
+      {"isLocallyOwned", _config.isLocallyOwned},
+  };
+}
+
 #ifdef CELTE_SERVER_MODE_ENABLED
 nlohmann::json Chunk::GetFeatures() {
   __refreshCentroid();
@@ -84,6 +94,20 @@ void Chunk::__registerConsumers() {
             CINPUT.HandleInput(req.uuid, req.name, req.pressed);
           },
   });
+}
+
+void Chunk::Remove() {
+  std::cout << "[[REMOVING ChUNK]] " << _config.chunkId << std::endl;
+
+  // todo : unload all entities, and then close the streams
+
+  for (auto &rdr : _readerStreams) {
+    rdr->Close();
+  }
+  for (auto &[_, wtr] : _writerStreams) {
+    wtr->Close();
+  }
+  _rpcs.Close();
 }
 
 void Chunk::WaitNetworkInitialized() {
@@ -155,7 +179,6 @@ void Chunk::TakeEntity(const std::string &entityId) {
   // server node, calling the RPC will trigger the behavior of transfering
   // authority over to the chunk in all the peers listening to the chunk's
   // topic.
-  std::cout << "in chunk::take entity, calling on network" << std::endl;
   if (not _config.isLocallyOwned) {
     throw std::runtime_error("Cannot take entity in a non locally owned chunk");
   }
@@ -195,6 +218,8 @@ void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
 void Chunk::TakeEntityLocally(const std::string &entityId) {
   try {
     ENTITIES.GetEntity(entityId).OnChunkTakeAuthority(*this);
+    std::cout << "[[TAKE ENTITY LOCALLY]] container " << _combinedId << " took "
+              << entityId << std::endl;
 #ifdef CELTE_SERVER_MODE_ENABLED
     if (_config.isLocallyOwned) {
       __rememberEntity(entityId);
@@ -253,6 +278,28 @@ void Chunk::__refreshCentroid() {
   _centroid = sum / static_cast<float>(n);
 }
 #endif
+
+void Chunk::Load(const nlohmann::json &features) {
+  _config.preferredContainerSize = features["preferredContainerSize"];
+  _config.preferredEntityCount = features["preferredEntityCount"];
+  _config.isLocallyOwned = false; // if you have to load feats, you are not the
+                                  // owner of the chunk
+}
+
+void Chunk::LoadExistingEntities() {
+  std::cout << "[[CHUNK LEE]] " << _combinedId
+            << " is loading existing entities" << std::endl;
+  try {
+    std::string summary = _rpcs.Call<std::string>(
+        tp::PERSIST_DEFAULT + _config.grapeId,
+        "__rp_sendExistingEntitiesSummary", _combinedId);
+    std::cout << "[[CHUNK LEE]] " << _combinedId
+              << "etched summary, loading entities" << std::endl;
+    ENTITIES.LoadExistingEntities(summary);
+  } catch (net::RPCTimeoutException &e) {
+    std::cerr << "Error in LoadExistingEntities: " << e.what() << std::endl;
+  }
+}
 
 } // namespace chunks
 } // namespace celte

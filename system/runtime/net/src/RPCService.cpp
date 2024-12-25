@@ -52,6 +52,7 @@ void RPCService::__handleRemoteCall(const RPRequest &req) {
     return;
   }
   std::cout << "RPC handling call: " << req.name << std::endl;
+  std::cout << "Args: " << req.args.dump() << std::endl;
   auto f = it->second;
   auto result = f(req.args);
 

@@ -1,6 +1,7 @@
 #include "CelteGrape.hpp"
 #include "CelteRuntime.hpp"
 #include "Logger.hpp"
+#include <chrono>
 #include <glm/glm.hpp>
 #include <ranges>
 #include <sstream>
@@ -62,18 +63,6 @@ void Grape::__subdivide() {
         _options.then();
       }
     });
-
-    // When ready, requesting the owner of the grape to send the existing
-    // data to load on the grape
-    if (not _options.isLocallyOwned) {
-      _rpcs
-          ->CallAsync<std::string>(tp::PERSIST_DEFAULT + _options.grapeId,
-                                   "__rp_sendExistingEntitiesSummary",
-                                   RUNTIME.GetUUID(), _options.grapeId)
-          .Then([this](std::string summary) {
-            ENTITIES.LoadExistingEntities(summary);
-          });
-    }
   });
 }
 
@@ -97,11 +86,8 @@ Grape::__defaultInstantiateContainer(const std::string &containerId) {
     }
     return _entityPositionGetter(entityId);
   });
-  // _rg.RegisterEntityContainer(chunk);// this is a deadlock
-  std::cout << "[[chunk initialize]]" << std::endl;
   std::string combinedId = chunk->Initialize();
   _chunks[combinedId] = chunk;
-  std::cout << "default instantiate container returning chunk" << std::endl;
   return chunk;
 }
 
@@ -122,7 +108,6 @@ void Grape::__initNetwork() {
                                      "." + tp::RPCs};
 #ifdef CELTE_SERVER_MODE_ENABLED
   if (_options.isLocallyOwned) {
-    std::cout << "Owning grape " << _options.grapeId << std::endl;
     rpcTopics.push_back(tp::PERSIST_DEFAULT + _options.grapeId);
   }
 #endif
@@ -130,18 +115,18 @@ void Grape::__initNetwork() {
   _rpcs.emplace(net::RPCService::Options{
       .thisPeerUuid = RUNTIME.GetUUID(),
       .listenOn = rpcTopics,
-      .reponseTopic = RUNTIME.GetUUID() + "." + tp::RPCs,
+      .responseTopic = RUNTIME.GetUUID() + "." + tp::RPCs,
       .serviceName =
           RUNTIME.GetUUID() + ".grape." + _options.grapeId + "." + tp::RPCs,
   });
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   if (_options.isLocallyOwned) {
-    _rpcs->Register<std::string>(
-        "__rp_sendExistingEntitiesSummary",
-        std::function([this](std::string clientId, std::string grapeId) {
-          return ENTITIES.GetRegisteredEntitiesSummary();
-        }));
+    _rpcs->Register<std::string>("__rp_sendExistingEntitiesSummary",
+                                 std::function([this](std::string chunkId) {
+                                   return ENTITIES.GetRegisteredEntitiesSummary(
+                                       chunkId);
+                                 }));
   }
 
   _rpcs->Register<bool>(
@@ -156,6 +141,16 @@ void Grape::__initNetwork() {
           return false;
         }
       }));
+
+  _rpcs->Register<bool>("__rp_remoteTakeEntity",
+                        std::function([this](std::string entityId) {
+                          return __rp_remoteTakeEntity(entityId);
+                        }));
+
+  _rpcs->Register<std::string>(
+      "__rp_fetchContainerFeatures",
+      std::function([this]() { return __rp_fetchContainerFeatures(); }));
+
 #endif
 
   _rpcs->Register<bool>(
@@ -183,6 +178,21 @@ void Grape::ReplicateAllEntities() {
     chunk->SendReplicationData();
   }
 }
+
+void Grape::RemoteTakeEntity(const std::string &entityId) {
+  _rpcs->CallVoid(tp::PERSIST_DEFAULT + _options.grapeId,
+                  "__rp_remoteTakeEntity", entityId);
+}
+
+bool Grape::__rp_remoteTakeEntity(const std::string &entityId) {
+  try {
+    _rg.TakeEntity(entityId);
+    return true;
+  } catch (std::out_of_range &e) {
+    std::cerr << "Error in __rp_remoteTakeEntity: " << e.what() << std::endl;
+    return false;
+  }
+}
 #endif
 
 bool Grape::HasChunk(const std::string &chunkId) const {
@@ -197,7 +207,11 @@ Chunk &Grape::GetChunk(const std::string &chunkId) {
   return *_chunks[chunkId];
 }
 
-void Grape::Tick() {}
+void Grape::Tick() {
+  if (not _options.isLocallyOwned) {
+    __updateRemoteSubscriptions();
+  }
+}
 
 nlohmann::json Grape::Dump() const {
   nlohmann::json j;
@@ -230,18 +244,21 @@ bool Grape::__rp_onSpawnRequested(std::string &clientId, std::string &payload) {
 void Grape::__ownerExecEntitySpawnProcess(const std::string &entityId,
                                           const std::string &payload, float x,
                                           float y, float z) {
-  std::cout << "[[owner exec entity spawn process]]" << std::endl;
   __spawnEntityLocally(
       entityId, payload, glm::vec3(x, y, z),
-      [this, entityId, payload, x, y, z]() {
+      [this, entityId, payload, x, y, z]() { // then, when godot is ready
         auto &entity = ENTITIES.GetEntity(entityId);
         entity.ExecInEngineLoop([this, &entity, entityId, payload, x, y, z]() {
-          std::shared_ptr<IEntityContainer> container =
-              _rg.GetBestContainerForEntity(entity)
-                  .value_or(ReplicationGraph::ContainerAffinity{
-                      .container = _rg.AddContainer(),
-                      .affinity = ReplicationGraph::DEFAULT_AFFINITY_SCORE})
-                  .container;
+          auto containerOpt = _rg.GetBestContainerForEntity(entity);
+          std::shared_ptr<IEntityContainer> container;
+          if (containerOpt.has_value()) {
+            container = containerOpt.value().container;
+          } else {
+            auto newContainerAffinity = ReplicationGraph::ContainerAffinity{
+                .container = _rg.AddContainer(),
+                .affinity = ReplicationGraph::DEFAULT_AFFINITY_SCORE};
+            container = newContainerAffinity.container;
+          }
           container->WaitNetworkInitialized();
           container->TakeEntityLocally(entityId);
           __spawnEntityOnNetwork(entityId, container->GetId(), payload, x, y,
@@ -271,9 +288,13 @@ void Grape::__execEntitySpawnProcess(const std::string &entityId,
   } else {
     __spawnEntityLocally(entityId, payload, glm::vec3(x, y, z),
                          [this, entityId, containerId, x, y, z]() {
-                           std::shared_ptr<IEntityContainer> container =
-                               _rg.GetContainerOpt(containerId)
-                                   .value_or(_rg.AddContainer(containerId));
+                           auto containerOpt = _rg.GetContainerOpt(containerId);
+                           std::shared_ptr<IEntityContainer> container;
+                           if (containerOpt.has_value()) {
+                             container = containerOpt.value();
+                           } else {
+                             container = _rg.AddContainer(containerId);
+                           }
                            container->WaitNetworkInitialized();
                            container->TakeEntityLocally(entityId);
                          });
@@ -290,9 +311,7 @@ void Grape::__spawnEntityLocally(const std::string &entityId,
 
 void Grape::__waitEntityReady(const std::string &entityId,
                               std::function<void()> then) {
-  std::cout << "[[wait entity ready]]" << std::endl;
   if (not ENTITIES.IsEntityRegistered(entityId)) {
-    std::cout << "no ready... waiting" << std::endl;
     RUNTIME.IO().post(
         [this, entityId, then]() { __waitEntityReady(entityId, then); });
     return;
@@ -330,10 +349,13 @@ nlohmann::json Grape::FetchContainerFeatures() {
         "Cannot fetch container features from a locally owned grape.");
   }
 
-  std::string response = _rpcs->Call<std::string>(
-      tp::PERSIST_DEFAULT + _options.grapeId, "__rp_fetchContainerFeatures");
-
-  return nlohmann::json::parse(response);
+  try {
+    std::string response = _rpcs->Call<std::string>(
+        tp::PERSIST_DEFAULT + _options.grapeId, "__rp_fetchContainerFeatures");
+    return nlohmann::json::parse(response);
+  } catch (net::RPCTimeoutException &e) {
+    return nlohmann::json();
+  }
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -343,14 +365,39 @@ std::string Grape::__rp_fetchContainerFeatures() {
     throw std::logic_error(
         "Cannot fetch container features from a locally owned grape.");
   }
-  std::vector<std::shared_ptr<IEntityContainer>> containers =
-      _rg.GetContainers();
-  for (auto &container : containers) {
-    j[container->GetId()] = container->GetFeatures();
+  std::unordered_map<std::string, std::shared_ptr<IEntityContainer>>
+      containers = _rg.GetContainers();
+  for (auto &[_, container] : containers) {
+    nlohmann::json containerJson;
+    containerJson["features"] = container->GetFeatures();
+    containerJson["config"] = container->GetConfigJSON();
+    j[container->GetId()] = containerJson;
   }
   return j.dump();
 }
+
 #endif
+void Grape::__updateRemoteSubscriptions() { // maybe the owner grape could just
+                                            // call this on its rpc channel
+
+  auto now = std::chrono::system_clock::now();
+  if (std::chrono::duration_cast<std::chrono::seconds>(now -
+                                                       _lastRemoteSubUpdate)
+          .count() < 1) {
+    return;
+  }
+  _lastRemoteSubUpdate = now;
+
+  RUNTIME.IO().post([this]() {
+    nlohmann::json j = FetchContainerFeatures();
+    if (j.size() == 0) {
+      return;
+    }
+    for (auto &[containerId, info] : j.items()) {
+      _rg.UpdateRemoteContainer(containerId, info);
+    }
+  });
+}
 
 #pragma endregion remote_grapes_communication
 

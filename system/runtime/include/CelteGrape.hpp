@@ -5,6 +5,7 @@
 #include "ReplicationGraph.hpp"
 #include "RotatedBoundingBox.hpp"
 #include "WriterStreamPool.hpp"
+#include <chrono>
 #include <functional>
 #include <glm/vec3.hpp>
 #include <memory>
@@ -136,6 +137,7 @@ public:
     _rg.TakeEntity(entityId);
   }
 
+  void RemoteTakeEntity(const std::string &entityId);
 #endif
 
   /**
@@ -168,10 +170,21 @@ public:
    */
   nlohmann::json FetchContainerFeatures();
 
+  inline void SetEngineWrapperInstancePtr(void *instancePtr) {
+    _engineWrapperInstancePtr = instancePtr;
+  }
+
+  inline void *GetEngineWrapperInstancePtr() const {
+    return _engineWrapperInstancePtr;
+  }
+
 private:
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::string __rp_fetchContainerFeatures();
+  bool __rp_remoteTakeEntity(const std::string &entityId);
+
 #endif
+  void __updateRemoteSubscriptions();
 
   void __initNetwork();
   /**
@@ -227,6 +240,10 @@ private:
 
   const GrapeOptions _options;
   std::unordered_map<std::string, std::shared_ptr<Chunk>> _chunks;
+
+  void *_engineWrapperInstancePtr = nullptr;
+
+  std::chrono::time_point<std::chrono::system_clock> _lastRemoteSubUpdate;
 };
 } // namespace chunks
 } // namespace celte

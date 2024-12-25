@@ -31,10 +31,6 @@ CelteInputSystem::CelteInputSystem(boost::asio::io_service &io)
 
 void CelteInputSystem::HandleInput(std::string uuid, std::string InputName,
                                    bool status) {
-  std::cout << "Name: " << InputName
-            << ", Pressed: " << (status ? "true" : "false")
-            << ", Uuid : " << uuid << "\n"
-            << std::flush;
   // Dereference _data to access the map
   if (_data->find(uuid) == _data->end()) {
     // If the uuid is not found, create a new entry for it

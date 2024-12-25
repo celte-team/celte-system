@@ -17,6 +17,7 @@ void CelteNet::__init(const std::string &brokers, int timeoutMs) {
   conf.setIOThreads(1);
   conf.setMessageListenerThreads(1);
   conf.setUseTls(false);
+  conf.setLogger(new pulsar::ConsoleLoggerFactory(pulsar::Logger::LEVEL_WARN));
 
   std::string pulsarBrokers = "pulsar://" + brokers;
   _client = std::make_unique<pulsar::Client>(pulsarBrokers, conf);

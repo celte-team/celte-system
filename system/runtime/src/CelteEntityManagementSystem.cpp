@@ -20,6 +20,7 @@ void CelteEntityManagementSystem::RegisterEntity(
     std::shared_ptr<celte::CelteEntity> entity) {
   // if the entity is already registered, we do nothing (it has already been
   // loaded from the network or by instantiating the scene)
+  std::scoped_lock lock(_entitiesMutex);
   if (_entities.find(entity->GetUUID()) == _entities.end()) {
     _entities[entity->GetUUID()] = entity;
   }
@@ -27,6 +28,7 @@ void CelteEntityManagementSystem::RegisterEntity(
 
 void CelteEntityManagementSystem::UnregisterEntity(
     std::shared_ptr<celte::CelteEntity> entity) {
+  std::scoped_lock lock(_entitiesMutex);
   auto it = _entities.find(entity->GetUUID());
   if (it != _entities.end()) {
     // we are not deleting the pointer because we do not own it.
@@ -35,12 +37,14 @@ void CelteEntityManagementSystem::UnregisterEntity(
 }
 
 celte::CelteEntity &
-CelteEntityManagementSystem::GetEntity(const std::string &uuid) const {
+CelteEntityManagementSystem::GetEntity(const std::string &uuid) {
+  std::scoped_lock lock(_entitiesMutex);
   return *_entities.at(uuid);
 }
 
 std::shared_ptr<CelteEntity>
-CelteEntityManagementSystem::GetEntityPtr(const std::string &uuid) const {
+CelteEntityManagementSystem::GetEntityPtr(const std::string &uuid) {
+  std::scoped_lock lock(_entitiesMutex);
   auto it = _entities.find(uuid);
   if (it != _entities.end()) {
     return it->second;
@@ -65,16 +69,22 @@ void CelteEntityManagementSystem::__replicateAllEntities() {
   GRAPES.ReplicateAllEntities();
 }
 
-std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary() {
+std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary(
+    const std::string &containerIdFilter) {
   nlohmann::json j = nlohmann::json::array();
+  decltype(_entities) entities;
+  {
+    std::scoped_lock lock(_entitiesMutex);
+    entities = _entities;
+  }
 
-  for (const auto &[uuid, entity] : _entities) {
+  for (const auto &[uuid, entity] : entities) {
     try {
-      if (entity->GetOwnerChunk().GetConfig().isLocallyOwned) {
+      if ((not containerIdFilter.empty()) and
+          entity->GetOwnerChunk().GetCombinedId() != containerIdFilter) {
         continue;
       }
-      logs::Logger::getInstance().info()
-          << "packing entity " << uuid << " to json." << std::endl;
+
       // Create a new object for each entity
       nlohmann::json obj;
 
@@ -157,29 +167,62 @@ void CelteEntityManagementSystem::__handleReplicationDataReceived(
 
 void CelteEntityManagementSystem::LoadExistingEntities(
     const std::string &summary) {
+  std::vector<std::tuple<std::string, std::string>> containerAssigmentBatched;
   try {
     nlohmann::json summaryJSON = nlohmann::json::parse(summary);
-
     for (nlohmann::json &partialSummary : summaryJSON) {
       std::string uuid = partialSummary["uuid"];
       if (_entities.find(uuid) != _entities.end() or
           uuid == RUNTIME.GetUUID()) {
         continue; // entity already loaded
       }
-
+      containerAssigmentBatched.push_back(
+          std::make_tuple(uuid, partialSummary["chunk"]));
 #ifdef CELTE_SERVER_MODE_ENABLED
       HOOKS.server.grape.onLoadExistingEntities(partialSummary);
 #else
       HOOKS.client.grape.onLoadExistingEntities(partialSummary);
 #endif
     }
-
   } catch (const std::exception &e) {
     logs::Logger::getInstance().err()
         << "Error loading existing entities: " << e.what() << std::endl;
     return;
   }
+  // assigning entities to their respective containers
+  for (auto &[uuid, chunkId] : containerAssigmentBatched) {
+    RUNTIME.IO().post([this, uuid, chunkId]() {
+      __takeLocallyDeferred(
+          uuid, chunkId,
+          std::chrono::system_clock::now() +
+              std::chrono::seconds(10)); // timeout of one second
+    });
+  }
 }
 
+void CelteEntityManagementSystem::__takeLocallyDeferred(
+    const std::string &uuid, const std::string &chunkId,
+    std::chrono::time_point<std::chrono::system_clock> deadline) {
+  if (std::chrono::system_clock::now() > deadline) {
+    std::cerr << "Entity spawn timed out, won't spawn on the network"
+              << std::endl;
+    return;
+  }
+  if (not IsEntityRegistered(uuid)) {
+    RUNTIME.IO().post([this, uuid, chunkId, deadline]() {
+      __takeLocallyDeferred(uuid, chunkId, deadline);
+    });
+    return;
+  }
+
+  try {
+    CelteEntity &entity = GetEntity(uuid);
+    auto container = GRAPES.GetContainerById(chunkId);
+    container->TakeEntityLocally(uuid);
+  } catch (std::out_of_range &e) {
+    std::cerr << "Error while taking entity " << uuid
+              << " locally: " << e.what() << std::endl;
+  }
+}
 } // namespace runtime
 } // namespace celte

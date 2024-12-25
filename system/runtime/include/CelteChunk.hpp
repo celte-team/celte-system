@@ -12,11 +12,11 @@
 namespace celte {
 namespace chunks {
 struct ChunkConfig {
-  const std::string chunkId;
-  const std::string grapeId;
-  const unsigned int preferredEntityCount;
-  const float preferredContainerSize;
-  const bool isLocallyOwned;
+  std::string chunkId;
+  std::string grapeId;
+  unsigned int preferredEntityCount;
+  float preferredContainerSize;
+  bool isLocallyOwned;
 };
 
 /**
@@ -32,6 +32,8 @@ public:
   Chunk(const nlohmann::json &config);
   ~Chunk();
 
+  void Load(const nlohmann::json &features) override;
+
   /**
    * @brief Initializes the chunk. Call this method only once.
    * It could be called in the constructor but is not in order to
@@ -40,6 +42,8 @@ public:
    * @return std::string the combined id of the chunk
    */
   std::string Initialize() override;
+
+  void Remove() override;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   nlohmann::json GetFeatures() override;
@@ -71,6 +75,8 @@ public:
   inline net::RPCService &GetRPCService() { return _rpcs; }
 
   void TakeEntityLocally(const std::string &entityId) override;
+
+  void LoadExistingEntities() override;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
@@ -108,6 +114,7 @@ public:
 #endif
 
   inline ChunkConfig GetConfig() const { return _config; }
+  nlohmann::json GetConfigJSON() const override;
 
   // /**
   //  * @brief This RPC will be called by clients when they want to spawn their

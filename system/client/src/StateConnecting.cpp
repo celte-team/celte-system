@@ -74,11 +74,6 @@ void Connecting::__subscribeToTopics() {
 
 void Connecting::__rp_forceConnectToChunk(std::string grapeId, float x, float y,
                                           float z) {
-  logs::Logger::getInstance().info()
-      << "Force connect to chunk rp has been called" << std::endl;
-  std::cout << "Force connect to chunk rp has been called" << std::endl;
-  // loadgrape hook will call a callback when the grape is loaded: this callback
-  // should ask for a spawn using RUNTIME.RequestSpawn
   HOOKS.client.grape.loadGrape(grapeId);
 }
 

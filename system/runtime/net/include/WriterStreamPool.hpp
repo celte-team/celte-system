@@ -86,6 +86,14 @@ public:
     stream.lastUsed = std::chrono::system_clock::now();
   }
 
+  inline void Close() {
+    std::lock_guard<std::mutex> lock(_mutex);
+    for (auto &stream : _streams) {
+      stream.second.producer->Close();
+    }
+    _streams.clear();
+  }
+
 private:
   Options _options;
   std::unordered_map<std::string, WriterStreamPoolEntry> _streams;

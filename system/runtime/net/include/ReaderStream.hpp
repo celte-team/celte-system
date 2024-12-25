@@ -96,6 +96,8 @@ struct ReaderStream {
 
   bool Ready() { return _ready; }
 
+  inline void Close() { _consumer.close(); }
+
 protected:
   pulsar::Consumer _consumer;
   std::atomic_bool _ready = false;

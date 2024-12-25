@@ -25,9 +25,18 @@ public:
   virtual ~IEntityContainer() = default;
 
   /**
+   * @brief Loads the features of this container from a json object. This is
+   * meant to init the container to a state that is described by the features,
+   * to mirror the state of a remote container.
+   */
+  virtual void Load(const nlohmann::json &features) = 0;
+
+  /**
    * @brief Returns a reference to the Grape that owns this container.
    */
   virtual const std::string &GetGrapeId() const = 0;
+
+  virtual nlohmann::json GetConfigJSON() const = 0;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
@@ -51,6 +60,12 @@ public:
    * current peer. (will always return false on client side).
    */
   virtual bool IsLocallyOwned() const = 0;
+
+  /**
+   * @brief The container removes all its entities and free all resources.
+   * Data in the container won't be replicated anymore.
+   */
+  virtual void Remove() = 0;
 
   /**
    * @brief Waits for the network to be initialized.
@@ -82,6 +97,8 @@ public:
   virtual void TakeEntityLocally(const std::string &entityId) = 0;
 
   inline void IncNOwnedEntities(int n) { _nOwnedEntities += n; }
+
+  virtual void LoadExistingEntities() = 0;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   /**
@@ -120,6 +137,19 @@ public:
   using AssignmentReplNode = std::function<float(
       CelteEntity &entity, std::shared_ptr<IEntityContainer> container)>;
 
+  /**
+   * @brief SARN is used to decide to which grape an entity should be
+   * transferred when all local containers return a low affinity score.
+   */
+  using ServerAssignmentReplNode =
+      std::function<std::string(void *, std::vector<void *>)>;
+
+  /**
+   * @brief IRN is used to decide if a remote container is relevant to this
+   * peer (should we subscribe to it?).
+   */
+  using InterestReplNode = std::function<bool(nlohmann::json)>;
+
   ReplicationGraph();
   virtual ~ReplicationGraph();
 
@@ -138,7 +168,8 @@ public:
    * @brief Manually registers a new container in the replication graph so that
    * it can be take into account when assigning entities.
    */
-  void RegisterEntityContainer(std::shared_ptr<IEntityContainer> container);
+  void RegisterEntityContainer(std::shared_ptr<IEntityContainer> container,
+                               bool lock = true);
 
   std::shared_ptr<IEntityContainer> AddContainer();
   std::shared_ptr<IEntityContainer> AddContainer(const std::string &id);
@@ -159,7 +190,13 @@ public:
   /**
    * @brief Sets the logic used to reassign nodes to containers.
    */
-  void SetAssignmentReplNode(AssignmentReplNode arn) { _getAffinity = arn; }
+  inline void SetAssignmentReplNode(AssignmentReplNode arn) {
+    _getAffinity = arn;
+  }
+
+  inline void SetServerAssignmentReplNode(ServerAssignmentReplNode sarn) {
+    _sarn = sarn;
+  }
 
   struct ContainerAffinity {
     std::shared_ptr<IEntityContainer> container;
@@ -170,18 +207,28 @@ public:
   GetBestContainerForEntity(CelteEntity &entity);
 
   void __lookupBestContainerInOtherGrapes(CelteEntity &entity);
+  void __assignEntityToRemoteGrape(CelteEntity &entity);
 
   /**
-   * @brief Given a container and an entity, this method will assign the entity
-   * to the container (without checking if it is the best container for the
-   * entity and without broadcasting the change to the network). The entity will
-   * be added to the list of entities managed by the graph. This method should
-   * be called when the entity spawns in this grape.
+   * @brief Given a container and an entity, this method will assign the
+   * entity to the container (without checking if it is the best container
+   * for the entity and without broadcasting the change to the network). The
+   * entity will be added to the list of entities managed by the graph. This
+   * method should be called when the entity spawns in this grape.
    */
   void TakeEntityLocally(const std::string &entityId,
                          std::shared_ptr<IEntityContainer> container);
 
 #endif
+
+  inline void SetInterestReplNode(InterestReplNode irn) { _irn = irn; }
+
+  /**
+   * @brief Updates a remote container : decides if the container is relevant to
+   * this grape (i.e should it be instantiated and its entities replicated
+   * here).
+   */
+  void UpdateRemoteContainer(const std::string &cid, nlohmann::json info);
 
   inline void SetInstantiateContainer(
       std::function<std::shared_ptr<IEntityContainer>(const std::string &)>
@@ -197,20 +244,12 @@ public:
    */
   void Validate();
 
-  inline std::shared_ptr<IEntityContainer> // TODO: store containers in an
-                                           // unordered map to avoid the loop
-  GetContainerById(const std::string &id) {
-    std::lock_guard<std::mutex> lock(_containersMutex);
-    for (auto &container : _containers) {
-      if (container->GetId() == id) {
-        return container;
-      }
-    }
-    return nullptr;
-  }
+  std::shared_ptr<IEntityContainer> // TODO: store containers in an
+                                    // unordered map to avoid the loop
+  GetContainerById(const std::string &id);
 
   std::optional<std::shared_ptr<IEntityContainer>>
-  GetContainerOpt(const std::string &containerId);
+  GetContainerOpt(const std::string &containerId, bool block = true);
 
   /**
    * @brief Chooses the best container for a single entity and assigns it to
@@ -220,18 +259,26 @@ public:
 
   unsigned int GetNumberOfContainers() const;
 
-  inline std::vector<std::shared_ptr<IEntityContainer>> &GetContainers() {
+  inline std::unordered_map<std::string, std::shared_ptr<IEntityContainer>> &
+  GetContainers() {
     return _containers;
   }
 
 protected:
 #ifdef CELTE_SERVER_MODE_ENABLED
   AssignmentReplNode _getAffinity = nullptr;
+  ServerAssignmentReplNode _sarn = nullptr;
 #endif
+  InterestReplNode _irn = nullptr;
+
+  void __loadRemoteContainer(const std::string &cid, nlohmann::json info);
+  void __removeRemoteContainer(const std::string &cid);
 
   std::string _ownerGrapeId;
 
-  std::vector<std::shared_ptr<IEntityContainer>> _containers;
+  // std::vector<std::shared_ptr<IEntityContainer>> _containers;
+  std::unordered_map<std::string, std::shared_ptr<IEntityContainer>>
+      _containers;
   std::mutex _containersMutex;
 
   std::function<std::shared_ptr<IEntityContainer>(const std::string &)>

@@ -32,7 +32,8 @@ public:
    * @brief Returns true if the entity with the given uuid is registered with
    * the system, false otherwise.
    */
-  inline bool IsEntityRegistered(const std::string &uuid) const {
+  inline bool IsEntityRegistered(const std::string &uuid) {
+    std::scoped_lock lock(_entitiesMutex);
     return _entities.find(uuid) != _entities.end();
   }
 
@@ -41,13 +42,13 @@ public:
    *
    * @throws std::out_of_range if the entity is not found.
    */
-  CelteEntity &GetEntity(const std::string &uuid) const;
+  CelteEntity &GetEntity(const std::string &uuid);
 
   /**
    * @brief Returns a shared_ptr to the entity with the given uuid. If the
    * entity does not exist, the nullptr is returned.
    */
-  std::shared_ptr<CelteEntity> GetEntityPtr(const std::string &uuid) const;
+  std::shared_ptr<CelteEntity> GetEntityPtr(const std::string &uuid);
 
   /**
    * @brief Performs the logic common to all entities once. Call this as often
@@ -114,6 +115,10 @@ public:
    *
    * The data is sent under serialized JSON format.
    * The returned data is under the format:
+   *
+   * @param containerId The id of the container to fetch the entities from. If
+   * this is left empty, all entities on the server will be returned.
+   *
    * @code JSON
    * [
    *  {
@@ -131,7 +136,7 @@ public:
    *
    * @note This method is only available in server mode.
    */
-  std::string GetRegisteredEntitiesSummary();
+  std::string GetRegisteredEntitiesSummary(const std::string &containerId = "");
 #endif
 
   inline void
@@ -163,6 +168,21 @@ private:
   std::unordered_map<std::string, std::tuple<std::string, float, float, float>>
       _pendingSpawns;
 #endif
+
+  /**
+   * @brief Waits for entities with the given uuids to be instantiated and
+   * then takes them locally (i.e assigns them to the provided chunk).
+   *
+   * @param uuid The uuid of the entity to take locally.
+   * @param chunkId The id of the chunk to assign the entity to.
+   * @param deadline The time point at which the operation should be
+   * considered failed if not completed.
+   */
+  void __takeLocallyDeferred(
+      const std::string &uuid, const std::string &chunkId,
+      std::chrono::time_point<std::chrono::system_clock> deadline);
+
+  std::mutex _entitiesMutex;
 
   /*
   --------------------------------------------------------------------------

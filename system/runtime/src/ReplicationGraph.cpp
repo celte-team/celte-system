@@ -5,26 +5,32 @@
 
 namespace celte {
 IEntityContainer::IEntityContainer(const std::string &id)
-    : _rpcs({
+    : _rpcs(net::RPCService::Options{
           .thisPeerUuid = RUNTIME.GetUUID(),
           .listenOn = {tp::PERSIST_DEFAULT + id + "." + celte::tp::RPCs},
+          .responseTopic = RUNTIME.GetUUID() + "." + tp::RPCs,
           .serviceName = RUNTIME.GetUUID() + ".chunk." + id + "." + tp::RPCs,
       }),
       _id(id) {}
 
 std::shared_ptr<IEntityContainer> ReplicationGraph::AddContainer() {
-  std::lock_guard<std::mutex> lock(_containersMutex);
   auto container = _instantiateContainer(
       boost::uuids::to_string(boost::uuids::random_generator()()));
-  _containers.push_back(container);
+  // _containers.push_back(container);
+  RegisterEntityContainer(container);
   return container;
 }
 
 std::shared_ptr<IEntityContainer>
 ReplicationGraph::AddContainer(const std::string &id) {
   std::lock_guard<std::mutex> lock(_containersMutex);
+  auto containerOpt = GetContainerOpt(id, false);
+  if (containerOpt.has_value()) { // container has already been created
+    return containerOpt.value();
+  }
   auto container = _instantiateContainer(id);
-  _containers.push_back(container);
+  // _containers.push_back(container);
+  RegisterEntityContainer(container, false);
   return container;
 }
 
@@ -39,11 +45,9 @@ void ReplicationGraph::TakeEntity(const std::string &entityId) {
   }
 
   try {
-    std::cout << "in replicator graph's take entity" << std::endl;
     CelteEntity &e = RUNTIME.GetEntityManager().GetEntity(entityId);
     AssignEntityByAffinity(e);
   } catch (std::out_of_range &e) {
-    std::cout << "TakeEntity: " << e.what() << std::endl;
   }
 }
 
@@ -62,10 +66,24 @@ void ReplicationGraph::TakeEntityLocally(
 
 ReplicationGraph::~ReplicationGraph() {}
 
+std::shared_ptr<IEntityContainer>
+ReplicationGraph::GetContainerById(const std::string &id) {
+  std::scoped_lock lock(_containersMutex);
+  auto it = _containers.find(id);
+  if (it != _containers.end()) {
+    return it->second;
+  }
+  throw std::out_of_range("No container with id " + id + " exists.");
+}
+
 void ReplicationGraph::RegisterEntityContainer(
-    std::shared_ptr<IEntityContainer> container) {
-  std::lock_guard<std::mutex> lock(_containersMutex);
-  _containers.push_back(container);
+    std::shared_ptr<IEntityContainer> container, bool protect) {
+  if (protect) {
+    std::lock_guard<std::mutex> lock(_containersMutex);
+    _containers.insert({container->GetId(), container});
+    return;
+  }
+  _containers.insert({container->GetId(), container});
 }
 
 ReplicationGraph::ReplicationGraph() {}
@@ -80,26 +98,23 @@ ReplicationGraph::GetBestContainerForEntity(CelteEntity &entity) {
   if (_containers.empty()) {
     return std::nullopt;
   }
-  std::vector<float> scores;
-  scores.reserve(_containers.size());
 
-  for (const auto &container : _containers) {
-    scores.push_back(_getAffinity(entity, container));
-  }
+  float bestScore = 0;
+  std::shared_ptr<IEntityContainer> bestContainer = nullptr;
 
-  auto maxIt = std::max_element(scores.begin(), scores.end());
-  if (maxIt != scores.end()) {
-    size_t index = std::distance(scores.begin(), maxIt);
-    float maxScore = *maxIt;
-
-    if (maxScore < 0.01) {
-      return std::nullopt;
+  for (const auto &[_, container] : _containers) {
+    float score = _getAffinity(entity, container);
+    if (score > bestScore) {
+      bestScore = score;
+      bestContainer = container;
     }
-
-    std::shared_ptr<IEntityContainer> bestContainer = _containers[index];
-    return ContainerAffinity{.container = bestContainer, .affinity = maxScore};
   }
-  return std::nullopt;
+
+  if (bestContainer == nullptr) {
+    return std::nullopt;
+  }
+
+  return ContainerAffinity{.container = bestContainer, .affinity = bestScore};
 }
 
 void ReplicationGraph::AssignEntityByAffinity(CelteEntity &entity) {
@@ -107,14 +122,31 @@ void ReplicationGraph::AssignEntityByAffinity(CelteEntity &entity) {
       GetBestContainerForEntity(entity);
   if (not bestContainerScore.has_value()) {
     // no container has enough affinity with the entity, look in other grapes
-    std::cout
-        << "no container has enough affinity with the entity, looking elsewhere"
-        << std::endl;
-    __lookupBestContainerInOtherGrapes(entity);
+    __assignEntityToRemoteGrape(entity);
     return;
   }
   if (bestContainerScore->container->GetId() != entity.GetContainerId()) {
     bestContainerScore->container->TakeEntity(entity.GetUUID());
+  }
+}
+
+void ReplicationGraph::__assignEntityToRemoteGrape(CelteEntity &entity) {
+  try {
+    std::vector<void *> grapeEngineWrapperPtrs;
+    for (auto &grape : GRAPES.GetGrapes()) {
+      if (grape->GetGrapeId() == _ownerGrapeId) {
+        continue;
+      }
+      grapeEngineWrapperPtrs.push_back(grape->GetEngineWrapperInstancePtr());
+    }
+    // the node that loads the entity should ideally already be aware of the
+    // existence of the entity had have it loaded in game
+    std::string newOwnerId = _sarn(entity.GetWrapper(), grapeEngineWrapperPtrs);
+    auto &newOwnerGrape = GRAPES.GetGrape(newOwnerId);
+    newOwnerGrape.RemoteTakeEntity(entity.GetUUID());
+  } catch (std::out_of_range &e) {
+    std::cerr << "Error in __assignEntityToRemoteGrape: " << e.what()
+              << std::endl;
   }
 }
 
@@ -145,13 +177,54 @@ void ReplicationGraph::__lookupBestContainerInOtherGrapes(CelteEntity &entity) {
 
 #endif
 
+void ReplicationGraph::UpdateRemoteContainer(const std::string &cid,
+                                             nlohmann::json info) {
+  bool isRelevant = _irn(info);
+  if (isRelevant) {
+    __loadRemoteContainer(cid, info);
+  } else {
+    __removeRemoteContainer(cid);
+  }
+}
+
+void ReplicationGraph::__loadRemoteContainer(const std::string &cid,
+                                             nlohmann::json info) {
+  if (GetContainerOpt(cid).has_value()) {
+    return;
+  }
+  std::shared_ptr<IEntityContainer> container = AddContainer(cid);
+  container->WaitNetworkInitialized();
+  container->Load(info["features"]);
+  container->LoadExistingEntities();
+}
+
+void ReplicationGraph::__removeRemoteContainer(const std::string &cid) {
+  auto container = GetContainerOpt(cid);
+  if (container.has_value()) {
+    container.value()->Remove();
+    std::lock_guard<std::mutex> lock(_containersMutex);
+    std::cout << "REPL GRAPH " << this << " removing container " << cid
+              << std::endl;
+    _containers.erase(cid);
+  }
+}
+
 void ReplicationGraph::Validate() {
 #ifdef CELTE_SERVER_MODE_ENABLED
   if (_getAffinity == nullptr) {
     throw std::runtime_error("AssignmentReplNode not set. Set it using "
                              "SetAssignmentReplNode");
+    if (_sarn == nullptr) {
+      throw std::runtime_error("ServerAssignmentReplNode not set. Set it using "
+                               "SetServerAssignmentReplNode");
+    }
   }
 #endif
+
+  if (_irn == nullptr) {
+    throw std::runtime_error("InterestReplNode not set. Set it using "
+                             "SetInterestReplicationNode");
+  }
   if (_instantiateContainer == nullptr) {
     throw std::runtime_error("InstantiateContainer not set. Set it using "
                              "SetInstantiateContainer");
@@ -165,9 +238,9 @@ void ReplicationGraph::Validate() {
 nlohmann::json ReplicationGraph::Dump() const {
   nlohmann::json j;
   j["number of containers"] = _containers.size();
-  for (const auto &container : _containers) {
+  for (const auto &[id, container] : _containers) {
     j["containers"].push_back(std::map<std::string, std::string>{
-        {"id", container->GetId()},
+        {"id", id},
         {"locally owned", container->IsLocallyOwned() ? "true" : "false"},
         {"owned entities", std::to_string(container->GetNOwnedEntities())},
     });
@@ -176,11 +249,17 @@ nlohmann::json ReplicationGraph::Dump() const {
 }
 
 std::optional<std::shared_ptr<IEntityContainer>>
-ReplicationGraph::GetContainerOpt(const std::string &id) {
-  std::lock_guard<std::mutex> lock(_containersMutex);
-  for (auto &container : _containers) {
-    if (container->GetId() == id) {
-      return container;
+ReplicationGraph::GetContainerOpt(const std::string &id, bool block) {
+  if (block) {
+    std::lock_guard<std::mutex> lock(_containersMutex);
+    auto it = _containers.find(id);
+    if (it != _containers.end()) {
+      return it->second;
+    }
+  } else {
+    auto it = _containers.find(id);
+    if (it != _containers.end()) {
+      return it->second;
     }
   }
   return std::nullopt;

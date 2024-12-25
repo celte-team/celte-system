@@ -25,6 +25,11 @@
 namespace celte {
 namespace net {
 
+class RPCTimeoutException : public std::runtime_error {
+public:
+  RPCTimeoutException(const std::string &msg) : std::runtime_error(msg) {}
+};
+
 struct RPRequest : public CelteRequest<RPRequest> {
   std::string name;       // the name of the rpc to invoke
   std::string respondsTo; // left empty for a call, set to the id of the rpc for
@@ -79,7 +84,7 @@ public:
     const std::string &thisPeerUuid;
     std::vector<std::string> listenOn;
     int nThreads = 1;
-    std::string reponseTopic = "";
+    std::string responseTopic = "";
     std::string serviceName = "";
   };
 
@@ -94,12 +99,17 @@ public:
     };
   }
 
+  template <typename Ret>
+  void Register(const std::string &name, std::function<Ret()> f) {
+    _rpcs[name] = [f](const nlohmann::json &j) { return f(); };
+  }
+
   template <typename Ret, typename... Args>
   Ret Call(const std::string &topic, const std::string &name, Args... args) {
     RPRequest req{
         .name = name,
         .respondsTo = "",
-        .responseTopic = _options.reponseTopic,
+        .responseTopic = _options.responseTopic,
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = std::make_tuple(args...)};
 
@@ -111,7 +121,16 @@ public:
     }
     _writerStreamPool.Write(topic, req);
 
-    std::string result = promise->get_future().get(); // json of response.args
+    // TODO: rpc timeout in configuration
+    std::future<std::string> future = promise->get_future();
+    if (future.wait_for(std::chrono::milliseconds(1000)) !=
+        std::future_status::ready) {
+      throw RPCTimeoutException("RPC call timed out: " + name + " on topic " +
+                                topic + " and response topic " +
+                                _options.responseTopic + " with arguments " +
+                                nlohmann::json(args...).dump());
+    }
+    std::string result = future.get();
     return nlohmann::json::parse(result).get<Ret>();
   }
 
@@ -138,7 +157,7 @@ public:
     RPRequest req{
         .name = name,
         .respondsTo = "",
-        .responseTopic = _options.reponseTopic,
+        .responseTopic = _options.responseTopic,
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = std::make_tuple(args...)};
     {
@@ -176,6 +195,16 @@ public:
   inline bool Ready() {
     return std::all_of(_readerStreams.begin(), _readerStreams.end(),
                        [](auto &s) { return s->Ready(); });
+  }
+
+  inline void Close() {
+    for (auto &s : _readerStreams) {
+      s->Close();
+    }
+    for (auto &s : _writerStreams) {
+      s.second->Close();
+    }
+    _writerStreamPool.Close();
   }
 
 private:
