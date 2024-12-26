@@ -32,16 +32,20 @@ namespace celte {
             typedef struct DataInput_s {
                 bool status;
                 std::chrono::time_point<std::chrono::system_clock> timestamp;
+                float x;
+                float y;
             } DataInput_t;
 
             typedef struct InputUpdate_s : public celte::net::CelteRequest<InputUpdate_s> {
                 std::string name;
                 bool pressed;
                 std::string uuid; // player id
+                float x;
+                float y;
 
                 void to_json(nlohmann::json& j) const
                 {
-                    j = nlohmann::json { { "name", name }, { "pressed", pressed }, { "uuid", uuid } };
+                    j = nlohmann::json { { "name", name }, { "pressed", pressed }, { "uuid", uuid }, { "x", x }, { "y", y } };
                 }
 
                 void from_json(const nlohmann::json& j)
@@ -49,6 +53,8 @@ namespace celte {
                     j.at("name").get_to(name);
                     j.at("pressed").get_to(pressed);
                     j.at("uuid").get_to(uuid);
+                    j.at("x").get_to(x);
+                    j.at("y").get_to(y);
                 }
             } InputUpdate_t;
 
@@ -59,7 +65,7 @@ namespace celte {
             // CelteInputSystem();
             CelteInputSystem(boost::asio::io_service& _io);
             // void HandleInputCallback(const std::vector<std::string>& chunkId);
-            void HandleInput(std::string ChunkID, std::string InputName, bool status);
+            void HandleInput(std::string ChunkID, std::string InputName, bool status, float x, float y);
 
             std::shared_ptr<LIST_INPUTS> GetListInput();
             net::WriterStreamPool& GetWriterPool();
