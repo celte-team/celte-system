@@ -92,6 +92,39 @@ public:
 
   void LoadExistingEntities(const std::string &summary);
 
+  /**
+   * @brief Quaranteens an entity, preventing it from being processed
+   * by the replication graph of all locally instantiated grapes.
+   * This is useful when an entity is being transferred to another grape, to
+   * avoid double assignment.
+   */
+  inline void QuaranteenEntity(const std::string &entityId) {
+    std::cout << "[[QUARANTEENED]] " << entityId << std::endl;
+    std::lock_guard<std::mutex> lock(_quaranteenedEntitiesMutex);
+    _quaranteenedEntities.insert(entityId);
+  }
+
+  /**
+   * @brief Unquaranteens an entity, allowing it to be processed by the
+   * replication graph of all locally instantiated grapes.
+   *
+   * @note This method is called by CelteEntity::OnChunkTakeAuthority, which is
+   * itself called by IEntityContainer::TakeEntityLocally.
+   */
+  inline void UnquaranteenEntity(const std::string &entityId) {
+    std::cout << "[[UN-QUARANTEENED]] " << entityId << std::endl;
+    std::lock_guard<std::mutex> lock(_quaranteenedEntitiesMutex);
+    _quaranteenedEntities.erase(entityId);
+  }
+
+  /**
+   * @brief Returns true if the entity is quaranteened, false otherwise.
+   */
+  inline bool IsQuaranteened(const std::string &entityId) {
+    std::lock_guard<std::mutex> lock(_quaranteenedEntitiesMutex);
+    return _quaranteenedEntities.find(entityId) != _quaranteenedEntities.end();
+  }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
   inline void AddPendingSpawn(const std::string &uuid,
                               const std::string &chunkId, float x, float y,
@@ -183,6 +216,9 @@ private:
       std::chrono::time_point<std::chrono::system_clock> deadline);
 
   std::mutex _entitiesMutex;
+
+  std::set<std::string> _quaranteenedEntities;
+  std::mutex _quaranteenedEntitiesMutex;
 
   /*
   --------------------------------------------------------------------------

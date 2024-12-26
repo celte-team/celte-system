@@ -36,18 +36,26 @@ ReplicationGraph::AddContainer(const std::string &id) {
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 void ReplicationGraph::TakeEntity(const std::string &entityId) {
+  std::cout << "[[TAKE ENTITY]]" << entityId << std::endl;
   if (_containers.empty()) {
     if (_instantiateContainer == nullptr) {
       throw std::runtime_error(
           "No container available and no way to create one");
     }
+    std::cout << "before add container" << std::endl;
     AddContainer();
+    std::cout << "after add container" << std::endl;
   }
 
   try {
+    std::cout << "before get entity" << std::endl;
     CelteEntity &e = RUNTIME.GetEntityManager().GetEntity(entityId);
+    std::cout << "before assign entity by affinity" << std::endl;
     AssignEntityByAffinity(e);
+    std::cout << "after assign entity by affinity" << std::endl;
   } catch (std::out_of_range &e) {
+    std::cout << "Entity " << entityId
+              << " not found not instantiated on this server node" << std::endl;
   }
 }
 
@@ -118,6 +126,9 @@ ReplicationGraph::GetBestContainerForEntity(CelteEntity &entity) {
 }
 
 void ReplicationGraph::AssignEntityByAffinity(CelteEntity &entity) {
+  if (ENTITIES.IsQuaranteened(entity.GetUUID())) {
+    return;
+  }
   std::optional<ContainerAffinity> bestContainerScore =
       GetBestContainerForEntity(entity);
   if (not bestContainerScore.has_value()) {
@@ -131,6 +142,9 @@ void ReplicationGraph::AssignEntityByAffinity(CelteEntity &entity) {
 }
 
 void ReplicationGraph::__assignEntityToRemoteGrape(CelteEntity &entity) {
+  if (ENTITIES.IsQuaranteened(entity.GetUUID())) {
+    return;
+  }
   try {
     std::vector<void *> grapeEngineWrapperPtrs;
     for (auto &grape : GRAPES.GetGrapes()) {
@@ -143,6 +157,9 @@ void ReplicationGraph::__assignEntityToRemoteGrape(CelteEntity &entity) {
     // existence of the entity had have it loaded in game
     std::string newOwnerId = _sarn(entity.GetWrapper(), grapeEngineWrapperPtrs);
     auto &newOwnerGrape = GRAPES.GetGrape(newOwnerId);
+    // remove entity from assignment logic to avoid double assignment
+    ENTITIES.QuaranteenEntity(entity.GetUUID());
+    // remote takes entity
     newOwnerGrape.RemoteTakeEntity(entity.GetUUID());
   } catch (std::out_of_range &e) {
     std::cerr << "Error in __assignEntityToRemoteGrape: " << e.what()

@@ -38,6 +38,7 @@ void CelteEntity::OnDestroy() {
 }
 
 void CelteEntity::OnChunkTakeAuthority(celte::chunks::Chunk &chunk) {
+  ENTITIES.UnquaranteenEntity(_uuid);
   if (_ownerChunk != nullptr) {
     _ownerChunk->IncNOwnedEntities(-1);
   }

@@ -33,6 +33,7 @@ struct GrapeOptions {
   const glm::vec3 position;
   // is this grape owned by the local node?
   bool isLocallyOwned = false;
+  int transferTickDelay = 30;
   std::function<void()> then = nullptr;
 };
 
@@ -178,10 +179,15 @@ public:
     return _engineWrapperInstancePtr;
   }
 
+  void ScheduleAuthorityTransfer(const std::string &entityUUID,
+                                 const std::string &prevOwnerGrapeId,
+                                 const std::string &newOwnerChunkId);
+
 private:
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::string __rp_fetchContainerFeatures();
-  bool __rp_remoteTakeEntity(const std::string &entityId);
+  bool __rp_remoteTakeEntity(const std::string &entityId,
+                             const std::string &callerId);
 
 #endif
   void __updateRemoteSubscriptions();
@@ -231,6 +237,11 @@ private:
 
   void __attachEntityToContainer(const std::string &entityId,
                                  std::shared_ptr<IEntityContainer> container);
+
+  void __rp_scheduleEntityAuthorityTransfer(const std::string &entityUUID,
+                                            const std::string &newOwnerChunkId,
+                                            const std::string &newOwnerGrapeId,
+                                            int tick);
 
   std::optional<net::RPCService> _rpcs = std::nullopt;
 

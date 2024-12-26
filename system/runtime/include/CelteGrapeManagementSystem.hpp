@@ -53,6 +53,13 @@ public:
    */
   Grape &GetGrape(std::string grapeId);
 
+  inline std::shared_ptr<Grape> GetGrapePtr(std::string grapeId) {
+    if (_grapes.find(grapeId) == _grapes.end()) {
+      return nullptr;
+    }
+    return _grapes[grapeId];
+  }
+
   Chunk &GetChunkById(const std::string &chunkId);
 
   std::shared_ptr<IEntityContainer>

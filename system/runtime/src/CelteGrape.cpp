@@ -142,10 +142,11 @@ void Grape::__initNetwork() {
         }
       }));
 
-  _rpcs->Register<bool>("__rp_remoteTakeEntity",
-                        std::function([this](std::string entityId) {
-                          return __rp_remoteTakeEntity(entityId);
-                        }));
+  _rpcs->Register<bool>(
+      "__rp_remoteTakeEntity",
+      std::function([this](std::string entityId, std::string callerId) {
+        return __rp_remoteTakeEntity(entityId, callerId);
+      }));
 
   _rpcs->Register<std::string>(
       "__rp_fetchContainerFeatures",
@@ -164,6 +165,15 @@ void Grape::__initNetwork() {
   _rpcs->Register<unsigned int>(
       "GetNumberOfContainers",
       std::function([this]() { return _rg.GetNumberOfContainers(); }));
+
+  _rpcs->Register<bool>(
+      "__rp_scheduleEntityAuthorityTransfer",
+      std::function([this](std::string entityUUID, std::string newOwnerChunkId,
+                           std::string newOwnerGrapeId, int tick) {
+        __rp_scheduleEntityAuthorityTransfer(entityUUID, newOwnerChunkId,
+                                             newOwnerGrapeId, tick);
+        return true;
+      }));
 }
 
 #pragma endregion network
@@ -179,21 +189,92 @@ void Grape::ReplicateAllEntities() {
   }
 }
 
+// executed on the node that drops
 void Grape::RemoteTakeEntity(const std::string &entityId) {
+  std::cout << "[[CALL REMOTE TAKE ENTITY]]" << std::endl;
   _rpcs->CallVoid(tp::PERSIST_DEFAULT + _options.grapeId,
-                  "__rp_remoteTakeEntity", entityId);
+                  "__rp_remoteTakeEntity", entityId, _options.grapeId);
 }
 
-bool Grape::__rp_remoteTakeEntity(const std::string &entityId) {
+// executed on the node that takes the entity
+bool Grape::__rp_remoteTakeEntity(const std::string &entityId,
+                                  const std::string &callerId) {
   try {
-    _rg.TakeEntity(entityId);
+    std::cout << "[[remote take entity]]" << std::endl;
+
+    RUNTIME.IO().post([this, entityId, callerId]() {
+      // get the best container for the entity, or create it (can't refuse
+      // entity)
+      auto best = _rg.GetBestContainerForEntity(ENTITIES.GetEntity(entityId));
+      if (not best.has_value()) {
+        best = ReplicationGraph::ContainerAffinity{
+            .container = _rg.AddContainer(),
+            .affinity = ReplicationGraph::DEFAULT_AFFINITY_SCORE};
+      }
+      best->container->WaitNetworkInitialized();
+      ScheduleAuthorityTransfer(entityId, callerId, best->container->GetId());
+    });
     return true;
   } catch (std::out_of_range &e) {
     std::cerr << "Error in __rp_remoteTakeEntity: " << e.what() << std::endl;
     return false;
   }
 }
+
+void Grape::ScheduleAuthorityTransfer(const std::string &entityId,
+                                      const std::string &prevOwnerGrapeId,
+                                      const std::string &newOwnerContainerId) {
+  // we schedule the transfer in the
+  // future to give time to everyone to
+  // get ready
+  _rpcs->CallVoid(tp::PERSIST_DEFAULT + prevOwnerGrapeId + "." + tp::RPCs,
+                  "__rp_"
+                  "scheduleEntityAuthorityTransfer",
+                  entityId, newOwnerContainerId, _options.grapeId,
+                  CLOCK.CurrentTick() + _options.transferTickDelay);
+}
 #endif
+
+// executed by everyone listening on the
+// original owner's rpc channel (all peers
+// listening to it)
+void Grape::__rp_scheduleEntityAuthorityTransfer(
+    const std::string &entityUUID, const std::string &newOwnerChunkId,
+    const std::string &newOwnerGrapeId, int tick) {
+
+  if (not ENTITIES.IsEntityRegistered(entityUUID)) {
+    std::cerr << "Entity " << entityUUID
+              << " not found, it is not "
+                 "instantiated on this peer"
+              << std::endl;
+    return;
+  }
+
+  std::shared_ptr<Grape> newOwnerGrapePtr = GRAPES.GetGrapePtr(newOwnerGrapeId);
+  if (newOwnerGrapePtr == nullptr) {
+    // grape not replicated on this peer
+    // TODO: @ewen destroy entity, it is
+    // out of scope
+    std::cout << "entity should be "
+                 "destroyed here"
+              << std::endl;
+    return;
+  }
+
+  RUNTIME.IO().post([=]() {
+    std::optional<std::shared_ptr<IEntityContainer>> newOwnerContainer =
+        newOwnerGrapePtr->GetReplicationGraph().GetContainerOpt(
+            newOwnerChunkId);
+    if (not newOwnerContainer.has_value()) {
+      newOwnerContainer =
+          newOwnerGrapePtr->GetReplicationGraph().AddContainer(newOwnerChunkId);
+    }
+
+    CLOCK.ScheduleAt(tick, [this, entityUUID, newOwnerContainer]() {
+      newOwnerContainer.value()->TakeEntityLocally(entityUUID);
+    });
+  });
+}
 
 bool Grape::HasChunk(const std::string &chunkId) const {
   return _chunks.find(chunkId) != _chunks.end();
@@ -235,7 +316,9 @@ bool Grape::__rp_onSpawnRequested(std::string &clientId, std::string &payload) {
       __ownerExecEntitySpawnProcess(clientId, payload, x, y, z);
     });
   } catch (std::out_of_range &e) {
-    std::cerr << "Error in __rp_onSpawnRequested: " << e.what() << std::endl;
+    std::cerr << "Error in "
+                 "__rp_onSpawnRequested: "
+              << e.what() << std::endl;
     return false;
   }
   return true;
@@ -246,7 +329,8 @@ void Grape::__ownerExecEntitySpawnProcess(const std::string &entityId,
                                           float y, float z) {
   __spawnEntityLocally(
       entityId, payload, glm::vec3(x, y, z),
-      [this, entityId, payload, x, y, z]() { // then, when godot is ready
+      [this, entityId, payload, x, y,
+       z]() { // then, when godot is ready
         auto &entity = ENTITIES.GetEntity(entityId);
         entity.ExecInEngineLoop([this, &entity, entityId, payload, x, y, z]() {
           auto containerOpt = _rg.GetBestContainerForEntity(entity);
@@ -284,7 +368,8 @@ void Grape::__execEntitySpawnProcess(const std::string &entityId,
                                      float y, float z) {
   std::cout << "[[exec entity spawn process]]" << std::endl;
   if (_options.isLocallyOwned) {
-    return; // done already in ownerExecEntitySpawnProcess
+    return; // done already in
+            // ownerExecEntitySpawnProcess
   } else {
     __spawnEntityLocally(entityId, payload, glm::vec3(x, y, z),
                          [this, entityId, containerId, x, y, z]() {
@@ -345,8 +430,8 @@ void Grape::__callSpawnHook(const std::string &entityId,
 
 nlohmann::json Grape::FetchContainerFeatures() {
   if (_options.isLocallyOwned) {
-    throw std::logic_error(
-        "Cannot fetch container features from a locally owned grape.");
+    throw std::logic_error("Cannot fetch container features "
+                           "from a locally owned grape.");
   }
 
   try {
@@ -362,8 +447,8 @@ nlohmann::json Grape::FetchContainerFeatures() {
 std::string Grape::__rp_fetchContainerFeatures() {
   nlohmann::json j;
   if (not _options.isLocallyOwned) {
-    throw std::logic_error(
-        "Cannot fetch container features from a locally owned grape.");
+    throw std::logic_error("Cannot fetch container features "
+                           "from a locally owned grape.");
   }
   std::unordered_map<std::string, std::shared_ptr<IEntityContainer>>
       containers = _rg.GetContainers();
@@ -377,8 +462,18 @@ std::string Grape::__rp_fetchContainerFeatures() {
 }
 
 #endif
-void Grape::__updateRemoteSubscriptions() { // maybe the owner grape could just
-                                            // call this on its rpc channel
+void Grape::__updateRemoteSubscriptions() { // maybe
+                                            // the
+                                            // owner
+                                            // grape
+                                            // could
+                                            // just
+                                            // call
+                                            // this
+                                            // on
+                                            // its
+                                            // rpc
+                                            // channel
 
   auto now = std::chrono::system_clock::now();
   if (std::chrono::duration_cast<std::chrono::seconds>(now -

@@ -121,15 +121,15 @@ void Chunk::WaitNetworkInitialized() {
 
 void Chunk::__registerRPCs() {
   _rpcs.Register<bool>(
-      "__rp_scheduleEntityAuthorityTransfer",
+      "__rp_chunkScheduleAuthorityTransfer",
       std::function([this](std::string entityUUID, std::string newOwnerChunkId,
                            bool take, int tick) {
         try {
-          __rp_scheduleEntityAuthorityTransfer(entityUUID, newOwnerChunkId,
-                                               take, tick);
+          __rp_chunkScheduleAuthorityTransfer(entityUUID, newOwnerChunkId, take,
+                                              tick);
           return true;
         } catch (std::exception &e) {
-          std::cerr << "Error in __rp_scheduleEntityAuthorityTransfer: "
+          std::cerr << "Error in __rp_chunkScheduleAuthorityTransfer: "
                     << e.what() << std::endl;
 
           return false;
@@ -175,6 +175,7 @@ void Chunk::SendReplicationData() {
 }
 
 void Chunk::TakeEntity(const std::string &entityId) {
+
   // the current method is only called when the entity enters the chunk in the
   // server node, calling the RPC will trigger the behavior of transfering
   // authority over to the chunk in all the peers listening to the chunk's
@@ -183,11 +184,30 @@ void Chunk::TakeEntity(const std::string &entityId) {
     throw std::runtime_error("Cannot take entity in a non locally owned chunk");
   }
   _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
-                 "__rp_scheduleEntityAuthorityTransfer", entityId, _combinedId,
+                 "__rp_chunkScheduleAuthorityTransfer", entityId, _combinedId,
                  true, CLOCK.CurrentTick() + 30);
 }
 
 #endif
+
+void Chunk::__rp_chunkScheduleAuthorityTransfer(
+    const std::string &entityUUID, const std::string &newOwnerChunkId,
+    bool take, int tick) {
+#ifdef CELTE_SERVER_MODE_ENABLED
+  HOOKS.server.authority.onTake(entityUUID, newOwnerChunkId);
+#else
+  HOOKS.client.authority.onTake(entityUUID, newOwnerChunkId);
+#endif
+
+  auto &entity = ENTITIES.GetEntity(entityUUID);
+  auto &ownerContainer = entity.GetOwnerChunk(); // TODO use containers instead
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  ownerContainer.__forgetEntity(entityUUID);
+#endif
+
+  TakeEntityLocally(entityUUID);
+}
 
 /* --------------------------------------------------------------------------
  */
@@ -195,9 +215,9 @@ void Chunk::TakeEntity(const std::string &entityId) {
 /* --------------------------------------------------------------------------
  */
 
-void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
-                                                 std::string newOwnerChunkId,
-                                                 bool take, int tick) {
+void Chunk::ScheduleEntityAuthorityTransfer(std::string entityUUID,
+                                            std::string newOwnerChunkId,
+                                            int tick) {
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   HOOKS.server.authority.onTake(entityUUID, newOwnerChunkId);
@@ -209,6 +229,11 @@ void Chunk::__rp_scheduleEntityAuthorityTransfer(std::string entityUUID,
   auto &ownerContainer = entity.GetOwnerChunk(); // TODO use containers instead
 
 #ifdef CELTE_SERVER_MODE_ENABLED
+  // TODO : @ewen, call on rpc on this chunk's rpc channel to forget the entity
+  // also, forgetting the entity should delete it in peers that are not taking
+  // the entity in another container (the new owner is not replicated on the
+  // peer)
+
   ownerContainer.__forgetEntity(entityUUID);
 #endif
 
@@ -282,8 +307,8 @@ void Chunk::__refreshCentroid() {
 void Chunk::Load(const nlohmann::json &features) {
   _config.preferredContainerSize = features["preferredContainerSize"];
   _config.preferredEntityCount = features["preferredEntityCount"];
-  _config.isLocallyOwned = false; // if you have to load feats, you are not the
-                                  // owner of the chunk
+  _config.isLocallyOwned = false; // if you have to load feats, you are not
+                                  // the owner of the chunk
 }
 
 void Chunk::LoadExistingEntities() {

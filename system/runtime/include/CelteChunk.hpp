@@ -147,6 +147,14 @@ private:
   void __attachEntityAsync(const std::string &entityId, int retries);
 
   /**
+   * @brief Transfers the authority over the entity to another chunk of the same
+   * grape.
+   */
+  void __rp_chunkScheduleAuthorityTransfer(const std::string &entityUUID,
+                                           const std::string &newOwnerChunkId,
+                                           bool take, int tick);
+
+  /**
    * @brief Registers all consumers for the chunk.
    * The consumers listen for events in the chunk's topic and react to them.
    */
@@ -175,9 +183,8 @@ private:
    * should drop it
    * @param atTick the global clock tick at which the transfer should occur
    */
-  void __rp_scheduleEntityAuthorityTransfer(std::string entityId,
-                                            std::string newOwnerChunkId,
-                                            bool takeAuthority, int atTick);
+  void ScheduleEntityAuthorityTransfer(std::string entityId,
+                                       std::string newOwnerChunkId, int atTick);
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   void __rememberEntity(const std::string &entityId);
