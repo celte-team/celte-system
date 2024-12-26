@@ -78,7 +78,6 @@ void CelteEntity::UploadReplicationData() {
   std::string blob = _replicator.GetBlob(false);
 
   if (not blob.empty()) {
-    std::cout << "sending replication data" << std::endl;
     blob = base64_encode(reinterpret_cast<const unsigned char *>(blob.c_str()),
                          blob.size());
     _ownerChunk->ScheduleReplicationDataToSend(_uuid, blob);

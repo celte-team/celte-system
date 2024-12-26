@@ -247,6 +247,10 @@ public:
    */
   inline boost::asio::io_service &IO() { return _io; }
 
+  inline void ExecInEngineLoop(std::function<void()> task) {
+    _processTasks.push(task);
+  }
+
 private:
   // =================================================================================================
   // PRIVATE METHODS
@@ -287,6 +291,8 @@ private:
   boost::thread_group _threads;
 
   std::shared_ptr<CelteInputSystem> _inputs;
+
+  ubn::queue<std::function<void()>> _processTasks;
 };
 } // namespace runtime
 } // namespace celte

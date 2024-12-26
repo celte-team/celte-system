@@ -133,6 +133,9 @@ void ReplicationGraph::AssignEntityByAffinity(CelteEntity &entity) {
       GetBestContainerForEntity(entity);
   if (not bestContainerScore.has_value()) {
     // no container has enough affinity with the entity, look in other grapes
+    std::cout << "!!! no container has enough affinity with the entity, "
+                 "assigning to another grape"
+              << std::endl;
     __assignEntityToRemoteGrape(entity);
     return;
   }

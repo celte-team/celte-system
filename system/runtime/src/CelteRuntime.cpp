@@ -69,6 +69,10 @@ void CelteRuntime::Tick() {
   // async jobs
   NET.ExecThens();
 
+  while (!_processTasks.empty()) {
+    _processTasks.pop()();
+  }
+
   // Executing tasks that have been scheduled for delayed execution
   _clock.CatchUp();
   for (auto &callback : _tickCallbacks) {

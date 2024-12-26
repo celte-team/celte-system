@@ -42,7 +42,10 @@ target_link_libraries(celtenet PRIVATE unofficial::pulsar::pulsar ${Boost_LIBRAR
 set(COMMON_SOURCES
     src/CelteRuntime.cpp
     src/CelteEntity.cpp
-    src/CelteGrape.cpp
+    src/CelteGrape.init.cpp
+    src/CelteGrape.spawn.cpp
+    src/CelteGrape.transfer.cpp
+    src/CelteGrape.registerRPC.cpp
     src/CelteChunk.cpp
     src/CelteGrapeManagementSystem.cpp
     src/CelteEntityManagementSystem.cpp
