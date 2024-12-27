@@ -71,6 +71,7 @@ void CelteEntityManagementSystem::__replicateAllEntities() {
 
 std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary(
     const std::string &containerIdFilter) {
+  std::cout << "[[GET REGISTERED ENTITIES SUMMARY]]" << std::endl;
   nlohmann::json j = nlohmann::json::array();
   decltype(_entities) entities;
   {
@@ -144,18 +145,20 @@ void CelteEntityManagementSystem::__handleReplicationDataReceived(
   for (auto &[entityId, blob] : data) {
     try {
       CelteEntity &entity = GetEntity(entityId);
-      try {
-        entity.DownloadReplicationData(blob);
+      entity.ExecInEngineLoop([this, &entity, entityId, blob]() {
+        try {
+          entity.DownloadReplicationData(blob);
 #ifdef CELTE_SERVER_MODE_ENABLED
-        HOOKS.server.replication.onReplicationDataReceived(entityId, blob);
+          HOOKS.server.replication.onReplicationDataReceived(entityId, blob);
 #else
-        HOOKS.client.replication.onReplicationDataReceived(entityId, blob);
+          HOOKS.client.replication.onReplicationDataReceived(entityId, blob);
 #endif
-      } catch (std::exception &e) {
-        logs::Logger::getInstance().err()
-            << "Error while downloading replication data: " << e.what()
-            << std::endl;
-      }
+        } catch (std::exception &e) {
+          logs::Logger::getInstance().err()
+              << "Error while downloading replication data: " << e.what()
+              << std::endl;
+        }
+      });
     } catch (std::out_of_range &e) {
       logs::Logger::getInstance().err()
           << "Entity " << entityId << " not found."

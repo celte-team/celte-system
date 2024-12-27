@@ -66,8 +66,11 @@ struct ReaderStream {
           if (result != pulsar::ResultOk and options.onConnectError) {
             options.onConnectError();
           }
-          _consumer = consumer;
-          _ready = true;
+          {
+            std::lock_guard<std::mutex> lock(*_consumerMutex);
+            _consumer = consumer;
+            _ready = true;
+          }
           if (options.onReady)
             options.onReady();
         },
@@ -100,6 +103,7 @@ struct ReaderStream {
 
 protected:
   pulsar::Consumer _consumer;
+  std::unique_ptr<std::mutex> _consumerMutex = std::make_unique<std::mutex>();
   std::atomic_bool _ready = false;
 };
 } // namespace net

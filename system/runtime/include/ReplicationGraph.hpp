@@ -206,7 +206,7 @@ public:
   std::optional<ContainerAffinity>
   GetBestContainerForEntity(CelteEntity &entity);
 
-  void __lookupBestContainerInOtherGrapes(CelteEntity &entity);
+  // void __lookupBestContainerInOtherGrapes(CelteEntity &entity);
   void __assignEntityToRemoteGrape(CelteEntity &entity);
 
   /**

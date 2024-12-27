@@ -152,7 +152,7 @@ private:
    */
   void __rp_chunkScheduleAuthorityTransfer(const std::string &entityUUID,
                                            const std::string &newOwnerChunkId,
-                                           bool take, int tick);
+                                           int tick);
 
   /**
    * @brief Registers all consumers for the chunk.
@@ -185,6 +185,12 @@ private:
    */
   void ScheduleEntityAuthorityTransfer(std::string entityId,
                                        std::string newOwnerChunkId, int atTick);
+
+  void __rp_containerTakes(const std::string &transferInfo,
+                           const std::string &informationToLoad,
+                           const std::string &props, int tick);
+
+  void __rp_containerDrops(const std::string &transferInfo, int tick);
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   void __rememberEntity(const std::string &entityId);

@@ -3,6 +3,8 @@
 #include "pulsar/Producer.h"
 #include "pulsar/Schema.h"
 #include "queue.hpp"
+#include <memory>
+#include <mutex>
 
 namespace celte {
 namespace net {
@@ -55,8 +57,11 @@ struct WriterStream {
                 options.onConnectError();
                 return;
               }
-              _producer = producer;
-              _ready = true;
+              {
+                std::scoped_lock lock(*_producerMutex);
+                _producer = producer;
+                _ready = true;
+              }
               if (options.onReady)
                 options.onReady(*this);
             }};
@@ -81,14 +86,17 @@ struct WriterStream {
     }
 
     _pending++;
-    _producer.sendAsync(
-        message.build(),
-        [this, onDelivered](pulsar::Result result,
-                            const pulsar::MessageId &messageId) {
-          _pending--;
-          if (onDelivered)
-            onDelivered(result);
-        });
+    {
+      std::scoped_lock lock(*_producerMutex);
+      _producer.sendAsync(
+          message.build(),
+          [this, onDelivered](pulsar::Result result,
+                              const pulsar::MessageId &messageId) {
+            _pending--;
+            if (onDelivered)
+              onDelivered(result);
+          });
+    }
   }
 
   template <typename Req>
@@ -103,6 +111,7 @@ struct WriterStream {
 
 private:
   pulsar::Producer _producer;
+  std::unique_ptr<std::mutex> _producerMutex = std::make_unique<std::mutex>();
   std::atomic_bool _ready;
   std::atomic_int _pending{0};
 };

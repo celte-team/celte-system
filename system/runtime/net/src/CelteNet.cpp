@@ -28,6 +28,7 @@ void CelteNet::CreateProducer(ProducerOptions &options) {
     throw CelteNetException("Client not initialized");
   }
 
+  std::scoped_lock lock(_clientMutex);
   _client->createProducerAsync(
       options.topic, options.conf,
       [this, options](pulsar::Result result, pulsar::Producer newProducer) {
@@ -46,6 +47,7 @@ void CelteNet::CreateConsumer(SubscribeOptions &options) {
     throw CelteNetException("Client not initialized");
   }
 
+  std::scoped_lock lock(_clientMutex);
   if (options.messageHandler == nullptr) {
     throw CelteNetException("Message handler not set");
   }

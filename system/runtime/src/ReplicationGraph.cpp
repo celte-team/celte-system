@@ -151,18 +151,35 @@ void ReplicationGraph::__assignEntityToRemoteGrape(CelteEntity &entity) {
   try {
     std::vector<void *> grapeEngineWrapperPtrs;
     for (auto &grape : GRAPES.GetGrapes()) {
-      if (grape->GetGrapeId() == _ownerGrapeId) {
-        continue;
-      }
+      // if (grape->GetGrapeId() == _ownerGrapeId) {
+      //   continue;
+      // }
       grapeEngineWrapperPtrs.push_back(grape->GetEngineWrapperInstancePtr());
     }
     // the node that loads the entity should ideally already be aware of the
     // existence of the entity had have it loaded in game
     std::string newOwnerId = _sarn(entity.GetWrapper(), grapeEngineWrapperPtrs);
+
     auto &newOwnerGrape = GRAPES.GetGrape(newOwnerId);
     // remove entity from assignment logic to avoid double assignment
     ENTITIES.QuaranteenEntity(entity.GetUUID());
+    if (newOwnerId.empty() or newOwnerId == _ownerGrapeId) {
+      // if the entity should stay on this node, we create a container for it
+      std::cout << "[[ENTITY SHOULD STAY ON THIS NODE]]" << _ownerGrapeId
+                << std::endl;
+      auto container = AddContainer();
+      newOwnerGrape.TransferAuthority({
+          .entityId = entity.GetUUID(),
+          .gFrom = _ownerGrapeId,
+          .cFrom = entity.GetContainerId(),
+          .gTo = _ownerGrapeId,
+          .cTo = container->GetId(),
+      });
+      return;
+    }
+
     // remote takes entity
+    std::cout << "[[ENTITY GOES TO ]] " << newOwnerId << std::endl;
     newOwnerGrape.RemoteTakeEntity(entity.GetUUID());
   } catch (std::out_of_range &e) {
     std::cerr << "Error in __assignEntityToRemoteGrape: " << e.what()
@@ -170,30 +187,31 @@ void ReplicationGraph::__assignEntityToRemoteGrape(CelteEntity &entity) {
   }
 }
 
-void ReplicationGraph::__lookupBestContainerInOtherGrapes(CelteEntity &entity) {
-  std::optional<ContainerAffinity> bestContainerScore;
-  for (auto &grape : GRAPES.GetGrapes()) {
-    if (grape->GetGrapeId() == _ownerGrapeId) {
-      continue;
-    }
-    std::optional<ContainerAffinity> score =
-        grape->GetReplicationGraph().GetBestContainerForEntity(entity);
-    if (not score.has_value()) {
-      continue;
-    }
-    if (not bestContainerScore.has_value() or
-        score->affinity > bestContainerScore->affinity) {
-      bestContainerScore = score;
-    }
-  }
-  if (not bestContainerScore.has_value()) {
-    std::cerr << "No container or grape known to this server node "
-                 "has enough affinity with the entity"
-              << std::endl;
-    return;
-  }
-  bestContainerScore->container->TakeEntity(entity.GetUUID());
-}
+// void ReplicationGraph::__lookupBestContainerInOtherGrapes(CelteEntity
+// &entity) {
+//   std::optional<ContainerAffinity> bestContainerScore;
+//   for (auto &grape : GRAPES.GetGrapes()) {
+//     if (grape->GetGrapeId() == _ownerGrapeId) {
+//       continue;
+//     }
+//     std::optional<ContainerAffinity> score =
+//         grape->GetReplicationGraph().GetBestContainerForEntity(entity);
+//     if (not score.has_value()) {
+//       continue;
+//     }
+//     if (not bestContainerScore.has_value() or
+//         score->affinity > bestContainerScore->affinity) {
+//       bestContainerScore = score;
+//     }
+//   }
+//   if (not bestContainerScore.has_value()) {
+//     std::cerr << "No container or grape known to this server node "
+//                  "has enough affinity with the entity"
+//               << std::endl;
+//     return;
+//   }
+//   bestContainerScore->container->TakeEntity(entity.GetUUID());
+// }
 
 #endif
 

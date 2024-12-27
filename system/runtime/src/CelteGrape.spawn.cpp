@@ -99,8 +99,32 @@ void Grape::__spawnEntityLocally(const std::string &entityId,
                                  const std::string &payload, glm::vec3 position,
                                  std::function<void()> then) {
   std::cout << "[[spawn entity locally]]" << std::endl;
-  __callSpawnHook(entityId, payload, position);
-  __waitEntityReady(entityId, then);
+  if (ENTITIES.IsEntityRegistered(entityId)) {
+    then();
+  }
+  RUNTIME.ExecInEngineLoop([this, entityId, payload, position, then]() {
+    __callSpawnHook(entityId, payload, position);
+  });
+  RUNTIME.IO().post(
+      [this, entityId, then]() { __waitEntityReady(entityId, then); });
+}
+
+void Grape::InstantiateEntityLocally(const std::string &entityId,
+                                     const std::string &informationToLoad,
+                                     const std::string &props) {
+  if (ENTITIES.IsEntityRegistered(entityId)) {
+    return;
+  }
+  RUNTIME.ExecInEngineLoop([this, entityId, informationToLoad]() {
+    __callSpawnHook(entityId, informationToLoad, glm::vec3(0));
+  });
+  RUNTIME.IO().post([this, entityId, props]() {
+    __waitEntityReady(entityId, [this, entityId, props]() {
+      auto &entity = ENTITIES.GetEntity(entityId);
+      entity.ExecInEngineLoop(
+          [this, &entity, props]() { entity.DownloadReplicationData(props); });
+    });
+  });
 }
 
 void Grape::__waitEntityReady(const std::string &entityId,

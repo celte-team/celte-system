@@ -17,6 +17,14 @@
 
 namespace celte {
 namespace chunks {
+struct TransferInfo {
+  std::string entityId;
+  std::string gFrom;
+  std::string cFrom;
+  std::string gTo;
+  std::string cTo;
+};
+
 /**
  * Use these options to configure a grape.
  * These options should be available in the engine's editor,
@@ -134,6 +142,8 @@ public:
    */
   void ReplicateAllEntities();
 
+  void TransferAuthority(const TransferInfo &ti);
+
   inline void TakeEntity(const std::string &entityId) {
     _rg.TakeEntity(entityId);
   }
@@ -181,15 +191,29 @@ public:
 
   void ScheduleAuthorityTransfer(const std::string &entityUUID,
                                  const std::string &prevOwnerGrapeId,
+                                 const std::string &prevOwnerContainerId,
                                  const std::string &newOwnerChunkId);
+
+  void InstantiateEntityLocally(const std::string &entityId,
+                                const std::string &informationToLoad,
+                                const std::string &props);
 
 private:
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::string __rp_fetchContainerFeatures();
   bool __rp_remoteTakeEntity(const std::string &entityId,
-                             const std::string &callerId);
+                             const std::string &callerId,
+                             const std::string &prevOwnerContainerId);
 
+  void __containerTakes(const std::string &containerName,
+                        const std::string &transferInfo,
+                        const std::string &informationToLoad,
+                        const std::string &props, int tick);
+
+  void __containerDrops(const std::string &containerName,
+                        const std::string &transferInfo, int tick);
 #endif
+
   void __updateRemoteSubscriptions();
 
   void __initNetwork();
@@ -235,13 +259,10 @@ private:
   void __callSpawnHook(const std::string &entityId, const std::string &payload,
                        glm::vec3 position);
 
-  void __attachEntityToContainer(const std::string &entityId,
-                                 std::shared_ptr<IEntityContainer> container);
-
-  void __rp_scheduleEntityAuthorityTransfer(const std::string &entityUUID,
-                                            const std::string &newOwnerChunkId,
-                                            const std::string &newOwnerGrapeId,
-                                            int tick);
+  void __rp_scheduleEntityAuthorityTransfer( // deprecated
+      const std::string &entityUUID, const std::string &newOwnerChunkId,
+      const std::string &newOwnerGrapeId, const std::string &informationToLoad,
+      int tick);
 
   std::optional<net::RPCService> _rpcs = std::nullopt;
 

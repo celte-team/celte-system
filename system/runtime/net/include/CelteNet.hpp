@@ -93,6 +93,7 @@ public:
     if (!_client) {
       throw CelteNetException("Client not initialized");
     }
+    std::scoped_lock lock(_clientMutex);
     return *_client;
   }
 
@@ -117,6 +118,7 @@ private:
               int timeoutMs = 1000);
 
   std::unique_ptr<pulsar::Client> _client;
+  std::mutex _clientMutex;
 
   ubn::queue<std::function<void()>> _thens;
 };

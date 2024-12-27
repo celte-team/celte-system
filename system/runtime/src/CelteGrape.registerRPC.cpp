@@ -55,8 +55,9 @@ void Grape::__initNetwork() {
 
   _rpcs->Register<bool>(
       "__rp_remoteTakeEntity",
-      std::function([this](std::string entityId, std::string callerId) {
-        return __rp_remoteTakeEntity(entityId, callerId);
+      std::function([this](std::string entityId, std::string callerId,
+                           std::string prevOwnerContainerId) {
+        return __rp_remoteTakeEntity(entityId, callerId, prevOwnerContainerId);
       }));
 
   _rpcs->Register<std::string>(
@@ -80,9 +81,11 @@ void Grape::__initNetwork() {
   _rpcs->Register<bool>(
       "__rp_scheduleEntityAuthorityTransfer",
       std::function([this](std::string entityUUID, std::string newOwnerChunkId,
-                           std::string newOwnerGrapeId, int tick) {
+                           std::string newOwnerGrapeId,
+                           std::string informationToLoad, int tick) {
         __rp_scheduleEntityAuthorityTransfer(entityUUID, newOwnerChunkId,
-                                             newOwnerGrapeId, tick);
+                                             newOwnerGrapeId, informationToLoad,
+                                             tick);
         return true;
       }));
 }
