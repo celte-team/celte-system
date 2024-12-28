@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <mutex>
 
 namespace celte {
 namespace net {

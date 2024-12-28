@@ -13,7 +13,8 @@
 #include <boost/uuid/uuid_io.hpp>
 
 namespace celte {
-namespace chunks {
+    namespace chunks {
+
 
 /* -------------------------------------------------------------------------- */
 /*                              External transfer                             */
