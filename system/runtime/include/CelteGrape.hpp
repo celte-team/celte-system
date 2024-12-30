@@ -149,6 +149,28 @@ public:
   }
 
   void RemoteTakeEntity(const std::string &entityId);
+
+  inline void
+  ScheduleAuthorityTransfer(const std::string &entityId,
+                            const std::string &prevOwnerGrapeId,
+                            const std::string &prevOwnerContainerId,
+                            const std::string &newOwnerContainerId) {
+    TransferInfo ti{
+        .entityId = entityId,
+        .gFrom = prevOwnerGrapeId,
+        .cFrom = prevOwnerContainerId,
+        .gTo = _options.grapeId,
+        .cTo = newOwnerContainerId,
+    };
+
+    std::cout << "[[SCHEDULE AUTHORITY TRANSFER]]" << std::endl;
+    std::cout << "\t" << ti.entityId << std::endl;
+    std::cout << "\t" << ti.gFrom << " -> " << ti.gTo << std::endl;
+    std::cout << "\t" << ti.cFrom << " -> " << ti.cTo << std::endl;
+    std::cout << std::endl << std::endl;
+
+    TransferAuthority(ti);
+  }
 #endif
 
   /**
@@ -189,14 +211,14 @@ public:
     return _engineWrapperInstancePtr;
   }
 
-  void ScheduleAuthorityTransfer(const std::string &entityUUID,
-                                 const std::string &prevOwnerGrapeId,
-                                 const std::string &prevOwnerContainerId,
-                                 const std::string &newOwnerChunkId);
-
   void InstantiateEntityLocally(const std::string &entityId,
                                 const std::string &informationToLoad,
                                 const std::string &props);
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  void ForceUpdateContainer();
+#endif
+  void __rp_forceUpdateContainer(const std::string &containerFeatures);
 
 private:
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -258,11 +280,6 @@ private:
 
   void __callSpawnHook(const std::string &entityId, const std::string &payload,
                        glm::vec3 position);
-
-  void __rp_scheduleEntityAuthorityTransfer( // deprecated
-      const std::string &entityUUID, const std::string &newOwnerChunkId,
-      const std::string &newOwnerGrapeId, const std::string &informationToLoad,
-      int tick);
 
   std::optional<net::RPCService> _rpcs = std::nullopt;
 

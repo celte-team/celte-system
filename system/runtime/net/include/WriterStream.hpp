@@ -14,6 +14,12 @@ namespace net {
  * It uses a pulsar json schema to ensure type safety.
  */
 struct WriterStream {
+private:
+  struct ProducerLifeJacket {
+    pulsar::Producer internal;
+  };
+
+public:
   struct Options {
     std::string topic;
     bool exclusive = false;
@@ -25,7 +31,9 @@ struct WriterStream {
 
   Options options;
 
-  WriterStream(const Options &options) : options(options), _ready(false) {}
+  WriterStream(const Options &options)
+      : options(options), _ready(false), _producer(new ProducerLifeJacket()),
+        _producerMutex(new std::mutex()) {}
 
   template <typename Req> void Open() {
     auto &net = CelteNet::Instance();
@@ -59,7 +67,7 @@ struct WriterStream {
               }
               {
                 std::scoped_lock lock(*_producerMutex);
-                _producer = producer;
+                _producer->internal = producer;
                 _ready = true;
               }
               if (options.onReady)
@@ -88,10 +96,12 @@ struct WriterStream {
     _pending++;
     {
       std::scoped_lock lock(*_producerMutex);
-      _producer.sendAsync(
+      auto lifejacket =
+          _producer; // copy shared ptr to keep it alive in closure
+      _producer->internal.sendAsync(
           message.build(),
-          [this, onDelivered](pulsar::Result result,
-                              const pulsar::MessageId &messageId) {
+          [this, onDelivered, lifejacket](pulsar::Result result,
+                                          const pulsar::MessageId &messageId) {
             _pending--;
             if (onDelivered)
               onDelivered(result);
@@ -107,11 +117,11 @@ struct WriterStream {
 
   bool Ready() { return _ready; }
   bool HasPending() { return _pending > 0; }
-  inline void Close() { _producer.close(); }
+  inline void Close() { _producer->internal.close(); }
 
 private:
-  pulsar::Producer _producer;
-  std::unique_ptr<std::mutex> _producerMutex = std::make_unique<std::mutex>();
+  std::shared_ptr<ProducerLifeJacket> _producer;
+  std::unique_ptr<std::mutex> _producerMutex;
   std::atomic_bool _ready;
   std::atomic_int _pending{0};
 };

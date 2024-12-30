@@ -34,7 +34,7 @@ services:
     networks:
       - pulsar
     command: >
-      bin/pulsar initialize-cluster-metadata --cluster cluster-a --zookeeper zookeeper:2181 --configuration-store zookeeper:2181 --web-service-url http://broker:8080 --broker-service-url pulsar://broker:6650
+      bin/pulsar initialize-cluster-metadata --cluster celte-pulsar --zookeeper zookeeper:2181 --configuration-store zookeeper:2181 --web-service-url http://broker:8080 --broker-service-url pulsar://broker:6650
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -48,7 +48,7 @@ services:
     networks:
       - pulsar
     environment:
-      - clusterName=cluster-a
+      - clusterName=celte-pulsar
       - zkServers=zookeeper:2181
       - metadataServiceUri=metadata-store:zk:zookeeper:2181
       # otherwise every time we run docker compose uo or down we fail to start due to Cookie
@@ -78,7 +78,7 @@ services:
     environment:
       - metadataStoreUrl=zk:zookeeper:2181
       - zookeeperServers=zookeeper:2181
-      - clusterName=cluster-a
+      - clusterName=celte-pulsar
       - managedLedgerDefaultEnsembleSize=1
       - managedLedgerDefaultWriteQuorum=1
       - managedLedgerDefaultAckQuorum=1
@@ -146,12 +146,14 @@ services:
       - --web.enable-admin-api
 
   grafana:
-    image: grafana/grafana
+    image: streamnative/apache-pulsar-grafana-dashboard:latest
+    container_name: grafana
     ports:
       - "3000:3000"
     networks:
       - pulsar
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=eliotisthebest
-    volumes:
-      - ./grafana:/var/lib/grafana
+      - PULSAR_PROMETHEUS_URL=http://prometheus:9090
+      - PULSAR_CLUSTER=celte-pulsar
+    depends_on:
+      - prometheus

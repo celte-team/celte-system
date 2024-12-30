@@ -1,7 +1,6 @@
 #include "CelteEntityManagementSystem.hpp"
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteRuntime.hpp"
-// #include <boost/json.hpp>
 #include "base64.hpp"
 #include "nlohmann/json.hpp"
 #include <string>
@@ -195,10 +194,9 @@ void CelteEntityManagementSystem::LoadExistingEntities(
   // assigning entities to their respective containers
   for (auto &[uuid, chunkId] : containerAssigmentBatched) {
     RUNTIME.IO().post([this, uuid, chunkId]() {
-      __takeLocallyDeferred(
-          uuid, chunkId,
-          std::chrono::system_clock::now() +
-              std::chrono::seconds(10)); // timeout of one second
+      __takeLocallyDeferred(uuid, chunkId,
+                            std::chrono::system_clock::now() +
+                                std::chrono::seconds(10));
     });
   }
 }

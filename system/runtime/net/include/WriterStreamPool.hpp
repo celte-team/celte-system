@@ -24,7 +24,7 @@ namespace net {
 class WriterStreamPool {
 public:
   struct Options {
-    std::chrono::milliseconds idleTimeout = std::chrono::milliseconds(1000);
+    std::chrono::milliseconds idleTimeout = std::chrono::milliseconds(10000);
   };
 
   struct WriterStreamPoolEntry {
@@ -55,7 +55,7 @@ public:
              std::function<void(pulsar::Result)> onDelivered = nullptr) {
     std::lock_guard<std::mutex> lock(_mutex);
     auto it = _streams.find(topic);
-    if (it == _streams.end()) {
+    if (it == _streams.end() or it->second.producer == nullptr) {
       // create the stream and write the request as soon as it is ready
       std::shared_ptr<WriterStream> stream =
           std::make_shared<WriterStream>(WriterStream::Options{
@@ -72,18 +72,11 @@ public:
     // if the producer is not ready, wait until it is, else write the request
     // immediately
     auto stream = it->second;
-    if (!stream.producer->Ready()) {
-      _io.post([this, topic, req, stream, onDelivered]() {
-        // wait until the producer is ready
-        while (!stream.producer->Ready())
-          ;
-        stream.producer->Write(req, onDelivered);
-      });
-    } else {
-      stream.producer->Write(req, onDelivered);
-    }
-
     stream.lastUsed = std::chrono::system_clock::now();
+    std::shared_ptr<WriterStream> wstream = stream.producer;
+    __waitReady(wstream, [req, onDelivered, wstream]() {
+      wstream->Write(req, onDelivered);
+    });
   }
 
   inline void Close() {
@@ -95,6 +88,9 @@ public:
   }
 
 private:
+  void __waitReady(std::shared_ptr<WriterStream> stream,
+                   std::function<void()> then);
+
   Options _options;
   std::unordered_map<std::string, WriterStreamPoolEntry> _streams;
   std::mutex _mutex;

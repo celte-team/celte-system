@@ -160,12 +160,6 @@ public:
         .responseTopic = _options.responseTopic,
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = std::make_tuple(args...)};
-    {
-      // debug
-      nlohmann::json j;
-      to_json(j, req);
-      std::cout << "RPCService::CallAsync: " << j.dump() << std::endl;
-    }
     std::shared_ptr<std::promise<std::string>> promise =
         std::make_shared<std::promise<std::string>>();
     {

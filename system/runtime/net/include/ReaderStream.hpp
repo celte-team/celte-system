@@ -25,6 +25,7 @@ struct ReaderStream {
     std::function<void()> onConnectError = nullptr;
   };
 
+  ReaderStream() : _consumerMutex(new std::mutex()) {}
   ~ReaderStream() { _consumer.close(); }
 
   template <typename Req> void Open(Options<Req> &options) {
@@ -103,7 +104,7 @@ struct ReaderStream {
 
 protected:
   pulsar::Consumer _consumer;
-  std::unique_ptr<std::mutex> _consumerMutex = std::make_unique<std::mutex>();
+  std::unique_ptr<std::mutex> _consumerMutex;
   std::atomic_bool _ready = false;
 };
 } // namespace net

@@ -155,10 +155,6 @@ nlohmann::json Grape::FetchContainerFeatures() {
 #ifdef CELTE_SERVER_MODE_ENABLED
 std::string Grape::__rp_fetchContainerFeatures() {
   nlohmann::json j;
-  if (not _options.isLocallyOwned) {
-    throw std::logic_error("Cannot fetch container features "
-                           "from a locally owned grape.");
-  }
   std::unordered_map<std::string, std::shared_ptr<IEntityContainer>>
       containers = _rg.GetContainers();
   for (auto &[_, container] : containers) {
@@ -168,6 +164,12 @@ std::string Grape::__rp_fetchContainerFeatures() {
     j[container->GetId()] = containerJson;
   }
   return j.dump();
+}
+
+void Grape::ForceUpdateContainer() {
+  std::string featuresJSON = __rp_fetchContainerFeatures();
+  _rpcs->CallVoid(tp::PERSIST_DEFAULT + _options.grapeId + "." + tp::RPCs,
+                  "__rp_forceUpdateContainer", featuresJSON);
 }
 
 #endif
@@ -191,6 +193,16 @@ void Grape::__updateRemoteSubscriptions() {
       _rg.UpdateRemoteContainer(containerId, info);
     }
   });
+}
+
+void Grape::__rp_forceUpdateContainer(const std::string &containerFeatures) {
+  try {
+    nlohmann::json j = nlohmann::json::parse(containerFeatures);
+    _rg.UpdateRemoteContainer(j["chunkId"], j);
+  } catch (std::exception &e) {
+    logs::Logger::getInstance().err()
+        << "Error in ForceUpdateContainer: " << e.what();
+  }
 }
 
 } // namespace chunks

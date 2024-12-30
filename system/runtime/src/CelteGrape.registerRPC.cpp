@@ -78,16 +78,11 @@ void Grape::__initNetwork() {
       "GetNumberOfContainers",
       std::function([this]() { return _rg.GetNumberOfContainers(); }));
 
-  _rpcs->Register<bool>(
-      "__rp_scheduleEntityAuthorityTransfer",
-      std::function([this](std::string entityUUID, std::string newOwnerChunkId,
-                           std::string newOwnerGrapeId,
-                           std::string informationToLoad, int tick) {
-        __rp_scheduleEntityAuthorityTransfer(entityUUID, newOwnerChunkId,
-                                             newOwnerGrapeId, informationToLoad,
-                                             tick);
-        return true;
-      }));
+  _rpcs->Register<bool>("__rp_forceUpdateContainer",
+                        std::function([this](std::string containerFeatures) {
+                          __rp_forceUpdateContainer(containerFeatures);
+                          return true;
+                        }));
 }
 
 } // namespace chunks
