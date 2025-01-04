@@ -33,6 +33,13 @@ bool Grape::__rp_onSpawnRequested(std::string &clientId, std::string &payload) {
   return true;
 }
 
+void Grape::SpawnEntity(std::string &payload, float x, float y, float z) {
+  std::cout << "[[spawn entity]]" << std::endl;
+  auto clientId = boost::uuids::to_string(boost::uuids::random_generator()());
+  ENTITIES.AddPendingSpawn(clientId, "", x, y, z);
+  __rp_onSpawnRequested(clientId, payload);
+}
+
 void Grape::__ownerExecEntitySpawnProcess(const std::string &entityId,
                                           const std::string &payload, float x,
                                           float y, float z) {

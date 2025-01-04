@@ -150,6 +150,8 @@ public:
 
   void RemoteTakeEntity(const std::string &entityId);
 
+  void SpawnEntity(std::string &payload, float x, float y, float z);
+
   inline void
   ScheduleAuthorityTransfer(const std::string &entityId,
                             const std::string &prevOwnerGrapeId,
