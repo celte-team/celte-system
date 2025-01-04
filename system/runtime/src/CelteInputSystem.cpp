@@ -30,38 +30,35 @@ namespace celte {
             _data = std::make_shared<LIST_INPUTS>();
         }
 
-        void CelteInputSystem::HandleInput(InputUpdateList_t inputs)
+        void CelteInputSystem::HandleInput(std::string uuid, std::string InputName,
+            bool status, float x, float y)
         {
-            std::lock_guard<std::mutex> lock(_mutex);
-            for (auto& input : inputs.data) {
-                if (_data->find(input.uuid) == _data->end())
-                    // If the uuid is not found, create a new entry for it
-                    (*_data)[input.uuid] = std::map<std::string, boost::circular_buffer<DataInput_t>>();
-
-                if ((*_data)[input.uuid].find(input.name) == (*_data)[input.uuid].end())
-                    (*_data)[input.uuid][input.name] = boost::circular_buffer<DataInput_t>(10);
-                std::chrono::time_point<std::chrono::system_clock> time = std::chrono::time_point<std::chrono::system_clock>(std::chrono::milliseconds(input.timestamp));
-                DataInput_t newInput = { input.pressed, time, input.x, input.y };
-
-                (*_data)[input.uuid][input.name].push_back(newInput);
+            // Dereference _data to access the map
+            if (_data->find(uuid) == _data->end()) {
+                // If the uuid is not found, create a new entry for it
+                (*_data)[uuid] = std::map<std::string, boost::circular_buffer<DataInput_t>>();
             }
-            // sort all the input uuid and input.name by timestamp
-            for (auto& uuid : *_data) {
-                for (auto& input : uuid.second) {
-                    std::sort(input.second.begin(), input.second.end(),
-                        [](const DataInput_t& a, const DataInput_t& b) {
-                            return a.timestamp < b.timestamp;
-                        });
-                }
+
+            if ((*_data)[uuid].find(InputName) == (*_data)[uuid].end()) {
+                // If the InputName is not found, create a new circular buffer for it
+                (*_data)[uuid][InputName] = boost::circular_buffer<DataInput_t>(10);
             }
+
+            // Create a new DataInput_t with the given status and current time
+            DataInput_t newInput = { status, std::chrono::system_clock::now(), x, y };
+
+            // Push the new input to the circular buffer for the given uuid and InputName
+            (*_data)[uuid][InputName].push_back(newInput);
         }
 
-        std::shared_ptr<CelteInputSystem::LIST_INPUTS> CelteInputSystem::GetListInput()
+        std::shared_ptr<CelteInputSystem::LIST_INPUTS>
+        CelteInputSystem::GetListInput()
         {
             return _data;
         }
 
-        std::optional<const CelteInputSystem::LIST_INPUT_BY_UUID> CelteInputSystem::GetListInputOfUuid(std::string uuid)
+        std::optional<const CelteInputSystem::LIST_INPUT_BY_UUID>
+        CelteInputSystem::GetListInputOfUuid(std::string uuid)
         {
             auto uuidIt = _data->find(uuid); // Find the UUID in the outer map
             if (uuidIt != _data->end()) {
@@ -73,7 +70,8 @@ namespace celte {
             return std::nullopt;
         }
 
-        std::optional<const CelteInputSystem::INPUT> CelteInputSystem::GetInputCircularBuf(std::string uuid, std::string InputName)
+        std::optional<const CelteInputSystem::INPUT>
+        CelteInputSystem::GetInputCircularBuf(std::string uuid, std::string InputName)
         {
             auto inputMap = GetListInputOfUuid(uuid);
             if (inputMap) {
@@ -87,7 +85,8 @@ namespace celte {
             return std::nullopt;
         }
 
-        std::optional<const CelteInputSystem::DataInput_t> CelteInputSystem::GetSpecificInput(std::string uuid, std::string InputName,
+        std::optional<const CelteInputSystem::DataInput_t>
+        CelteInputSystem::GetSpecificInput(std::string uuid, std::string InputName,
             int indexHisto)
         {
             auto inputIt = GetInputCircularBuf(uuid, InputName);
