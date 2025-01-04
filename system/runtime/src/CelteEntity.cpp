@@ -32,6 +32,7 @@ void CelteEntity::OnSpawn(float x, float y, float z, const std::string &uuid) {
 }
 
 void CelteEntity::OnDestroy() {
+  throw std::runtime_error("deprecated celteentity::ondestroy"); // todo
   ENTITIES.UnregisterEntity(shared_from_this());
   // TODO: Notify all peers of the destruction if in server mode and entity is
   // locally owned.

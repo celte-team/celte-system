@@ -146,6 +146,34 @@ void Chunk::__registerRPCs() {
           return false;
         }
       }));
+
+  _rpcs.Register<bool>(
+      "__rp_deleteEntity",
+      std::function([this](std::string entityId, std::string _) {
+        return __deleteEntity(entityId);
+      }));
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  _rpcs.Register<bool>(
+      "__rp_disconnectPlayer",
+      std::function([this](std::string entityId, std::string _) {
+        try {
+          std::cout << "Disconnecting player id : " << entityId << std::endl;
+          _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
+                         "__rp_deleteEntity", entityId, _);
+          return true;
+        } catch (std::exception &e) {
+          std::cerr << "Error in __rp_disconnectPlayer: " << e.what()
+                    << std::endl;
+          return false;
+        }
+      }));
+#endif
+}
+
+void Chunk::DisconnectPlayer(const std::string &entityId) {
+  _rpcs.Call<bool>(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
+                   "__rp_disconnectPlayer", entityId);
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -364,6 +392,46 @@ void Chunk::__rp_containerDrops(const std::string &transferInfo, int tick) {
       // TODO @ewen remove entity
     }
   });
+}
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void Chunk::DeleteEntity(const std::string &entityId) {
+  _rpcs.Call<bool>(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
+                   "__rp_deleteEntity", entityId);
+}
+#endif
+
+bool Chunk::__deleteEntity(const std::string &entityId) {
+  try {
+    std::shared_ptr<CelteEntity> entity = ENTITIES.GetEntityPtr(entityId);
+    if (entity == nullptr) {
+      std::cerr << "Erase: No entity in the list with this id : " << entityId
+                << std::endl;
+      return false;
+    }
+    // remove from network
+    ENTITIES.QuaranteenEntity(entityId);
+    ENTITIES.UnregisterEntity(entity);
+    CINPUT.GetListInput()->erase(entityId);
+
+    entity->ExecInEngineLoop([this, entity, entityId]() {
+      void *apiWrapper = entity->GetWrapper();
+#ifdef CELTE_SERVER_MODE_ENABLED
+      __forgetEntity(entityId);
+      HOOKS.server.entity.onDelete(apiWrapper);
+#else
+      HOOKS.client.entity.onDelete(apiWrapper);
+#endif
+      std::cout << "Succesfully delete entity id : " << entity->GetUUID()
+                << std::endl;
+      ENTITIES.UnquaranteenEntity(entity->GetUUID());
+    });
+
+    return true;
+  } catch (std::exception &e) {
+    std::cerr << "Error in __deleteEntity: " << e.what() << std::endl;
+    return false;
+  }
 }
 
 } // namespace chunks

@@ -128,6 +128,14 @@ public:
           [](std::string entityId, std::string dataBlob) {};
 
     } replication;
+
+    struct {
+      /**
+       * @brief This hook is called when the client is informed that it should
+       * delete an entity.
+       */
+      std::function<void(void *)> onDelete = [](void *) {};
+    } entity;
   } server;
 
 #else
@@ -231,6 +239,14 @@ public:
       std::function<void(std::string, std::string)> onReplicationDataReceived =
           [](std::string entityId, std::string dataBlob) {};
     } replication;
+
+    struct {
+      /**
+       * @brief This hook is called when the client is informed that it should
+       * delete an entity.
+       */
+      std::function<void(void *)> onDelete = [](void *) {};
+    } entity;
   } client;
 #endif
   /**

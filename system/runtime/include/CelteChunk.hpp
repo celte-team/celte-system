@@ -143,7 +143,14 @@ public:
   void
   SetEntityPositionGetter(std::function<glm::vec3(const std::string &)> getter);
 
+  void DisconnectPlayer(const std::string &entityId);
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  void DeleteEntity(const std::string &entityId);
+#endif
+
 private:
+  bool __deleteEntity(const std::string &entityId);
   void __attachEntityAsync(const std::string &entityId, int retries);
 
   /**
