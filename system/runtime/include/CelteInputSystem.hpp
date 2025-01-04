@@ -43,7 +43,7 @@ namespace celte {
                 std::string uuid; // player id
                 float x;
                 float y;
-                int timestamp;
+                int64_t timestamp;
 
                 void to_json(nlohmann::json& j) const
                 {

@@ -40,20 +40,28 @@ namespace celte {
 
                 if ((*_data)[input.uuid].find(input.name) == (*_data)[input.uuid].end())
                     (*_data)[input.uuid][input.name] = boost::circular_buffer<DataInput_t>(10);
+
                 std::chrono::time_point<std::chrono::system_clock> time = std::chrono::time_point<std::chrono::system_clock>(std::chrono::milliseconds(input.timestamp));
                 DataInput_t newInput = { input.pressed, time, input.x, input.y };
 
                 (*_data)[input.uuid][input.name].push_back(newInput);
             }
             // sort all the input uuid and input.name by timestamp
-            for (auto& uuid : *_data) {
-                for (auto& input : uuid.second) {
-                    std::sort(input.second.begin(), input.second.end(),
-                        [](const DataInput_t& a, const DataInput_t& b) {
-                            return a.timestamp < b.timestamp;
-                        });
-                }
-            }
+            // for (auto& uuid : *_data) {
+            //     for (auto& input : uuid.second) {
+            //         std::cout << "UUID: " << uuid.first << ", Input name: " << input.first << std::endl;
+            //         for (const auto& data : input.second) {
+            //             auto now = std::chrono::system_clock::now();
+            //             auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - data.timestamp).count();
+            //             std::cout << "Pressed: " << data.status
+            //                       << ", Timestamp: " << std::chrono::duration_cast<std::chrono::milliseconds>(data.timestamp.time_since_epoch()).count()
+            //                       << ", Elapsed time: " << elapsed << " ms"
+            //                       << ", X: " << data.x
+            //                       << ", Y: " << data.y
+            //                       << std::endl;
+            //         }
+            //     }
+            // }
         }
 
         std::shared_ptr<CelteInputSystem::LIST_INPUTS> CelteInputSystem::GetListInput()

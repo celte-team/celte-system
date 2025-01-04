@@ -135,9 +135,9 @@ namespace celte {
         std::string chunkId = _ownerChunk->GetCombinedId();
         std::string cp = chunkId + "." + tp::INPUT;
         auto now = std::chrono::system_clock::now();
-        int time = std::chrono::duration_cast<std::chrono::milliseconds>(
+        int64_t time = std::chrono::duration_cast<std::chrono::milliseconds>(
             now.time_since_epoch())
-                       .count();
+                           .count();
         celte::runtime::CelteInputSystem::InputUpdate_s req = {
             .name = inputName, .pressed = pressed, .uuid = _uuid, .x = x, .y = y, .timestamp = time
         };
@@ -151,11 +151,14 @@ namespace celte {
         auto now = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - _lastSendTime).count();
 
-        if (_ownerChunk == nullptr || (duration < _MsecBet2InputSend && _inputsToSend.size() < 10))
+        if (_ownerChunk == nullptr || (duration < _MsecBet2InputSend && _inputsToSend.size() < 10) || _inputsToSend.empty())
             return; // can't send inputs if not owned by a chunk
 
         std::string chunkId = _ownerChunk->GetCombinedId();
         std::string cp = chunkId + "." + tp::INPUT;
+        std::sort(_inputsToSend.begin(), _inputsToSend.end(), [](const celte::runtime::CelteInputSystem::InputUpdate_t& a, const celte::runtime::CelteInputSystem::InputUpdate_t& b) {
+            return a.timestamp < b.timestamp;
+        });
         celte::runtime::CelteInputSystem::InputUpdateList_t req = { .data = _inputsToSend };
 
         CINPUT.GetWriterPool().Write<celte::runtime::CelteInputSystem::InputUpdateList_t>(
