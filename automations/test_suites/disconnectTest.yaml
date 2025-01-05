@@ -1,0 +1,55 @@
+logs: ./system/build/tmp/automations/logs
+
+build:
+  - step: systems
+    run: |
+      mkdir -p system/build
+      cd system/build
+      if [ -z "$(ls -A .)" ]; then cmake --preset default -G Ninja ..; fi
+      cmake --build . --target all
+
+  - step: master
+    run: |
+      cd master
+      dotnet add package DotPulsar
+      dotnet build
+
+  - step: clock
+    run: |
+      cd ./ClockServer
+      dotnet build
+
+test_suites:
+
+  - name: client-exits
+    description: Tests the correct behavior of the system when a client disconnects without warning.
+    timeout-seconds:  60
+
+    cluster: no # done manually for now, it is faster to not reset the cluster
+    master: yes
+    master-proxy: ./system/runtime/net/tests/master.dummy
+
+    servers:
+      binary: ./system/build/tests/server.test_disconnection
+      replicas: 2
+
+    clients:
+      binary: ./system/build/tests/client.test_disconnection
+      replicas: 1
+      wait-servers:
+        regex: ">> SERVER READY <<"
+        timeout-seconds: 20
+
+    expects:
+      servers:
+        - regex: ">> LOAD GRAPE HOOK CALLED <<"
+          mode: all
+          n: 1
+        - regex: ">> SPAWN object.A <<"
+          mode: all
+          n: 1
+        - regex: ">> CLIENT .* DISCONNECTED <<"
+          mode: atleast
+          n: 1
+
+      clients:

@@ -19,10 +19,10 @@ namespace chunks {
 bool Grape::__rp_onSpawnRequested(std::string &clientId, std::string &payload) {
   std::cout << "[[on spawn requested]]" << std::endl;
   try {
-    auto [_, x, y, z] = ENTITIES.GetPendingSpawn(clientId);
+    auto pendingSpawnInfo = ENTITIES.GetPendingSpawn(clientId);
     ENTITIES.RemovePendingSpawn(clientId);
-    RUNTIME.IO().post([this, clientId, payload, x, y, z]() {
-      __ownerExecEntitySpawnProcess(clientId, payload, x, y, z);
+    RUNTIME.IO().post([this, clientId, payload, pendingSpawnInfo]() {
+      __ownerExecEntitySpawnProcess(clientId, payload, pendingSpawnInfo);
     });
   } catch (std::out_of_range &e) {
     std::cerr << "Error in "
@@ -33,37 +33,45 @@ bool Grape::__rp_onSpawnRequested(std::string &clientId, std::string &payload) {
   return true;
 }
 
-void Grape::SpawnEntity(std::string &payload, float x, float y, float z) {
+void Grape::SpawnEntity(std::string &payload, float x, float y, float z,
+                        std::string uuid) {
   std::cout << "[[spawn entity]]" << std::endl;
-  auto clientId = boost::uuids::to_string(boost::uuids::random_generator()());
-  ENTITIES.AddPendingSpawn(clientId, "", x, y, z);
-  __rp_onSpawnRequested(clientId, payload);
+  if (uuid == "") {
+    uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+  }
+  ENTITIES.AddPendingSpawn(uuid, PendingSpawnInfo{
+                                     .position = glm::vec3(x, y, z),
+                                 });
+  __rp_onSpawnRequested(uuid, payload);
 }
 
-void Grape::__ownerExecEntitySpawnProcess(const std::string &entityId,
-                                          const std::string &payload, float x,
-                                          float y, float z) {
+void Grape::__ownerExecEntitySpawnProcess(
+    const std::string &entityId, const std::string &payload,
+    const PendingSpawnInfo &pendingSpawnInfo) {
   __spawnEntityLocally(
-      entityId, payload, glm::vec3(x, y, z),
-      [this, entityId, payload, x, y,
-       z]() { // then, when godot is ready
+      entityId, payload, pendingSpawnInfo.position,
+      [this, entityId, payload,
+       pendingSpawnInfo]() { // then, when godot is ready
         auto &entity = ENTITIES.GetEntity(entityId);
-        entity.ExecInEngineLoop([this, &entity, entityId, payload, x, y, z]() {
-          auto containerOpt = _rg.GetBestContainerForEntity(entity);
-          std::shared_ptr<IEntityContainer> container;
-          if (containerOpt.has_value()) {
-            container = containerOpt.value().container;
-          } else {
-            auto newContainerAffinity = ReplicationGraph::ContainerAffinity{
-                .container = _rg.AddContainer(),
-                .affinity = ReplicationGraph::DEFAULT_AFFINITY_SCORE};
-            container = newContainerAffinity.container;
-          }
-          container->WaitNetworkInitialized();
-          container->TakeEntityLocally(entityId);
-          __spawnEntityOnNetwork(entityId, container->GetId(), payload, x, y,
-                                 z);
-        });
+        entity.ExecInEngineLoop(
+            [this, &entity, entityId, payload, pendingSpawnInfo]() {
+              auto containerOpt = _rg.GetBestContainerForEntity(entity);
+              std::shared_ptr<IEntityContainer> container;
+              if (containerOpt.has_value()) {
+                container = containerOpt.value().container;
+              } else {
+                auto newContainerAffinity = ReplicationGraph::ContainerAffinity{
+                    .container = _rg.AddContainer(),
+                    .affinity = ReplicationGraph::DEFAULT_AFFINITY_SCORE};
+                container = newContainerAffinity.container;
+              }
+              container->WaitNetworkInitialized();
+              container->TakeEntityLocally(entityId);
+              __spawnEntityOnNetwork(entityId, container->GetId(), payload,
+                                     pendingSpawnInfo.position.x,
+                                     pendingSpawnInfo.position.y,
+                                     pendingSpawnInfo.position.z);
+            });
       });
 }
 

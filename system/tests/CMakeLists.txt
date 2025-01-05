@@ -51,3 +51,12 @@ set(SOURCES
 # target_compile_definitions(server.debug PRIVATE -DCELTE_SERVER_MODE_ENABLED)
 # target_link_libraries(server.debug gtest gmock gtest_main msgpack-cxx)
 # target_link_libraries(server.debug celtesystems_runtime_server celtenet)
+
+add_executable(client.test_disconnection test_disconnection/common.cpp)
+target_link_libraries(client.test_disconnection gtest gmock gtest_main msgpack-cxx)
+target_link_libraries(client.test_disconnection celtesystems_runtime_client celtenet)
+
+add_executable(server.test_disconnection test_disconnection/common.cpp)
+target_compile_definitions(server.test_disconnection PRIVATE -DCELTE_SERVER_MODE_ENABLED)
+target_link_libraries(server.test_disconnection gtest gmock gtest_main msgpack-cxx)
+target_link_libraries(server.test_disconnection celtesystems_runtime_server celtenet)

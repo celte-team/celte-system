@@ -12,6 +12,15 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "In-source builds are not allowed. Please create a separate build directory and run CMake from there.")
 endif()
 
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    message(STATUS "ccache found: ${CCACHE_PROGRAM}")
+    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+else()
+    message(STATUS "ccache not found")
+endif()
+
 # Include directories
 include_directories(
     client/include

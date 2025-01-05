@@ -224,9 +224,10 @@ def wait_for_log(log_file, regex, timeout_seconds, **kwargs):
                     return True
         time.sleep(1)
     print(f"{Fore.RED}Timeout waiting for log in {log_file}{Style.RESET_ALL}")
+    print(f"{Fore.RED}Pattern not found: {Fore.BLUE}{regex}{Style.RESET_ALL}")
     return False
 
-def wait_for_all_logs(log_file, regexes, timeout_seconds):
+def wait_for_all_logs(log_file, regexes, timeout_seconds, mode='all', n=1):
     """Wait for all regexes to appear in a log file within a timeout period."""
     patterns = [re.compile(regex) for regex in regexes]
     start_time = time.time()
@@ -234,7 +235,7 @@ def wait_for_all_logs(log_file, regexes, timeout_seconds):
     n_patterns_to_find = len(patterns)
     wheel = ['-', '\\', '|', '/']
 
-    while time.time() - start_time < timeout_seconds or found_patterns == n_patterns_to_find:
+    while time.time() - start_time < timeout_seconds:
         print(f"{Fore.GREEN}Waiting for logs... {Style.RESET_ALL}{wheel[int(time.time()) % 4]}", end='\r')
         try:
             with open(log_file, 'r') as log:
@@ -250,7 +251,9 @@ def wait_for_all_logs(log_file, regexes, timeout_seconds):
             error_line = line
             print(f"{Fore.RED}Error line: {error_line}{Style.RESET_ALL}")
             return False
-        if found_patterns == n_patterns_to_find:
+        if mode == 'all' and found_patterns == n_patterns_to_find:
+            return True
+        elif mode == 'atleast' and found_patterns >= n:
             return True
         time.sleep(1)
     print(f"{Fore.RED}Timeout waiting for logs in {log_file}{Style.RESET_ALL}")
@@ -385,8 +388,8 @@ def run_tests(yaml_path):
                 client_process_handle = run_command(["./automations/run", "--bin", client_binary], client_log)
                 client_processes_handles.append(client_process_handle)
 
-        def check_logs(log_file, regexes, timeout_seconds, failed_lock, failed_flag):
-            if not wait_for_all_logs(log_file, regexes, timeout_seconds):
+        def check_logs(log_file, regexes, timeout_seconds, failed_lock, failed_flag, mode='all', n=1):
+            if not wait_for_all_logs(log_file, regexes, timeout_seconds, mode, n):
                 with failed_lock:
                     failed_flag[0] = True
                 print(f"{Fore.RED}Timeout waiting for expected logs in {log_file}{Style.RESET_ALL}")
@@ -399,20 +402,28 @@ def run_tests(yaml_path):
         # Wait for expected logs in servers
         if suite.get('expects') and suite['expects'].get('servers'):
             expected_server_logs = suite['expects']['servers']
-            for i in range(replicas):
-                server_log = os.path.join(log_dir, f"{suite['name']}_server_{i}.log")
-                thread = threading.Thread(target=check_logs, args=(server_log, expected_server_logs, suite.get('timeout-seconds', 60), failed_lock, failed_flag))
-                threads.append(thread)
-                thread.start()
+            for log_entry in expected_server_logs:
+                regex = log_entry['regex']
+                mode = log_entry.get('mode', 'all')
+                n = log_entry.get('n', 1)
+                for i in range(replicas):
+                    server_log = os.path.join(log_dir, f"{suite['name']}_server_{i}.log")
+                    thread = threading.Thread(target=check_logs, args=(server_log, [regex], suite.get('timeout-seconds', 60), failed_lock, failed_flag, mode, n))
+                    threads.append(thread)
+                    thread.start()
 
         # Wait for expected logs in clients
         if suite.get('expects') and suite['expects'].get('clients'):
             expected_client_logs = suite['expects']['clients']
-            for i in range(replicas):
-                client_log = os.path.join(log_dir, f"{suite['name']}_client_{i}.log")
-                thread = threading.Thread(target=check_logs, args=(client_log, expected_client_logs, suite.get('timeout-seconds', 60), failed_lock, failed_flag))
-                threads.append(thread)
-                thread.start()
+            for log_entry in expected_client_logs:
+                regex = log_entry['regex']
+                mode = log_entry.get('mode', 'all')
+                n = log_entry.get('n', 1)
+                for i in range(replicas):
+                    client_log = os.path.join(log_dir, f"{suite['name']}_client_{i}.log")
+                    thread = threading.Thread(target=check_logs, args=(client_log, [regex], suite.get('timeout-seconds', 60), failed_lock, failed_flag, mode, n))
+                    threads.append(thread)
+                    thread.start()
 
         # Wait for all threads to complete
         for thread in threads:

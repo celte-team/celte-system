@@ -1,6 +1,11 @@
 #pragma once
 #include "CelteEntity.hpp"
+#include "PendingSpawnInfo.hpp"
+#include <atomic>
+#include <condition_variable>
+#include <future>
 #include <optional>
+#include <queue>
 #include <set>
 #include <unordered_map>
 
@@ -127,17 +132,15 @@ public:
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   inline void AddPendingSpawn(const std::string &uuid,
-                              const std::string &chunkId, float x, float y,
-                              float z) {
-    _pendingSpawns[uuid] = std::make_tuple(chunkId, x, y, z);
+                              const PendingSpawnInfo &info) {
+    _pendingSpawns[uuid] = info;
   }
 
   inline void RemovePendingSpawn(const std::string &uuid) {
     _pendingSpawns.erase(uuid);
   }
 
-  inline std::tuple<std::string, float, float, float>
-  GetPendingSpawn(const std::string &uuid) {
+  inline PendingSpawnInfo GetPendingSpawn(const std::string &uuid) {
     return _pendingSpawns.at(uuid);
   }
 
@@ -184,6 +187,7 @@ private:
    * @brief Replicates all entities to their respective chunks.
    */
   void __replicateAllEntities();
+
 #endif
 
   /**
@@ -198,8 +202,7 @@ private:
   std::unordered_map<std::string, std::shared_ptr<CelteEntity>> _entities;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-  std::unordered_map<std::string, std::tuple<std::string, float, float, float>>
-      _pendingSpawns;
+  std::unordered_map<std::string, PendingSpawnInfo> _pendingSpawns;
 #endif
 
   /**
@@ -212,7 +215,7 @@ private:
    * considered failed if not completed.
    */
   void __takeLocallyDeferred(
-      const std::string &uuid, const std::string &chunkId,
+      const std::string &uuid, const std::string &chunkId, bool isClient,
       std::chrono::time_point<std::chrono::system_clock> deadline);
 
   std::mutex _entitiesMutex;

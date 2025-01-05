@@ -7,6 +7,7 @@
 
 namespace celte {
 namespace runtime {
+
 CelteEntityManagementSystem::~CelteEntityManagementSystem() {
   logs::Logger::getInstance().info()
       << "Destroying entity management system." << std::endl;
@@ -91,6 +92,7 @@ std::string CelteEntityManagementSystem::GetRegisteredEntitiesSummary(
       obj["uuid"] = entity->GetUUID();
       obj["chunk"] = entity->GetOwnerChunk().GetCombinedId();
       obj["info"] = entity->GetInformationToLoad();
+      obj["isClient"] = entity->IsClient();
       std::string props = entity->GetProps();
       if (props.empty()) {
         obj["props"] = "";
@@ -169,7 +171,8 @@ void CelteEntityManagementSystem::__handleReplicationDataReceived(
 
 void CelteEntityManagementSystem::LoadExistingEntities(
     const std::string &summary) {
-  std::vector<std::tuple<std::string, std::string>> containerAssigmentBatched;
+  std::vector<std::tuple<std::string, std::string, bool>>
+      containerAssigmentBatched;
   try {
     nlohmann::json summaryJSON = nlohmann::json::parse(summary);
     for (nlohmann::json &partialSummary : summaryJSON) {
@@ -179,7 +182,8 @@ void CelteEntityManagementSystem::LoadExistingEntities(
         continue; // entity already loaded
       }
       containerAssigmentBatched.push_back(
-          std::make_tuple(uuid, partialSummary["chunk"]));
+          std::make_tuple(uuid, partialSummary["chunk"],
+                          partialSummary["isClient"].get<bool>()));
 #ifdef CELTE_SERVER_MODE_ENABLED
       HOOKS.server.grape.onLoadExistingEntities(partialSummary);
 #else
@@ -192,9 +196,9 @@ void CelteEntityManagementSystem::LoadExistingEntities(
     return;
   }
   // assigning entities to their respective containers
-  for (auto &[uuid, chunkId] : containerAssigmentBatched) {
-    RUNTIME.IO().post([this, uuid, chunkId]() {
-      __takeLocallyDeferred(uuid, chunkId,
+  for (auto &[uuid, chunkId, isClient] : containerAssigmentBatched) {
+    RUNTIME.IO().post([this, uuid, chunkId, isClient]() {
+      __takeLocallyDeferred(uuid, chunkId, isClient,
                             std::chrono::system_clock::now() +
                                 std::chrono::seconds(10));
     });
@@ -202,7 +206,7 @@ void CelteEntityManagementSystem::LoadExistingEntities(
 }
 
 void CelteEntityManagementSystem::__takeLocallyDeferred(
-    const std::string &uuid, const std::string &chunkId,
+    const std::string &uuid, const std::string &chunkId, bool isClient,
     std::chrono::time_point<std::chrono::system_clock> deadline) {
   if (std::chrono::system_clock::now() > deadline) {
     std::cerr << "Entity spawn timed out, won't spawn on the network"
@@ -210,8 +214,8 @@ void CelteEntityManagementSystem::__takeLocallyDeferred(
     return;
   }
   if (not IsEntityRegistered(uuid)) {
-    RUNTIME.IO().post([this, uuid, chunkId, deadline]() {
-      __takeLocallyDeferred(uuid, chunkId, deadline);
+    RUNTIME.IO().post([this, uuid, chunkId, isClient, deadline]() {
+      __takeLocallyDeferred(uuid, chunkId, isClient, deadline);
     });
     return;
   }
@@ -225,5 +229,6 @@ void CelteEntityManagementSystem::__takeLocallyDeferred(
               << " locally: " << e.what() << std::endl;
   }
 }
+
 } // namespace runtime
 } // namespace celte

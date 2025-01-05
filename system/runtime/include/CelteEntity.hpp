@@ -87,6 +87,14 @@ public:
     return *_ownerChunk;
   }
 
+  inline celte::chunks::Chunk *GetOwnerChunkPtrUnsafe() const {
+    return _ownerChunk;
+  }
+  inline celte::chunks::Chunk *GetOwnerChunkPtr() const {
+    std::lock_guard<std::mutex> lock(*_ownerContainerMutex);
+    return GetOwnerChunkPtrUnsafe();
+  }
+
   inline std::string GetContainerId() {
     return GetOwnerChunk().GetCombinedId();
   }
@@ -179,6 +187,13 @@ public:
 
   inline void ResetOwnerContainerUnsafe() { _ownerChunk = nullptr; }
 
+  /**
+   * @brief An entity is considered a client if its uuid begins with "client.".
+   * This is used to determine if the entity represents a client peer or a if it
+   * is a simple entity managed by the server.
+   */
+  inline bool IsClient() const { return _uuid.find("client.") == 0; }
+
 private:
   std::string _uuid;
   celte::chunks::Chunk *_ownerChunk = nullptr;
@@ -201,6 +216,18 @@ private:
   // instantiating the entity, using the SetInformationToLoad on server side.
   // This is a string that can be used to load the entity.
   std::string _informationToLoad;
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  /**
+   * @brief If this entity is a client, it will request a heartbeat from the
+   * client represented by the entity. If the client does not respond in time,
+   * the client will be disconnected from the network.
+   */
+  void __keepConnectionAlive();
+  void __getConnectionHeartbeat();
+  std::future<void> _keepConnectionAlive;
+  std::chrono::time_point<std::chrono::system_clock> _lastHeartbeat;
+#endif
 
   friend OwnerContainerLock;
 };

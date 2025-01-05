@@ -1,5 +1,6 @@
 #include "CelteGrapeManagementSystem.hpp"
 #include "CelteRuntime.hpp"
+#include "PendingSpawnInfo.hpp"
 #include "Requests.hpp"
 #include "ServerStatesDeclaration.hpp"
 #include "topics.hpp"
@@ -68,7 +69,9 @@ void Connected::__rp_acceptNewClient(std::string clientId, std::string grapeId,
                                      float x, float y, float z) {
   // TODO: add client to correct chunk's authority
   HOOKS.server.newPlayerConnected.accept(clientId);
-  ENTITIES.AddPendingSpawn(clientId, grapeId, x, y, z);
+  ENTITIES.AddPendingSpawn(
+      clientId,
+      PendingSpawnInfo{.grapeId = grapeId, .position = glm::vec3(x, y, z)});
   ServerNet().ConnectClientToGrape(clientId, grapeId, x, y, z);
 }
 

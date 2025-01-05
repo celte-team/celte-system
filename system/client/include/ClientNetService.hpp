@@ -33,6 +33,8 @@ public:
              std::function<void(pulsar::Result)> then);
 
 private:
+  bool __rp_keepConnectionAlive();
+
   std::optional<net::RPCService> _rpcs = std::nullopt;
   std::optional<net::WriterStreamPool> _writerStreamPool = std::nullopt;
 };

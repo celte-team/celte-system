@@ -1,6 +1,7 @@
 #pragma once
 #include "CelteChunk.hpp"
 #include "CelteService.hpp"
+#include "PendingSpawnInfo.hpp"
 #include "RPCService.hpp"
 #include "ReplicationGraph.hpp"
 #include "RotatedBoundingBox.hpp"
@@ -150,7 +151,8 @@ public:
 
   void RemoteTakeEntity(const std::string &entityId);
 
-  void SpawnEntity(std::string &payload, float x, float y, float z);
+  void SpawnEntity(std::string &payload, float x, float y, float z,
+                   std::string uuid = "");
 
   inline void
   ScheduleAuthorityTransfer(const std::string &entityId,
@@ -264,8 +266,8 @@ private:
                               float z);
 
   void __ownerExecEntitySpawnProcess(const std::string &entityId,
-                                     const std::string &payload, float x,
-                                     float y, float z);
+                                     const std::string &payload,
+                                     const PendingSpawnInfo &pendingSpawnInfo);
 #endif
 
   void __execEntitySpawnProcess(const std::string &entityId,

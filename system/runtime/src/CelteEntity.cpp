@@ -61,6 +61,7 @@ void CelteEntity::Tick() {
   if (_ownerChunk == nullptr) {
     return; // not in the network yet
   }
+  __keepConnectionAlive();
   auto &ownerGrape = GRAPES.GetGrape(_ownerChunk->GetGrapeId());
   if (ownerGrape.IsLocallyOwned()) {
     ownerGrape.GetReplicationGraph().AssignEntityByAffinity(*this);
@@ -137,4 +138,45 @@ bool CelteEntity::IsOwnedByCurrentPeer() const {
   }
   return _ownerChunk->GetConfig().isLocallyOwned;
 }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void CelteEntity::__keepConnectionAlive() {
+  using namespace std::chrono_literals;
+  auto pownerChunk = GetOwnerChunkPtr();
+  if (not IsClient() or pownerChunk == nullptr or
+      not pownerChunk->IsLocallyOwned()) {
+    return;
+  }
+
+  // one heartbeat every 5 seconds
+  if (std::chrono::system_clock::now() - _lastHeartbeat < 5s) {
+    return;
+  }
+
+  if (not _keepConnectionAlive.valid() or
+      _keepConnectionAlive.wait_for(0s) == std::future_status::ready) {
+    _lastHeartbeat = std::chrono::system_clock::now();
+    _keepConnectionAlive = std::async(std::launch::async,
+                                      [this]() { __getConnectionHeartbeat(); });
+  }
+}
+
+void CelteEntity::__getConnectionHeartbeat() {
+  auto pownerChunk = GetOwnerChunkPtr();
+  if (pownerChunk == nullptr or not pownerChunk->IsLocallyOwned()) {
+    return;
+  }
+
+  try {
+    bool alive = pownerChunk->GetRPCService().Call<bool>(
+        tp::PERSIST_DEFAULT + _uuid + "." + tp::RPCs,
+        "__rp_keepConnectionAlive");
+    std::cout << "connection with client " << _uuid << " is alive" << std::endl;
+  } catch (net::RPCTimeoutException &e) {
+    // if this times out, the client is probably disconnected
+    std::cout << ">> CLIENT " << _uuid << " DISCONNECTED <<" << std::endl;
+  }
+}
+
+#endif
 } // namespace celte
