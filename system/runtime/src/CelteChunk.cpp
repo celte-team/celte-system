@@ -87,6 +87,7 @@ namespace celte {
                 });
             }
 #endif
+            // create a reader stream for the input system
             _createReaderStream<celte::runtime::CelteInputSystem::InputUpdateList_t>({
                 .thisPeerUuid = RUNTIME.GetUUID(),
                 .topics = { _combinedId + "." + celte::tp::INPUT },

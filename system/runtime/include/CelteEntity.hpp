@@ -1,12 +1,12 @@
 #pragma once
 #include "CelteChunk.hpp"
+#include "CelteInputSystem.hpp"
 #include "Replicator.hpp"
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "CelteInputSystem.hpp"
 
 namespace celte {
     /**
@@ -152,17 +152,22 @@ namespace celte {
         void DownloadReplicationData(const std::string& blob);
 
         /**
-         * @brief Register an input to send to kafka
+         * @brief Register an input to send to kafka, usually called by the SDK
          *
          * @param inputName String name/id of the input
          * @param pressed   Bool   status of the input (true for down false for up)
+         * @param x         Float  x position of the input (optional)
+         * @param y         Float  y position of the input (optional)
          */
         void registerInputToSend(std::string inputName, bool pressed, float x = 0,
             float y = 0);
 
         /**
-         * @brief Send a list of input to kafka, this will trigger a RPC in the other
-         * client and server. Define in CelteInputSystem
+         * @brief Send a sorted by timestamp list of input to kafka, 
+         * this will trigger a RPC in the other client and server 
+         * @see CelteInputSystem::HandleInput
+         *
+         * Usually called periodically by the main loop
          */
         void sendInputsToKafka();
 
