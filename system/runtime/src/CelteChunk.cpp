@@ -157,16 +157,7 @@ void Chunk::__registerRPCs() {
   _rpcs.Register<bool>(
       "__rp_disconnectPlayer",
       std::function([this](std::string entityId, std::string _) {
-        try {
-          std::cout << "Disconnecting player id : " << entityId << std::endl;
-          _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
-                         "__rp_deleteEntity", entityId, _);
-          return true;
-        } catch (std::exception &e) {
-          std::cerr << "Error in __rp_disconnectPlayer: " << e.what()
-                    << std::endl;
-          return false;
-        }
+        return __rp_disconnectPlayer(entityId);
       }));
 #endif
 }
@@ -174,6 +165,26 @@ void Chunk::__registerRPCs() {
 void Chunk::DisconnectPlayer(const std::string &entityId) {
   _rpcs.Call<bool>(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
                    "__rp_disconnectPlayer", entityId);
+}
+
+bool Chunk::__rp_disconnectPlayer(const std::string &entityId) {
+
+  try {
+    std::cout << "Disconnecting player id : " << entityId << std::endl;
+    _rpcs.CallVoid(tp::PERSIST_DEFAULT + _combinedId + "." + tp::RPCs,
+                   "__rp_deleteEntity", entityId);
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+    HOOKS.server.connection.onClientDisconnectedRemote(entityId);
+#else
+    HOOKS.client.connection.onClientDisconnectedRemote(entityId);
+#endif
+
+    return true;
+  } catch (std::exception &e) {
+    std::cerr << "Error in __rp_disconnectPlayer: " << e.what() << std::endl;
+    return false;
+  }
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED

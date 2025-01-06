@@ -64,6 +64,13 @@ public:
             return std::make_tuple(
                 "hook onSpawnPositionRequest not implemented", "null", 0, 0, 0);
           };
+
+      /**
+       * @brief Called by servers when a client (not necessarily local)
+       * disconnects.
+       */
+      std::function<bool(std::string)> onClientDisconnectedRemote =
+          [](std::string clientId) { return true; };
     } connection;
 
     struct {
@@ -166,6 +173,13 @@ public:
        * kafka cluster for any reason.
        */
       std::function<bool()> onClientDisconnected = []() { return true; };
+
+      /**
+       * @brief Called by servers when a client (not necessarily local)
+       * disconnects.
+       */
+      std::function<bool(std::string)> onClientDisconnectedRemote =
+          [](std::string clientId) { return true; };
 
       /**
        * @brief This hook is called when the server has informed the client of

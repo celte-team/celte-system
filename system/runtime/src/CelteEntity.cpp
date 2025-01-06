@@ -175,6 +175,7 @@ void CelteEntity::__getConnectionHeartbeat() {
   } catch (net::RPCTimeoutException &e) {
     // if this times out, the client is probably disconnected
     std::cout << ">> CLIENT " << _uuid << " DISCONNECTED <<" << std::endl;
+    pownerChunk->DisconnectPlayer(_uuid);
   }
 }
 

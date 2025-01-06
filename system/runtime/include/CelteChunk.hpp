@@ -206,6 +206,8 @@ private:
   glm::vec3 _centroid;
 #endif
 
+  bool __rp_disconnectPlayer(const std::string &entityId);
+
   /* --------------------------------------------------------------------------
    */
   /*                                   Members */
