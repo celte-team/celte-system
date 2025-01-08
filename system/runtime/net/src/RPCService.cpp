@@ -39,6 +39,8 @@ void RPCService::__initReaderStream(const std::vector<std::string> &topic) {
        .messageHandler =
            [this](const pulsar::Consumer, RPRequest req) {
              if (!req.respondsTo.empty()) {
+               std::cout << "handling reponse on topic " << req.responseTopic
+                         << std::endl;
                __handleResponse(req);
              }
            }});
@@ -58,8 +60,7 @@ void RPCService::__handleRemoteCall(const RPRequest &req) {
     RPRequest response{
         .name = req.name,
         .respondsTo = req.rpcId,
-        .responseTopic = "", // we are responding to the rpc so no need to set a
-                             // response topic
+        .responseTopic = "",
         .rpcId = boost::uuids::to_string(boost::uuids::random_generator()()),
         .args = result,
     };
@@ -73,6 +74,9 @@ void RPCService::__handleResponse(const RPRequest &req) {
   if (it == rpcPromises.end()) {
     // no such promise
     std::cerr << "No such promise: " << req.respondsTo << std::endl;
+    std::cerr << "\tname: " << req.name << std::endl;
+    std::cerr << "\trespondsTo: " << req.respondsTo << std::endl;
+    std::cerr << "\tresponseTopic: " << req.responseTopic << std::endl;
     return;
   }
 

@@ -52,7 +52,9 @@ void Grape::__ownerExecEntitySpawnProcess(
       entityId, payload, pendingSpawnInfo.position,
       [this, entityId, payload,
        pendingSpawnInfo]() { // then, when godot is ready
+        std::cout << "trying to get entity " << entityId << std::endl;
         auto &entity = ENTITIES.GetEntity(entityId);
+        std::cout << "got entity " << entityId << std::endl;
         entity.ExecInEngineLoop(
             [this, &entity, entityId, payload, pendingSpawnInfo]() {
               auto containerOpt = _rg.GetBestContainerForEntity(entity);

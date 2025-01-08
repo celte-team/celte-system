@@ -154,11 +154,10 @@ void Chunk::__registerRPCs() {
       }));
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-  _rpcs.Register<bool>(
-      "__rp_disconnectPlayer",
-      std::function([this](std::string entityId, std::string _) {
-        return __rp_disconnectPlayer(entityId);
-      }));
+  _rpcs.Register<bool>("__rp_disconnectPlayer",
+                       std::function([this](std::string entityId) {
+                         return __rp_disconnectPlayer(entityId);
+                       }));
 #endif
 }
 

@@ -8,6 +8,11 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#ifdef CELTE_SERVER_MODE_ENABLED
+#include "ServerStatesDeclaration.hpp"
+#else
+#include "ClientStatesDeclaration.hpp"
+#endif
 
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -146,6 +151,18 @@ nlohmann::json Grape::FetchContainerFeatures() {
   try {
     std::string response = _rpcs->Call<std::string>(
         tp::PERSIST_DEFAULT + _options.grapeId, "__rp_fetchContainerFeatures");
+    // #ifdef CELTE_SERVER_MODE_ENABLED
+    //     std::string response =
+    //     server::states::ServerNet().rpcs().Call<std::string>(
+    //         tp::PERSIST_DEFAULT + _options.grapeId,
+    //         "__rp_fetchContainerFeatures");
+    // #else
+    //     std::string response =
+    //     client::states::ClientNet().rpcs().Call<std::string>(
+    //         tp::PERSIST_DEFAULT + _options.grapeId,
+    //         "__rp_fetchContainerFeatures");
+    // #endif
+
     return nlohmann::json::parse(response);
   } catch (net::RPCTimeoutException &e) {
     return nlohmann::json();

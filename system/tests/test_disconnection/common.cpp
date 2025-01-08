@@ -90,11 +90,11 @@ static void registerHooks() {
 #endif
     std::cout << ">> LOAD GRAPE HOOK CALLED <<" << std::endl;
     if (grapeId == "LeChateauDuMechant") {
-      std::cout << "Loading LeChateauDuMechant as owned" << std::endl;
+      std::cout << "Loading LeChateauDuMechant" << std::endl;
       loadGrape(grapeId, isLocallyOwned, glm::vec3(0, 0, 0));
       loadGrape("LeChateauDuGentil", false, glm::vec3(10, 0, 0));
     } else if (grapeId == "LeChateauDuGentil") {
-      std::cout << "Loading LeChateauDuGentil as owned" << std::endl;
+      std::cout << "Loading LeChateauDuGentil" << std::endl;
       loadGrape(grapeId, isLocallyOwned, glm::vec3(10, 0, 0));
       loadGrape("LeChateauDuMechant", false, glm::vec3(0, 0, 0));
     }
@@ -112,6 +112,7 @@ static void registerHooks() {
         entities[clientId] =
             CEntity{std::make_shared<celte::CelteEntity>(), glm::vec3(x, y, z)};
         ENTITIES.RegisterEntity(entities[clientId].entity);
+        std::cout << "Entity " << clientId << " registered" << std::endl;
         entities[clientId].entity->OnSpawn(x, y, z, clientId);
         std::cout << "Entity " << clientId << " spawned" << std::endl;
         return true;

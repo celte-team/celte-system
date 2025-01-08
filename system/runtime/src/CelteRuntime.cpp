@@ -145,6 +145,7 @@ void CelteRuntime::RequestSpawn(const std::string &clientId,
       .CallAsync<bool>(tp::PERSIST_DEFAULT + grapeId, "__rp_onSpawnRequested",
                        clientId, payload)
       .Then(std::move([](bool success) {
+        std::cout << "Spawn request success: " << success << std::endl;
         if (!success) {
           throw std::runtime_error("Failed to spawn player, server refused.");
         }

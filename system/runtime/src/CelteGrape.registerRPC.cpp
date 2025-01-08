@@ -23,6 +23,15 @@ void Grape::__initNetwork() {
   }
 #endif
 
+  {
+    // debug
+    std::cout << "this grape is listening on topics: ";
+    for (auto &topic : rpcTopics) {
+      std::cout << topic << ", ";
+    }
+    std::cout << std::endl;
+  }
+
   _rpcs.emplace(net::RPCService::Options{
       .thisPeerUuid = RUNTIME.GetUUID(),
       .listenOn = rpcTopics,
