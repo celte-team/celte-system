@@ -33,22 +33,36 @@ namespace celte {
         void CelteInputSystem::HandleInput(std::string uuid, std::string InputName,
             bool status, float x, float y)
         {
-            // Dereference _data to access the map
-            if (_data->find(uuid) == _data->end()) {
-                // If the uuid is not found, create a new entry for it
-                (*_data)[uuid] = std::map<std::string, boost::circular_buffer<DataInput_t>>();
+            std::lock_guard<std::mutex> lock(_mutex);
+            for (auto& input : inputs.data) {
+                if (_data->find(input.uuid) == _data->end())
+                    // If the uuid is not found, create a new entry for it
+                    (*_data)[input.uuid] = std::map<std::string, boost::circular_buffer<DataInput_t>>();
+
+                if ((*_data)[input.uuid].find(input.name) == (*_data)[input.uuid].end())
+                    (*_data)[input.uuid][input.name] = boost::circular_buffer<DataInput_t>(10);
+
+                std::chrono::time_point<std::chrono::system_clock> time = std::chrono::time_point<std::chrono::system_clock>(std::chrono::milliseconds(input.timestamp));
+                DataInput_t newInput = { input.pressed, time, input.x, input.y };
+
+                (*_data)[input.uuid][input.name].push_back(newInput);
             }
-
-            if ((*_data)[uuid].find(InputName) == (*_data)[uuid].end()) {
-                // If the InputName is not found, create a new circular buffer for it
-                (*_data)[uuid][InputName] = boost::circular_buffer<DataInput_t>(10);
-            }
-
-            // Create a new DataInput_t with the given status and current time
-            DataInput_t newInput = { status, std::chrono::system_clock::now(), x, y };
-
-            // Push the new input to the circular buffer for the given uuid and InputName
-            (*_data)[uuid][InputName].push_back(newInput);
+            // sort all the input uuid and input.name by timestamp
+            // for (auto& uuid : *_data) {
+            //     for (auto& input : uuid.second) {
+            //         std::cout << "UUID: " << uuid.first << ", Input name: " << input.first << std::endl;
+            //         for (const auto& data : input.second) {
+            //             auto now = std::chrono::system_clock::now();
+            //             auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - data.timestamp).count();
+            //             std::cout << "Pressed: " << data.status
+            //                       << ", Timestamp: " << std::chrono::duration_cast<std::chrono::milliseconds>(data.timestamp.time_since_epoch()).count()
+            //                       << ", Elapsed time: " << elapsed << " ms"
+            //                       << ", X: " << data.x
+            //                       << ", Y: " << data.y
+            //                       << std::endl;
+            //         }
+            //     }
+            // }
         }
 
         std::shared_ptr<CelteInputSystem::LIST_INPUTS>
