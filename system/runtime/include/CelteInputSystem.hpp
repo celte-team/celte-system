@@ -21,8 +21,10 @@
 #include <chrono>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace celte {
     namespace runtime {
@@ -169,6 +171,7 @@ namespace celte {
             std::shared_ptr<LIST_INPUTS> _data;
             boost::asio::io_service _io;
             net::WriterStreamPool _Wpool;
+            std::mutex _mutex;
         };
 
     };

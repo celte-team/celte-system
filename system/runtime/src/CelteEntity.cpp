@@ -58,6 +58,7 @@ namespace celte {
 
     void CelteEntity::Tick()
     {
+        sendInputsToKafka();
         while (not _engineLoopCallbackQueue.empty()) {
             auto callback = _engineLoopCallbackQueue.pop();
             if (callback)
@@ -129,11 +130,9 @@ namespace celte {
     void CelteEntity::registerInputToSend(std::string inputName, bool pressed, float x,
         float y)
     {
-        if (_ownerChunk == nullptr) {
+        if (_ownerChunk == nullptr)
             return; // can't send inputs if not owned by a chunk
-        }
-        std::string chunkId = _ownerChunk->GetCombinedId();
-        std::string cp = chunkId + "." + tp::INPUT;
+
         auto now = std::chrono::system_clock::now();
         int64_t time = std::chrono::duration_cast<std::chrono::milliseconds>(
             now.time_since_epoch())

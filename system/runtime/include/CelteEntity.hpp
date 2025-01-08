@@ -225,6 +225,9 @@ namespace celte {
         bool _isSpawned = false;
         void* _wrapper = nullptr;
 
+        std::vector<celte::runtime::CelteInputSystem::InputUpdate_t> _inputsToSend;
+        int _MsecBet2InputSend = 10;
+
         ubn::queue<std::function<void()>> _engineLoopCallbackQueue;
 
         /**

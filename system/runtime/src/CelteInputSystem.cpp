@@ -30,8 +30,7 @@ namespace celte {
             _data = std::make_shared<LIST_INPUTS>();
         }
 
-        void CelteInputSystem::HandleInput(std::string uuid, std::string InputName,
-            bool status, float x, float y)
+        void CelteInputSystem::HandleInput(InputUpdateList_t inputs)
         {
             std::lock_guard<std::mutex> lock(_mutex);
             for (auto& input : inputs.data) {
