@@ -41,6 +41,7 @@ namespace celte {
                 if ((*_data)[input.uuid].find(input.name) == (*_data)[input.uuid].end())
                     (*_data)[input.uuid][input.name] = boost::circular_buffer<DataInput_t>(10);
 
+                // std::cout << "Input received: " << input.timestamp << std::endl;
                 std::chrono::time_point<std::chrono::system_clock> time = std::chrono::time_point<std::chrono::system_clock>(std::chrono::milliseconds(input.timestamp));
                 DataInput_t newInput = { input.pressed, time, input.x, input.y };
 

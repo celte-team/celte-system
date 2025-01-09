@@ -141,6 +141,8 @@ namespace celte {
             .name = inputName, .pressed = pressed, .uuid = _uuid, .x = x, .y = y, .timestamp = time
         };
 
+        std::cout << "Time: " << req.timestamp << std::endl;
+
         _inputsToSend.push_back(req);
     }
 

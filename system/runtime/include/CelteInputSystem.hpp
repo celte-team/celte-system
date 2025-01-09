@@ -71,7 +71,7 @@ namespace celte {
                 // Used to serialize the structure and send it through the network
                 void to_json(nlohmann::json& j) const
                 {
-                    j = nlohmann::json { { "name", name }, { "pressed", pressed }, { "uuid", uuid }, { "x", x }, { "y", y } };
+                    j = nlohmann::json { { "name", name }, { "pressed", pressed }, { "uuid", uuid }, { "x", x }, { "y", y }, { "timestamp", timestamp } };
                 }
 
                 // Used to deserialize the structure and receive it from the network
@@ -82,6 +82,7 @@ namespace celte {
                     j.at("uuid").get_to(uuid);
                     j.at("x").get_to(x);
                     j.at("y").get_to(y);
+                    j.at("timestamp").get_to(timestamp);
                 }
             } InputUpdate_t;
 
