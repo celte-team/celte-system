@@ -42,7 +42,7 @@ struct GrapeOptions {
   const glm::vec3 position;
   // is this grape owned by the local node?
   bool isLocallyOwned = false;
-  int transferTickDelay = 30;
+  int transferTickDelay = 60;
   std::function<void()> then = nullptr;
 };
 
