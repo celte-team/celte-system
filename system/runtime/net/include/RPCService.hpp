@@ -117,13 +117,6 @@ public:
         std::make_shared<std::promise<std::string>>();
     {
       std::lock_guard<std::mutex> lock(rpcPromisesMutex);
-      std::cout << "[[CALL]] set " << req.rpcId << std::endl;
-      std::cout << "\tname: " << name << std::endl;
-      std::cout << "\tcalled on : " << topic << std::endl;
-      std::cout << "\texpects response on : " << _options.responseTopic
-                << std::endl
-                << std::endl;
-
       rpcPromises[req.rpcId] = promise;
     }
     _writerStreamPool.Write(topic, req);
@@ -171,12 +164,6 @@ public:
         std::make_shared<std::promise<std::string>>();
     {
       std::lock_guard<std::mutex> lock(rpcPromisesMutex);
-      std::cout << "[[CALL Async]] set " << req.rpcId << std::endl;
-      std::cout << "\tname: " << name << std::endl;
-      std::cout << "\tcalled on : " << topic << std::endl;
-      std::cout << "\texpects response on : " << _options.responseTopic
-                << std::endl
-                << std::endl;
       rpcPromises[req.rpcId] = promise;
     }
 

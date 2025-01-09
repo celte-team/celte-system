@@ -221,6 +221,7 @@ private:
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::set<std::string> _ownedEntities;
+  std::mutex _ownedEntitiesMutex;
 #endif
 };
 } // namespace chunks

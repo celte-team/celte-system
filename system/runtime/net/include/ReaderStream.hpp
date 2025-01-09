@@ -82,18 +82,20 @@ struct ReaderStream {
           std::string data(static_cast<const char *>(msg.getData()),
                            msg.getLength());
 
-          {
-            // debug
-            if (msg.getTopicName() !=
-                    "persistent://public/default/global.clock" &&
-                data.find("__rp_fetchContainerFeatures") == std::string::npos) {
-              std::cout << std::endl;
-              std::cout << "Received message from topic: " << msg.getTopicName()
-                        << std::endl;
-              std::cout << "Message: " << data << std::endl;
-              std::cout << std::endl;
-            }
-          }
+          // {
+          //   // debug
+          //   if (msg.getTopicName() !=
+          //           "persistent://public/default/global.clock" &&
+          //       data.find("__rp_fetchContainerFeatures") ==
+          //       std::string::npos) {
+          //     std::cout << std::endl;
+          //     std::cout << "Received message from topic: " <<
+          //     msg.getTopicName()
+          //               << std::endl;
+          //     std::cout << "Message: " << data << std::endl;
+          //     std::cout << std::endl;
+          //   }
+          // }
 
           try {
             from_json(nlohmann::json::parse(data), req);
