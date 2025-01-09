@@ -195,9 +195,9 @@ private:
 
   void __rp_containerTakes(const std::string &transferInfo,
                            const std::string &informationToLoad,
-                           const std::string &props, int tick);
+                           const std::string &props, int tick) override;
 
-  void __rp_containerDrops(const std::string &transferInfo, int tick);
+  void __rp_containerDrops(const std::string &transferInfo, int tick) override;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   void __rememberEntity(const std::string &entityId);

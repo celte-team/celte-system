@@ -39,8 +39,6 @@ void RPCService::__initReaderStream(const std::vector<std::string> &topic) {
        .messageHandler =
            [this](const pulsar::Consumer, RPRequest req) {
              if (!req.respondsTo.empty()) {
-               std::cout << "handling reponse on topic " << req.responseTopic
-                         << std::endl;
                __handleResponse(req);
              }
            }});

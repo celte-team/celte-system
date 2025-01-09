@@ -113,6 +113,12 @@ public:
 
   unsigned int GetNOwnedEntities() const { return _nOwnedEntities; }
 
+  virtual void __rp_containerTakes(const std::string &transferInfo,
+                                   const std::string &informationToLoad,
+                                   const std::string &props, int tick) = 0;
+  virtual void __rp_containerDrops(const std::string &transferInfo,
+                                   int tick) = 0;
+
 protected:
   std::string _id;
   net::RPCService _rpcs;

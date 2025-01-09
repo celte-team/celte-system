@@ -203,6 +203,8 @@ void ReplicationGraph::__loadRemoteContainer(const std::string &cid,
   }
   std::shared_ptr<IEntityContainer> container = AddContainer(cid);
   container->WaitNetworkInitialized();
+  std::cout << "__loadRemoteContainer " << cid << "'s network is ready"
+            << std::endl;
   container->Load(info["features"]);
   container->LoadExistingEntities();
 }

@@ -120,14 +120,17 @@ std::string CelteEntity::GetProps() { return _replicator.GetBlob(true); }
 
 void CelteEntity::sendInputToKafka(std::string inputName, bool pressed, float x,
                                    float y) {
-  if (_ownerChunk == nullptr) {
-    return; // can't send inputs if not owned by a chunk
+  // inputs are sent only if we are the client associated with this entity
+  // and if the entity is owned by a chunk
+  if (_uuid != RUNTIME.GetUUID() or _ownerChunk == nullptr) {
+    return;
   }
   std::string chunkId = _ownerChunk->GetCombinedId();
   std::string cp = chunkId + "." + tp::INPUT;
   celte::runtime::CelteInputSystem::InputUpdate_s req = {
       .name = inputName, .pressed = pressed, .uuid = _uuid, .x = x, .y = y};
 
+  // std::cout << "sending input to topic " << cp << std::endl;
   CINPUT.GetWriterPool().Write<celte::runtime::CelteInputSystem::InputUpdate_s>(
       cp, req);
 }

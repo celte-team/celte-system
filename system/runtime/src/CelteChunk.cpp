@@ -372,7 +372,7 @@ void Chunk::__rp_containerTakes(const std::string &transferInfo,
 }
 
 void Chunk::__rp_containerDrops(const std::string &transferInfo, int tick) {
-  CLOCK.ScheduleAt(tick, [this, transferInfo]() {
+  CLOCK.ScheduleAt(tick, [this, transferInfo, tick]() {
     // if cTo does not exist here, we must remove the entity
     nlohmann::json j = nlohmann::json::parse(transferInfo);
 
@@ -395,10 +395,11 @@ void Chunk::__rp_containerDrops(const std::string &transferInfo, int tick) {
     } catch (std::out_of_range &e) {
       // container not set
     }
-    if (not GRAPES.GetGrape(j["gTo"])
-                .GetReplicationGraph()
-                .GetContainerOpt(j["cTo"])
-                .has_value()) {
+    auto cToOpt =
+        GRAPES.GetGrape(j["gTo"]).GetReplicationGraph().GetContainerOpt(
+            j["cTo"]);
+    if (not cToOpt.has_value()) {
+      std::cout << "in container drop, cTo has no value" << std::endl;
       // TODO @ewen remove entity
     }
   });
@@ -432,7 +433,7 @@ bool Chunk::__deleteEntity(const std::string &entityId) {
 #else
       HOOKS.client.entity.onDelete(apiWrapper);
 #endif
-      std::cout << "Succesfully delete entity id : " << entity->GetUUID()
+      std::cout << "Successfully delete entity id : " << entity->GetUUID()
                 << std::endl;
       ENTITIES.UnquaranteenEntity(entity->GetUUID());
     });

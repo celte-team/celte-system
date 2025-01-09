@@ -202,9 +202,7 @@ def run_command(command, log_file, folder=None):
             process = subprocess.Popen(command, stdout=log, stderr=log, cwd=folder)
             return process
     else:
-        print(f"Running command: {command}")
-        # get the current folder
-        print(f"Current folder: {os.getcwd()}")
+        print(f"\t-> Running command: {command}")
         with open(log_file, 'w') as log:
             process = subprocess.Popen(command, stdout=log, stderr=log)
             return process
