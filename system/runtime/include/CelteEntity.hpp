@@ -187,10 +187,20 @@ namespace celte {
         bool IsOwnedByCurrentPeer() const;
 
         /**
+         * @brief Disconnects the player represented by this entity.
+         * This will remove the entity from the game and notify all peers of the
+         * disconnection.
+         */
+        void DisconnectPlayer();
+
+        /**
          * @brief Registers a pointer to this entity's wrapper in the engine's API
          * so that it can be accessed by the user.
          */
-        inline void RegisterWrapper(void* wrapper) { _wrapper = wrapper; }
+        inline void RegisterWrapper(void* wrapper)
+        {
+            _wrapper = wrapper;
+        }
 
         /**
          * @brief Returns the pointer to the wrapper of this entity.
