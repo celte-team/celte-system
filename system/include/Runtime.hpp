@@ -1,12 +1,16 @@
 #pragma once
 #include "AsyncTaskScheduler.hpp"
 #include "ETTRegistry.hpp"
+#include "HookTable.hpp"
+#include <memory>
 #include <string>
 #include <tbb/concurrent_queue.h>
 
 #define RUNTIME celte::Runtime::GetInstance()
 
 namespace celte {
+class PeerService; // forward declaration
+
 class Runtime {
 public:
   static Runtime &GetInstance();
@@ -62,10 +66,27 @@ public:
   /// @brief Returns the unique identifier of this peer on the network.
   inline const std::string &GetUUID() const { return _uuid; }
 
+  /// @brief Returns the hook table.
+  inline HookTable &Hooks() { return _hooks; }
+
+  /// @brief Returns the peer service.
+  /// @throws std::runtime_error if the peer service is not initialized.
+  inline PeerService &GetPeerService() {
+    if (!_peerService) {
+      throw std::runtime_error("Peer service not initialized");
+    }
+    return *_peerService;
+  }
+
 private:
+  /// @brief Advances the sync tasks queue.
+  void __advanceSyncTasks();
+
+  const std::string _uuid;
   tbb::concurrent_queue<std::function<void()>> _syncTasks;
   AsyncTaskScheduler _asyncScheduler;
   AsyncIOTaskScheduler _asyncIOTaskScheduler;
-  const std::string _uuid;
+  HookTable _hooks;
+  std::unique_ptr<PeerService> _peerService;
 };
 } // namespace celte

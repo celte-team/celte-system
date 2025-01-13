@@ -1,6 +1,7 @@
 #pragma once
 #include "CelteNet.hpp"
 #include "ReaderStream.hpp"
+#include "Runtime.hpp"
 #include "WriterStream.hpp"
 #include "nlohmann/json.hpp"
 #include "pulsar/Schema.h"

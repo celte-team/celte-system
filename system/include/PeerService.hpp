@@ -1,5 +1,7 @@
 #pragma once
 #include "RPCService.hpp"
+#include "WriterStreamPool.hpp"
+
 using namespace std::chrono_literals;
 
 namespace celte {
@@ -43,19 +45,30 @@ private:
 
   /* ------------------------------- CLIENT RPC -------------------------------
    */
+#ifndef CELTE_SERVER_MODE_ENABLED // ! ndef, we are in client mode here
 
-  /// @brief Called by the master to force this peer to connect to a grape's rpc
-  /// channels. This peer is expected to load the grape in game.
+  /// @brief Called by the server node that owns this peer to force it to
+  /// connect to the correct grape's rpc channels where it will spawn.
   bool __rp_forceConnectToGrape(const std::string &grapeId);
 
+#endif
   /* ------------------------------- SERVER RPC -------------------------------
    */
-
+#ifdef CELTE_SERVER_MODE_ENABLED
   /// @brief  Sets this server node as the owner of this grape.
   /// This node is expected to load the grape in game.
   /// @param grapeId
   /// @return
   bool __rp_assignGrape(const std::string &grapeId);
+
+  /// @brief Called by the master server, this method should return the name of
+  /// the grape that the client should connect to.
+  std::string __rp_spawnPositionRequest(const std::string &clientId);
+
+  /// @brief Called by the master server, this method notifies a server node
+  /// that a client has been assigned to it.
+  bool __rp_acceptNewClient(const std::string &clientId);
+#endif
 
   net::WriterStreamPool _wspool;
   std::optional<net::RPCService> _rpcService;

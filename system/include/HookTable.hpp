@@ -1,0 +1,34 @@
+#pragma once
+#include <functional>
+#include <string>
+
+template <typename Ret, typename... Args>
+std::function<Ret(Args...)> UNIMPLEMENTED =
+    [](Args...) -> Ret { throw std::runtime_error("Missing hook"); };
+
+namespace celte {
+struct HookTable {
+
+#ifdef CELTE_SERVER_MODE_ENABLED // server only hooks
+
+  /// @brief Called by the master when a lcient connects to the cluster, to get
+  /// the name of the grape that the client should be connecting to.
+  std::function<std::string(const std::string &)> onGetClientInitialGrape =
+      UNIMPLEMENTED<std::string, const std::string &>;
+
+#else // client only hooks
+
+#endif // all peers hooks
+
+  /// @brief Called when a grape is loaded (the game should load the map and the
+  /// CSN object associated with it).
+  std::function<void(std::string)> onLoadGrape =
+      UNIMPLEMENTED<void, std::string>;
+
+  /// @brief Called when the connection to the cluster is unsuccessful.
+  std::function<void()> onConnectionFailed = UNIMPLEMENTED<void>;
+
+  /// @brief Called when the connection to the cluster is successful.
+  std::function<void()> onConnectionSuccess = UNIMPLEMENTED<void>;
+};
+} // namespace celte

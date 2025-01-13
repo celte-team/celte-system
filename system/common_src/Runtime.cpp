@@ -1,7 +1,10 @@
+#include "PeerService.hpp"
 #include "Runtime.hpp"
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <functional>
+#include <iostream>
 
 using namespace celte;
 
@@ -23,13 +26,30 @@ Runtime &Runtime::GetInstance() {
 }
 
 void Runtime::ConnectToCluster() {
-  // Implementation here
+  // getting the address from the environment. if not found, we use localhost
+  const char *host = std::getenv("CELTE_HOST");
+  std::string address = host ? host : "localhost";
+  ConnectToCluster(address, 6650);
 }
 
 void Runtime::ConnectToCluster(const std::string &address, int port) {
-  // Implementation here
+  _peerService = std::make_unique<PeerService>(
+      std::function<void(bool)>([this](bool connected) {
+        if (!connected) {
+          std::cerr << "Error connecting to cluster" << std::endl;
+          _hooks.onConnectionFailed();
+          return;
+        }
+        std::cout << "Connected to cluster" << std::endl;
+        _hooks.onConnectionSuccess();
+      }));
 }
 
-void Runtime::Tick() {
-  // Implementation here
+void Runtime::Tick() { __advanceSyncTasks(); }
+
+void Runtime::__advanceSyncTasks() {
+  std::function<void()> task;
+  while (_syncTasks.try_pop(task)) {
+    task();
+  }
 }

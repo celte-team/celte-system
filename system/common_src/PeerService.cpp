@@ -75,6 +75,16 @@ void PeerService::__registerServerRPCs() {
                               std::function([this](std::string grapeId) {
                                 return __rp_assignGrape(grapeId);
                               }));
+
+  _rpcService->Register<std::string>(
+      "__rp_spawnPositionRequest", std::function([this](std::string clientId) {
+        return __rp_spawnPositionRequest(clientId);
+      }));
+
+  _rpcService->Register<bool>("__rp_acceptNewClient",
+                              std::function([this](std::string clientId) {
+                                return __rp_acceptNewClient(clientId);
+                              }));
 }
 
 #else
@@ -89,6 +99,18 @@ void PeerService::__registerClientRPCs() {
 #ifdef CELTE_SERVER_MODE_ENABLED
 bool PeerService::__rp_assignGrape(const std::string &grapeId) {
   std::cout << "Assigning grape " << grapeId << std::endl;
+  return true;
+}
+
+std::string
+PeerService::__rp_spawnPositionRequest(const std::string &clientId) {
+  std::cout << "Requesting spawn position for client " << clientId << std::endl;
+  return "LeChateauDuMechant";
+}
+
+bool PeerService::__rp_acceptNewClient(const std::string &clientId) {
+  std::cout << "Accepting new client " << clientId << std::endl;
+  return true;
 }
 
 #else
