@@ -23,3 +23,4 @@ private:
   tbb::concurrent_hash_map<std::string, Entity> entities;
 };
 } // namespace celte
+

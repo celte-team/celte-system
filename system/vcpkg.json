@@ -4,6 +4,10 @@
     "pulsar-client-cpp",
     "tbb",
     "boost",
-    "protobuf"
-  ]
+    {
+      "name": "protobuf",
+      "version>=": "4.25.1"
+    }
+  ],
+    "builtin-baseline": "86fba13068f1e8111e7d885de2aef11378435139"
 }

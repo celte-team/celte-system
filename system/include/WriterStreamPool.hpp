@@ -1,7 +1,7 @@
 #pragma once
 #include "CelteNet.hpp"
 #include "WriterStream.hpp"
-#include "protos/systems_structs.pb.h"
+#include "systems_structs.pb.h"
 #include "pulsar/Producer.h"
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>

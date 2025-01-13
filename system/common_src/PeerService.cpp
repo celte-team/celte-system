@@ -2,7 +2,7 @@
 #include "RPCService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
-#include "protos/systems_structs.pb.h"
+#include "systems_structs.pb.h"
 #include <functional>
 #include <future>
 
@@ -89,6 +89,7 @@ void PeerService::__registerClientRPCs() {
 #ifdef CELTE_SERVER_MODE_ENABLED
 bool PeerService::__rp_assignGrape(const std::string &grapeId) {
   std::cout << "Assigning grape " << grapeId << std::endl;
+  return true;
 }
 
 #else
