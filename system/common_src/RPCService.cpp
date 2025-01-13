@@ -45,9 +45,9 @@ void RPCService::__handleRemoteCall(const req::RPRequest &req) {
     std::cerr << "No such rpc: " << req.name() << std::endl;
     return;
   }
-  std::cout << "RPC handling call: " << req.name() << std::endl;
   auto f = it->second;
-  auto result = f(req.args()).dump();
+  nlohmann::json argsJson = nlohmann::json::parse(req.args());
+  auto result = f(argsJson).dump();
 
   if (not req.response_topic().empty()) {
     req::RPRequest response;

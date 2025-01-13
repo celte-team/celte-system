@@ -28,11 +28,19 @@ Runtime &Runtime::GetInstance() {
 void Runtime::ConnectToCluster() {
   // getting the address from the environment. if not found, we use localhost
   const char *host = std::getenv("CELTE_HOST");
+  const char *port = std::getenv("CELTE_PORT");
   std::string address = host ? host : "localhost";
-  ConnectToCluster(address, 6650);
+  if (port) {
+    ConnectToCluster(address, std::stoi(port));
+  } else {
+    ConnectToCluster(address, 6650);
+  }
 }
 
 void Runtime::ConnectToCluster(const std::string &address, int port) {
+  std::cout << "Connecting to pulsar cluster at " << address << ":" << port
+            << std::endl;
+  net::CelteNet::Instance().Connect(address + ":" + std::to_string(port));
   _peerService = std::make_unique<PeerService>(
       std::function<void(bool)>([this](bool connected) {
         if (!connected) {

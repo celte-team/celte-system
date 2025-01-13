@@ -42,8 +42,10 @@ bool PeerService::__waitNetworkReady(
 
 void PeerService::__initPeerRPCs() {
 #ifdef CELTE_SERVER_MODE_ENABLED
+  std::cout << "[[SERVER MODE]]" << std::endl;
   __registerServerRPCs();
 #else
+  std::cout << "[[CLIENT MODE]]" << std::endl;
   __registerClientRPCs();
 #endif
 }
@@ -77,7 +79,8 @@ void PeerService::__registerServerRPCs() {
                               }));
 
   _rpcService->Register<std::string>(
-      "__rp_spawnPositionRequest", std::function([this](std::string clientId) {
+      "__rp_getPlayerSpawnPosition",
+      std::function([this](std::string clientId) {
         return __rp_spawnPositionRequest(clientId);
       }));
 

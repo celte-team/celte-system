@@ -1,6 +1,8 @@
 #pragma once
 #include "CelteNet.hpp"
 #include "Runtime.hpp"
+#include "nlohmann/json.hpp"
+#include "protos/systems_structs.pb.h"
 #include "pulsar/Consumer.h"
 #include "pulsar/ConsumerConfiguration.h"
 #include <boost/uuid/uuid.hpp>
@@ -79,15 +81,8 @@ struct ReaderStream {
           Req req;
           std::string data(static_cast<const char *>(msg.getData()),
                            msg.getLength());
-          try {
-            if (!google::protobuf::util::JsonStringToMessage(data, &req).ok()) {
-              std::cerr << "Error parsing message: " << data << std::endl;
-              return;
-            }
-
-          } catch (std::exception &e) {
-            std::cerr << "Error parsing message: " << e.what() << std::endl;
-            std::cerr << "json: " << data << std::endl;
+          if (!google::protobuf::util::JsonStringToMessage(data, &req).ok()) {
+            std::cerr << "Error parsing message: " << data << std::endl;
             return;
           }
           if (options.messageHandler)

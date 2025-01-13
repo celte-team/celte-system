@@ -9,6 +9,14 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
         CACHE STRING "Vcpkg toolchain file")
 endif()
 
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    message(STATUS "Found ccache: ${CCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+else()
+    message(STATUS "ccache not found")
+endif()
+
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message(FATAL_ERROR "In-source builds are not allowed.")
 endif()
@@ -44,11 +52,11 @@ set(LINK_LIBS_SYSTEMS_API
 )
 
 add_library(${PROJECT_NAME}_server SHARED ${SOURCES} ${SERVER_SRC} ${PROTO_SRCS})
-add_compile_definitions(CELTE_SERVER_MODE_ENABLED)
+target_compile_definitions(${PROJECT_NAME}_server PRIVATE CELTE_SERVER_MODE_ENABLED)
 target_link_libraries(${PROJECT_NAME}_server ${LINK_LIBS_SYSTEMS_API})
 
 add_library(${PROJECT_NAME}_client SHARED ${SOURCES} ${CLIENT_SRC} ${PROTO_SRCS})
-add_compile_definitions(CELTE_CLIENT_MODE_ENABLED)
+target_compile_definitions(${PROJECT_NAME}_client PRIVATE CELTE_CLIENT_MODE_ENABLED)
 target_link_libraries(${PROJECT_NAME}_client ${LINK_LIBS_SYSTEMS_API})
 
 install(TARGETS ${PROJECT_NAME}_server DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
