@@ -17,6 +17,8 @@ inline std::string repl(const std::string &str) {
 
 static const std::string hello_master_sn = "master.hello.sn";
 static const std::string hello_master_cl = "master.hello.client";
+static const std::string global_clock = "global.clock";
+static const std::string global_rpc = "global.rpc";
 
 } // namespace tp
 } // namespace celte

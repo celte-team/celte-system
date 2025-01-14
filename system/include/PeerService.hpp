@@ -22,6 +22,9 @@ public:
   /// @brief Destroy the Peer Service object
   ~PeerService();
 
+  /// @brief Returns the RPCService of this peer.
+  inline net::RPCService &GetRPCService() { return *_rpcService; }
+
 private:
   /// @brief Waits for the network of the rpc service to be ready
   /// @param connectionTimeout The time to wait for the network to be ready
@@ -46,10 +49,6 @@ private:
   /* ------------------------------- CLIENT RPC -------------------------------
    */
 #ifndef CELTE_SERVER_MODE_ENABLED // ! ndef, we are in client mode here
-
-  /// @brief Called by the server node that owns this peer to force it to
-  /// connect to the correct grape's rpc channels where it will spawn.
-  bool __rp_forceConnectToGrape(const std::string &grapeId);
 
 #endif
   /* ------------------------------- SERVER RPC -------------------------------

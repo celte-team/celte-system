@@ -1,3 +1,5 @@
+#include "Clock.hpp"
+#include "GrapeRegistry.hpp"
 #include "PeerService.hpp"
 #include "RPCService.hpp"
 #include "Runtime.hpp"
@@ -10,12 +12,13 @@ using namespace celte;
 
 PeerService::PeerService(std::function<void(bool)> onReady,
                          std::chrono::milliseconds connectionTimeout)
-    : _rpcService(
-          net::RPCService::Options{.thisPeerUuid = RUNTIME.GetUUID(),
-                                   .listenOn = {tp::rpc(RUNTIME.GetUUID())},
-                                   .reponseTopic = tp::peer(RUNTIME.GetUUID()),
-                                   .serviceName = tp::peer(RUNTIME.GetUUID())}),
+    : _rpcService(net::RPCService::Options{
+          .thisPeerUuid = RUNTIME.GetUUID(),
+          .listenOn = {tp::rpc(RUNTIME.GetUUID()), tp::global_rpc},
+          .reponseTopic = tp::peer(RUNTIME.GetUUID()),
+          .serviceName = tp::peer(RUNTIME.GetUUID())}),
       _wspool({.idleTimeout = 10000ms}) {
+  CLOCK.Start();
   RUNTIME.ScheduleAsyncTask([this, onReady, connectionTimeout]() {
     if (!__waitNetworkReady(connectionTimeout)) {
       onReady(false);
@@ -26,7 +29,10 @@ PeerService::PeerService(std::function<void(bool)> onReady,
   });
 }
 
-PeerService::~PeerService() { _rpcService.reset(); }
+PeerService::~PeerService() {
+  _rpcService.reset();
+  CLOCK.Stop();
+}
 
 bool PeerService::__waitNetworkReady(
     std::chrono::milliseconds connectionTimeout) {
@@ -91,17 +97,15 @@ void PeerService::__registerServerRPCs() {
 }
 
 #else
-void PeerService::__registerClientRPCs() {
-  _rpcService->Register<bool>("__rp_forceConnectToChunk",
-                              std::function([this](std::string grapeId) {
-                                return __rp_forceConnectToGrape(grapeId);
-                              }));
-}
+void PeerService::__registerClientRPCs() {}
 #endif
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 bool PeerService::__rp_assignGrape(const std::string &grapeId) {
   std::cout << "Assigning grape " << grapeId << std::endl;
+  RUNTIME.SetAssignedGrape(grapeId);
+  RUNTIME.TopExecutor().PushTaskToEngine(
+      [grapeId]() { RUNTIME.Hooks().onLoadGrape(grapeId); });
   return true;
 }
 
@@ -113,14 +117,14 @@ PeerService::__rp_spawnPositionRequest(const std::string &clientId) {
 
 bool PeerService::__rp_acceptNewClient(const std::string &clientId) {
   std::cout << "Accepting new client " << clientId << std::endl;
+  GRAPES.RunWithLock(RUNTIME.GetAssignedGrape(), [clientId](Grape &g) {
+    g.clientRegistry->RegisterClient(clientId, g.id, true);
+  });
+  // _rpcService->CallAsync<bool>(tp::rpc(clientId), "__rp_forceConnectToChunk",
+  //                              RUNTIME.GetAssignedGrape());
   return true;
 }
 
 #else
-
-bool PeerService::__rp_forceConnectToGrape(const std::string &grapeId) {
-  std::cout << "Force connecting to grape " << grapeId << std::endl;
-  return true;
-}
 
 #endif

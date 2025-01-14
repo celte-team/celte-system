@@ -24,3 +24,7 @@ message RPRequest {
   string rpc_id = 4;          // unique id for this rpc
   string args = 5;           // arguments to the rpc, serialized as a JSON string
 }
+
+message ClockTick {
+  int64 unified_time_ms = 2;
+}

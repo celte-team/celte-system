@@ -61,3 +61,53 @@ void Runtime::__advanceSyncTasks() {
     task();
   }
 }
+
+void Runtime::RegisterCustomGlobalRPC(
+    const std::string &name, std::function<std::string(std::string)> f) {
+  if (not _peerService) {
+    std::cerr
+        << "Peer service not initialized. Please connect to the cluster first."
+        << std::endl;
+    return;
+  }
+  _peerService->GetRPCService().Register<std::string>(name, f);
+}
+
+void Runtime::CallScopedRPCNoRetVal(const std::string &scope,
+                                    const std::string &name,
+                                    const std::string &args) {
+  if (not _peerService) {
+    std::cerr << "Peer service not initialized. Please connect to the cluster "
+                 "first."
+              << std::endl;
+    return;
+  }
+  _peerService->GetRPCService().CallVoid(scope, name, args);
+}
+
+std::string Runtime::CallScopedRPC(const std::string &scope,
+                                   const std::string &name,
+                                   const std::string &args) {
+  if (not _peerService) {
+    std::cerr << "Peer service not initialized. Please connect to the cluster "
+                 "first."
+              << std::endl;
+    return "";
+  }
+  return _peerService->GetRPCService().Call<std::string>(scope, name, args);
+}
+
+void Runtime::CallScopedRPCAsync(const std::string &scope,
+                                 const std::string &name,
+                                 const std::string &args,
+                                 std::function<void(std::string)> callback) {
+  if (not _peerService) {
+    std::cerr << "Peer service not initialized. Please connect to the cluster "
+                 "first."
+              << std::endl;
+    return;
+  }
+  _peerService->GetRPCService()
+      .CallAsync<std::string>(scope, name, args)
+      .Then(callback);
+}

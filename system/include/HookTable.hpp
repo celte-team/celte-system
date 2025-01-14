@@ -16,6 +16,14 @@ struct HookTable {
   std::function<std::string(const std::string &)> onGetClientInitialGrape =
       UNIMPLEMENTED<std::string, const std::string &>;
 
+  /// @brief Called when a new client is accepted by the server.
+  /// The game developer is free to handle this as they see fit. Eventually, the
+  /// client should connect to a grape in order to be able to load the map and
+  /// start playing.
+  /// @param clientId The unique identifier of the client.
+  std::function<std::string(const std::string &)> onAcceptNewClient =
+      UNIMPLEMENTED<std::string, const std::string &>;
+
 #else // client only hooks
 
 #endif // all peers hooks

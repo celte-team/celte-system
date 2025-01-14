@@ -1,5 +1,6 @@
 #pragma once
 #include "AsyncTaskScheduler.hpp"
+#include "Config.hpp"
 #include "ETTRegistry.hpp"
 #include "HookTable.hpp"
 #include <memory>
@@ -78,6 +79,34 @@ public:
     return *_peerService;
   }
 
+  inline Config &GetConfig() { return _config; }
+
+  inline Executor &TopExecutor() { return _topExecutor; }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  /// @brief Returns the grape assigned to this server.
+  inline const std::string &GetAssignedGrape() const { return _assignedGrape; }
+  inline void SetAssignedGrape(const std::string &grape) {
+    _assignedGrape = grape;
+  }
+#endif
+
+  /// @brief This binding lets the user register custom RPCs from the game
+  /// engine. The arguments to the rpc will be passed a string (encoding of the
+  /// args may vary). This rpc will be available on the global scope, and on the
+  /// rpc topic of this peer. To register an rpc on the scope of a grape, use
+  /// the grape registry.
+  void RegisterCustomGlobalRPC(const std::string &name,
+                               std::function<std::string(std::string)> f);
+
+  void CallScopedRPCNoRetVal(const std::string &scope, const std::string &name,
+                             const std::string &args);
+  std::string CallScopedRPC(const std::string &scope, const std::string &name,
+                            const std::string &args);
+  void CallScopedRPCAsync(const std::string &scope, const std::string &name,
+                          const std::string &args,
+                          std::function<void(std::string)> callback);
+
 private:
   /// @brief Advances the sync tasks queue.
   void __advanceSyncTasks();
@@ -88,5 +117,13 @@ private:
   AsyncIOTaskScheduler _asyncIOTaskScheduler;
   HookTable _hooks;
   std::unique_ptr<PeerService> _peerService;
+  Config _config;
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  std::string _assignedGrape;
+#endif
+
+  Executor
+      _topExecutor; ///< The executor for the top level tasks in the engine.
 };
 } // namespace celte

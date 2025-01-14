@@ -59,6 +59,9 @@ namespace req {
 class BinaryDataPacket;
 struct BinaryDataPacketDefaultTypeInternal;
 extern BinaryDataPacketDefaultTypeInternal _BinaryDataPacket_default_instance_;
+class ClockTick;
+struct ClockTickDefaultTypeInternal;
+extern ClockTickDefaultTypeInternal _ClockTick_default_instance_;
 class RPRequest;
 struct RPRequestDefaultTypeInternal;
 extern RPRequestDefaultTypeInternal _RPRequest_default_instance_;
@@ -601,6 +604,197 @@ class RPRequest final
     ::google::protobuf::internal::ArenaStringPtr response_topic_;
     ::google::protobuf::internal::ArenaStringPtr rpc_id_;
     ::google::protobuf::internal::ArenaStringPtr args_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_systems_5fstructs_2eproto;
+};
+// -------------------------------------------------------------------
+
+class ClockTick final
+    : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:celte.req.ClockTick) */ {
+ public:
+  inline ClockTick() : ClockTick(nullptr) {}
+  ~ClockTick() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ClockTick* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ClockTick));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ClockTick(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline ClockTick(const ClockTick& from) : ClockTick(nullptr, from) {}
+  inline ClockTick(ClockTick&& from) noexcept
+      : ClockTick(nullptr, std::move(from)) {}
+  inline ClockTick& operator=(const ClockTick& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ClockTick& operator=(ClockTick&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ClockTick& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ClockTick* internal_default_instance() {
+    return reinterpret_cast<const ClockTick*>(
+        &_ClockTick_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(ClockTick& a, ClockTick& b) { a.Swap(&b); }
+  inline void Swap(ClockTick* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ClockTick* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ClockTick* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ClockTick>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ClockTick& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ClockTick& from) { ClockTick::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ClockTick* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "celte.req.ClockTick"; }
+
+ protected:
+  explicit ClockTick(::google::protobuf::Arena* arena);
+  ClockTick(::google::protobuf::Arena* arena, const ClockTick& from);
+  ClockTick(::google::protobuf::Arena* arena, ClockTick&& from) noexcept
+      : ClockTick(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kUnifiedTimeMsFieldNumber = 2,
+  };
+  // int64 unified_time_ms = 2;
+  void clear_unified_time_ms() ;
+  ::int64_t unified_time_ms() const;
+  void set_unified_time_ms(::int64_t value);
+
+  private:
+  ::int64_t _internal_unified_time_ms() const;
+  void _internal_set_unified_time_ms(::int64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:celte.req.ClockTick)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      0, 1, 0,
+      0, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const ClockTick& from_msg);
+    ::int64_t unified_time_ms_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1544,6 +1738,32 @@ inline void RPRequest::set_allocated_args(std::string* value) {
     _impl_.args_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:celte.req.RPRequest.args)
+}
+
+// -------------------------------------------------------------------
+
+// ClockTick
+
+// int64 unified_time_ms = 2;
+inline void ClockTick::clear_unified_time_ms() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.unified_time_ms_ = ::int64_t{0};
+}
+inline ::int64_t ClockTick::unified_time_ms() const {
+  // @@protoc_insertion_point(field_get:celte.req.ClockTick.unified_time_ms)
+  return _internal_unified_time_ms();
+}
+inline void ClockTick::set_unified_time_ms(::int64_t value) {
+  _internal_set_unified_time_ms(value);
+  // @@protoc_insertion_point(field_set:celte.req.ClockTick.unified_time_ms)
+}
+inline ::int64_t ClockTick::_internal_unified_time_ms() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.unified_time_ms_;
+}
+inline void ClockTick::_internal_set_unified_time_ms(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.unified_time_ms_ = value;
 }
 
 #ifdef __GNUC__

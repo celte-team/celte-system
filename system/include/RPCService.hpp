@@ -38,14 +38,17 @@ template <typename Ret> struct Awaitable {
         std::cerr << "Timeout waiting for future" << std::endl;
         return;
       }
-      Ret ret = future->get();
-      f(ret);
+      try {
+        Ret ret = future->get();
+        f(ret);
+      } catch (std::exception &e) {
+        std::cerr << "Error in async rpc future: " << e.what() << std::endl;
+      }
     });
   }
 
 private:
   std::shared_ptr<std::future<Ret>> _future;
-  boost::asio::io_service &_io;
 };
 
 class RPCService : public CelteService {
@@ -75,8 +78,6 @@ public:
 
   template <typename Ret, typename... Args>
   Ret Call(const std::string &topic, const std::string &name, Args... args) {
-    static_assert(std::is_base_of<google::protobuf::Message, Ret>::value,
-                  "Ret must be a protobuf message.");
     req::RPRequest req;
     req.set_name(name);
     req.set_responds_to("");
@@ -93,13 +94,13 @@ public:
     _writerStreamPool.Write(topic, req);
 
     std::string result = promise->get_future().get(); // json of response.args
-    // return nlohmann::json::parse(result).get<Ret>();
-    // return google::protobuf::util::JsonStringToMessage<Ret>(result);
-    Ret ret;
-    if (!google::protobuf::util::JsonStringToMessage(result, &ret).ok()) {
-      std::cerr << "Error parsing json to message: " << result << std::endl;
+    try {
+      Ret ret = nlohmann::json::parse(result).get<Ret>();
+      return ret;
+    } catch (nlohmann::json::exception &e) {
+      std::cerr << "Error parsing json: " << e.what() << std::endl;
+      throw e; // todo custom error type
     }
-    return ret;
   }
 
   template <typename... Args>
@@ -140,12 +141,13 @@ public:
     auto future = std::make_shared<std::future<Ret>>(
         std::async(std::launch::async, [promise]() {
           std::string result = promise->get_future().get();
-          Ret r;
-          if (!google::protobuf::util::JsonStringToMessage(result, &r).ok()) {
-            std::cerr << "Error parsing json to message: " << result
-                      << std::endl;
+          try {
+            Ret ret = nlohmann::json::parse(result).get<Ret>();
+            return ret;
+          } catch (nlohmann::json::exception &e) {
+            std::cerr << "Error parsing json: " << e.what() << std::endl;
+            throw e; // todo custom error type
           }
-          return r;
         }));
 
     _writerStreamPool.Write(topic, req, [topic, name](pulsar::Result r) {
