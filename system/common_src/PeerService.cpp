@@ -18,6 +18,10 @@ PeerService::PeerService(std::function<void(bool)> onReady,
           .reponseTopic = tp::peer(RUNTIME.GetUUID()),
           .serviceName = tp::peer(RUNTIME.GetUUID())}),
       _wspool({.idleTimeout = 10000ms}) {
+
+  std::cout << "Listening on " << tp::rpc(RUNTIME.GetUUID()) << " and "
+            << tp::global_rpc << std::endl;
+
   CLOCK.Start();
   RUNTIME.ScheduleAsyncTask([this, onReady, connectionTimeout]() {
     if (!__waitNetworkReady(connectionTimeout)) {
@@ -43,6 +47,7 @@ bool PeerService::__waitNetworkReady(
       return false;
     }
   }
+  std::cout << "Peer network is ready" << std::endl;
   return true;
 }
 
@@ -87,6 +92,8 @@ void PeerService::__registerServerRPCs() {
   _rpcService->Register<std::string>(
       "__rp_getPlayerSpawnPosition",
       std::function([this](std::string clientId) {
+        std::cout << "Requesting spawn position for client " << clientId
+                  << std::endl;
         return __rp_spawnPositionRequest(clientId);
       }));
 
@@ -105,23 +112,26 @@ bool PeerService::__rp_assignGrape(const std::string &grapeId) {
   std::cout << "Assigning grape " << grapeId << std::endl;
   RUNTIME.SetAssignedGrape(grapeId);
   RUNTIME.TopExecutor().PushTaskToEngine(
-      [grapeId]() { RUNTIME.Hooks().onLoadGrape(grapeId); });
+      [grapeId]() { RUNTIME.Hooks().onLoadGrape(grapeId, true); });
   return true;
 }
 
 std::string
 PeerService::__rp_spawnPositionRequest(const std::string &clientId) {
-  std::cout << "Requesting spawn position for client " << clientId << std::endl;
-  return "LeChateauDuMechant";
+  // return RUNTIME.Hooks().onGetClientInitialGrape(clientId);
+  std::string grapeId = RUNTIME.Hooks().onGetClientInitialGrape(clientId);
+  nlohmann::json j = {{"grapeId", grapeId}, {"clientId", clientId}};
+  std::cout << "returning " << j.dump() << std::endl;
+  return j.dump();
 }
 
 bool PeerService::__rp_acceptNewClient(const std::string &clientId) {
-  std::cout << "Accepting new client " << clientId << std::endl;
   GRAPES.RunWithLock(RUNTIME.GetAssignedGrape(), [clientId](Grape &g) {
     g.clientRegistry->RegisterClient(clientId, g.id, true);
+    g.executor.PushTaskToEngine(
+        [clientId]() { RUNTIME.Hooks().onAcceptNewClient(clientId); });
   });
-  // _rpcService->CallAsync<bool>(tp::rpc(clientId), "__rp_forceConnectToChunk",
-  //                              RUNTIME.GetAssignedGrape());
+
   return true;
 }
 

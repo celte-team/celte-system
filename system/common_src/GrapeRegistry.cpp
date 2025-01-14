@@ -20,6 +20,7 @@ void GrapeRegistry::RegisterGrape(const std::string &grapeId,
       acc->second.clientRegistry->StartKeepAliveThread();
     }
 #endif
+    acc.release();
     if (onReady) {
       RUNTIME.ScheduleAsyncTask([onReady, grapeId]() {
         // wait for the rpc service to be ready
@@ -29,8 +30,9 @@ void GrapeRegistry::RegisterGrape(const std::string &grapeId,
                  not acc2->second.rpcService->Ready()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
           }
+          acc2.release();
+          GRAPES.PushTaskToEngine(grapeId, onReady);
         }
-        onReady();
       });
     }
   } else {

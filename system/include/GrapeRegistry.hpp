@@ -90,27 +90,36 @@ public:
 
   inline void RunWithLock(const std::string &grapeId,
                           std::function<void(Grape &)> f) {
+    std::cout << "Running with lock" << std::endl;
     accessor acc;
     if (_grapes.find(acc, grapeId)) {
       f(acc->second);
+    } else {
+      std::cout << "Grape not found: " << grapeId << std::endl;
     }
   }
 
   template <typename T>
   void RunWithLock(const std::string &grapeId, T *instance,
                    void (T::*memberFunc)(Grape &)) {
+    std::cout << "Running with lock" << std::endl;
     accessor acc;
     if (_grapes.find(acc, grapeId)) {
       (instance->*memberFunc)(acc->second);
+    } else {
+      std::cout << "Grape not found: " << grapeId << std::endl;
     }
   }
 
   template <typename T, typename... Args>
   void RunWithLock(const std::string &grapeId, T *instance,
                    void (T::*memberFunc)(Grape &, Args...), Args... args) {
+    std::cout << "Running with lock" << std::endl;
     accessor acc;
     if (_grapes.find(acc, grapeId)) {
       (instance->*memberFunc)(acc->second, args...);
+    } else {
+      std::cout << "Grape not found: " << grapeId << std::endl;
     }
   }
 

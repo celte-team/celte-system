@@ -173,8 +173,8 @@ private:
   void __handleRemoteCall(const req::RPRequest &req);
   void __handleResponse(const req::RPRequest &req);
 
-  std::unordered_map<std::string,
-                     std::function<nlohmann::json(const nlohmann::json &)>>
+  static std::unordered_map<
+      std::string, std::function<nlohmann::json(const nlohmann::json &)>>
       _rpcs;
   Options _options;
   WriterStreamPool _writerStreamPool;

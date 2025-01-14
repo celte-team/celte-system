@@ -1,5 +1,6 @@
+// Copyright (C) <2024> <CELTE> This file is part of CELTE must not be copied
+// and/or distributed without the express permission of  the CELTE team
 #include "ETTRegistry.hpp"
-
 using namespace celte;
 
 ETTRegistry &ETTRegistry::GetInstance() {

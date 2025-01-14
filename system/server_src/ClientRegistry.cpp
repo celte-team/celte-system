@@ -27,11 +27,23 @@ void ClientRegistry::StartKeepAliveThread() {
   _keepAliveThread = std::thread([this, step] {
     while (_keepAliveThreadRunning) {
       std::this_thread::sleep_for(std::chrono::seconds(step));
-      for (auto &[clientId, clientData] : _clients) {
-        if (CLOCK.GetUnifiedTime() - clientData.lastSeen >
-            std::chrono::seconds(2 * step)) {
-          _clients.erase(clientId);
+      std::vector<std::string> clientsToRemove;
+
+      tbb::concurrent_hash_map<std::string, ClientData>::accessor accessor;
+      for (auto it = _clients.begin(); it != _clients.end(); ++it) {
+        if (_clients.find(accessor, it->first)) {
+          if (CLOCK.GetUnifiedTime() - accessor->second.lastSeen >
+              std::chrono::seconds(2 * step)) {
+            clientsToRemove.push_back(accessor->first);
+          }
+          accessor.release();
         }
+      }
+
+      for (const auto &clientId : clientsToRemove) {
+        std::cout << "ALERT: Client " << clientId
+                  << " has not been seen for a while." << std::endl;
+        // _clients.erase(clientId);
       }
     }
   });

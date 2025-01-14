@@ -30,8 +30,8 @@ struct HookTable {
 
   /// @brief Called when a grape is loaded (the game should load the map and the
   /// CSN object associated with it).
-  std::function<void(std::string)> onLoadGrape =
-      UNIMPLEMENTED<void, std::string>;
+  std::function<void(std::string, bool)> onLoadGrape =
+      UNIMPLEMENTED<void, std::string, bool>;
 
   /// @brief Called when the connection to the cluster is unsuccessful.
   std::function<void()> onConnectionFailed = UNIMPLEMENTED<void>;

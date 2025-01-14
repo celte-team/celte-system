@@ -5,6 +5,11 @@
 
 namespace celte {
 namespace net {
+
+std::unordered_map<std::string,
+                   std::function<nlohmann::json(const nlohmann::json &)>>
+    RPCService::_rpcs;
+
 std::unordered_map<std::string, std::shared_ptr<std::promise<std::string>>>
     RPCService::rpcPromises;
 std::mutex RPCService::rpcPromisesMutex;
@@ -23,17 +28,18 @@ void RPCService::__initReaderStream(const std::vector<std::string> &topic) {
        .topics = {topic},
        .subscriptionName = _options.serviceName,
        .exclusive = false,
-       .messageHandlerSync =
-           [this](const pulsar::Consumer, req::RPRequest req) {
-             if (!req.responds_to().empty()) {
-               return; // nothing to do, handled in async handler
-             }
-             __handleRemoteCall(req);
-           },
+       .messageHandlerSync = [this](const pulsar::Consumer,
+                                    req::RPRequest req) {},
        .messageHandler =
            [this](const pulsar::Consumer, req::RPRequest req) {
+             std::cout << "[[RPCService]] handling message : "
+                       << req.DebugString() << std::endl;
              if (!req.responds_to().empty()) {
+               std::cout << "handling response" << std::endl;
                __handleResponse(req);
+             } else {
+               std::cout << "handling call" << std::endl;
+               __handleRemoteCall(req);
              }
            }});
 }

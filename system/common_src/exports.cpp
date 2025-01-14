@@ -1,3 +1,5 @@
+// Copyright (C) <2024> <CELTE> This file is part of CELTE must not be copied
+// and/or distributed without the express permission of  the CELTE team
 #include "GrapeRegistry.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
@@ -17,6 +19,11 @@ EXPORT void ConnectToClusterWithAddress(const std::string &address, int port) {
   RUNTIME.ConnectToCluster(address, port);
 }
 EXPORT void CelteTick() { RUNTIME.Tick(); }
+
+EXPORT void RegisterGrape(const std::string &grapeId, bool isLocallyOwned,
+                          std::function<void()> onReady = nullptr) {
+  GRAPES.RegisterGrape(grapeId, isLocallyOwned, onReady);
+}
 
 #pragma endregion
 /* ----------------------------- TASK MANAGEMENT ---------------------------- */
@@ -120,11 +127,16 @@ EXPORT void SetOnGetClientInitialGrapeHook(
   RUNTIME.Hooks().onGetClientInitialGrape = f;
 }
 
+EXPORT void
+SetOnAcceptNewClientHook(std::function<std::string(const std::string &)> f) {
+  RUNTIME.Hooks().onAcceptNewClient = f;
+}
+
 #else // client hooks ------------------------------------------------------ */
 
 #endif // all peers hooks -------------------------------------------------- */
 
-EXPORT void SetOnLoadGrapeHook(std::function<void(std::string)> f) {
+EXPORT void SetOnLoadGrapeHook(std::function<void(std::string, bool)> f) {
   RUNTIME.Hooks().onLoadGrape = f;
 }
 
