@@ -1,6 +1,6 @@
 #pragma once
 #include "Runtime.hpp"
-#include "protos/systems_structs.pb.h"
+#include "systems_structs.pb.h"
 #include "pulsar/Producer.h"
 #include "pulsar/Schema.h"
 #include <google/protobuf/util/json_util.h>

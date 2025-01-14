@@ -5,7 +5,7 @@
 #include "WriterStream.hpp"
 #include "WriterStreamPool.hpp"
 #include "nlohmann/json.hpp"
-#include "protos/systems_structs.pb.h"
+#include "systems_structs.pb.h"
 #include "pulsar/Consumer.h"
 #include "pulsar/Producer.h"
 
