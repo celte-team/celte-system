@@ -1,0 +1,56 @@
+#include "Clock.hpp"
+#include "Topics.hpp"
+#include "protos/systems_structs.pb.h"
+
+using namespace celte;
+
+Clock &Clock::Instance() {
+  static Clock instance;
+  return instance;
+}
+
+void Clock::Start() {
+  _createReaderStream<req::ClockTick>(
+      net::ReaderStream::Options<req::ClockTick>{
+          .thisPeerUuid = RUNTIME.GetUUID(),
+          .topics = {tp::global_clock},
+          .subscriptionName = RUNTIME.GetUUID() + "." + tp::global_clock,
+          .exclusive = false,
+          .messageHandlerSync = [this](const pulsar::Consumer,
+                                       req::ClockTick tick) {
+            __updateCurrentTime(tick);
+          }});
+}
+
+void Clock::Stop() { _destroyAllReaderStreams(); }
+
+Clock::timepoint Clock::GetUnifiedTime() {
+  std::lock_guard<std::mutex> lock(_mutex);
+  return _lastTickValue +
+         (std::chrono::system_clock::now() - _lastTickLocalTime);
+}
+
+void Clock::__updateCurrentTime(const req::ClockTick &tick) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  _lastTickValue = std::chrono::time_point<std::chrono::system_clock>(
+      std::chrono::milliseconds(tick.unified_time_ms()));
+  _lastTickLocalTime = std::chrono::system_clock::now();
+}
+
+celte::Clock::timepoint operator""_ms_later(const unsigned long long int val) {
+  return celte::Clock::Instance().GetUnifiedTime() +
+         std::chrono::milliseconds(val);
+}
+
+void Clock::ScheduleAt(const timepoint &unified_timepoint,
+                       std::function<void()> task) {
+  RUNTIME.ScheduleAsyncTask([this, unified_timepoint, task]() {
+    auto now = GetUnifiedTime();
+    if (now >= unified_timepoint) {
+      task();
+      return;
+    }
+    std::this_thread::sleep_until(unified_timepoint);
+    task();
+  });
+}

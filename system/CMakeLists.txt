@@ -1,52 +1,64 @@
-cmake_minimum_required(VERSION 3.27)
-project(celte-systems)
+cmake_minimum_required(VERSION 3.21)
+project(celte-systems-api LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Set default installation prefix
-set( "${CMAKE_BINARY_DIR}/install" CACHE PATH "Installation prefix")
-
-# Check for in-source builds
-if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-    message(FATAL_ERROR "In-source builds are not allowed. Please create a separate build directory and run CMake from there.")
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "${ENV}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
 endif()
 
-# Include directories
-include_directories(
-    client/include
-    server/include
-    runtime/include
-    runtime/net/include
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    message(STATUS "Found ccache: ${CCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+else()
+    message(STATUS "ccache not found")
+endif()
+
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+    message(FATAL_ERROR "In-source builds are not allowed.")
+endif()
+
+find_package(Protobuf REQUIRED)
+find_package(TBB REQUIRED)
+find_package(Boost REQUIRED COMPONENTS thread system)
+find_package(unofficial-pulsar CONFIG)
+
+set(PROTO_SRC_ROOT "${CMAKE_SOURCE_DIR}/protogen/")
+set(PROTO_SRCS
+    "${PROTO_SRC_ROOT}/systems_structs.pb.cc"
 )
 
+file(GLOB_RECURSE SOURCES "common_src/*.cpp")
+include_directories("${CMAKE_SOURCE_DIR}/include/" "${CMAKE_SOURCE_DIR}/include/protos/")
 
-include_directories(${CMAKE_PREFIX_PATH}/include)
+file(GLOB_RECURSE CLIENT_SRC "${CMAKE_SOURCE_DIR}/client_src/*.cpp")
+file(GLOB_RECURSE SERVER_SRC "${CMAKE_SOURCE_DIR}/server_src/*.cpp")
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+message(STATUS "Proto libraries: ${Protobuf_LIBRARIES}")
 
-set(INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
-set(INSTALL_LIBRARY_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+set(LINK_LIBS_SYSTEMS_API
+    ${Protobuf_LIBRARIES}
+    TBB::tbb
+    TBB::tbbmalloc
+    Boost::system
+    Boost::thread
+    unofficial::pulsar::pulsar
+    protobuf::libprotoc
+    protobuf::libprotobuf
+    protobuf::libprotobuf-lite
+)
 
-message(STATUS "Headers will be installed to ${INSTALL_INCLUDE_DIR}")
-message(STATUS "Libraries will be installed to ${INSTALL_LIBRARY_DIR}")
+add_library(${PROJECT_NAME}_server SHARED ${SOURCES} ${SERVER_SRC} ${PROTO_SRCS})
+target_compile_definitions(${PROJECT_NAME}_server PRIVATE CELTE_SERVER_MODE_ENABLED)
+target_link_libraries(${PROJECT_NAME}_server ${LINK_LIBS_SYSTEMS_API})
 
-# Add subdirectories
-add_subdirectory(runtime)
-add_subdirectory(tests)
-add_subdirectory(tests/basicMultiplayerGame)
+add_library(${PROJECT_NAME}_client SHARED ${SOURCES} ${CLIENT_SRC} ${PROTO_SRCS})
+target_compile_definitions(${PROJECT_NAME}_client PRIVATE CELTE_CLIENT_MODE_ENABLED)
+target_link_libraries(${PROJECT_NAME}_client ${LINK_LIBS_SYSTEMS_API})
 
-if (APPLE)
-    install(DIRECTORY "build/vcpkg_installed/arm64-osx/include/glm" DESTINATION ${INSTALL_INCLUDE_DIR})
-    install(DIRECTORY "build/vcpkg_installed/arm64-osx/include/msgpack" DESTINATION ${INSTALL_INCLUDE_DIR})
-    install(FILES "build/vcpkg_installed/arm64-osx/include/msgpack.hpp" DESTINATION ${INSTALL_INCLUDE_DIR})
-else()
-    install(DIRECTORY "build/vcpkg_installed/x64-linux/include/glm" DESTINATION ${INSTALL_INCLUDE_DIR})
-    install(DIRECTORY "build/vcpkg_installed/x64-linux/include/msgpack" DESTINATION ${INSTALL_INCLUDE_DIR})
-    install(FILES "build/vcpkg_installed/x64-linux/include/msgpack.hpp" DESTINATION ${INSTALL_INCLUDE_DIR})
-endif()
-
-install(DIRECTORY client/include/ DESTINATION ${INSTALL_INCLUDE_DIR}/client)
-install(DIRECTORY server/include/ DESTINATION ${INSTALL_INCLUDE_DIR}/server)
-install(DIRECTORY runtime/include/ DESTINATION ${INSTALL_INCLUDE_DIR}/runtime)
-install(DIRECTORY runtime/net/include/ DESTINATION ${INSTALL_INCLUDE_DIR}/runtime/net)
+install(TARGETS ${PROJECT_NAME}_server DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(TARGETS ${PROJECT_NAME}_client DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include)

@@ -1,9 +1,9 @@
 {
   "dependencies": [
-    "boost",
     "glm",
-    "msgpack",
     "pulsar-client-cpp",
-    "python3"
+    "tbb",
+    "boost",
+    "protobuf"
   ]
 }
