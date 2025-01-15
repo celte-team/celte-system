@@ -3,6 +3,7 @@
 #include "ClientRegistry.hpp"
 #endif
 #include "Executor.hpp"
+#include "Grape.hpp"
 #include "RPCService.hpp"
 #include <string>
 #include <tbb/concurrent_hash_map.h>
@@ -10,23 +11,7 @@
 #define GRAPES celte::GrapeRegistry::GetInstance()
 
 namespace celte {
-struct Grape {
-  std::string id;      ///< The unique identifier of the grape.
-  bool isLocallyOwned; ///< True if this grape is owned by this peer. (only
-                       ///< possible in server mode)
-#ifdef CELTE_SERVER_MODE_ENABLED
-  std::optional<ClientRegistry> clientRegistry; ///< The client registry for
-                                                ///< this grape. Only available
-                                                ///< in server mode.
-#endif
-  Executor executor; ///< The executor for this grape. Tasks to be ran in the
-                     ///< engine can be pushed here.
-  std::optional<net::RPCService>
-      rpcService; ///< The rpc service for this grape. Must be initialized after
-                  ///< the id has been set.
-};
-
-class GrapeRegistry {
+class GrapeRegistry : net::CelteService {
 public:
   using accessor = tbb::concurrent_hash_map<std::string, Grape>::accessor;
   static GrapeRegistry &GetInstance();
@@ -146,6 +131,15 @@ public:
       acc->second.isLocallyOwned = isLocallyOwned;
     }
   }
+
+  /// @brief Creates a container and attaches it to the grape. The container
+  /// will wait for its network service to be ready before calling the onReady
+  /// callback.
+  /// @param grapeId
+  /// @param onReady
+  /// @return The id of the created container.
+  std::string ContainerCreateAndAttach(std::string grapeId,
+                                       std::function<void()> onReady);
 
 private:
   tbb::concurrent_hash_map<std::string, Grape> _grapes;

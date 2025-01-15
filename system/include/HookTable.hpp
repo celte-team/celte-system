@@ -38,5 +38,9 @@ struct HookTable {
 
   /// @brief Called when the connection to the cluster is successful.
   std::function<void()> onConnectionSuccess = UNIMPLEMENTED<void>;
+
+  /// @brief Called when an entity has to be instantiated in the engine.
+  std::function<void(std::string)> onInstantiateEntity =
+      UNIMPLEMENTED<void, std::string>;
 };
 } // namespace celte

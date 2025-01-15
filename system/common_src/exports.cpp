@@ -25,6 +25,18 @@ EXPORT void RegisterGrape(const std::string &grapeId, bool isLocallyOwned,
   GRAPES.RegisterGrape(grapeId, isLocallyOwned, onReady);
 }
 
+EXPORT char *ContainerCreateAndAttach(std::string grapeId,
+                                      std::function<void()> onReady,
+                                      size_t *size) {
+  std::string result = GRAPES.ContainerCreateAndAttach(grapeId, onReady);
+  *size = result.size();
+  return strdup(result.c_str());
+}
+
+EXPORT bool IsGrapeLocallyOwned(const std::string &grapeId) {
+  return GRAPES.IsGrapeLocallyOwned(grapeId);
+}
+
 #pragma endregion
 /* ----------------------------- TASK MANAGEMENT ---------------------------- */
 #pragma region TaskManagement
@@ -147,5 +159,11 @@ EXPORT void SetOnConnectionFailedHook(std::function<void()> f) {
 EXPORT void SetOnConnectionSuccessHook(std::function<void()> f) {
   RUNTIME.Hooks().onConnectionSuccess = f;
 }
+
+EXPORT void
+SetOnInstantiateEntityHook(std::function<void(const std::string &)> f) {
+  RUNTIME.Hooks().onInstantiateEntity = f;
+}
+
 #pragma endregion
 }

@@ -118,7 +118,6 @@ bool PeerService::__rp_assignGrape(const std::string &grapeId) {
 
 std::string
 PeerService::__rp_spawnPositionRequest(const std::string &clientId) {
-  // return RUNTIME.Hooks().onGetClientInitialGrape(clientId);
   std::string grapeId = RUNTIME.Hooks().onGetClientInitialGrape(clientId);
   nlohmann::json j = {{"grapeId", grapeId}, {"clientId", clientId}};
   std::cout << "returning " << j.dump() << std::endl;
