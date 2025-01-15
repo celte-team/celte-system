@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.10)
 project(celte-systems-api LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -25,6 +25,30 @@ find_package(Protobuf REQUIRED)
 find_package(TBB REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread system)
 find_package(unofficial-pulsar CONFIG)
+find_package(hiredis CONFIG REQUIRED)
+
+
+# GENERATE PROTO FILES
+set(PROTO_DIR ${CMAKE_SOURCE_DIR}/protos/)
+set(PROTOGEN_DIR ${CMAKE_SOURCE_DIR}/protogen)
+set(PROTO_EXEC_PATH ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/tools/protobuf)
+
+file(GLOB PROTO_FILES "${PROTO_DIR}/*.proto")
+message(STATUS "protoc executable: ${PROTO_EXEC_PATH}/protoc")
+execute_process(
+    COMMAND ${PROTO_EXEC_PATH}/protoc ${PROTO_FILES} --cpp_out=${PROTOGEN_DIR} --proto_path=${PROTO_DIR}
+    RESULT_VARIABLE result
+    OUTPUT_VARIABLE output
+    ERROR_VARIABLE error_output
+)
+
+# Optionally, check if the command was successful
+if(result)
+    message(FATAL_ERROR "Error running protoc: ${error_output}")
+else()
+    message(STATUS "Protoc ran successfully: ${output}")
+endif()
+
 
 set(PROTO_SRC_ROOT "${CMAKE_SOURCE_DIR}/protogen/")
 set(PROTO_SRCS
@@ -32,12 +56,10 @@ set(PROTO_SRCS
 )
 
 file(GLOB_RECURSE SOURCES "common_src/*.cpp")
-include_directories("${CMAKE_SOURCE_DIR}/include/" "${CMAKE_SOURCE_DIR}/include/protos/")
+include_directories("${CMAKE_SOURCE_DIR}/include/" "${CMAKE_SOURCE_DIR}/protogen")
 
 file(GLOB_RECURSE CLIENT_SRC "${CMAKE_SOURCE_DIR}/client_src/*.cpp")
 file(GLOB_RECURSE SERVER_SRC "${CMAKE_SOURCE_DIR}/server_src/*.cpp")
-
-message(STATUS "Proto libraries: ${Protobuf_LIBRARIES}")
 
 set(LINK_LIBS_SYSTEMS_API
     ${Protobuf_LIBRARIES}
@@ -49,6 +71,7 @@ set(LINK_LIBS_SYSTEMS_API
     protobuf::libprotoc
     protobuf::libprotobuf
     protobuf::libprotobuf-lite
+    hiredis::hiredis
 )
 
 add_library(${PROJECT_NAME}_server SHARED ${SOURCES} ${SERVER_SRC} ${PROTO_SRCS})

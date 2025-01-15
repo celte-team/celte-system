@@ -1,3 +1,4 @@
+#include "Logger.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include <boost/uuid/uuid.hpp>
@@ -38,8 +39,8 @@ void Runtime::ConnectToCluster() {
 }
 
 void Runtime::ConnectToCluster(const std::string &address, int port) {
-  std::cout << "Connecting to pulsar cluster at " << address << ":" << port
-            << std::endl;
+  LOGGER.log(Logger::DEBUG, "Connecting to pulsar cluster at " + address + ":" +
+                                std::to_string(port));
   net::CelteNet::Instance().Connect(address + ":" + std::to_string(port));
   _peerService = std::make_unique<PeerService>(
       std::function<void(bool)>([this](bool connected) {

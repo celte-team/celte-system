@@ -5,14 +5,15 @@
 #include "WriterStream.hpp"
 #include "WriterStreamPool.hpp"
 #include "nlohmann/json.hpp"
-#include "protos/systems_structs.pb.h"
 #include "pulsar/Consumer.h"
 #include "pulsar/Producer.h"
+#include "systems_structs.pb.h"
 
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include "CelteError.hpp"
 #include <algorithm>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
@@ -26,6 +27,13 @@ using namespace std::chrono_literals;
 
 namespace celte {
 namespace net {
+
+class RPCTimeoutException : public CelteError {
+  RPCTimeoutException(const std::string &msg, Logger &log,
+                      std::string file = __FILE__, int line = __LINE__)
+      : CelteError(msg, log, file, line,
+                   [](std::string s) { RUNTIME.Hooks().onRPCTimeout(s); }) {}
+};
 
 template <typename Ret> struct Awaitable {
   Awaitable(std::shared_ptr<std::future<Ret>> future) : _future(future) {}

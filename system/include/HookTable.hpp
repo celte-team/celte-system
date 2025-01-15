@@ -42,5 +42,12 @@ struct HookTable {
   /// @brief Called when an entity has to be instantiated in the engine.
   std::function<void(std::string)> onInstantiateEntity =
       UNIMPLEMENTED<void, std::string>;
+
+  /* ----------------------------- ERROR HANDLERS -----------------------------
+   */
+
+  /// @brief Called when an RPC call times out.
+  std::function<void(const std::string &)> onRPCTimeout =
+      UNIMPLEMENTED<void, const std::string &>;
 };
 } // namespace celte

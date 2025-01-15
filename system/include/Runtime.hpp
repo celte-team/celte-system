@@ -3,6 +3,9 @@
 #include "Config.hpp"
 #include "ETTRegistry.hpp"
 #include "HookTable.hpp"
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <memory>
 #include <string>
 #include <tbb/concurrent_queue.h>
@@ -34,6 +37,12 @@ public:
   /// @brief Executes the runtime loop once. Call this once per frame in the
   /// engine.
   void Tick();
+
+  inline std::string GenUUID() {
+    boost::uuids::random_generator gen;
+    boost::uuids::uuid id = gen();
+    return boost::uuids::to_string(id);
+  }
 
   /* ---------------------- FUNCTIONS FOR INTERNAL USE ---------------------- */
 

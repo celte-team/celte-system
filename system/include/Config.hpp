@@ -9,6 +9,8 @@ namespace celte {
 /// class.
 class Config {
 public:
+  Config();
+
   /// @brief Get the value of a configuration option.
   /// @param key The key of the configuration option.
   /// @return The value of the configuration option, if it exists.

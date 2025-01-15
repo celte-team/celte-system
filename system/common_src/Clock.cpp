@@ -1,6 +1,6 @@
 #include "Clock.hpp"
 #include "Topics.hpp"
-#include "protos/systems_structs.pb.h"
+#include "systems_structs.pb.h"
 
 using namespace celte;
 

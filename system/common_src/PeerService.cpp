@@ -4,7 +4,7 @@
 #include "RPCService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
-#include "protos/systems_structs.pb.h"
+#include "systems_structs.pb.h"
 #include <functional>
 #include <future>
 

@@ -1,7 +1,7 @@
 #include "RPCService.hpp"
 #include "ReaderStream.hpp"
 #include "WriterStream.hpp"
-#include "protos/systems_structs.pb.h"
+#include "systems_structs.pb.h"
 
 namespace celte {
 namespace net {

@@ -2,9 +2,9 @@
 #include "CelteNet.hpp"
 #include "Runtime.hpp"
 #include "nlohmann/json.hpp"
-#include "protos/systems_structs.pb.h"
 #include "pulsar/Consumer.h"
 #include "pulsar/ConsumerConfiguration.h"
+#include "systems_structs.pb.h"
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>

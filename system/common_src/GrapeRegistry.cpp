@@ -55,7 +55,6 @@ GrapeRegistry::ContainerCreateAndAttach(std::string grapeId,
     return "error-bad-grape";
   container->WaitForNetworkReady([container, onReady](bool ready) {
     if (ready) {
-      std::cout << "[[container]] network ready" << std::endl;
       RUNTIME.TopExecutor().PushTaskToEngine([onReady]() { onReady(); });
     }
   });

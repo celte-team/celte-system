@@ -1,7 +1,7 @@
 #pragma once
 #include "CelteService.hpp"
 #include "RPCService.hpp"
-#include "protos/systems_structs.pb.h"
+#include "systems_structs.pb.h"
 #include <memory>
 #include <string>
 
