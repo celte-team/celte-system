@@ -29,10 +29,20 @@ namespace celte {
 namespace net {
 
 class RPCTimeoutException : public CelteError {
+public:
   RPCTimeoutException(const std::string &msg, Logger &log,
                       std::string file = __FILE__, int line = __LINE__)
       : CelteError(msg, log, file, line,
                    [](std::string s) { RUNTIME.Hooks().onRPCTimeout(s); }) {}
+};
+
+class RPCHandlingException : public CelteError {
+public:
+  RPCHandlingException(const std::string &msg, Logger &log,
+                       std::string file = __FILE__, int line = __LINE__)
+      : CelteError(msg, log, file, line, [](std::string s) {
+          RUNTIME.Hooks().onRPCHandlingError(s);
+        }) {}
 };
 
 template <typename Ret> struct Awaitable {

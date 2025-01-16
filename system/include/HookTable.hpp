@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <iostream>
 #include <string>
 
 template <typename Ret, typename... Args>
@@ -40,14 +41,25 @@ struct HookTable {
   std::function<void()> onConnectionSuccess = UNIMPLEMENTED<void>;
 
   /// @brief Called when an entity has to be instantiated in the engine.
-  std::function<void(std::string)> onInstantiateEntity =
-      UNIMPLEMENTED<void, std::string>;
+  std::function<void(std::string, std::string)> onInstantiateEntity =
+      UNIMPLEMENTED<void, std::string, std::string>;
 
   /* ----------------------------- ERROR HANDLERS -----------------------------
    */
 
   /// @brief Called when an RPC call times out.
   std::function<void(const std::string &)> onRPCTimeout =
-      UNIMPLEMENTED<void, const std::string &>;
+      [](const std::string &s) {
+        std::cerr << "RPC call timed out: " << s
+                  << std::endl; // actual logging is done automatically by the
+                                // CelteError class
+      };
+
+  std::function<void(const std::string &)> onRPCHandlingError =
+      [](const std::string &s) {
+        std::cerr << "Error handling RPC: " << s
+                  << std::endl; // actual logging is done automatically by the
+                                // CelteError class
+      };
 };
 } // namespace celte

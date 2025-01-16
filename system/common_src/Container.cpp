@@ -1,5 +1,8 @@
+#include "AuthorityTransfer.hpp"
+#include "CelteError.hpp"
 #include "Container.hpp"
 #include "GrapeRegistry.hpp"
+#include "RPCService.hpp"
 #include "Topics.hpp"
 #include <algorithm>
 #include <boost/uuid/uuid_generators.hpp>
@@ -47,7 +50,19 @@ bool Container::AttachToGrape(const std::string &grapeId) {
   return true;
 }
 
-void Container::__initRPCs() {}
+void Container::__initRPCs() {
+  _rpcService.Register<bool>("__rp_containerTakeAuthority",
+                             std::function([this](std::string args) {
+                               __rp_containerTakeAuthority(args);
+                               return true;
+                             }));
+
+  _rpcService.Register<bool>("__rp_containerDropAuthority",
+                             std::function([this](std::string args) {
+                               __rp_containerDropAuthority(args);
+                               return true;
+                             }));
+}
 
 void Container::__initStreams() {
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -73,4 +88,22 @@ void Container::__initStreams() {
 #ifdef CELTE_SERVER_MODE_ENABLED
   }
 #endif
+}
+
+void Container::__rp_containerTakeAuthority(const std::string &args) {
+  try {
+    nlohmann::json j = nlohmann::json::parse(args);
+    AuthorityTransfer::ExecTakeOrder(j);
+  } catch (const std::exception &e) {
+    THROW_ERROR(net::RPCHandlingException, e.what());
+  }
+}
+
+void Container::__rp_containerDropAuthority(const std::string &args) {
+  try {
+    nlohmann::json j = nlohmann::json::parse(args);
+    AuthorityTransfer::ExecDropOrder(j);
+  } catch (const std::exception &e) {
+    THROW_ERROR(net::RPCHandlingException, e.what());
+  }
 }

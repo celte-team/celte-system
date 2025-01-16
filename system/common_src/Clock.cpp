@@ -37,10 +37,11 @@ void Clock::__updateCurrentTime(const req::ClockTick &tick) {
   _lastTickLocalTime = std::chrono::system_clock::now();
 }
 
-celte::Clock::timepoint operator""_ms_later(const unsigned long long int val) {
-  return celte::Clock::Instance().GetUnifiedTime() +
-         std::chrono::milliseconds(val);
-}
+// celte::Clock::timepoint operator""_ms_later(const unsigned long long int val)
+// {
+//   return celte::Clock::Instance().GetUnifiedTime() +
+//          std::chrono::milliseconds(val);
+// }
 
 void Clock::ScheduleAt(const timepoint &unified_timepoint,
                        std::function<void()> task) {
@@ -53,4 +54,20 @@ void Clock::ScheduleAt(const timepoint &unified_timepoint,
     std::this_thread::sleep_until(unified_timepoint);
     task();
   });
+}
+
+std::string Clock::ToISOString(const timepoint &tp) {
+  std::time_t t = std::chrono::system_clock::to_time_t(tp);
+  std::tm tm = *std::gmtime(&t);
+  std::stringstream ss;
+  ss << std::put_time(&tm, "%FT%T");
+  return ss.str();
+}
+
+Clock::timepoint Clock::FromISOString(const std::string &str) {
+  std::tm tm = {};
+  std::stringstream ss(str);
+  ss >> std::get_time(&tm, "%FT%T");
+  std::time_t t = std::mktime(&tm);
+  return std::chrono::system_clock::from_time_t(t);
 }

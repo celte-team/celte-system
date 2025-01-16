@@ -31,6 +31,12 @@ public:
 
   inline storage &GetEntities() { return _entities; }
 
+  /// @brief Instantiates an entity in the engine by calling the
+  /// onInstantiateEntity hook.
+  void EngineCallInstantiate(const std::string &ettId,
+                             const std::string &payload,
+                             const std::string &ownerContainerId);
+
   /// @brief Runs a function with a lock on the entity.
   /// @param id
   /// @param f
@@ -63,9 +69,15 @@ public:
     }
   }
 
+  /// @brief Returns the id of the server node that owns the entity.
+  /// @param id
+  /// @return
   std::string_view GetEntityOwner(const std::string &id);
   void SetEntityOwner(const std::string &id, const std::string &owner);
 
+  /// @brief Returns the id of the container that owns the entity.
+  /// @param id
+  /// @return
   std::string_view GetEntityOwnerContainer(const std::string &id);
   void SetEntityOwnerContainer(const std::string &id,
                                const std::string &ownerContainer);
@@ -82,4 +94,3 @@ private:
   storage _entities;
 };
 } // namespace celte
-

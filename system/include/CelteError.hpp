@@ -13,6 +13,7 @@
 ** CelteError
 */
 
+#pragma once
 #include "Logger.hpp"
 #include <exception>
 #include <functional>

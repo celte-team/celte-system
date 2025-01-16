@@ -1,5 +1,6 @@
 // Copyright (C) <2024> <CELTE> This file is part of CELTE must not be copied
 // and/or distributed without the express permission of  the CELTE team
+#include "AuthorityTransfer.hpp"
 #include "GrapeRegistry.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
@@ -37,12 +38,13 @@ EXPORT bool IsGrapeLocallyOwned(const std::string &grapeId) {
   return GRAPES.IsGrapeLocallyOwned(grapeId);
 }
 
-EXPORT void RegisterNewEntity(const std::string &id, const std::string &ownerSN,
+EXPORT void RegisterNewEntity(const std::string &id,
+                              __attribute__((unused))
+                              const std::string &_ownerSN,
                               const std::string &ownerContainerId) {
   ETTREGISTRY.RegisterEntity({
       .id = id,
-      .ownerSN = ownerSN,
-      .ownerContainerId = ownerContainerId,
+      .ownerContainerId = "ownerContainerId",
   });
 }
 
@@ -50,6 +52,12 @@ EXPORT char *GetNewUUID(size_t *size) {
   std::string uuid = RUNTIME.GenUUID();
   *size = uuid.size();
   return strdup(uuid.c_str());
+}
+
+EXPORT void ProcessEntityContainerAssignment(const std::string &entityId,
+                                             const std::string &toContainerId,
+                                             const std::string &payload) {
+  celte::AuthorityTransfer::TransferAuthority(entityId, toContainerId, payload);
 }
 
 #pragma endregion
@@ -175,8 +183,8 @@ EXPORT void SetOnConnectionSuccessHook(std::function<void()> f) {
   RUNTIME.Hooks().onConnectionSuccess = f;
 }
 
-EXPORT void
-SetOnInstantiateEntityHook(std::function<void(const std::string &)> f) {
+EXPORT void SetOnInstantiateEntityHook(
+    std::function<void(const std::string &, const std::string &)> f) {
   RUNTIME.Hooks().onInstantiateEntity = f;
 }
 

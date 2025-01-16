@@ -29,6 +29,14 @@ public:
     return _grapes;
   }
 
+  /// @brief Checks if a container exists in the grape registry.
+  bool ContainerExists(const std::string &containerId);
+
+  /// @brief Returns the id of the grape that the container is attached to, or
+  /// std::nullopt if the container is not attached to any grape.
+  std::optional<std::string>
+  GetOwnerOfContainer(const std::string &containerId);
+
   /// @brief Pushes a task that will be asynchronously executed by the system.
   /// If the task is an I/O task, use PushIOTaskToSystem instead.
   /// @param grapeId
