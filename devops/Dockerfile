@@ -8,9 +8,7 @@
         # Docker run -p 8080-8100:8080-8100 -p 35729:35729 -v $(pwd):/celte-system -it [NAMEOFTHEIMAGE]_x86 /bin/bash
         # Then cd /celte-system and run the following command:
         # cd build, etc...
-
 # ////////////////////////////////////////
-
 
 # Use Fedora as the base image
 FROM fedora:38

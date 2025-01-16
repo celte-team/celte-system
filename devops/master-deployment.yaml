@@ -13,20 +13,21 @@ spec:
         app: master
     spec:
       containers:
-      - name: master
+      - env:
+        - name: DOCKER_HOST_IP
+          value: 192.168.0.19
+        - name: PULSAR_BROKERS
+          value: pulsar://192.168.0.19:6650
+        - name: REDIS_HOST
+          value: 192.168.0.19:6379
         image: clmt/celte-master:latest
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "128Mi"
-          limits:
-            cpu: "200m"
-            memory: "256Mi"
+        name: master
         ports:
         - containerPort: 8080
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 2048m
+            memory: 2048Mi
+          requests:
+            cpu: 1024m
+            memory: 1024Mi

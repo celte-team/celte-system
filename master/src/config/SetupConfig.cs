@@ -33,8 +33,16 @@ class SetupConfig
 
     public void SettingUpMaster()
     {
-        GetConfigFile();
-        GetNumberOfGrapes();
+        try
+        {
+            GetConfigFile();
+            GetNumberOfGrapes();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error initializing Master: {e.Message}");
+        }
+
     }
 
     private int GetNumberOfGrapes()

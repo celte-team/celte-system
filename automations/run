@@ -18,6 +18,9 @@ import re
 import time
 import threading
 
+# file
+import k8s
+
 CONTAINER_NAME = "clmt/celte_server"
 env = os.environ.copy()
 current_process = None
@@ -48,19 +51,9 @@ def get_ip_address():
 def run_docker_pulsar():
     global current_process
     os.chdir('pulsar')
-    env['DOCKER_HOST_IP'] = "localhost"
-    current_process = subprocess.Popen(['docker', 'compose', 'down', '-v'], env=env)
-    current_process.wait()
-    current_process = subprocess.Popen(['docker', 'compose', 'up'], env=env)
-    current_process.wait()
-    os.chdir('..')
-
-
-def run_docker_kafka():
-    global current_process
+    export_all_vars()
     env['DOCKER_HOST_IP'] = ip_address
-    os.chdir('kafka')
-    current_process = subprocess.Popen(['docker', 'compose', 'down'])
+    current_process = subprocess.Popen(['docker', 'compose', 'down', '-v'], env=env)
     current_process.wait()
     current_process = subprocess.Popen(['docker', 'compose', 'up'], env=env)
     current_process.wait()
@@ -419,6 +412,11 @@ def run_all():
     subprocess.run(['docker', 'compose', 'down'])
     subprocess.run(['docker', 'compose', 'up', '--no-deps', '--build'], env=env)
 
+def run_prod():
+    os.chdir('prod')
+    run_all()
+    os.chdir('..')
+
 def run_server():
     """Placeholder method to simulate running a server."""
     print("Server is running...")
@@ -436,9 +434,12 @@ def flush_pulsar():
     """Flush the Pulsar topics."""
     print("Flushing Pulsar topics...")
     os.chdir('pulsar')
-    subprocess.run(['rm', '-fr', 'data'])
-    subprocess.run(['mkdir', '-p', 'data/bookkeeper/', 'data/zookeeper/'])
-    os.chdir('..')
+    if os.path.exists('data'):
+        subprocess.run(['rm', '-fr', 'data'])
+        subprocess.run(['mkdir', '-p', 'data/bookkeeper/', 'data/zookeeper/'])
+        os.chdir('..')
+    else:
+        print(f"{Fore.ORANGE}Pulsar data directory not found{Style.RESET_ALL}")
 
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -447,14 +448,15 @@ launcher = {
     '--cpp': run_docker_cpp,
     '--join-cpp': join_docker_cpp,
     '--build': build_docker_image,
-    '--requirements': lambda: subprocess.run(['pip3', 'install', 'colorama']),
     '--help': lambda: usage(),
     '--bin': run_binary,
     '--test': run_tests,
     '--redis': run_redis_sentinel,
     '--master': run_master,
     '--all': run_all,
-    '--flush': flush_pulsar
+    '--prod': run_prod,
+    '--flush': flush_pulsar,
+    '--k8s': k8s.k8s_launch,
 }
 
 def usage():
@@ -471,8 +473,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     ip_address = get_ip_address()
-    export_env_vars('DOCKER_HOST_IP', ip_address)
-
+    export_all_vars()
     # if there is multiple commands, run them
     for command in sys.argv[1:]:
         if command in launcher:
