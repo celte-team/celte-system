@@ -13,6 +13,7 @@
 ** Replicator
 */
 #include "Replicator.hpp"
+#include "Clock.hpp"
 #include "nlohmann/json.hpp"
 #include <cstring>
 
@@ -37,7 +38,7 @@ namespace celte {
     {
         try {
             nlohmann::json j;
-            // j["timestamp"] = CLOCK.GetUnifiedTime().
+            j["timestamp"] = CLOCK.ToISOString(CLOCK.GetUnifiedTime());
             bool changed = false;
             for (auto& [key, value] : _replicatedValues) {
                 std::string raw = value.get();
