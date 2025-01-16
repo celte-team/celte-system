@@ -25,15 +25,16 @@ find_package(Protobuf REQUIRED)
 find_package(TBB REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread system)
 find_package(unofficial-pulsar CONFIG)
+find_package(hiredis CONFIG REQUIRED)
 
 
 # GENERATE PROTO FILES
 set(PROTO_DIR ${CMAKE_SOURCE_DIR}/protos/)
 set(PROTOGEN_DIR ${CMAKE_SOURCE_DIR}/protogen)
-set(PROTO_EXEC_PATH ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x64-linux/tools/protobuf)
+set(PROTO_EXEC_PATH ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/tools/protobuf)
 
 file(GLOB PROTO_FILES "${PROTO_DIR}/*.proto")
-
+message(STATUS "protoc executable: ${PROTO_EXEC_PATH}/protoc")
 execute_process(
     COMMAND ${PROTO_EXEC_PATH}/protoc ${PROTO_FILES} --cpp_out=${PROTOGEN_DIR} --proto_path=${PROTO_DIR}
     RESULT_VARIABLE result
@@ -70,6 +71,7 @@ set(LINK_LIBS_SYSTEMS_API
     protobuf::libprotoc
     protobuf::libprotobuf
     protobuf::libprotobuf-lite
+    hiredis::hiredis
 )
 
 add_library(${PROJECT_NAME}_server SHARED ${SOURCES} ${SERVER_SRC} ${PROTO_SRCS})

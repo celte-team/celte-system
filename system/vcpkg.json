@@ -3,7 +3,8 @@
     "glm",
     "pulsar-client-cpp",
     "tbb",
-    "boost",
+    "boost-asio",
+    "hiredis",
     {
       "name": "protobuf",
       "version>=": "4.25.1"

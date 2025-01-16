@@ -55,9 +55,29 @@ GrapeRegistry::ContainerCreateAndAttach(std::string grapeId,
     return "error-bad-grape";
   container->WaitForNetworkReady([container, onReady](bool ready) {
     if (ready) {
-      std::cout << "[[container]] network ready" << std::endl;
       RUNTIME.TopExecutor().PushTaskToEngine([onReady]() { onReady(); });
     }
   });
   return container->GetId();
+}
+
+bool GrapeRegistry::ContainerExists(const std::string &containerId) {
+  for (auto &[_, grape] : _grapes) {
+    decltype(grape.containers)::accessor acc;
+    if (grape.containers.find(acc, containerId)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+std::optional<std::string>
+GrapeRegistry::GetOwnerOfContainer(const std::string &containerId) {
+  for (auto &[_, grape] : _grapes) {
+    decltype(grape.containers)::accessor acc;
+    if (grape.containers.find(acc, containerId)) {
+      return grape.id;
+    }
+  }
+  return std::nullopt;
 }

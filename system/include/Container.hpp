@@ -59,6 +59,9 @@ namespace celte {
         void __initStreams();
         void __handlerReplMessage(req::ReplicationDataPacket req);
 
+        void __rp_containerTakeAuthority(const std::string& args);
+        void __rp_containerDropAuthority(const std::string& args);
+
         std::string _id; ///< Unique id on the network
         std::string _grapeId; ///< The grape this container belongs to
         bool _isLocallyOwned; ///< True if this container is owned by this peer

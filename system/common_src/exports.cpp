@@ -1,5 +1,6 @@
 // Copyright (C) <2024> <CELTE> This file is part of CELTE must not be copied
 // and/or distributed without the express permission of  the CELTE team
+#include "AuthorityTransfer.hpp"
 #include "GrapeRegistry.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
@@ -12,7 +13,7 @@
 
 extern "C" {
 /* ------------------- EXPORT RUNTIME TOP LEVEL FUNCTIONS ------------------- */
-#pragma region Runtime
+#pragma region TOP LEVEL BINDINGS
 
 EXPORT void ConnectToCluster() { RUNTIME.ConnectToCluster(); }
 EXPORT void ConnectToClusterWithAddress(const std::string &address, int port) {
@@ -37,9 +38,31 @@ EXPORT bool IsGrapeLocallyOwned(const std::string &grapeId) {
   return GRAPES.IsGrapeLocallyOwned(grapeId);
 }
 
+EXPORT void RegisterNewEntity(const std::string &id,
+                              __attribute__((unused))
+                              const std::string &_ownerSN,
+                              const std::string &ownerContainerId) {
+  ETTREGISTRY.RegisterEntity({
+      .id = id,
+      .ownerContainerId = "ownerContainerId",
+  });
+}
+
+EXPORT char *GetNewUUID(size_t *size) {
+  std::string uuid = RUNTIME.GenUUID();
+  *size = uuid.size();
+  return strdup(uuid.c_str());
+}
+
+EXPORT void ProcessEntityContainerAssignment(const std::string &entityId,
+                                             const std::string &toContainerId,
+                                             const std::string &payload) {
+  celte::AuthorityTransfer::TransferAuthority(entityId, toContainerId, payload);
+}
+
 #pragma endregion
 /* ----------------------------- TASK MANAGEMENT ---------------------------- */
-#pragma region TaskManagement
+#pragma region TASK MANAGEMENT
 
 EXPORT void PushTaskToSystem(std::function<void()> task) {
   RUNTIME.ScheduleAsyncTask(task);
@@ -79,7 +102,7 @@ EXPORT bool AdvanceGrapeTask(const std::string &grapeId) {
 #pragma endregion
 
 /* --------------------------------- RPC API -------------------------------- */
-
+#pragma region RPC API
 EXPORT void RegisterGlobalRPC(const std::string &name,
                               std::function<std::string(std::string)> f) {
   RUNTIME.RegisterCustomGlobalRPC(name, f);
@@ -132,7 +155,7 @@ EXPORT void CallScopedRPCAsync(const std::string &scope,
 
 #pragma endregion
 /* -------------------------- EXPORT HOOKS SETTERS -------------------------- */
-#pragma region Hooks
+#pragma region HOOKS
 #ifdef CELTE_SERVER_MODE_ENABLED // server hooks --------------------------- */
 EXPORT void SetOnGetClientInitialGrapeHook(
     std::function<std::string(const std::string &)> f) {
@@ -160,9 +183,13 @@ EXPORT void SetOnConnectionSuccessHook(std::function<void()> f) {
   RUNTIME.Hooks().onConnectionSuccess = f;
 }
 
-EXPORT void
-SetOnInstantiateEntityHook(std::function<void(const std::string &)> f) {
+EXPORT void SetOnInstantiateEntityHook(
+    std::function<void(const std::string &, const std::string &)> f) {
   RUNTIME.Hooks().onInstantiateEntity = f;
+}
+
+EXPORT void SetOnRPCTimeoutHook(std::function<void(const std::string &)> f) {
+  RUNTIME.Hooks().onRPCTimeout = f;
 }
 
 #pragma endregion

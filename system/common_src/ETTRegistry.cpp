@@ -14,6 +14,8 @@
 */
 
 #include "ETTRegistry.hpp"
+#include "Runtime.hpp"
+
 using namespace celte;
 
 ETTRegistry& ETTRegistry::GetInstance()
@@ -61,24 +63,6 @@ ETTRegistry::PollEngineTask(const std::string& id)
         return acc->second.executor.PollEngineTask();
     }
     return std::nullopt;
-}
-
-std::string_view ETTRegistry::GetEntityOwner(const std::string& id)
-{
-    accessor acc;
-    if (_entities.find(acc, id)) {
-        return acc->second.ownerSN;
-    }
-    return "";
-}
-
-void ETTRegistry::SetEntityOwner(const std::string& id,
-    const std::string& owner)
-{
-    accessor acc;
-    if (_entities.find(acc, id)) {
-        acc->second.ownerSN = owner;
-    }
 }
 
 std::string_view ETTRegistry::GetEntityOwnerContainer(const std::string& id)
@@ -134,6 +118,18 @@ void ETTRegistry::SetEntityValid(const std::string& id, bool isValid)
 }
 
 void ETTRegistry::Clear() { _entities.clear(); }
+
+void ETTRegistry::EngineCallInstantiate(const std::string& id,
+    const std::string& payload,
+    const std::string& ownerContainerId)
+{
+    ETTRegistry::RegisterEntity({
+        .id = id,
+        .ownerContainerId = ownerContainerId,
+    });
+    RUNTIME.Hooks().onInstantiateEntity(id, payload);
+    LOGGER.log(Logger::LogLevel::DEBUG, "Entity " + id + " instantiated.");
+}
 
 void ETTRegistry::PushReplToEntity(const std::string& id, Replicator::ReplBlob blob)
 {
