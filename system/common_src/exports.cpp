@@ -2,6 +2,7 @@
 // and/or distributed without the express permission of  the CELTE team
 #include "AuthorityTransfer.hpp"
 #include "GrapeRegistry.hpp"
+#include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
 
@@ -60,6 +61,19 @@ EXPORT void ProcessEntityContainerAssignment(const std::string &entityId,
   celte::AuthorityTransfer::TransferAuthority(entityId, toContainerId, payload);
 }
 
+#ifdef CELTE_SERVER_MODE_ENABLED
+EXPORT void ConnectClientToThisNode(std::string clientId,
+                                    std::function<void()> then) {
+  RUNTIME.GetPeerService().ConnectClientToThisNode(clientId, then);
+}
+
+EXPORT void SubscribeClientToContainer(std::string clientId,
+                                       std::string containerId,
+                                       std::function<void()> then) {
+  RUNTIME.GetPeerService().SubscribeClientToContainer(clientId, containerId,
+                                                      then);
+}
+#endif
 #pragma endregion
 /* ----------------------------- TASK MANAGEMENT ---------------------------- */
 #pragma region TASK MANAGEMENT

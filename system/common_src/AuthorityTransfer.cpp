@@ -10,6 +10,7 @@
 
 using namespace celte;
 
+#ifdef CELTE_SERVER_MODE_ENABLED
 static void __notifyTakeAuthority(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Notifying container to take authority.\n" +
@@ -25,6 +26,7 @@ static void __notifyDrop(nlohmann::json args) {
   RUNTIME.GetPeerService().GetRPCService().CallVoid(
       tp::rpc(args["f"]), "__rp_containerDropAuthority", args.dump());
 }
+#endif
 
 void AuthorityTransfer::TransferAuthority(const std::string &entityId,
                                           const std::string &toContainerId,
@@ -42,6 +44,8 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   if (abort) {
     return;
   }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
   const std::string procedureId = RUNTIME.GenUUID();
   nlohmann::json args;
   args["e"] = entityId;
@@ -58,6 +62,7 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   // some peers may not have the toContainerId locally, so we need to notify the
   // fromContainerId as well
   __notifyDrop(args);
+#endif
 }
 
 // macros to unpack the json args for auth transfer (multiple methods use this)

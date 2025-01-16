@@ -104,7 +104,12 @@ void PeerService::__registerServerRPCs() {
 }
 
 #else
-void PeerService::__registerClientRPCs() {}
+void PeerService::__registerClientRPCs() {
+  _rpcService->Register<bool>("__rp_forceConnectToNode",
+                              std::function([this](std::string nodeId) {
+                                return __rp_forceConnectToNode(nodeId);
+                              }));
+}
 #endif
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -134,6 +139,61 @@ bool PeerService::__rp_acceptNewClient(const std::string &clientId) {
   return true;
 }
 
+void PeerService::ConnectClientToThisNode(const std::string &clientId,
+                                          std::function<void()> then) {
+  try {
+    std::cout << "calling rpc on topic " << tp::rpc(clientId) << std::endl;
+    bool ok =
+        _rpcService->Call<bool>(tp::rpc(clientId), "__rp_forceConnectToNode",
+                                RUNTIME.GetAssignedGrape());
+  } catch (net::RPCTimeoutException &e) {
+    std::cerr << "Error connecting client to this node: " << e.what()
+              << std::endl;
+  }
+}
+
+void PeerService::SubscribeClientToContainer(const std::string &clientId,
+                                             const std::string &containerId,
+                                             std::function<void()> then) {
+
+  std::cout << "subscribing client to container" << std::endl;
+  // try {
+  //   bool ok = _rpcService->Call<bool>(
+  //       tp::rpc(clientId), "__rp_subscribeClientToContainer", containerId);
+  // } catch (net::RPCTimeoutException &e) {
+  //   std::cerr << "Error subscribing client to container: " << e.what()
+  //             << std::endl;
+  // }
+}
+
 #else
 
+bool PeerService::__rp_forceConnectToNode(const std::string &grapeId) {
+  // std::condition_variable cv;
+  // bool ready = false;
+  // std::mutex m;
+
+  // std::cout << "before register grape" << std::endl;
+  // GRAPES.RegisterGrape(nodeId, false, [nodeId, &m, &cv, &ready]() {
+  //   std::cout << "grape registered" << std::endl;
+  //   std::lock_guard<std::mutex> lock(m);
+  //   ready = true;
+  //   cv.notify_one();
+  // });
+  // std::cout << "after register grape" << std::endl;
+
+  // // waiting for grape to be ready, 2s timeout.
+  // std::unique_lock<std::mutex> lock(m);
+  // if (cv.wait_for(lock, std::chrono::seconds(2), [&ready] { return ready; }))
+  // {
+  //   LOGGER.log(Logger::DEBUG, "Connected to node " + nodeId);
+  //   return true;
+  // } else {
+  //   LOGGER.log(Logger::ERROR, "Failed to connect to node " + nodeId);
+  //   return false;
+  // }
+  RUNTIME.ScheduleAsyncTask(
+      [grapeId]() { RUNTIME.Hooks().onLoadGrape(grapeId, false); });
+  return true;
+}
 #endif
