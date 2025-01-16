@@ -1,6 +1,7 @@
 #pragma once
 #include "RPCService.hpp"
 #include "WriterStreamPool.hpp"
+#include <functional>
 
 using namespace std::chrono_literals;
 
@@ -24,6 +25,15 @@ public:
 
   /// @brief Returns the RPCService of this peer.
   inline net::RPCService &GetRPCService() { return *_rpcService; }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  void ConnectClientToThisNode(const std::string &clientId,
+                               std::function<void()> then);
+
+  void SubscribeClientToContainer(const std::string &clientId,
+                                  const std::string &containerId,
+                                  std::function<void()> then);
+#endif
 
 private:
   /// @brief Waits for the network of the rpc service to be ready
@@ -49,6 +59,9 @@ private:
   /* ------------------------------- CLIENT RPC -------------------------------
    */
 #ifndef CELTE_SERVER_MODE_ENABLED // ! ndef, we are in client mode here
+  /// @brief Forces the client to connect to a specific node. Will register the
+  /// associated grape in the grape registry.
+  bool __rp_forceConnectToNode(const std::string &grapeId);
 
 #endif
   /* ------------------------------- SERVER RPC -------------------------------
