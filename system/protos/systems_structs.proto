@@ -14,7 +14,6 @@ message SpawnPositionRequest {
 
 message ReplicationDataPacket {
   map<string, string> data = 1; // entity id -> blob
-  bool active = 2;
 }
 
 message RPRequest {
@@ -23,4 +22,8 @@ message RPRequest {
   string response_topic = 3;  // where to send the response
   string rpc_id = 4;          // unique id for this rpc
   string args = 5;           // arguments to the rpc, serialized as a JSON string
+}
+
+message ClockTick {
+  int64 unified_time_ms = 2;
 }

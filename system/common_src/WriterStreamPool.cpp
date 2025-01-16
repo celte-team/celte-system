@@ -1,3 +1,18 @@
+/*
+** CELTE, 2025
+** refacto
+
+** Team Members:
+** Eliot Janvier
+** Clement Toni
+** Ewen Briand
+** Laurent Jiang
+** Thomas Laprie
+
+** File description:
+** WriterStreamPool
+*/
+
 #include "WriterStreamPool.hpp"
 
 namespace celte {
@@ -21,6 +36,7 @@ WriterStreamPool::WriterStreamPool(const Options &options)
     }
   });
 }
+
 
 WriterStreamPool::~WriterStreamPool() {
   _running = false;

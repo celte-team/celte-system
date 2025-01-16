@@ -23,7 +23,6 @@
 
 
 namespace celte {
-    namespace runtime {
 
         class Replicator {
             public:
@@ -71,4 +70,3 @@ namespace celte {
             std::unordered_map<std::string, GetSet> _replicatedValues;
         };
     }
-}
