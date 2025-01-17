@@ -413,8 +413,11 @@ def run_all():
     subprocess.run(['docker', 'compose', 'up', '--no-deps', '--build'], env=env)
 
 def run_prod():
-    os.chdir('prod')
-    run_all()
+    os.chdir('devops/prod')
+    export_all_vars()
+    print(f"{Fore.GREEN}Running all services with env : {env}{Style.RESET_ALL}")
+    subprocess.run(['docker', 'compose', 'down'])
+    subprocess.run(['docker', 'compose', 'up', '--no-deps', '--build'], env=env)
     os.chdir('..')
 
 def run_server():
