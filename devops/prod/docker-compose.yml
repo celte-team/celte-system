@@ -7,7 +7,7 @@ networks:
 services:
   master1:
     build:
-      context: ./master
+      context: ../../master
       dockerfile: Dockerfile
     container_name: master1
     networks:
@@ -33,7 +33,7 @@ services:
 
   master2:
     build:
-      context: ./master
+      context: ../../master
       dockerfile: Dockerfile
     container_name: master2
     networks:
@@ -59,7 +59,7 @@ services:
 
   master3:
     build:
-      context: ./master
+      context: ../../master
       dockerfile: Dockerfile
     container_name: master3
     networks:
@@ -104,7 +104,7 @@ services:
       - '6380:6380'
 
   sentinel:
-    build: ./redis/sentinel
+    build: ../../redis/sentinel
     container_name: redis_sentinel
     restart: on-failure
     networks:
