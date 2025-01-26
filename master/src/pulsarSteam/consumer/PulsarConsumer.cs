@@ -21,17 +21,17 @@ class PulsarConsumer
 
     public PulsarConsumer()
     {
-        Master master = Master.GetInstance();
-        // string pulsarBrokers = master._setupConfig.GetYamlObjectConfig()?["pulsar_brokers"]?.ToString() ?? string.Empty;
-        // get ip from env
-        string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
-        if (string.IsNullOrEmpty(pulsarBrokers))
-        {
-            throw new ArgumentException("Pulsar brokers are not set.");
-        }
-        _client = PulsarClient.Builder()
-            .ServiceUrl(new Uri(pulsarBrokers))
-            .Build();
+        // Master master = Master.GetInstance();
+        // // string pulsarBrokers = master._setupConfig.GetYamlObjectConfig()?["pulsar_brokers"]?.ToString() ?? string.Empty;
+        // // get ip from env
+        // string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
+        // if (string.IsNullOrEmpty(pulsarBrokers))
+        // {
+        //     throw new ArgumentException("Pulsar brokers are not set.");
+        // }
+        // _client = PulsarClient.Builder()
+        //     .ServiceUrl(new Uri(pulsarBrokers))
+        //     .Build();
         _consumerTasks = new List<Task>();
         _cancellationTokenSource = new CancellationTokenSource();
     }

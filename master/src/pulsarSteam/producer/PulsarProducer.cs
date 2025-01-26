@@ -6,22 +6,6 @@ class PulsarProducer
 
     public PulsarProducer()
     {
-        try
-        {
-            string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
-            if (string.IsNullOrEmpty(pulsarBrokers))
-            {
-                throw new ArgumentException("Pulsar brokers are not set.");
-            }
-            Uri uri = new Uri(pulsarBrokers);
-            _client = new PulsarClientBuilder()
-                .ServiceUrl(pulsarBrokers)
-                .BuildAsync().Result;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Error initializing Pulsar producer: {e.Message}");
-        }
     }
 
     public async Task ProduceMessageAsync(string topic, string message)
