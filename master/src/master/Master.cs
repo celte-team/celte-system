@@ -1,3 +1,7 @@
+
+using DotPulsar;
+// using DotPulsar.Abstractions;
+
 class Master
 {
     public SetupConfig? _setupConfig;
@@ -6,6 +10,7 @@ class Master
     public PulsarProducer pulsarProducer;
     public CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
     public RPC rpc = new RPC();
+    private readonly DotPulsar.PulsarClient _client;
 
     private Master()
     {
@@ -30,8 +35,13 @@ class Master
         catch (Exception e)
         {
             Console.WriteLine($"Error initializing Master: {e.Message}");
-
+            throw e;
         }
+    }
+
+    public PulsarClient GetPulsarClient()
+    {
+        return _client;
     }
 
     /// <summary>
@@ -39,21 +49,26 @@ class Master
     /// </summary>
     public void StartPulsarConsumer()
     {
-        ConnectNode connectNode = new ConnectNode();
-        ConnectClient connectClient = new ConnectClient();
-        pulsarConsumer.CreateConsumer(new SubscribeOptions
-        {
-            Topics = "persistent://public/default/" + M.Global.MasterHelloSn,
-            SubscriptionName = M.Global.MasterHelloSn,
-            Handler = (consumer, message) => connectNode.connectNewNode(message)
-        });
-        pulsarConsumer.CreateConsumer(new SubscribeOptions
-        {
-            Topics = "persistent://public/default/" + M.Global.MasterHelloClient,
-            SubscriptionName = M.Global.MasterHelloClient,
-            Handler = (consumer, message) => connectClient.ConnectNewClient(message)
-        });
-        rpc.InitConsumer();
+        try {
+            ConnectNode connectNode = new ConnectNode();
+            ConnectClient connectClient = new ConnectClient();
+            pulsarConsumer.CreateConsumer(new SubscribeOptions
+            {
+                Topics = "persistent://public/default/" + M.Global.MasterHelloSn,
+                SubscriptionName = M.Global.MasterHelloSn,
+                Handler = (consumer, message) => connectNode.connectNewNode(message)
+            });
+            pulsarConsumer.CreateConsumer(new SubscribeOptions
+            {
+                Topics = "persistent://public/default/" + M.Global.MasterHelloClient,
+                SubscriptionName = M.Global.MasterHelloClient,
+                Handler = (consumer, message) => connectClient.ConnectNewClient(message)
+            });
+            rpc.InitConsumer();
+        } catch (Exception e) {
+            Console.WriteLine($"Error starting Pulsar consumer: {e.Message}");
+            throw e;
+        }
     }
 
     public static Master GetInstance()

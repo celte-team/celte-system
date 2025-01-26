@@ -14,7 +14,7 @@ public class SubscribeOptions
 
 class PulsarConsumer
 {
-    private readonly IPulsarClient _client;
+    // private readonly IPulsarClient _client;
     private readonly List<Task> _consumerTasks;
     private readonly CancellationTokenSource _cancellationTokenSource;
 
@@ -42,9 +42,10 @@ class PulsarConsumer
             throw new ArgumentException("Message handler is not set.");
         try
         {
-            var consumer = _client.NewConsumer()
+            var consumer = Master.GetInstance().GetPulsarClient().NewConsumer()
                 .Topic(options.Topics)
                 .SubscriptionName(options.SubscriptionName)
+                .SubscriptionType(SubscriptionType.Shared)
                 .Create();
 
             options.Consumer = consumer;
@@ -107,6 +108,6 @@ class PulsarConsumer
         await Task.WhenAll(_consumerTasks);
 
         Console.WriteLine("All consumers shut down.");
-        await _client.DisposeAsync();
+        await Master.GetInstance().GetPulsarClient().DisposeAsync();
     }
 }

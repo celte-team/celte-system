@@ -78,6 +78,7 @@ public class RPC
             }
             return;
         }
+        Console.WriteLine($"<RPC> Received RPC call {request.name} with args {request.args}");
         if (_rpcHandlers.TryGetValue(request.name, out Func<JsonElement, JsonElement?>? value))
         {
             JsonElement? response = value(request.args);
@@ -115,7 +116,9 @@ public class RPC
             rpcId = rpcId.ToString(),
             args = args
         };
+        Console.WriteLine($"<Calling RPC> {methodName} with args {args} on topic {topic}");
         await Master.GetInstance().pulsarProducer.ProduceMessageAsync(topic, request.ToJson());
+        Console.WriteLine($"RPC call {methodName} sent to {topic}");
     }
 
     public string getUUIDFromJSON(JsonElement node)
@@ -138,7 +141,7 @@ public class RPC
         {
             string clientId = args.GetProperty("clientId").GetString();
             string grapeId = args.GetProperty("grapeId").GetString();
-            
+
             float x = args.GetProperty("x").GetSingle();
             float y = args.GetProperty("y").GetSingle();
             float z = args.GetProperty("z").GetSingle();

@@ -33,6 +33,7 @@ namespace Redis {
                 Console.WriteLine("Connected to Redis\n");
             } catch (Exception ex) {
                 Console.WriteLine($"Error connecting to Redis: {ex.Message}");
+                throw;
             }
         }
 
@@ -43,7 +44,16 @@ namespace Redis {
                 string connectionString = Environment.GetEnvironmentVariable("REDIS_HOST") ?? string.Empty;
                 if (string.IsNullOrEmpty(connectionString))
                 {
-                    throw new ArgumentNullException("Connection string cannot be null or empty");
+                    string connectionString = Environment.GetEnvironmentVariable("REDIS_HOST") ?? string.Empty;
+                    if (string.IsNullOrEmpty(connectionString))
+                    {
+                        throw new ArgumentNullException("Connection string cannot be null or empty");
+                    }
+                    _instance = new RedisClient();
+                    RedisData Rd = new RedisData(_instance.GetDatabase());
+                    _instance.redisData = Rd;
+                    RLogger Rl = new RLogger(_instance.GetDatabase());
+                    _instance.rLogger = Rl;
                 }
                 _instance = new RedisClient();
                 RedisData Rd = new RedisData(_instance.GetDatabase());
@@ -51,7 +61,6 @@ namespace Redis {
                 RLogger Rl = new RLogger(_instance.GetDatabase());
                 _instance.rLogger = Rl;
             }
-            return _instance;
         }
 
         public IDatabase GetDatabase() => _db;

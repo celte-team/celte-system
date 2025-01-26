@@ -1,11 +1,7 @@
-using System;
 using System.Text;
-using System.Threading.Tasks;
-using Pulsar.Client.Api;
-
+using DotPulsar.Extensions;
 class PulsarProducer
 {
-    private readonly PulsarClient? _client;
     private Master master = Master.GetInstance();
 
     public PulsarProducer()
@@ -32,16 +28,16 @@ class PulsarProducer
     {
         try
         {
-            var producer = await _client.NewProducer()
+            var producer = Master.GetInstance().GetPulsarClient().NewProducer()
                 .Topic(topic)
-                .CreateAsync();
+                .Create();
             Redis.ActionLog actionLog = new Redis.ActionLog
             {
                 ActionType = "ProduceMessage",
                 Details = $"Produced message to topic {topic}"
             };
             Redis.RedisClient.GetInstance().rLogger.LogActionAsync(actionLog).Wait();
-            await producer.SendAsync(Encoding.UTF8.GetBytes(message));
+            await producer.Send(Encoding.UTF8.GetBytes(message));
         }
         catch (Exception e)
         {
@@ -53,9 +49,9 @@ class PulsarProducer
     {
         try
         {
-            var producer = await _client.NewProducer()
+            var producer = (Master.GetInstance().GetPulsarClient()).NewProducer()
                 .Topic(topic)
-                .CreateAsync();
+                .Create();
         }
         catch (Exception e)
         {
@@ -63,19 +59,7 @@ class PulsarProducer
         }
     }
 
-    public async Task SendMessageAwaitResponseAsyncRpc(string topic, byte[] message, string uuidProcess, Action<byte[]> callBackFunction)
-    {
-        // Here will be implemented the logic to send a message and wait for a response to trigger a callback function
-    }
-
-    public void Dispose()
-    {
-        // _client.Close();
-        // _client.Dispose();
-    }
-
     ~PulsarProducer()
     {
-        Dispose();
     }
 }

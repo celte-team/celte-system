@@ -7,7 +7,7 @@ networks:
 services:
   master1:
     build:
-      context: ./master
+      context: ../../master
       dockerfile: Dockerfile
     container_name: master1
     networks:
@@ -33,7 +33,7 @@ services:
 
   master2:
     build:
-      context: ./master
+      context: ../../master
       dockerfile: Dockerfile
     container_name: master2
     networks:
@@ -59,7 +59,7 @@ services:
 
   master3:
     build:
-      context: ./master
+      context: ../../master
       dockerfile: Dockerfile
     container_name: master3
     networks:
@@ -104,7 +104,7 @@ services:
       - '6380:6380'
 
   sentinel:
-    build: ./redis/sentinel
+    build: ../../redis/sentinel
     container_name: redis_sentinel
     restart: on-failure
     networks:
@@ -147,12 +147,12 @@ services:
     restart: on-failure
     networks:
       - pulsar
-    volumes:
-      - ./pulsar/data/zookeeper:/pulsar/data/zookeeper
-      # - zookeeper-data:/pulsar/data/zookeeper
+    # volumes:
+    #   - ./pulsar/data/zookeeper:/pulsar/data/zookeeper
+    #   # - zookeeper-data:/pulsar/data/zookeeper
     environment:
       - metadataStoreUrl=zk:zookeeper:2181
-      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
+      - PULSAR_MEM=-Xms256m -Xmx256m -XX:MaxDirectMemorySize=256m
     ports:
       - "2181:2181"
     command: >
@@ -174,6 +174,8 @@ services:
       - pulsar
     command: >
       bin/pulsar initialize-cluster-metadata --cluster cluster-a --zookeeper zookeeper:2181 --configuration-store zookeeper:2181 --web-service-url http://broker:8080 --broker-service-url pulsar://broker:6650
+    environment:
+      - PULSAR_MEM=-Xms256m -Xmx256m -XX:MaxDirectMemorySize=256m
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -193,16 +195,12 @@ services:
       # otherwise every time we run docker compose uo or down we fail to start due to Cookie
       # See: https://github.com/apache/bookkeeper/blob/405e72acf42bb1104296447ea8840d805094c787/bookkeeper-server/src/main/java/org/apache/bookkeeper/bookie/Cookie.java#L57-68
       - advertisedAddress=bookie
-      - BOOKIE_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
+      - BOOKIE_MEM=-Xms256m -Xmx256m -XX:MaxDirectMemorySize=256m
     depends_on:
       zookeeper:
         condition: service_healthy
       pulsar-init:
         condition: service_completed_successfully
-    # Map the local directory to the container to avoid bookie startup failure due to insufficient container disks.
-    volumes:
-      - ./pulsar/data/bookkeeper:/pulsar/data/bookkeeper
-      # - bookkeeper-data:/pulsar/data/bookkeeper
     ports:
       - "3181:3181"
     command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie"
@@ -222,10 +220,9 @@ services:
       - managedLedgerDefaultEnsembleSize=1
       - managedLedgerDefaultWriteQuorum=1
       - managedLedgerDefaultAckQuorum=1
-      - advertisedAddress=broker
-      - advertisedListeners=external:pulsar://127.0.0.1:6650
-      # - advertisedListeners=pulsar://broker:6650
-      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
+      - advertisedAddress=${DOCKER_HOST_IP}
+      - advertisedListeners=external:pulsar://${DOCKER_HOST_IP}:6650
+      - PULSAR_MEM=-Xms256m -Xmx256m -XX:MaxDirectMemorySize=256m
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -287,16 +284,17 @@ services:
       - --web.enable-admin-api
 
   grafana:
-    image: grafana/grafana
+    image: streamnative/apache-pulsar-grafana-dashboard:latest
+    container_name: grafana
     ports:
       - "3000:3000"
     networks:
       - pulsar
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=eliotisthebest
-    volumes:
-      # - pulsar-data:/var/lib/grafana
-      - ./pulsar/grafana:/var/lib/grafana
+      - PULSAR_PROMETHEUS_URL=http://prometheus:9090
+      - PULSAR_CLUSTER=celte-pulsar
+    depends_on:
+      - prometheus
 
 volumes:
   pulsar-data:

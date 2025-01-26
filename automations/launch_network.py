@@ -8,12 +8,6 @@ import atexit
 dotnet_process = None
 clock_process = None
 
-def run_docker_compose():
-    os.chdir('kafka')
-    subprocess.run(['docker', 'compose', 'down'])
-    subprocess.run(['docker', 'compose', 'up', '-d'])
-    os.chdir('..')
-
 def wait_for_services():
     while True:
         logs = subprocess.check_output(['docker', 'compose', 'logs', 'haproxy'], cwd='kafka').decode('utf-8')

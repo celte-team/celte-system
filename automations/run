@@ -18,6 +18,9 @@ import re
 import time
 import threading
 
+# file
+import k8s
+
 CONTAINER_NAME = "clmt/celte_server"
 env = os.environ.copy()
 current_process = None
@@ -48,19 +51,9 @@ def get_ip_address():
 def run_docker_pulsar():
     global current_process
     os.chdir('pulsar')
-    env['DOCKER_HOST_IP'] = "localhost"
-    current_process = subprocess.Popen(['docker', 'compose', 'down', '-v'], env=env)
-    current_process.wait()
-    current_process = subprocess.Popen(['docker', 'compose', 'up'], env=env)
-    current_process.wait()
-    os.chdir('..')
-
-
-def run_docker_kafka():
-    global current_process
+    export_all_vars()
     env['DOCKER_HOST_IP'] = ip_address
-    os.chdir('kafka')
-    current_process = subprocess.Popen(['docker', 'compose', 'down'])
+    current_process = subprocess.Popen(['docker', 'compose', 'down', '-v'], env=env)
     current_process.wait()
     current_process = subprocess.Popen(['docker', 'compose', 'up'], env=env)
     current_process.wait()
@@ -403,7 +396,7 @@ def run_tests(yaml_path):
             cluster_process_handle.wait()
             docker_down.wait()
 
-def run_all():
+def export_all_vars():
     export_env_vars('DOCKER_HOST_IP', ip_address)
     export_env_vars('PULSAR_BROKERS', f"pulsar://{ip_address}:6650")
     export_env_vars('REDIS_HOST', f"{ip_address}:6379")
@@ -414,10 +407,20 @@ def run_all():
     os.environ['PULSAR_BROKERS'] = f"pulsar://{ip_address}:6650"
     os.environ['REDIS_HOST'] = f"{ip_address}:6379"
 
+def run_all():
+    export_all_vars()
+    flush_pulsar()
     print(f"{Fore.GREEN}Running all services with env : {env}{Style.RESET_ALL}")
     subprocess.run(['docker', 'compose', 'down'])
-    print("env is : ", env)
     subprocess.run(['docker', 'compose', 'up', '--no-deps', '--build'], env=env)
+
+def run_prod():
+    os.chdir('devops/prod')
+    export_all_vars()
+    print(f"{Fore.GREEN}Running all services with env : {env}{Style.RESET_ALL}")
+    subprocess.run(['docker', 'compose', 'down'])
+    subprocess.run(['docker', 'compose', 'up', '--no-deps', '--build'], env=env)
+    os.chdir('..')
 
 def run_server():
     """Placeholder method to simulate running a server."""
@@ -432,21 +435,33 @@ def signal_handler(sig, frame):
         current_process.terminate()
     sys.exit(0)
 
+def flush_pulsar():
+    """Flush the Pulsar topics."""
+    print("Flushing Pulsar topics...")
+    os.chdir('pulsar')
+    if os.path.exists('data'):
+        subprocess.run(['rm', '-fr', 'data'])
+        subprocess.run(['mkdir', '-p', 'data/bookkeeper/', 'data/zookeeper/'])
+        os.chdir('..')
+    else:
+        print(f"{Fore.ORANGE}Pulsar data directory not found{Style.RESET_ALL}")
+
 signal.signal(signal.SIGINT, signal_handler)
 
 launcher = {
     '--pulsar': run_docker_pulsar,
-    '--kafka': run_docker_kafka,
     '--cpp': run_docker_cpp,
     '--join-cpp': join_docker_cpp,
     '--build': build_docker_image,
-    '--requirements': lambda: subprocess.run(['pip3', 'install', 'colorama']),
     '--help': lambda: usage(),
     '--bin': run_binary,
     '--test': run_tests,
     '--redis': run_redis_sentinel,
     '--master': run_master,
     '--all': run_all,
+    '--prod': run_prod,
+    '--flush': flush_pulsar,
+    '--k8s': k8s.k8s_launch,
 }
 
 def usage():
@@ -463,8 +478,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     ip_address = get_ip_address()
-    export_env_vars('DOCKER_HOST_IP', ip_address)
-
+    export_all_vars()
     # if there is multiple commands, run them
     for command in sys.argv[1:]:
         if command in launcher:
