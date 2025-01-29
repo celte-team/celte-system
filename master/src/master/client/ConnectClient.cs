@@ -13,7 +13,6 @@ class ConnectClient
     public async void ConnectNewClient(string message)
     {
         string binaryData = message.Split("\"peerUuid\":\"")[1].Split("\"")[0];
-        Console.WriteLine("binaryData = " + binaryData);
         if (!_clients.ContainsKey(binaryData))
             _clients.Add(binaryData, new Client { uuid = binaryData });
         string newTopic = "persistent://public/default/" + binaryData;
@@ -32,8 +31,6 @@ class ConnectClient
 
             _master.rpc.RegisterAllResponseHandlers();
             nodeId = "persistent://public/default/" + nodeId + ".rpc";
-            // JsonElement argsElement = JsonDocument.Parse($"[\"{clientId}\"]").RootElement;
-            // RPC.Call(nodeId, rpcName, argsElement);
             Celte.Req.RPRequest request = new Celte.Req.RPRequest
             {
                 Name = rpcName,

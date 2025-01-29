@@ -1,5 +1,6 @@
 using System.Text;
 using DotPulsar.Extensions;
+using Google.Protobuf;
 class PulsarProducer
 {
     private Master master = Master.GetInstance();
