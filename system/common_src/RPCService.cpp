@@ -53,10 +53,8 @@ void RPCService::__handleRemoteCall(const req::RPRequest &req) {
     return;
   }
   auto f = it->second;
-  // nlohmann::json argsJson = nlohmann::json::parse(req.args());
   std::string argsJson = req.args();
   std::cout << "argsJson: " << argsJson << std::endl;
-  // auto result = f(argsJson).dump();
 
   if (not req.response_topic().empty()) {
     req::RPRequest response;

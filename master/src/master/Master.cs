@@ -21,11 +21,6 @@ class Master
         }
         try
         {
-
-            RPRequest rPRequest = new RPRequest();
-            rPRequest.Name = "test";
-            Console.WriteLine(rPRequest.Name);
-
             if (_master == null)
             {
                 _master = this;
