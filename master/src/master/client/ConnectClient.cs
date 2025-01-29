@@ -12,7 +12,6 @@ class ConnectClient
 
     public async void ConnectNewClient(string message)
     {
-        Console.WriteLine("New client connected to the cluster: " + message);
         string binaryData = message.Split("\"peerUuid\":\"")[1].Split("\"")[0];
         Console.WriteLine("binaryData = " + binaryData);
         if (!_clients.ContainsKey(binaryData))
@@ -33,8 +32,17 @@ class ConnectClient
 
             _master.rpc.RegisterAllResponseHandlers();
             nodeId = "persistent://public/default/" + nodeId + ".rpc";
-            JsonElement argsElement = JsonDocument.Parse($"[\"{clientId}\"]").RootElement;
-            RPC.Call(nodeId, rpcName, argsElement);
+            // JsonElement argsElement = JsonDocument.Parse($"[\"{clientId}\"]").RootElement;
+            // RPC.Call(nodeId, rpcName, argsElement);
+            Celte.Req.RPRequest request = new Celte.Req.RPRequest
+            {
+                Name = rpcName,
+                RespondsTo = "",
+                ResponseTopic = "persistent://public/default/master.rpc",
+                RpcId = new Random().Next().ToString(),
+                Args = clientId
+            };
+            RPC.Call(nodeId, rpcName, request);
         }
         catch (Exception e)
         {

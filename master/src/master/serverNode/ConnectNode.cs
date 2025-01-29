@@ -1,5 +1,5 @@
 using System.Text.Json;
-
+using Celte.Req;
 class ConnectNode
 {
     Master _master = Master.GetInstance();
@@ -62,11 +62,29 @@ class ConnectNode
             JsonElement root = messageJson.RootElement;
             string binaryData = root.GetProperty("binaryData").GetString() ?? throw new InvalidOperationException("binaryData property is missing or null");
             _ = _master.pulsarProducer.OpenTopic(binaryData);
-            Console.WriteLine("Node creating...: " + binaryData);
             var rpcNode = "persistent://public/default/" + binaryData + ".rpc";
             string grapeToSpawn = await new Grape().ReturnNextGrape();
+
+            if (grapeToSpawn == null)
+            {
+                Console.WriteLine("No grapes available to spawn");
+                return;
+            }
             var assignGrape = JsonDocument.Parse($"[\"{grapeToSpawn}\"]").RootElement;
-            RPC.Call(rpcNode, "__rp_assignGrape", assignGrape);
+            Console.WriteLine("Assigning grape " + grapeToSpawn + " to node " + binaryData);
+
+
+            //Protobuf message RPRequest
+            Celte.Req.RPRequest request = new Celte.Req.RPRequest
+            {
+                Name = "__rp_assignGrape",
+                RespondsTo = "",
+                ResponseTopic = "persistent://public/default/master.rpc",
+                RpcId = new Random().Next().ToString(),
+                Args = grapeToSpawn
+            };
+
+            RPC.Call(rpcNode, "__rp_assignGrape", request);
             await AddNode(binaryData);
         }
         catch (Exception e)

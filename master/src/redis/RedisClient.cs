@@ -227,15 +227,13 @@ namespace Redis {
             try
             {
                 var jsonValue = await _db.ExecuteAsync("JSON.GET", key);
-                Console.WriteLine($"JSON value: {jsonValue}");
                 string jsonString = jsonValue.ToString();
                 T value = JSONSerializer.Deserialize<T>(jsonString);
-                Console.WriteLine($"JSON value: {value}");
                 return value;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting JSON value: {ex.Message}");
+                Console.WriteLine($"1. Error getting JSON value: {ex.Message}");
                 return default;
             }
         }
@@ -243,13 +241,17 @@ namespace Redis {
         {
             try
             {
+                if (!_db.KeyExists(key))
+                {
+                    _db.Execute("JSON.SET", key, "$", "[]");
+                }
                 var jsonValue = await _db.ExecuteAsync("JSON.GET", key);
                 string value = jsonValue.ToString();
                 return JsonDocument.Parse(value).RootElement;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting JSON value: {ex.Message}");
+                Console.WriteLine($"2. Error getting JSON value: {ex.Message}");
                 return default;
             }
         }
@@ -264,7 +266,7 @@ namespace Redis {
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting JSON value: {ex.Message}");
+                Console.WriteLine($"3. Error getting JSON value: {ex.Message}");
                 return null;
             }
         }

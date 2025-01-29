@@ -1,6 +1,7 @@
 
+using Celte.Req;
 using DotPulsar;
-// using DotPulsar.Abstractions;
+using Google.Protobuf;
 
 class Master
 {
@@ -20,6 +21,11 @@ class Master
         }
         try
         {
+
+            RPRequest rPRequest = new RPRequest();
+            rPRequest.Name = "test";
+            Console.WriteLine(rPRequest.Name);
+
             if (_master == null)
             {
                 _master = this;

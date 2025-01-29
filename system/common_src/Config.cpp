@@ -3,13 +3,13 @@
 using namespace celte;
 
 Config::Config() { // Set default values
-  const char *redis_host = std::getenv("REDIS_HOST");
+  const char *redis_host = getenv("REDIS_HOST");
   _config["redis_host"] = redis_host ? redis_host : "localhost";
 
-  const char *redis_port = std::getenv("REDIS_PORT");
+  const char *redis_port = getenv("REDIS_PORT");
   _config["redis_port"] = redis_port ? redis_port : "6379";
 
-  const char *redis_key = std::getenv("REDIS_KEY");
+  const char *redis_key = getenv("REDIS_KEY");
   _config["redis_key"] = redis_key ? redis_key : "logs";
 }
 
