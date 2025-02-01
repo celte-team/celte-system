@@ -78,9 +78,18 @@ struct ReaderStream {
 
         .messageHandler = // executed when a message is received
         [this, options](pulsar::Consumer consumer, const pulsar::Message &msg) {
+          consumer.acknowledge(msg);
           Req req;
           std::string data(static_cast<const char *>(msg.getData()),
                            msg.getLength());
+
+          {
+            // debug
+            if (msg.getTopicName().find("global.clock") == std::string::npos)
+              std::cout << "[[ReaderStream]] handling message " << data
+                        << " from topic " << msg.getTopicName() << std::endl;
+          }
+
           if (!google::protobuf::util::JsonStringToMessage(data, &req).ok()) {
             std::cerr << "Error parsing message: " << data << std::endl;
             return;

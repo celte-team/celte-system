@@ -17,7 +17,8 @@ public:
   /// @param toContainerId
   static void TransferAuthority(const std::string &entityId,
                                 const std::string &toContainerId,
-                                const std::string &payload);
+                                const std::string &payload,
+                                bool ignoreNoMove = false);
 
   static void ExecTakeOrder(nlohmann::json args);
 

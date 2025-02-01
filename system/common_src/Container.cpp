@@ -2,6 +2,7 @@
 #include "CelteError.hpp"
 #include "Container.hpp"
 #include "GrapeRegistry.hpp"
+#include "Logger.hpp"
 #include "RPCService.hpp"
 #include "Topics.hpp"
 #include <algorithm>
@@ -11,15 +12,17 @@
 
 using namespace celte;
 
-Container::Container()
-    : _id(boost::uuids::to_string(boost::uuids::random_generator()())),
-      _rpcService(
-          net::RPCService::Options{.thisPeerUuid = RUNTIME.GetUUID(),
-                                   .listenOn = {tp::rpc(_id)},
-                                   .reponseTopic = tp::peer(RUNTIME.GetUUID()),
-                                   .serviceName = tp::rpc(_id)}) {}
+class ContainerCreationException : public CelteError {
+public:
+  ContainerCreationException(const std::string &msg, Logger &log,
+                             std::string file, int line)
+      : CelteError(msg, log, file, line) {}
+};
 
-void Container::WaitForNetworkReady(std::function<void(bool)> onReady) {
+Container::Container()
+    : _id(boost::uuids::to_string(boost::uuids::random_generator()())) {}
+
+void Container::WaitForNetworkReady(std::function<void()> onReady) {
   RUNTIME.ScheduleAsyncTask([this, onReady]() {
     while (!_rpcService.Ready()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -28,29 +31,27 @@ void Container::WaitForNetworkReady(std::function<void(bool)> onReady) {
                            [](auto &rs) { return rs->Ready(); })) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    onReady(true);
+    onReady();
   });
 }
 
-bool Container::AttachToGrape(const std::string &grapeId) {
-  _grapeId = grapeId;
-  bool fail = true;
-  GRAPES.RunWithLock(grapeId, [this, &fail](Grape &g) {
-    fail = false; // if grape not found, this does not happen
-    g.containers.insert({_id, this});
-    _isLocallyOwned = g.isLocallyOwned;
-  });
-  if (fail) {
-    std::cerr << "Failed to attach container to grape " << grapeId
-              << ". Grape not found." << std::endl;
-    return false;
-  }
-  __initRPCs();
-  __initStreams();
-  return true;
+Container::~Container() {
+  std::cout << "[["
+               "sldkfjslkjLKJDFLKJSDFLKJSDFLKJSDFLKJSDFLKJSDFLKJSDFLKJSDLFKJSDL"
+               "FKJSLDKFJSLDKFJSLKDJFLSDKJF][ Container "
+            << _id << " is being destroyed." << std::endl;
 }
 
 void Container::__initRPCs() {
+
+  _rpcService.Init(
+      net::RPCService::Options{.thisPeerUuid = RUNTIME.GetUUID(),
+                               .listenOn = {tp::rpc(_id)},
+                               .reponseTopic = tp::peer(RUNTIME.GetUUID()),
+                               .serviceName = tp::rpc(_id)});
+  std::cout << "----- container " << _id << " listening on " << tp::rpc(_id)
+            << std::endl;
+
   _rpcService.Register<bool>("__rp_containerTakeAuthority",
                              std::function([this](std::string args) {
                                __rp_containerTakeAuthority(args);
@@ -105,5 +106,58 @@ void Container::__rp_containerDropAuthority(const std::string &args) {
     AuthorityTransfer::ExecDropOrder(j);
   } catch (const std::exception &e) {
     THROW_ERROR(net::RPCHandlingException, e.what());
+  }
+}
+
+/* --------------------------- CONTAINER REGISTRY --------------------------- */
+
+ContainerRegistry &ContainerRegistry::GetInstance() {
+  static ContainerRegistry instance;
+  return instance;
+}
+
+void ContainerRegistry::RunWithLock(const std::string &containerId,
+                                    std::function<void(ContainerRefCell &)> f) {
+  accessor acc;
+  if (_containers.find(acc, containerId)) {
+    f(acc->second);
+  } else {
+    std::cerr << "Container not found: " << containerId << std::endl;
+  }
+}
+
+std::string ContainerRegistry::CreateContainerIfNotExists(const std::string &id,
+                                                          bool *wasCreated) {
+  accessor acc;
+  if (_containers.find(acc, id)) {
+    *wasCreated = false;
+    return acc->second.id;
+  }
+
+  // generating a new ID if the provided ID is empty
+  std::string containerId =
+      id.empty() ? boost::uuids::to_string(boost::uuids::random_generator()())
+                 : id;
+
+  // Emplace the new ContainerRefCell into the hash map
+  bool ok = _containers.emplace(acc, containerId, containerId);
+  if (!ok) {
+    THROW_ERROR(ContainerCreationException,
+                "Failed to create container " + containerId);
+  }
+  *wasCreated = true;
+  return containerId;
+}
+
+void ContainerRegistry::UpdateRefCount(const std::string &containerId) {
+  accessor acc;
+  if (_containers.find(acc, containerId)) {
+    if (acc->second.container.use_count() == 1) {
+      _containers.erase(acc);
+      std::cout << "[[ContainerRegistry]] Container " << containerId
+                << " is no longer referenced." << std::endl;
+      LOGDEBUG("Container " + containerId +
+               " is no longer referenced and has been deleted.");
+    }
   }
 }

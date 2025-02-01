@@ -77,13 +77,26 @@ public:
   static std::mutex rpcPromisesMutex;
 
   struct Options {
-    const std::string &thisPeerUuid;
-    std::vector<std::string> listenOn;
+    std::string thisPeerUuid = "";
+    std::vector<std::string> listenOn = {};
     std::string reponseTopic = "";
     std::string serviceName = "";
+
+    Options &operator=(const Options &other) {
+      if (this != &other) {
+        const_cast<std::string &>(thisPeerUuid) = other.thisPeerUuid;
+        listenOn = other.listenOn;
+        reponseTopic = other.reponseTopic;
+        serviceName = other.serviceName;
+      }
+      return *this;
+    }
   };
 
+  RPCService();
+
   RPCService(const Options &options);
+  void Init(const Options &options);
   template <typename Ret, typename... Args>
   void Register(const std::string &name, std::function<Ret(Args...)> f) {
 
@@ -109,9 +122,17 @@ public:
       std::lock_guard<std::mutex> lock(rpcPromisesMutex);
       rpcPromises[req.rpc_id()] = promise;
     }
+    std::cout << "rpc service writting rpc to topic " << topic
+              << " with rpc id " << req.rpc_id() << std::endl;
     _writerStreamPool.Write(topic, req);
 
-    std::string result = promise->get_future().get(); // json of response.args
+    std::string result;
+    auto fut = promise->get_future();
+    if (fut.wait_for(300ms) == std::future_status::timeout) {
+      throw RPCTimeoutException("Timeout waiting for rpc response", LOGGER);
+    }
+    result = fut.get();
+
     try {
       Ret ret = nlohmann::json::parse(result).get<Ret>();
       return ret;
@@ -191,8 +212,11 @@ private:
   void __handleRemoteCall(const req::RPRequest &req);
   void __handleResponse(const req::RPRequest &req);
 
-  static std::unordered_map<
-      std::string, std::function<nlohmann::json(const nlohmann::json &)>>
+  // static std::unordered_map<
+  //     std::string, std::function<nlohmann::json(const nlohmann::json &)>>
+  //     _rpcs;
+  std::unordered_map<std::string,
+                     std::function<nlohmann::json(const nlohmann::json &)>>
       _rpcs;
   Options _options;
   WriterStreamPool _writerStreamPool;

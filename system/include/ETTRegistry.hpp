@@ -1,5 +1,7 @@
 #pragma once
 #include "Entity.hpp"
+#include <expected>
+#include <map>
 #include <string>
 #include <tbb/concurrent_hash_map.h>
 
@@ -89,6 +91,24 @@ public:
   void SetEntityValid(const std::string &id, bool isValid);
 
   void Clear();
+
+  /// @brief Loads all entities that are already instantiated in this container
+  /// in the server node that owns the container. This will call the
+  /// onInstantiateEntity hook in the engine.
+  void LoadExistingEntities(const std::string &grapeId,
+                            const std::string &containerId);
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+
+  /// @brief Called over the network to fetch the entities that exist in a
+  /// container in order to load them.
+  /// @param containerId
+  std::map<std::string, std::string>
+  GetExistingEntities(const std::string &containerId);
+  bool SaveEntityPayload(const std::string &eid, const std::string &payload);
+  std::expected<std::string, std::string>
+  GetEntityPayload(const std::string &eid);
+#endif
 
 private:
   storage _entities;

@@ -61,5 +61,6 @@ public:
   }
 
   const char *what() const noexcept override { return _message.c_str(); }
+  std::string message() const { return _message; }
 };
 } // namespace celte

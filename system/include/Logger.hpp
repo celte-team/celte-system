@@ -25,6 +25,20 @@
 
 #define LOGGER celte::Logger::GetInstance()
 
+#ifndef RELEASE
+#define LOGDEBUG(message)                                                      \
+  celte::Logger::GetInstance().log(celte::Logger::LogLevel::DEBUG, message)
+#define LOGINFO(message)                                                       \
+  celte::Logger::GetInstance().log(celte::Logger::LogLevel::DEBUG, message)
+#else
+#define LOGDEBUG(message)
+#define LOGINFO(message)
+#endif
+#define LOGWARNING(message)                                                    \
+  celte::Logger::GetInstance().log(celte::Logger::LogLevel::WARNING, message)
+#define LOGERROR(message)                                                      \
+  celte::Logger::GetInstance().log(celte::Logger::LogLevel::ERROR, message)
+
 namespace celte {
 
 class Logger {

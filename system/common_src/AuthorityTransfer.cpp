@@ -15,6 +15,7 @@ static void __notifyTakeAuthority(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Notifying container to take authority.\n" +
                  args.dump());
+  std::cout << "NOTIFY TAKE AUTHORITY to container " << args["t"] << std::endl;
   RUNTIME.GetPeerService().GetRPCService().CallVoid(
       tp::rpc(args["t"]), "__rp_containerTakeAuthority", args.dump());
 }
@@ -30,11 +31,16 @@ static void __notifyDrop(nlohmann::json args) {
 
 void AuthorityTransfer::TransferAuthority(const std::string &entityId,
                                           const std::string &toContainerId,
-                                          const std::string &payload) {
+                                          const std::string &payload,
+                                          bool ignoreNoMove) {
   bool abort = true;
   std::string fromContainerId;
+
   ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
-    if (e.quarantine || !e.isValid || e.ownerContainerId == toContainerId) {
+    fromContainerId = e.ownerContainerId;
+    if (e.quarantine || !e.isValid ||
+        (e.ownerContainerId == toContainerId && !ignoreNoMove)) {
+      // (!ignoreNoMove || e.ownerContainerId == toContainerId)) {
       return;
     }
     abort = false;
@@ -56,6 +62,7 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
       Clock::ToISOString(2000_ms_later); // change will take effect in 2 seconds
   args["payload"] = payload;
 
+  std::cout << std::endl << args.dump() << std::endl << std::endl;
   // notify the container that will take authority
   __notifyTakeAuthority(args);
 
@@ -65,21 +72,13 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
 #endif
 }
 
-// macros to unpack the json args for auth transfer (multiple methods use this)
-#define UNPACK                                                                 \
-  std::string entityId = args["e"];                                            \
-  std::string toContainerId = args["t"];                                       \
-  std::string fromContainerId = args["f"];                                     \
-  std::string procedureId = args["p"];                                         \
-  std::string when = args["w"];                                                \
-  std::string payload = args["payload"];                                       \
-  Clock::timepoint whenTp = Clock::FromISOString(when);
-
 static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
                                 const std::string &fromContainerId,
                                 const std::string &procedureId) {
   // if toContainerId does not exist here, schedule ett for deletion
   if (!GRAPES.ContainerExists(toContainerId)) {
+    std::cout << "toContainerId does not exist, scheduling for deletion"
+              << std::endl;
     e.isValid = false;
     e.quarantine = true;
     // TODO schedule ett for deletion
@@ -87,10 +86,19 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
 }
 
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
-  UNPACK;
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing take order.\n" + args.dump());
-  CLOCK.ScheduleAt(whenTp, [&]() {
+
+  std::string entityId = args["e"].get<std::string>();
+  std::string toContainerId = args["t"].get<std::string>();
+  std::string fromContainerId = args["f"].get<std::string>();
+  std::string procedureId = args["p"].get<std::string>();
+  std::string when = args["w"].get<std::string>();
+  std::string payload = args["payload"].get<std::string>();
+
+  Clock::timepoint whenTp = Clock::FromISOString(when);
+
+  CLOCK.ScheduleAt(whenTp, [=]() {
     bool ettExists = false;
 
     // if ett exists, transfer auth
@@ -99,26 +107,32 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
       e.ownerContainerId = toContainerId;
       e.quarantine = false;
     });
-
     // if ett does not exist, schedule it for creation (container will be
     // emplaced)
     if (!ettExists) {
-      // getting the write context to run in the engine
-      auto ownerGrapeId = GRAPES.GetOwnerOfContainer(toContainerId);
-      if (not ownerGrapeId.has_value()) {
-        throw std::runtime_error(
-            "AuthorityTransfer: ExecTakeOrder: Container does not exist.");
-      }
-      std::cout << "puhing instantiate to engine" << std::endl;
-      GRAPES.PushTaskToEngine(ownerGrapeId.value(), [=]() {
-        ETTREGISTRY.EngineCallInstantiate(entityId, payload, toContainerId);
-      });
+      RUNTIME.TopExecutor().PushTaskToEngine(
+          [payload, entityId, toContainerId]() {
+            ETTREGISTRY.EngineCallInstantiate(entityId, payload, toContainerId);
+          });
     }
   });
 }
 
 void AuthorityTransfer::ExecDropOrder(nlohmann::json args) {
-  UNPACK;
+  // UNPACK;
+  if (args.is_array() &&
+      !args.empty()) { // sometime args is an array, sometimes not. this is a
+                       // workaround, not a fix
+    args = nlohmann::json::parse(args[0].get<std::string>());
+  }
+  std::string entityId = args["e"];
+  std::string toContainerId = args["t"];
+  std::string fromContainerId = args["f"];
+  std::string procedureId = args["p"];
+  std::string when = args["w"];
+  std::string payload = args["payload"].dump();
+  Clock::timepoint whenTp = Clock::FromISOString(when);
+
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing drop order.\n" + args.dump());
   CLOCK.ScheduleAt(

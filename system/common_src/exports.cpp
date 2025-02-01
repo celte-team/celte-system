@@ -1,6 +1,7 @@
 // Copyright (C) <2024> <CELTE> This file is part of CELTE must not be copied
 // and/or distributed without the express permission of  the CELTE team
 #include "AuthorityTransfer.hpp"
+#include "ETTRegistry.hpp"
 #include "GrapeRegistry.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
@@ -27,6 +28,7 @@ EXPORT void RegisterGrape(const std::string &grapeId, bool isLocallyOwned,
   GRAPES.RegisterGrape(grapeId, isLocallyOwned, onReady);
 }
 
+#ifdef CELTE_SERVER_MODE_ENABLED
 EXPORT char *ContainerCreateAndAttach(std::string grapeId,
                                       std::function<void()> onReady,
                                       size_t *size) {
@@ -34,6 +36,7 @@ EXPORT char *ContainerCreateAndAttach(std::string grapeId,
   *size = result.size();
   return strdup(result.c_str());
 }
+#endif
 
 EXPORT bool IsGrapeLocallyOwned(const std::string &grapeId) {
   return GRAPES.IsGrapeLocallyOwned(grapeId);
@@ -45,7 +48,7 @@ EXPORT void RegisterNewEntity(const std::string &id,
                               const std::string &ownerContainerId) {
   ETTREGISTRY.RegisterEntity({
       .id = id,
-      .ownerContainerId = "ownerContainerId",
+      .ownerContainerId = ownerContainerId,
   });
 }
 
@@ -57,8 +60,10 @@ EXPORT char *GetNewUUID(size_t *size) {
 
 EXPORT void ProcessEntityContainerAssignment(const std::string &entityId,
                                              const std::string &toContainerId,
-                                             const std::string &payload) {
-  celte::AuthorityTransfer::TransferAuthority(entityId, toContainerId, payload);
+                                             const std::string &payload,
+                                             bool ignoreNoMove) {
+  celte::AuthorityTransfer::TransferAuthority(entityId, toContainerId, payload,
+                                              ignoreNoMove);
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -73,7 +78,19 @@ EXPORT void SubscribeClientToContainer(std::string clientId,
   RUNTIME.GetPeerService().SubscribeClientToContainer(clientId, containerId,
                                                       then);
 }
+
+EXPORT bool SaveEntityPayload(const std::string &eid,
+                              const std::string &payload) {
+  return ETTREGISTRY.SaveEntityPayload(eid, payload);
+}
+
+EXPORT void UpdateSubscriptionStatus(const std::string &grapeId,
+                                     const std::string &containerId,
+                                     bool subscribe) {
+  GRAPES.SetRemoteGrapeSubscription(grapeId, containerId, subscribe);
+}
 #endif
+
 #pragma endregion
 /* ----------------------------- TASK MANAGEMENT ---------------------------- */
 #pragma region TASK MANAGEMENT

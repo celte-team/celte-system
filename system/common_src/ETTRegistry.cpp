@@ -1,7 +1,9 @@
 // Copyright (C) <2024> <CELTE> This file is part of CELTE must not be copied
 // and/or distributed without the express permission of  the CELTE team
 #include "ETTRegistry.hpp"
+#include "PeerService.hpp"
 #include "Runtime.hpp"
+#include "Topics.hpp"
 
 using namespace celte;
 
@@ -105,3 +107,51 @@ void ETTRegistry::EngineCallInstantiate(const std::string &id,
   RUNTIME.Hooks().onInstantiateEntity(id, payload);
   LOGGER.log(Logger::LogLevel::DEBUG, "Entity " + id + " instantiated.");
 }
+
+void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
+                                       const std::string &containerId) {
+  RUNTIME.GetPeerService()
+      .GetRPCService()
+      .CallAsync<std::map<std::string, std::string>>(
+          tp::peer(grapeId), "__rp_getExistingEntities", containerId)
+      .Then([this,
+             containerId](const std::map<std::string, std::string> &entities) {
+        std::cout << "instantiating entities in container " << containerId
+                  << std::endl;
+        for (auto &[id, payload] : entities) {
+          ETTRegistry::EngineCallInstantiate(id, payload, containerId);
+        }
+      });
+}
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+
+std::map<std::string, std::string>
+ETTRegistry::GetExistingEntities(const std::string &containerId) {
+  std::map<std::string, std::string> etts;
+  for (auto &[id, e] : _entities) {
+    etts.insert({id, GetEntityPayload(id).value_or("{}")});
+  }
+  return etts;
+}
+bool ETTRegistry::SaveEntityPayload(const std::string &eid,
+                                    const std::string &payload) {
+  accessor acc;
+  if (_entities.find(acc, eid)) {
+    acc->second.payload = payload;
+    return true;
+  } else {
+    std::cout << "no such entity: " + eid << std::endl;
+    return false;
+  }
+}
+
+std::expected<std::string, std::string>
+ETTRegistry::GetEntityPayload(const std::string &eid) {
+  accessor acc;
+  if (_entities.find(acc, eid)) {
+    return acc->second.payload;
+  }
+  return std::unexpected("No such entity: " + eid);
+}
+#endif

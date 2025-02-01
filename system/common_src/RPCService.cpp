@@ -6,17 +6,26 @@
 namespace celte {
 namespace net {
 
-std::unordered_map<std::string,
-                   std::function<nlohmann::json(const nlohmann::json &)>>
-    RPCService::_rpcs;
+// std::unordered_map<std::string,
+//                    std::function<nlohmann::json(const nlohmann::json &)>>
+//     RPCService::_rpcs;
 
 std::unordered_map<std::string, std::shared_ptr<std::promise<std::string>>>
     RPCService::rpcPromises;
 std::mutex RPCService::rpcPromisesMutex;
 
+RPCService::RPCService() : _writerStreamPool(WriterStreamPool::Options{}) {}
+
 RPCService::RPCService(const RPCService::Options &options)
     : _options(options), _writerStreamPool(WriterStreamPool::Options{
                              .idleTimeout = std::chrono::milliseconds(10000)}) {
+  if (options.listenOn.size() != 0) {
+    __initReaderStream(options.listenOn);
+  }
+}
+
+void RPCService::Init(const RPCService::Options &options) {
+  _options = options;
   if (options.listenOn.size() != 0) {
     __initReaderStream(options.listenOn);
   }
@@ -32,7 +41,7 @@ void RPCService::__initReaderStream(const std::vector<std::string> &topic) {
                                     req::RPRequest req) {},
        .messageHandler =
            [this](const pulsar::Consumer, req::RPRequest req) {
-             std::cout << "[[RPCService]] handling message : "
+             std::cout << "[[RPCService]] handling message "
                        << req.DebugString() << std::endl;
              if (!req.responds_to().empty()) {
                std::cout << "handling response" << std::endl;

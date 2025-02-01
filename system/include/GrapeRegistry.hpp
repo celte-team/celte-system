@@ -32,10 +32,8 @@ public:
   /// @brief Checks if a container exists in the grape registry.
   bool ContainerExists(const std::string &containerId);
 
-  /// @brief Returns the id of the grape that the container is attached to, or
-  /// std::nullopt if the container is not attached to any grape.
-  std::optional<std::string>
-  GetOwnerOfContainer(const std::string &containerId);
+  /// @brief Returns true if the grape with the given id exists in the registry.
+  bool GrapeExists(const std::string &grapeId);
 
   /// @brief Pushes a task that will be asynchronously executed by the system.
   /// If the task is an I/O task, use PushIOTaskToSystem instead.
@@ -83,7 +81,6 @@ public:
 
   inline void RunWithLock(const std::string &grapeId,
                           std::function<void(Grape &)> f) {
-    std::cout << "Running with lock" << std::endl;
     accessor acc;
     if (_grapes.find(acc, grapeId)) {
       f(acc->second);
@@ -95,7 +92,6 @@ public:
   template <typename T>
   void RunWithLock(const std::string &grapeId, T *instance,
                    void (T::*memberFunc)(Grape &)) {
-    std::cout << "Running with lock" << std::endl;
     accessor acc;
     if (_grapes.find(acc, grapeId)) {
       (instance->*memberFunc)(acc->second);
@@ -107,7 +103,6 @@ public:
   template <typename T, typename... Args>
   void RunWithLock(const std::string &grapeId, T *instance,
                    void (T::*memberFunc)(Grape &, Args...), Args... args) {
-    std::cout << "Running with lock" << std::endl;
     accessor acc;
     if (_grapes.find(acc, grapeId)) {
       (instance->*memberFunc)(acc->second, args...);
@@ -140,6 +135,7 @@ public:
     }
   }
 
+#ifdef CELTE_SERVER_MODE_ENABLED
   /// @brief Creates a container and attaches it to the grape. The container
   /// will wait for its network service to be ready before calling the onReady
   /// callback.
@@ -147,7 +143,19 @@ public:
   /// @param onReady
   /// @return The id of the created container.
   std::string ContainerCreateAndAttach(std::string grapeId,
-                                       std::function<void()> onReady);
+                                       std::function<void()> onReady,
+                                       const std::string &id = "");
+
+  void SetRemoteGrapeSubscription(const std::string &grapeId,
+                                  const std::string &containerId,
+                                  bool subscribe);
+
+  bool SubscribeGrapeToContainer(const std::string &grapeId,
+                                 const std::string &containerId,
+                                 std::function<void()> onReady);
+  void UnsubscribeGrapeFromContainer(const std::string &grapeId,
+                                     const std::string &containerId);
+#endif
 
 private:
   tbb::concurrent_hash_map<std::string, Grape> _grapes;

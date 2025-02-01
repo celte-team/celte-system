@@ -1,4 +1,5 @@
 #pragma once
+#include "ContainerSubscriptionComponent.hpp"
 #include "RPCService.hpp"
 #include "WriterStreamPool.hpp"
 #include <functional>
@@ -63,6 +64,9 @@ private:
   /// associated grape in the grape registry.
   bool __rp_forceConnectToNode(const std::string &grapeId);
 
+  /// @brief Subscribes the client to a container's network services.
+  bool __rp_subscribeClientToContainer(const std::string &containerId,
+                                       const std::string &ownerGrapeId);
 #endif
   /* ------------------------------- SERVER RPC -------------------------------
    */
@@ -80,6 +84,8 @@ private:
   /// @brief Called by the master server, this method notifies a server node
   /// that a client has been assigned to it.
   bool __rp_acceptNewClient(const std::string &clientId);
+#else
+  ContainerSubscriptionComponent _containerSubscriptionComponent;
 #endif
 
   net::WriterStreamPool _wspool;

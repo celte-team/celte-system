@@ -13,5 +13,10 @@ struct Entity {
                            ///< ignored by the runtime until it is valid again)
   Executor
       executor; ///< The entity's executor used to push tasks for the entity.
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  std::string payload; ///< customdata that can be set by the game dev to help
+                       ///< other peers loading the entity
+#endif
 };
 } // namespace celte

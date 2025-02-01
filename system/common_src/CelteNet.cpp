@@ -58,7 +58,8 @@ void CelteNet::CreateConsumer(SubscribeOptions &options) {
       });
 
   _client->subscribeAsync(
-      options.topics, options.subscriptionName, options.conf,
+      options.topics, options.subscriptionName + "." + RUNTIME.GetUUID(),
+      options.conf,
       [this, options](pulsar::Result result, pulsar::Consumer newConsumer) {
         if (options.thenAsync)
           options.thenAsync(newConsumer, result);
