@@ -73,7 +73,6 @@ class ConnectNode
             var assignGrape = JsonDocument.Parse($"[\"{grapeToSpawn}\"]").RootElement;
             Console.WriteLine("Assigning grape " + grapeToSpawn + " to node " + binaryData);
 
-
             //Protobuf message RPRequest
             Celte.Req.RPRequest request = new Celte.Req.RPRequest
             {
@@ -81,7 +80,7 @@ class ConnectNode
                 RespondsTo = "",
                 ResponseTopic = "persistent://public/default/master.rpc",
                 RpcId = new Random().Next().ToString(),
-                Args = grapeToSpawn
+                Args = assignGrape.ToString()
             };
 
             RPC.Call(rpcNode, "__rp_assignGrape", request);

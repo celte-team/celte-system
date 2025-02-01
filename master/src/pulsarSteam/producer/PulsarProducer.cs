@@ -25,9 +25,12 @@ class PulsarProducer
                 Details = $"Produced message to topic {topic}"
             };
             Redis.RedisClient.GetInstance().rLogger.LogActionAsync(actionLog).Wait();
-            string msg = message.ToString();
-            Console.WriteLine($"Producing message!!!!!!!!!!!!: {msg}\n\n");
-            await producer.Send(Encoding.UTF8.GetBytes(msg));
+            // string msg = message.ToString();
+            // Console.WriteLine($"Producing message!!!!!!!!!!!!: {msg}\n\n");
+            // await producer.Send(Encoding.UTF8.GetBytes(msg));
+            Google.Protobuf.JsonFormatter jsonFormatter = new JsonFormatter(new JsonFormatter.Settings(true));
+            string jsonString = jsonFormatter.Format(message);
+            await producer.Send(Encoding.UTF8.GetBytes(jsonString));
         }
         catch (Exception e)
         {

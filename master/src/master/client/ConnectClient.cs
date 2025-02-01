@@ -23,6 +23,7 @@ class ConnectClient
             JsonDocument messageJson = JsonDocument.Parse(message);
             JsonElement root = messageJson.RootElement;
             string clientId = root.GetProperty("peerUuid").GetString() ?? throw new InvalidOperationException("peerUuid property is missing or null");
+            clientId = JsonDocument.Parse($"[\"{clientId}\"]").RootElement.ToString(); // not dark magic, rpc args need to be in an array
             string uuidProcess = Guid.NewGuid().ToString();
             const string rpcName = "__rp_getPlayerSpawnPosition";
 

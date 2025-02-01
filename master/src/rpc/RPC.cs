@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Celte.Req;
+using Confluent.Kafka;
+using Microsoft.Extensions.Options;
 // public struct RPRequest
 // {
 //     public string name { get; set; }
@@ -67,20 +69,20 @@ public class RPC
         });
     }
 
-private static async void __handleRPC(string message)
-{
-    try
+    private static async void __handleRPC(string message)
     {
-        // Deserialize the incoming JSON message into a Protobuf object (RPRequest)
-        RPRequest request = RPRequest.Parser.ParseJson(message);
-        if (request == null)
+        try
         {
-            throw new InvalidOperationException("Failed to parse RPC request.");
-        }
+            // Deserialize the incoming JSON message into a Protobuf object (RPRequest)
+            RPRequest request = RPRequest.Parser.ParseJson(message);
+            if (request == null)
+            {
+                throw new InvalidOperationException("Failed to parse RPC request.");
+            }
 
-        Console.WriteLine($"<RPC> Received RPC call {request.Name} with args {request.Args} and respondsTo {request.RespondsTo}");
+            Console.WriteLine($"<RPC> Received RPC call {request.Name} with args {request.Args} and respondsTo {request.RespondsTo}");
 
-        // Handle response if it's a response and not a new RPC call
+            // Handle response if it's a response and not a new RPC call
             if (request.RespondsTo != "")
             { // this is a response, not a call
                 if (_rpcResponseHandlers.TryGetValue(request.Name, out Action<Celte.Req.RPRequest> v))
@@ -91,39 +93,39 @@ private static async void __handleRPC(string message)
                 return;
             }
 
-        if (!string.IsNullOrEmpty(request.RespondsTo)) // This is a response, not a call
-        {
-            if (_rpcResponseHandlers.TryGetValue(request.Name, out Action<Celte.Req.RPRequest> responseHandler))
+            if (!string.IsNullOrEmpty(request.RespondsTo)) // This is a response, not a call
             {
-                responseHandler(request);
-                Console.WriteLine("<RPC> Handled response");
+                if (_rpcResponseHandlers.TryGetValue(request.Name, out Action<Celte.Req.RPRequest> responseHandler))
+                {
+                    responseHandler(request);
+                    Console.WriteLine("<RPC> Handled response");
+                }
+                return;
             }
-            return;
-        }
 
-        // Handle normal RPC call
-        Console.WriteLine($"<RPC> Received RPC call::::: {request.Name} with args {request.Args} Sending response to {request.ResponseTopic} \n\n");
-        // If there's a response topic, send back the response
-        if (!string.IsNullOrEmpty(request.ResponseTopic))
-        {
-            // Create a new response request
-            var responseRequest = new RPRequest
+            // Handle normal RPC call
+            Console.WriteLine($"<RPC> Received RPC call::::: {request.Name} with args {request.Args} Sending response to {request.ResponseTopic} \n\n");
+            // If there's a response topic, send back the response
+            if (!string.IsNullOrEmpty(request.ResponseTopic))
             {
-                Name = request.Name,
-                RespondsTo = request.RespondsTo,
-                ResponseTopic = "", // we don't want a response to this response
-                RpcId = request.RpcId,
-                Args = request.Args
-            };
-            // Send the response to the corresponding topic
-            await Master.GetInstance().pulsarProducer.ProduceMessageAsync(request.ResponseTopic, responseRequest);
+                // Create a new response request
+                var responseRequest = new RPRequest
+                {
+                    Name = request.Name,
+                    RespondsTo = request.RespondsTo,
+                    ResponseTopic = "", // we don't want a response to this response
+                    RpcId = request.RpcId,
+                    Args = request.Args
+                };
+                // Send the response to the corresponding topic
+                await Master.GetInstance().pulsarProducer.ProduceMessageAsync(request.ResponseTopic, responseRequest);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"<RPC> Error while handling RPC: {ex.Message} \n\n");
         }
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"<RPC> Error while handling RPC: {ex.Message} \n\n");
-    }
-}
 
     /// <summary>
     /// calls a method on the given remote topic, and *does not* wait for a response
@@ -145,7 +147,7 @@ private static async void __handleRPC(string message)
         await Master.GetInstance().pulsarProducer.ProduceMessageAsync(topic, req);
     }
 
-        public string getUUIDFromJSON(JsonElement node)
+    public string getUUIDFromJSON(JsonElement node)
     {
         string uuid = node.GetProperty("uuid").GetString();
         return uuid;
@@ -173,12 +175,26 @@ private static async void __handleRPC(string message)
                 Console.WriteLine($"<RegisterAllResponseHandlers> Received response from __rp_getPlayerSpawnPosition with args {args} sending to uuid : {uuid} \n\n");
 
                 string topic = $"persistent://public/default/{uuid}.rpc";
-                // var rpcArgs = JsonSerializer.Serialize(new { clientId, grapeId, x, y, z });
-                // var rpcArgsList = JsonDocument.Parse($"[\"{clientId}\",\"{grapeId}\",{x},{y},{z}]");
-                // Console.WriteLine($"<Calling RPC> __rp_acceptNewClient with args {rpcArgs} on topic {topic}");
-                // RPC.Call(topic, "__rp_acceptNewClient", rpcArgsList.RootElement);
+
+                // < RPC > Error while handling RPC: '{' is invalid after a value. Expected either ',', '}', or ']'.LineNumber: 0 | BytePositionInLine: 3.
+                // var rpcArgsList = JsonDocument.Parse($"[\"{args.Args.ToString()}\"]");
+                string jsonArray = JsonSerializer.Serialize(new[] { args.Args });
+                var rpcArgsList = JsonDocument.Parse(jsonArray);
+                Console.WriteLine($"<RegisterAllResponseHandlers> Sending response to {topic} with args {rpcArgsList.RootElement.ToString()} \n\n");
+
+                RPRequest r = new RPRequest
+                {
+                    Name = "__rp_acceptNewClient",
+                    RespondsTo = "",
+                    ResponseTopic = "persistent://public/default/master.rpc",
+                    RpcId = new Random().Next().ToString(),
+                    Args = rpcArgsList.RootElement.ToString()
+                };
+
                 RPC.Call(topic, "__rp_acceptNewClient", args);
-            } else {
+            }
+            else
+            {
                 Console.WriteLine($"<RegisterAllResponseHandlers> No nodes found in Redis");
             }
         });
