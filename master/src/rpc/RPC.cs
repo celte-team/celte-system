@@ -178,17 +178,20 @@ public class RPC
 
                 // < RPC > Error while handling RPC: '{' is invalid after a value. Expected either ',', '}', or ']'.LineNumber: 0 | BytePositionInLine: 3.
                 // var rpcArgsList = JsonDocument.Parse($"[\"{args.Args.ToString()}\"]");
-                string jsonArray = JsonSerializer.Serialize(new[] { args.Args });
-                var rpcArgsList = JsonDocument.Parse(jsonArray);
-                Console.WriteLine($"<RegisterAllResponseHandlers> Sending response to {topic} with args {rpcArgsList.RootElement.ToString()} \n\n");
-
+                // string jsonArray = JsonSerializer.Serialize(new[] { args.Args });
+                string clientId = JsonDocument.Parse(args.Args.ToString()).RootElement.GetProperty("clientId").GetString();
+                string clientIdArrayJson = JsonSerializer.Serialize(new string[] { clientId });
+                // var rpcArgsList = JsonDocument.Parse(jsonArray);
+                Console.WriteLine($"<RegisterAllResponseHandlers> Sending response to {topic} with args {clientId} \n\n");
+                Console.WriteLine($"<Reghjhjufgvuyfvuyfyugeyuiggs {clientIdArrayJson} \n\n");
                 RPRequest r = new RPRequest
                 {
                     Name = "__rp_acceptNewClient",
                     RespondsTo = "",
                     ResponseTopic = "persistent://public/default/master.rpc",
                     RpcId = new Random().Next().ToString(),
-                    Args = rpcArgsList.RootElement.ToString()
+                    // Args = rpcArgsList.RootElement.ToString()
+                    Args = clientIdArrayJson
                 };
 
                 RPC.Call(topic, "__rp_acceptNewClient", args);

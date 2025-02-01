@@ -30,7 +30,9 @@ class PulsarProducer
             // await producer.Send(Encoding.UTF8.GetBytes(msg));
             Google.Protobuf.JsonFormatter jsonFormatter = new JsonFormatter(new JsonFormatter.Settings(true));
             string jsonString = jsonFormatter.Format(message);
+            Console.WriteLine($"Producing message!!!!!!!!!!!!: {jsonString}\n\n");
             await producer.Send(Encoding.UTF8.GetBytes(jsonString));
+            // await producer.Send(jsonString);
         }
         catch (Exception e)
         {
