@@ -32,7 +32,7 @@ class ConnectClient
             string clientIdArrayJson = JsonSerializer.Serialize(new string[] { clientId });
             Console.WriteLine($"clientIdArrayJson {clientIdArrayJson} is trying to connect.");
             _master.rpc.RegisterAllResponseHandlers();
-            nodeId = "persiste¡nt://public/default/" + nodeId + ".rpc";
+            nodeId = "persistent://public/default/" + nodeId + ".rpc";
             Celte.Req.RPRequest request = new Celte.Req.RPRequest
             {
                 Name = rpcName,

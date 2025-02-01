@@ -276,6 +276,11 @@ namespace Redis {
             _db.Execute("JSON.DEL", key, $"$.{field}");
         }
 
+        public void JSONRemove(string key)
+        {
+            _db.Execute("JSON.DEL", key);
+        }
+
         /// <summary>
         /// Check if a JSON field exists
         /// </summary>

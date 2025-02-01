@@ -80,7 +80,7 @@ public class RPC
                 throw new InvalidOperationException("Failed to parse RPC request.");
             }
 
-            Console.WriteLine($"<RPC> Received RPC call {request.Name} with args {request.Args} and respondsTo {request.RespondsTo}");
+            Console.WriteLine($"<RPC> Received RPC call {request.Name} with args {request.Args} and respondsTo: {request.RespondsTo}");
 
             // Handle response if it's a response and not a new RPC call
             if (request.RespondsTo != "")
@@ -162,28 +162,42 @@ public class RPC
         // this function is used to send the spawn position of the player to the client.
         RegisterResponseHandler("__rp_getPlayerSpawnPosition", (args) =>
         {
-            // string clientId = args.GetProperty("clientId").GetString();
-            // string grapeId = args.GetProperty("grapeId").GetString();
-
-            // float x = args.GetProperty("x").GetSingle();
-            // float y = args.GetProperty("y").GetSingle();
-            // float z = args.GetProperty("z").GetSingle();
             var nodes = Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes").Result;
             if (nodes.Count > 0)
             {
                 string uuid = getUUIDFromJSON(JsonDocument.Parse(nodes[0]).RootElement);
                 Console.WriteLine($"<RegisterAllResponseHandlers> Received response from __rp_getPlayerSpawnPosition with args {args} sending to uuid : {uuid} \n\n");
-
                 string topic = $"persistent://public/default/{uuid}.rpc";
 
-                // < RPC > Error while handling RPC: '{' is invalid after a value. Expected either ',', '}', or ']'.LineNumber: 0 | BytePositionInLine: 3.
-                // var rpcArgsList = JsonDocument.Parse($"[\"{args.Args.ToString()}\"]");
-                // string jsonArray = JsonSerializer.Serialize(new[] { args.Args });
-                string clientId = JsonDocument.Parse(args.Args.ToString()).RootElement.GetProperty("clientId").GetString();
+                JsonDocument argsJson = JsonDocument.Parse(args.Args);
+                JsonElement root = argsJson.RootElement;
+
+                string clientId = "";
+
+                if (root.ValueKind == JsonValueKind.Array)
+                {
+                    // Extract first element if it's an array
+                    if (root.GetArrayLength() > 0)
+                    {
+                        clientId = root[0].GetString(); // Assuming first element is the clientId
+                    }
+                }
+                else if (root.ValueKind == JsonValueKind.Object)
+                {
+                    // If it's an object, extract "clientId"
+                    if (root.TryGetProperty("clientId", out JsonElement clientIdElement))
+                    {
+                        clientId = clientIdElement.GetString();
+                    }
+                }
+
+                if (string.IsNullOrEmpty(clientId))
+                {
+                    Console.WriteLine("Error: Could not extract clientId from args.Args");
+                    return;
+                }
+
                 string clientIdArrayJson = JsonSerializer.Serialize(new string[] { clientId });
-                // var rpcArgsList = JsonDocument.Parse(jsonArray);
-                Console.WriteLine($"<RegisterAllResponseHandlers> Sending response to {topic} with args {clientId} \n\n");
-                Console.WriteLine($"<Reghjhjufgvuyfvuyfyugeyuiggs {clientIdArrayJson} \n\n");
                 RPRequest r = new RPRequest
                 {
                     Name = "__rp_acceptNewClient",
@@ -193,7 +207,6 @@ public class RPC
                     // Args = rpcArgsList.RootElement.ToString()
                     Args = clientIdArrayJson
                 };
-
                 RPC.Call(topic, "__rp_acceptNewClient", args);
             }
             else

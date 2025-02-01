@@ -12,33 +12,47 @@ class PulsarProducer
 
     // ProduceMessageAsync protobuf
 
-    public async Task ProduceMessageAsync(string topic, Celte.Req.RPRequest message)
+public async Task ProduceMessageAsync(string topic, Celte.Req.RPRequest message)
+{
+    try
     {
-        try
+        var pulsarClient = Master.GetInstance().GetPulsarClient();
+        if (pulsarClient == null)
         {
-            var producer = Master.GetInstance().GetPulsarClient().NewProducer()
-                .Topic(topic)
-                .Create();
-            Redis.ActionLog actionLog = new Redis.ActionLog
-            {
-                ActionType = "ProduceMessage",
-                Details = $"Produced message to topic {topic}"
-            };
-            Redis.RedisClient.GetInstance().rLogger.LogActionAsync(actionLog).Wait();
-            // string msg = message.ToString();
-            // Console.WriteLine($"Producing message!!!!!!!!!!!!: {msg}\n\n");
-            // await producer.Send(Encoding.UTF8.GetBytes(msg));
-            Google.Protobuf.JsonFormatter jsonFormatter = new JsonFormatter(new JsonFormatter.Settings(true));
-            string jsonString = jsonFormatter.Format(message);
-            Console.WriteLine($"Producing message!!!!!!!!!!!!: {jsonString}\n\n");
-            await producer.Send(Encoding.UTF8.GetBytes(jsonString));
-            // await producer.Send(jsonString);
+            Console.WriteLine("Error: Pulsar client is not initialized.");
+            return;
         }
-        catch (Exception e)
+
+        var producer = pulsarClient.NewProducer()
+            .Topic(topic)
+            .Create();
+
+        Google.Protobuf.JsonFormatter jsonFormatter = new JsonFormatter(new JsonFormatter.Settings(true));
+        string jsonString = jsonFormatter.Format(message);
+
+        Console.WriteLine($"[DEBUG] Producing message: {jsonString}\n");
+
+        if (string.IsNullOrWhiteSpace(jsonString))
         {
-            Console.WriteLine($"Error producing message: {e.Message}");
+            Console.WriteLine("Error: JSON string is empty. Aborting.");
+            return;
         }
+
+        await producer.Send(Encoding.UTF8.GetBytes(jsonString));
+        Console.WriteLine($"Successfully produced message to {topic}");
+
+        var actionLog = new Redis.ActionLog
+        {
+            ActionType = "ProduceMessage",
+            Details = $"Produced message to topic {topic}"
+        };
+        await Redis.RedisClient.GetInstance().rLogger.LogActionAsync(actionLog);
     }
+    catch (Exception e)
+    {
+        Console.WriteLine($"Error producing message: {e}");
+    }
+}
 
     public async Task ProduceMessageAsync(string topic, string message)
     {

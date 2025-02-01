@@ -6,8 +6,9 @@ class Program
 {
     static void Main(string[] args)
     {
-        try {
-        Master master = Master.GetInstance();
+        try
+        {
+            Master master = Master.GetInstance();
             Console.CancelKeyPress += (sender, e) =>
             {
                 e.Cancel = true;
@@ -15,14 +16,30 @@ class Program
                 master.Dispose();
                 Environment.Exit(0);
             };
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Console.WriteLine($"Error initializing Master: {e.Message}");
             Environment.Exit(1);
         }
 
-        Console.WriteLine("\nPress Ctrl+C to exit...\n");
+        Console.WriteLine("\nPress Space to exit...\n");
+
         while (true)
         {
+            if (Console.KeyAvailable)
+            {
+                var key = Console.ReadKey(intercept: true).Key;
+                if (key == ConsoleKey.Spacebar)
+                {
+                    Console.WriteLine("Space key pressed, exiting...");
+                    Master.GetInstance().Dispose();
+                    // delete node from redis
+                    Redis.RedisClient redis =  Redis.RedisClient.GetInstance();
+                    redis.redisData.JSONRemove("nodes");
+                    Environment.Exit(0);
+                }
+            }
             Thread.Sleep(100);
         }
     }
