@@ -35,7 +35,7 @@ class Program
                     Console.WriteLine("Space key pressed, exiting...");
                     Master.GetInstance().Dispose();
                     // delete node from redis
-                    Redis.RedisClient redis =  Redis.RedisClient.GetInstance();
+                    Redis.RedisClient redis = Redis.RedisClient.GetInstance();
                     redis.redisData.JSONRemove("nodes");
                     Environment.Exit(0);
                 }

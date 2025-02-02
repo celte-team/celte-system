@@ -2,6 +2,7 @@ using System.Text.Json;
 using Celte.Req;
 using Confluent.Kafka;
 using Microsoft.Extensions.Options;
+using YamlDotNet.Serialization;
 // public struct RPRequest
 // {
 //     public string name { get; set; }
@@ -169,24 +170,27 @@ public class RPC
                 Console.WriteLine($"<RegisterAllResponseHandlers> Received response from __rp_getPlayerSpawnPosition with args {args} sending to uuid : {uuid} \n\n");
                 string topic = $"persistent://public/default/{uuid}.rpc";
 
-                JsonDocument argsJson = JsonDocument.Parse(args.Args);
-                JsonElement root = argsJson.RootElement;
+                var root = JsonDocument.Parse(JsonDocument.Parse(args.Args).RootElement.GetString()).RootElement;
 
                 string clientId = "";
-
+                Console.WriteLine("value kind is " + root.ValueKind);
                 if (root.ValueKind == JsonValueKind.Array)
                 {
+                    Console.WriteLine("args.Args is an array");
                     // Extract first element if it's an array
                     if (root.GetArrayLength() > 0)
                     {
+                        Console.WriteLine("Extracting clientId from args.Args array");
                         clientId = root[0].GetString(); // Assuming first element is the clientId
                     }
                 }
                 else if (root.ValueKind == JsonValueKind.Object)
                 {
+                    Console.WriteLine("args.Args is an object");
                     // If it's an object, extract "clientId"
                     if (root.TryGetProperty("clientId", out JsonElement clientIdElement))
                     {
+                        Console.WriteLine("Extracting clientId from args.Args");
                         clientId = clientIdElement.GetString();
                     }
                 }
@@ -198,6 +202,7 @@ public class RPC
                 }
 
                 string clientIdArrayJson = JsonSerializer.Serialize(new string[] { clientId });
+                Console.WriteLine($"clientIdArrayJson {clientIdArrayJson} is trying to connect.");
                 RPRequest r = new RPRequest
                 {
                     Name = "__rp_acceptNewClient",
@@ -207,7 +212,7 @@ public class RPC
                     // Args = rpcArgsList.RootElement.ToString()
                     Args = clientIdArrayJson
                 };
-                RPC.Call(topic, "__rp_acceptNewClient", args);
+                RPC.Call(topic, "__rp_acceptNewClient", r);
             }
             else
             {
