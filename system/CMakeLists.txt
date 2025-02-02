@@ -50,6 +50,7 @@ else()
 endif()
 
 
+
 set(PROTO_SRC_ROOT "${CMAKE_SOURCE_DIR}/protogen/")
 set(PROTO_SRCS
     "${PROTO_SRC_ROOT}/systems_structs.pb.cc"

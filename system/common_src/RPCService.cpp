@@ -41,13 +41,9 @@ void RPCService::__initReaderStream(const std::vector<std::string> &topic) {
                                     req::RPRequest req) {},
        .messageHandler =
            [this](const pulsar::Consumer, req::RPRequest req) {
-             std::cout << "[[RPCService]] handling message "
-                       << req.DebugString() << std::endl;
              if (!req.responds_to().empty()) {
-               std::cout << "handling response" << std::endl;
                __handleResponse(req);
              } else {
-               std::cout << "handling call" << std::endl;
                __handleRemoteCall(req);
              }
            }});

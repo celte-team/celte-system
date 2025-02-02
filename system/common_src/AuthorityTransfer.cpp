@@ -40,7 +40,6 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
     fromContainerId = e.ownerContainerId;
     if (e.quarantine || !e.isValid ||
         (e.ownerContainerId == toContainerId && !ignoreNoMove)) {
-      // (!ignoreNoMove || e.ownerContainerId == toContainerId)) {
       return;
     }
     abort = false;
