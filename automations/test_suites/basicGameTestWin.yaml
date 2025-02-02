@@ -6,7 +6,7 @@ build:
       powershell -Command "& { New-Item -ItemType Directory -Force -Path 'system/build'
       Set-Location 'system/build'
       if ((Get-ChildItem -Force | Measure-Object).Count -eq 0) { cmake --preset windows -G "Visual Studio 17 2022" .. }
-      cmake --build . --target ALL_BUILD }"
+      cmake --build . --target all }"
 
   - step: master
     run: |
