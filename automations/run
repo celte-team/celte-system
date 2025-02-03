@@ -444,7 +444,7 @@ def flush_pulsar():
         subprocess.run(['mkdir', '-p', 'data/bookkeeper/', 'data/zookeeper/'])
         os.chdir('..')
     else:
-        print(f"{Fore.ORANGE}Pulsar data directory not found{Style.RESET_ALL}")
+        print(f"Pulsar data directory not found")
 
 signal.signal(signal.SIGINT, signal_handler)
 

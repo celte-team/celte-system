@@ -37,6 +37,9 @@ class Program
                     // delete node from redis
                     Redis.RedisClient redis = Redis.RedisClient.GetInstance();
                     redis.redisData.JSONRemove("nodes");
+                    redis.redisData.JSONRemove("action_logs_master");
+                    redis.redisData.JSONRemove("logs");
+                    redis.redisData.JSONRemove("clients_try_to_connect");
                     Environment.Exit(0);
                 }
             }
