@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
-class Grape {
+class Grape
+{
 
     Master _master = Master.GetInstance();
 
