@@ -51,15 +51,14 @@ void RPCService::__initReaderStream(const std::vector<std::string> &topic) {
 
 void RPCService::__handleRemoteCall(const req::RPRequest &req) {
   auto it = _rpcs.find(req.name());
-  std::cout << "handling remote call: " << req.DebugString() << std::endl;
   if (it == _rpcs.end()) {
     // no such rpc
     std::cerr << "No such rpc: " << req.name() << std::endl;
     return;
   }
   auto f = it->second;
-  std::string argsJson = req.args();
-  std::cout << "argsJson: " << argsJson << std::endl;
+  nlohmann::json argsJson = nlohmann::json::parse(req.args());
+  auto result = f(argsJson).dump();
 
   if (not req.response_topic().empty()) {
     req::RPRequest response;
@@ -68,7 +67,7 @@ void RPCService::__handleRemoteCall(const req::RPRequest &req) {
     response.set_response_topic("");
     response.set_rpc_id(
         boost::uuids::to_string(boost::uuids::random_generator()()));
-    response.set_args(argsJson);
+    response.set_args(result);
 
     _writerStreamPool.Write(req.response_topic(), response);
   }
