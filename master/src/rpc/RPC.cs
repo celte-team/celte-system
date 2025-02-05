@@ -1,26 +1,5 @@
 using System.Text.Json;
 using Celte.Req;
-using Confluent.Kafka;
-using Microsoft.Extensions.Options;
-using YamlDotNet.Serialization;
-// public struct RPRequest
-// {
-//     public string name { get; set; }
-//     public string respondsTo { get; set; }
-//     public string responseTopic { get; set; }
-//     public string rpcId { get; set; }
-//     public JsonElement args { get; set; }
-
-//     public string ToJson()
-//     {
-//         return JsonSerializer.Serialize(this);
-//     }
-
-//     public static RPRequest FromJson(string jsonString)
-//     {
-//         return JsonSerializer.Deserialize<RPRequest>(jsonString);
-//     }
-// }
 
 /// <summary>
 ///
@@ -209,7 +188,6 @@ public class RPC
                     RespondsTo = "",
                     ResponseTopic = "persistent://public/default/master.rpc",
                     RpcId = new Random().Next().ToString(),
-                    // Args = rpcArgsList.RootElement.ToString()
                     Args = clientIdArrayJson
                 };
                 RPC.Call(topic, "__rp_acceptNewClient", r);
