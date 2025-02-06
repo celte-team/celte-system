@@ -5,14 +5,15 @@
 #include "WriterStream.hpp"
 #include "WriterStreamPool.hpp"
 #include "nlohmann/json.hpp"
-#include "protos/systems_structs.pb.h"
 #include "pulsar/Consumer.h"
 #include "pulsar/Producer.h"
+#include "systems_structs.pb.h"
 
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include "CelteError.hpp"
 #include <algorithm>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
@@ -27,6 +28,23 @@ using namespace std::chrono_literals;
 namespace celte {
 namespace net {
 
+class RPCTimeoutException : public CelteError {
+public:
+  RPCTimeoutException(const std::string &msg, Logger &log,
+                      std::string file = __FILE__, int line = __LINE__)
+      : CelteError(msg, log, file, line,
+                   [](std::string s) { RUNTIME.Hooks().onRPCTimeout(s); }) {}
+};
+
+class RPCHandlingException : public CelteError {
+public:
+  RPCHandlingException(const std::string &msg, Logger &log,
+                       std::string file = __FILE__, int line = __LINE__)
+      : CelteError(msg, log, file, line, [](std::string s) {
+          RUNTIME.Hooks().onRPCHandlingError(s);
+        }) {}
+};
+
 template <typename Ret> struct Awaitable {
   Awaitable(std::shared_ptr<std::future<Ret>> future) : _future(future) {}
 
@@ -38,14 +56,17 @@ template <typename Ret> struct Awaitable {
         std::cerr << "Timeout waiting for future" << std::endl;
         return;
       }
-      Ret ret = future->get();
-      f(ret);
+      try {
+        Ret ret = future->get();
+        f(ret);
+      } catch (std::exception &e) {
+        std::cerr << "Error in async rpc future: " << e.what() << std::endl;
+      }
     });
   }
 
 private:
   std::shared_ptr<std::future<Ret>> _future;
-  boost::asio::io_service &_io;
 };
 
 class RPCService : public CelteService {
@@ -56,13 +77,26 @@ public:
   static std::mutex rpcPromisesMutex;
 
   struct Options {
-    const std::string &thisPeerUuid;
-    std::vector<std::string> listenOn;
+    std::string thisPeerUuid = "";
+    std::vector<std::string> listenOn = {};
     std::string reponseTopic = "";
     std::string serviceName = "";
+
+    Options &operator=(const Options &other) {
+      if (this != &other) {
+        const_cast<std::string &>(thisPeerUuid) = other.thisPeerUuid;
+        listenOn = other.listenOn;
+        reponseTopic = other.reponseTopic;
+        serviceName = other.serviceName;
+      }
+      return *this;
+    }
   };
 
+  RPCService();
+
   RPCService(const Options &options);
+  void Init(const Options &options);
   template <typename Ret, typename... Args>
   void Register(const std::string &name, std::function<Ret(Args...)> f) {
 
@@ -75,8 +109,6 @@ public:
 
   template <typename Ret, typename... Args>
   Ret Call(const std::string &topic, const std::string &name, Args... args) {
-    static_assert(std::is_base_of<google::protobuf::Message, Ret>::value,
-                  "Ret must be a protobuf message.");
     req::RPRequest req;
     req.set_name(name);
     req.set_responds_to("");
@@ -90,16 +122,24 @@ public:
       std::lock_guard<std::mutex> lock(rpcPromisesMutex);
       rpcPromises[req.rpc_id()] = promise;
     }
+    std::cout << "rpc service writting rpc to topic " << topic
+              << " with rpc id " << req.rpc_id() << std::endl;
     _writerStreamPool.Write(topic, req);
 
-    std::string result = promise->get_future().get(); // json of response.args
-    // return nlohmann::json::parse(result).get<Ret>();
-    // return google::protobuf::util::JsonStringToMessage<Ret>(result);
-    Ret ret;
-    if (!google::protobuf::util::JsonStringToMessage(result, &ret).ok()) {
-      std::cerr << "Error parsing json to message: " << result << std::endl;
+    std::string result;
+    auto fut = promise->get_future();
+    if (fut.wait_for(300ms) == std::future_status::timeout) {
+      throw RPCTimeoutException("Timeout waiting for rpc response", LOGGER);
     }
-    return ret;
+    result = fut.get();
+
+    try {
+      Ret ret = nlohmann::json::parse(result).get<Ret>();
+      return ret;
+    } catch (nlohmann::json::exception &e) {
+      std::cerr << "Error parsing json: " << e.what() << std::endl;
+      throw e; // todo custom error type
+    }
   }
 
   template <typename... Args>
@@ -140,12 +180,13 @@ public:
     auto future = std::make_shared<std::future<Ret>>(
         std::async(std::launch::async, [promise]() {
           std::string result = promise->get_future().get();
-          Ret r;
-          if (!google::protobuf::util::JsonStringToMessage(result, &r).ok()) {
-            std::cerr << "Error parsing json to message: " << result
-                      << std::endl;
+          try {
+            Ret ret = nlohmann::json::parse(result).get<Ret>();
+            return ret;
+          } catch (nlohmann::json::exception &e) {
+            std::cerr << "Error parsing json: " << e.what() << std::endl;
+            throw e; // todo custom error type
           }
-          return r;
         }));
 
     _writerStreamPool.Write(topic, req, [topic, name](pulsar::Result r) {
@@ -171,6 +212,9 @@ private:
   void __handleRemoteCall(const req::RPRequest &req);
   void __handleResponse(const req::RPRequest &req);
 
+  // static std::unordered_map<
+  //     std::string, std::function<nlohmann::json(const nlohmann::json &)>>
+  //     _rpcs;
   std::unordered_map<std::string,
                      std::function<nlohmann::json(const nlohmann::json &)>>
       _rpcs;

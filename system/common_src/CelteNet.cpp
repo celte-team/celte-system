@@ -1,5 +1,6 @@
 #include "CelteNet.hpp"
 #include "Runtime.hpp"
+#include "pulsar/ConsoleLoggerFactory.h"
 
 using namespace celte::net;
 
@@ -14,10 +15,11 @@ void CelteNet::Connect(const std::string &brokers, int timeoutMs) {
 
 void CelteNet::__init(const std::string &brokers, int timeoutMs) {
   pulsar::ClientConfiguration conf;
-  conf.setOperationTimeoutSeconds(1);
+  conf.setOperationTimeoutSeconds(timeoutMs / 1000);
   conf.setIOThreads(1);
   conf.setMessageListenerThreads(1);
   conf.setUseTls(false);
+  conf.setLogger(new pulsar::ConsoleLoggerFactory(pulsar::Logger::LEVEL_WARN));
 
   std::string pulsarBrokers = "pulsar://" + brokers;
   _client = std::make_unique<pulsar::Client>(pulsarBrokers, conf);
@@ -56,7 +58,8 @@ void CelteNet::CreateConsumer(SubscribeOptions &options) {
       });
 
   _client->subscribeAsync(
-      options.topics, options.subscriptionName, options.conf,
+      options.topics, options.subscriptionName + "." + RUNTIME.GetUUID(),
+      options.conf,
       [this, options](pulsar::Result result, pulsar::Consumer newConsumer) {
         if (options.thenAsync)
           options.thenAsync(newConsumer, result);

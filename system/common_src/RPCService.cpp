@@ -1,17 +1,31 @@
 #include "RPCService.hpp"
 #include "ReaderStream.hpp"
 #include "WriterStream.hpp"
-#include "protos/systems_structs.pb.h"
+#include "systems_structs.pb.h"
 
 namespace celte {
 namespace net {
+
+// std::unordered_map<std::string,
+//                    std::function<nlohmann::json(const nlohmann::json &)>>
+//     RPCService::_rpcs;
+
 std::unordered_map<std::string, std::shared_ptr<std::promise<std::string>>>
     RPCService::rpcPromises;
 std::mutex RPCService::rpcPromisesMutex;
 
+RPCService::RPCService() : _writerStreamPool(WriterStreamPool::Options{}) {}
+
 RPCService::RPCService(const RPCService::Options &options)
     : _options(options), _writerStreamPool(WriterStreamPool::Options{
                              .idleTimeout = std::chrono::milliseconds(10000)}) {
+  if (options.listenOn.size() != 0) {
+    __initReaderStream(options.listenOn);
+  }
+}
+
+void RPCService::Init(const RPCService::Options &options) {
+  _options = options;
   if (options.listenOn.size() != 0) {
     __initReaderStream(options.listenOn);
   }
@@ -23,17 +37,14 @@ void RPCService::__initReaderStream(const std::vector<std::string> &topic) {
        .topics = {topic},
        .subscriptionName = _options.serviceName,
        .exclusive = false,
-       .messageHandlerSync =
-           [this](const pulsar::Consumer, req::RPRequest req) {
-             if (!req.responds_to().empty()) {
-               return; // nothing to do, handled in async handler
-             }
-             __handleRemoteCall(req);
-           },
+       .messageHandlerSync = [this](const pulsar::Consumer,
+                                    req::RPRequest req) {},
        .messageHandler =
            [this](const pulsar::Consumer, req::RPRequest req) {
              if (!req.responds_to().empty()) {
                __handleResponse(req);
+             } else {
+               __handleRemoteCall(req);
              }
            }});
 }
@@ -45,9 +56,9 @@ void RPCService::__handleRemoteCall(const req::RPRequest &req) {
     std::cerr << "No such rpc: " << req.name() << std::endl;
     return;
   }
-  std::cout << "RPC handling call: " << req.name() << std::endl;
   auto f = it->second;
-  auto result = f(req.args()).dump();
+  nlohmann::json argsJson = nlohmann::json::parse(req.args());
+  auto result = f(argsJson).dump();
 
   if (not req.response_topic().empty()) {
     req::RPRequest response;

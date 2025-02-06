@@ -15,8 +15,11 @@ inline std::string repl(const std::string &str) {
   return default_scope + str + ".repl";
 }
 
-static const std::string hello_master_sn = "master.hello.sn";
-static const std::string hello_master_cl = "master.hello.client";
+static const std::string hello_master_sn = default_scope + "master.hello.sn";
+static const std::string hello_master_cl =
+    default_scope + "master.hello.client";
+static const std::string global_clock = default_scope + "global.clock";
+static const std::string global_rpc = default_scope + "global.rpc";
 
 } // namespace tp
 } // namespace celte

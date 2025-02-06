@@ -1,8 +1,10 @@
 #pragma once
 #include "CelteNet.hpp"
 #include "Runtime.hpp"
+#include "nlohmann/json.hpp"
 #include "pulsar/Consumer.h"
 #include "pulsar/ConsumerConfiguration.h"
+#include "systems_structs.pb.h"
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -76,18 +78,20 @@ struct ReaderStream {
 
         .messageHandler = // executed when a message is received
         [this, options](pulsar::Consumer consumer, const pulsar::Message &msg) {
+          consumer.acknowledge(msg);
           Req req;
           std::string data(static_cast<const char *>(msg.getData()),
                            msg.getLength());
-          try {
-            if (!google::protobuf::util::JsonStringToMessage(data, &req).ok()) {
-              std::cerr << "Error parsing message: " << data << std::endl;
-              return;
-            }
 
-          } catch (std::exception &e) {
-            std::cerr << "Error parsing message: " << e.what() << std::endl;
-            std::cerr << "json: " << data << std::endl;
+          {
+            // debug
+            if (msg.getTopicName().find("global.clock") == std::string::npos)
+              std::cout << "[[ReaderStream]] handling message " << data
+                        << " from topic " << msg.getTopicName() << std::endl;
+          }
+
+          if (!google::protobuf::util::JsonStringToMessage(data, &req).ok()) {
+            std::cerr << "Error parsing message: " << data << std::endl;
             return;
           }
           if (options.messageHandler)

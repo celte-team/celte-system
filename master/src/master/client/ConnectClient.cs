@@ -12,11 +12,11 @@ class ConnectClient
 
     public async void ConnectNewClient(string message)
     {
-        Console.WriteLine("New client connected to the cluster: " + message);
-        if (!_clients.ContainsKey(message))
-            _clients.Add(message, new Client { uuid = message });
-
-        await _master.pulsarProducer.OpenTopic(message);
+        string binaryData = message.Split("\"peerUuid\":\"")[1].Split("\"")[0];
+        if (!_clients.ContainsKey(binaryData))
+            _clients.Add(binaryData, new Client { uuid = binaryData });
+        string newTopic = "persistent://public/default/" + binaryData;
+        // await _master.pulsarProducer.OpenTopic(newTopic);
         try
         {
             string nodeId = await GetRandomNode();
@@ -26,13 +26,23 @@ class ConnectClient
             string uuidProcess = Guid.NewGuid().ToString();
             const string rpcName = "__rp_getPlayerSpawnPosition";
 
+
             Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
             await redisClient.redisData.JSONPush("clients_try_to_connect", clientId, clientId);
-
+            string clientIdArrayJson = JsonSerializer.Serialize(new string[] { clientId });
+            Console.WriteLine($"clientIdArrayJson {clientIdArrayJson} is trying to connect.");
             _master.rpc.RegisterAllResponseHandlers();
             nodeId = "persistent://public/default/" + nodeId + ".rpc";
-            JsonElement argsElement = JsonDocument.Parse($"[\"{clientId}\"]").RootElement;
-            RPC.Call(nodeId, rpcName, argsElement);
+            Celte.Req.RPRequest request = new Celte.Req.RPRequest
+            {
+                Name = rpcName,
+                RespondsTo = "",
+                ResponseTopic = "persistent://public/default/master.rpc",
+                RpcId = new Random().Next().ToString(),
+                Args = clientIdArrayJson,
+            };
+
+            RPC.Call(nodeId, rpcName, request);
         }
         catch (Exception e)
         {

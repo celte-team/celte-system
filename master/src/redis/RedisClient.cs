@@ -33,25 +33,31 @@ namespace Redis {
                 Console.WriteLine("Connected to Redis\n");
             } catch (Exception ex) {
                 Console.WriteLine($"Error connecting to Redis: {ex.Message}");
+                throw;
             }
         }
 
         public static RedisClient GetInstance()
         {
-            if (_instance == null)
-            {
-                string connectionString = Environment.GetEnvironmentVariable("REDIS_HOST") ?? string.Empty;
-                if (string.IsNullOrEmpty(connectionString))
+            try {
+                if (_instance == null)
                 {
-                    throw new ArgumentNullException("Connection string cannot be null or empty");
+                    string connectionString = Environment.GetEnvironmentVariable("REDIS_HOST") ?? string.Empty;
+                    if (string.IsNullOrEmpty(connectionString))
+                    {
+                        throw new ArgumentNullException("Connection string cannot be null or empty");
+                    }
+                    _instance = new RedisClient();
+                    RedisData Rd = new RedisData(_instance.GetDatabase());
+                    _instance.redisData = Rd;
+                    RLogger Rl = new RLogger(_instance.GetDatabase());
+                    _instance.rLogger = Rl;
                 }
-                _instance = new RedisClient();
-                RedisData Rd = new RedisData(_instance.GetDatabase());
-                _instance.redisData = Rd;
-                RLogger Rl = new RLogger(_instance.GetDatabase());
-                _instance.rLogger = Rl;
+                return _instance;
+            } catch (Exception ex) {
+                Console.WriteLine($"Error getting Redis instance: {ex.Message}");
+                throw;
             }
-            return _instance;
         }
 
         public IDatabase GetDatabase() => _db;
@@ -221,15 +227,13 @@ namespace Redis {
             try
             {
                 var jsonValue = await _db.ExecuteAsync("JSON.GET", key);
-                Console.WriteLine($"JSON value: {jsonValue}");
                 string jsonString = jsonValue.ToString();
                 T value = JSONSerializer.Deserialize<T>(jsonString);
-                Console.WriteLine($"JSON value: {value}");
                 return value;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting JSON value: {ex.Message}");
+                Console.WriteLine($"1. Error getting JSON value: {ex.Message}");
                 return default;
             }
         }
@@ -237,13 +241,17 @@ namespace Redis {
         {
             try
             {
+                if (!_db.KeyExists(key))
+                {
+                    _db.Execute("JSON.SET", key, "$", "[]");
+                }
                 var jsonValue = await _db.ExecuteAsync("JSON.GET", key);
                 string value = jsonValue.ToString();
                 return JsonDocument.Parse(value).RootElement;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting JSON value: {ex.Message}");
+                Console.WriteLine($"2. Error getting JSON value: {ex.Message}");
                 return default;
             }
         }
@@ -258,7 +266,7 @@ namespace Redis {
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting JSON value: {ex.Message}");
+                Console.WriteLine($"3. Error getting JSON value: {ex.Message}");
                 return null;
             }
         }
@@ -266,6 +274,11 @@ namespace Redis {
         public void JSONRemove(string key, string field)
         {
             _db.Execute("JSON.DEL", key, $"$.{field}");
+        }
+
+        public void JSONRemove(string key)
+        {
+            _db.Execute("JSON.DEL", key);
         }
 
         /// <summary>
