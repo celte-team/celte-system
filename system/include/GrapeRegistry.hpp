@@ -157,6 +157,14 @@ public:
                                      const std::string &containerId);
 #endif
 
+  /// @brief If a server node detects that an entity should be owned by a
+  /// non locally owned grape, it can notify the grape through its proxy so that
+  /// the remote grape can take authority over the entity.
+  void ProxyTakeAuthority(const std::string &grapeId,
+                          const std::string &entityId,
+                          const std::string &fromContainerId,
+                          const std::string &payload);
+
 private:
   tbb::concurrent_hash_map<std::string, Grape> _grapes;
 };

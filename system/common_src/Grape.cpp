@@ -11,13 +11,8 @@ void Grape::initRPCService() {
   {
     std::vector<std::string> topics = {tp::rpc(id)};
     if (isLocallyOwned) {
-      std::cout << "Grape " << id << " is locally owned" << std::endl;
       topics.push_back(
           tp::peer(id)); // not really a peer but the raw id without
-    }
-    std::cout << "[[GRAPE]] " << id << " listening on " << std::endl;
-    for (auto &t : topics) {
-      std::cout << "  - " << t << std::endl;
     }
     rpcService.emplace(
         net::RPCService::Options{.thisPeerUuid = RUNTIME.GetUUID(),

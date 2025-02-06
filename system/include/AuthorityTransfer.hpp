@@ -24,6 +24,11 @@ public:
 
   static void ExecDropOrder(nlohmann::json args);
 
+  static void ProxyTakeAuthority(const std::string &grapeId,
+                                 const std::string &entityId,
+                                 const std::string &fromContainerId,
+                                 const std::string &payload);
+
 private:
 };
 } // namespace celte

@@ -1,3 +1,4 @@
+#include "AuthorityTransfer.hpp"
 #include "GrapeRegistry.hpp"
 #include "Topics.hpp"
 #include <functional>
@@ -140,3 +141,18 @@ void GrapeRegistry::UnsubscribeGrapeFromContainer(
   }
 }
 #endif
+
+void GrapeRegistry::ProxyTakeAuthority(const std::string &grapeId,
+                                       const std::string &entityId,
+                                       const std::string &fromContainerId,
+                                       const std::string &payload) {
+  accessor acc;
+  if (_grapes.find(acc, grapeId)) {
+    // todo:  quaranteen ett
+    AuthorityTransfer::ProxyTakeAuthority(grapeId, entityId, fromContainerId,
+                                          payload);
+  } else {
+    std::cout << "Grape not found: " << grapeId
+              << ", cannot take authority through proxy" << std::endl;
+  }
+}

@@ -118,7 +118,6 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
 }
 
 void AuthorityTransfer::ExecDropOrder(nlohmann::json args) {
-  // UNPACK;
   if (args.is_array() &&
       !args.empty()) { // sometime args is an array, sometimes not. this is a
                        // workaround, not a fix
@@ -142,4 +141,7 @@ void AuthorityTransfer::ExecDropOrder(nlohmann::json args) {
       });
 }
 
-#undef UNPACK
+void AuthorityTransfer::ProxyTakeAuthority(const std::string &grapeId,
+                                           const std::string &entityId,
+                                           const std::string &fromContainerId,
+                                           const std::string &payload) {}
