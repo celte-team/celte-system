@@ -145,6 +145,7 @@ bool PeerService::__rp_acceptNewClient(const std::string &clientId) {
     g.executor.PushTaskToEngine(
         [clientId]() { RUNTIME.Hooks().onAcceptNewClient(clientId); });
   });
+  return true;
 }
 
 void PeerService::ConnectClientToThisNode(const std::string &clientId,
