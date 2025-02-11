@@ -1,5 +1,6 @@
 #include "AuthorityTransfer.hpp"
 #include "GrapeRegistry.hpp"
+#include "PeerService.hpp"
 #include "Topics.hpp"
 #include <functional>
 
@@ -21,8 +22,9 @@ void GrapeRegistry::RegisterGrape(const std::string &grapeId,
   acc->second.isLocallyOwned = isLocallyOwned;
 #ifdef CELTE_SERVER_MODE_ENABLED
   if (isLocallyOwned) {
-    acc->second.clientRegistry.emplace(); // create the client registry
-    acc->second.clientRegistry->StartKeepAliveThread();
+    // acc->second.clientRegistry.emplace(); // create the client registry
+    // acc->second.clientRegistry->StartKeepAliveThread();
+    RUNTIME.GetPeerService().GetClientRegistry().StartKeepAliveThread();
   }
 #endif
   acc.release();
@@ -39,10 +41,6 @@ void GrapeRegistry::RegisterGrape(const std::string &grapeId,
         }
 #ifdef CELTE_SERVER_MODE_ENABLED
         if (not isLocallyOwned) {
-          std::cout << "grape " << grapeId
-                    << " is fetching existing containers because it is not "
-                       "locally owned. "
-                    << std::endl;
           acc2->second.fetchExistingContainers();
         }
 #endif
@@ -140,15 +138,32 @@ void GrapeRegistry::UnsubscribeGrapeFromContainer(
     acc->second.unsubscribeFromContainer(containerId);
   }
 }
-#endif
 
 void GrapeRegistry::ProxyTakeAuthority(const std::string &grapeId,
-                                       const std::string &entityId,
-                                       const std::string &fromContainerId,
-                                       const std::string &payload) {
+                                       const std::string &entityId) {
+  std::string fromContainerId = ETTREGISTRY.GetEntityOwnerContainer(entityId);
+  if (not ContainerRegistry::GetInstance().ContainerIsLocallyOwned(
+          fromContainerId)) {
+    std::cout << "entity " << entityId
+              << " is not locally owned, cannot take authority through proxy"
+              << std::endl;
+    return;
+  }
+
+  std::string payload = ETTREGISTRY.GetEntityPayload(entityId).value_or("{}");
   accessor acc;
   if (_grapes.find(acc, grapeId)) {
+    // if grape is locally owned, there is no need to take authority through
+    // proxy
+    if (acc->second.isLocallyOwned) {
+      std::cout
+          << "Grape is locally owned so no need to take authority through "
+             "proxy"
+          << std::endl;
+      return;
+    }
     // todo:  quaranteen ett
+    std::cout << "taking auth by proxy in grape registry" << std::endl;
     AuthorityTransfer::ProxyTakeAuthority(grapeId, entityId, fromContainerId,
                                           payload);
   } else {
@@ -156,3 +171,5 @@ void GrapeRegistry::ProxyTakeAuthority(const std::string &grapeId,
               << ", cannot take authority through proxy" << std::endl;
   }
 }
+
+#endif

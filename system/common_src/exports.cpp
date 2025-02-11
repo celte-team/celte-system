@@ -89,7 +89,50 @@ EXPORT void UpdateSubscriptionStatus(const std::string &grapeId,
                                      bool subscribe) {
   GRAPES.SetRemoteGrapeSubscription(grapeId, containerId, subscribe);
 }
+
+EXPORT void ProxyTakeAuthority(const std::string &grapeId,
+                               const std::string &entityId) {
+  GRAPES.ProxyTakeAuthority(grapeId, entityId);
+}
+
+EXPORT std::optional<void *>
+GetOwnedContainerNativeHandle(const std::string &ownerGrapeId,
+                              const std::string &containerId) {
+  return GRAPES.GetOwnedContainerNativeHandle(ownerGrapeId, containerId);
+}
+
+EXPORT void SetOwnedContainerNativeHandle(const std::string &ownerGrapeId,
+                                          const std::string &containerId,
+                                          void *handle) {
+  GRAPES.SetOwnedContainerNativeHandle(ownerGrapeId, containerId, handle);
+}
+
+EXPORT std::vector<celte::Entity::ETTNativeHandle>
+GetContainerOwnedEntitiesNativeHandles(const std::string &containerId) {
+  return celte::ContainerRegistry::GetInstance().GetOwnedEntitiesNativeHandles(
+      containerId);
+}
+
+EXPORT void RegisterClient(const std::string &clientId) {
+  RUNTIME.GetPeerService().GetClientRegistry().RegisterClient(clientId, "", "");
+}
+
+EXPORT void ForgetClient(const std::string &clientId) {
+  RUNTIME.GetPeerService().GetClientRegistry().ForgetClient(clientId);
+}
 #endif
+
+EXPORT bool IsEntityRegistered(const std::string &id) {
+  return ETTREGISTRY.IsEntityRegistered(id);
+}
+
+EXPORT void SetETTNativeHandle(const std::string &id, void *handle) {
+  ETTREGISTRY.SetEntityNativeHandle(id, handle);
+}
+
+EXPORT std::optional<void *> GetETTNativeHandle(const std::string &id) {
+  return ETTREGISTRY.GetEntityNativeHandle(id);
+}
 
 #pragma endregion
 /* ----------------------------- TASK MANAGEMENT ---------------------------- */
@@ -130,6 +173,27 @@ EXPORT bool AdvanceGrapeTask(const std::string &grapeId) {
   return false;
 }
 
+#pragma endregion
+
+#pragma region NAMED_TASKS
+/* ------------------------------- NAMED TASKS ------------------------------ */
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+/// @brief This function will return a value when this peer owns the grape
+/// <grapeId> and a remote server node used the proxy of this grape to ask it to
+/// take authority over an entitiy.
+/// @param grapeId
+/// @return std::optional<std::tuple<std::string, std::string, std::string,
+/// std::string>>
+/// Values of the tuple are entityId, fromContainerId, payload.
+EXPORT std::optional<std::tuple<std::string, std::string, std::string>>
+PopAssignmentByProxy(const std::string &grapeId) {
+  std::optional<std::tuple<std::string, std::string, std::string>> result =
+      GRAPES.PopNamedTaskFromEngine<std::string, std::string, std::string>(
+          grapeId, "proxyTakeAuthority");
+  return result;
+}
+#endif
 #pragma endregion
 
 /* --------------------------------- RPC API -------------------------------- */

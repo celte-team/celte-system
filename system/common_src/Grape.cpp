@@ -1,3 +1,4 @@
+#include "AuthorityTransfer.hpp"
 #include "Container.hpp"
 #include "Grape.hpp"
 #include "Logger.hpp"
@@ -45,6 +46,18 @@ void Grape::initRPCService() {
                                  unsubscribeFromContainer(containerId);
                                  return true;
                                }));
+
+    if (isLocallyOwned) {
+      rpcService->Register<bool>(
+          "__rp_proxyTakeAuthority",
+          std::function([this](std::string entityId,
+                               std::string fromContainerId,
+                               std::string payload) {
+            AuthorityTransfer::__rp_proxyTakeAuthority(
+                id, entityId, fromContainerId, payload);
+            return true;
+          }));
+    }
 #endif
   }
 }
@@ -60,7 +73,8 @@ Grape::subscribeToContainer(const std::string &containerId,
     return id;
   }
   if (isLocallyOwned) {
-    ownedContainers.insert(id.value());
+    ownedContainers[id.value()] = std::nullopt;
+
   } else { // if not locally owned, fetch existing entities from the owner
     ETTREGISTRY.LoadExistingEntities(this->id, containerId);
   }
@@ -85,8 +99,6 @@ void Grape::fetchExistingContainers() {
     for (auto &containerId : existingContainers) {
       subscribeToContainer(containerId, []() {}, false);
     }
-    // } catch (const net::RPCTimeoutException &e) {
-    //   fetchExistingContainers();
   } catch (const std::exception &e) {
     std::cerr << "Error fetching existing containers: " << e.what()
               << std::endl;
@@ -97,12 +109,10 @@ std::vector<std::string> Grape::__rp_getExistingOwnedContainers() {
   std::vector<std::string> result;
   {
     std::lock_guard<std::mutex> lock(ownedContainersMutex);
-    for (auto &containerId : ownedContainers) {
+    for (auto &[containerId, _] : ownedContainers) {
       result.push_back(containerId);
     }
   }
-  std::cout << "getting existing owned containers in grape " << id
-            << ", returning: [\n";
   for (auto &c : result) {
     std::cout << "  - " << c << std::endl;
   }

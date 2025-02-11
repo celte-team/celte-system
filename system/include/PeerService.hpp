@@ -1,4 +1,7 @@
 #pragma once
+#ifdef CELTE_SERVER_MODE_ENABLED
+#include "ClientRegistry.hpp"
+#endif
 #include "ContainerSubscriptionComponent.hpp"
 #include "RPCService.hpp"
 #include "WriterStreamPool.hpp"
@@ -34,6 +37,9 @@ public:
   void SubscribeClientToContainer(const std::string &clientId,
                                   const std::string &containerId,
                                   std::function<void()> then);
+
+  inline ClientRegistry &GetClientRegistry() { return _clientRegistry; }
+
 #endif
 
 private:
@@ -57,18 +63,20 @@ private:
   void __registerClientRPCs();
 #endif
 
-  /* ------------------------------- CLIENT RPC -------------------------------
+  /* ------------------------------- CLIENT RPC
+   * -------------------------------
    */
 #ifndef CELTE_SERVER_MODE_ENABLED // ! ndef, we are in client mode here
-  /// @brief Forces the client to connect to a specific node. Will register the
-  /// associated grape in the grape registry.
+  /// @brief Forces the client to connect to a specific node. Will register
+  /// the associated grape in the grape registry.
   bool __rp_forceConnectToNode(const std::string &grapeId);
 
   /// @brief Subscribes the client to a container's network services.
   bool __rp_subscribeClientToContainer(const std::string &containerId,
                                        const std::string &ownerGrapeId);
 #endif
-  /* ------------------------------- SERVER RPC -------------------------------
+  /* ------------------------------- SERVER RPC
+   * -------------------------------
    */
 #ifdef CELTE_SERVER_MODE_ENABLED
   /// @brief  Sets this server node as the owner of this grape.
@@ -77,13 +85,15 @@ private:
   /// @return
   bool __rp_assignGrape(const std::string &grapeId);
 
-  /// @brief Called by the master server, this method should return the name of
-  /// the grape that the client should connect to.
+  /// @brief Called by the master server, this method should return the name
+  /// of the grape that the client should connect to.
   std::string __rp_spawnPositionRequest(const std::string &clientId);
 
   /// @brief Called by the master server, this method notifies a server node
   /// that a client has been assigned to it.
   bool __rp_acceptNewClient(const std::string &clientId);
+
+  ClientRegistry _clientRegistry;
 #else
   ContainerSubscriptionComponent _containerSubscriptionComponent;
 #endif

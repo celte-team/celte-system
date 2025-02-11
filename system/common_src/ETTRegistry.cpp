@@ -1,5 +1,6 @@
 // Copyright (C) <2024> <CELTE> This file is part of CELTE must not be copied
 // and/or distributed without the express permission of  the CELTE team
+#include "Container.hpp"
 #include "ETTRegistry.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
@@ -16,6 +17,7 @@ void ETTRegistry::RegisterEntity(const Entity &e) {
   accessor acc;
   if (_entities.insert(acc, e.id)) {
     acc->second = e;
+    std::cout << "Entity " << e.id << " registered." << std::endl;
   } else {
     throw std::runtime_error("Entity with id " + e.id + " already exists.");
   }
@@ -49,7 +51,7 @@ ETTRegistry::PollEngineTask(const std::string &id) {
   return std::nullopt;
 }
 
-std::string_view ETTRegistry::GetEntityOwnerContainer(const std::string &id) {
+std::string ETTRegistry::GetEntityOwnerContainer(const std::string &id) {
   accessor acc;
   if (_entities.find(acc, id)) {
     return acc->second.ownerContainerId;
@@ -78,6 +80,15 @@ void ETTRegistry::SetEntityQuarantined(const std::string &id, bool quarantine) {
   if (_entities.find(acc, id)) {
     acc->second.quarantine = quarantine;
   }
+}
+
+bool ETTRegistry::IsEntityLocallyOwned(const std::string &id) {
+#ifdef CELTE_SERVER_MODE_ENABLED
+  return ContainerRegistry::GetInstance().ContainerIsLocallyOwned(
+      GetEntityOwnerContainer(id));
+#else
+  return false;
+#endif
 }
 
 bool ETTRegistry::IsEntityValid(const std::string &id) {
@@ -116,8 +127,6 @@ void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
           tp::peer(grapeId), "__rp_getExistingEntities", containerId)
       .Then([this,
              containerId](const std::map<std::string, std::string> &entities) {
-        std::cout << "instantiating entities in container " << containerId
-                  << std::endl;
         for (auto &[id, payload] : entities) {
           ETTRegistry::EngineCallInstantiate(id, payload, containerId);
         }
@@ -130,7 +139,9 @@ std::map<std::string, std::string>
 ETTRegistry::GetExistingEntities(const std::string &containerId) {
   std::map<std::string, std::string> etts;
   for (auto &[id, e] : _entities) {
-    etts.insert({id, GetEntityPayload(id).value_or("{}")});
+    if (e.ownerContainerId == containerId) {
+      etts.insert({id, GetEntityPayload(id).value_or("{}")});
+    }
   }
   return etts;
 }
@@ -141,7 +152,6 @@ bool ETTRegistry::SaveEntityPayload(const std::string &eid,
     acc->second.payload = payload;
     return true;
   } else {
-    std::cout << "no such entity: " + eid << std::endl;
     return false;
   }
 }

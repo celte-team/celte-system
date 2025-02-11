@@ -2,6 +2,7 @@
 #include "Entity.hpp"
 #include <expected>
 #include <map>
+#include <optional>
 #include <string>
 #include <tbb/concurrent_hash_map.h>
 
@@ -71,24 +72,35 @@ public:
     }
   }
 
-  /// @brief Returns the id of the server node that owns the entity.
-  /// @param id
-  /// @return
-  std::string_view GetEntityOwner(const std::string &id);
-  void SetEntityOwner(const std::string &id, const std::string &owner);
-
   /// @brief Returns the id of the container that owns the entity.
   /// @param id
   /// @return
-  std::string_view GetEntityOwnerContainer(const std::string &id);
+  std::string GetEntityOwnerContainer(const std::string &id);
   void SetEntityOwnerContainer(const std::string &id,
                                const std::string &ownerContainer);
+
+  bool IsEntityLocallyOwned(const std::string &id);
 
   bool IsEntityQuarantined(const std::string &id);
   void SetEntityQuarantined(const std::string &id, bool quarantine);
 
   bool IsEntityValid(const std::string &id);
   void SetEntityValid(const std::string &id, bool isValid);
+
+  inline void SetEntityNativeHandle(const std::string &id, void *handle) {
+    accessor acc;
+    if (_entities.find(acc, id)) {
+      acc->second.ettNativeHandle = handle;
+    }
+  }
+
+  inline std::optional<void *> GetEntityNativeHandle(const std::string &id) {
+    accessor acc;
+    if (_entities.find(acc, id)) {
+      return acc->second.ettNativeHandle;
+    }
+    return std::nullopt;
+  }
 
   void Clear();
 
@@ -109,6 +121,14 @@ public:
   std::expected<std::string, std::string>
   GetEntityPayload(const std::string &eid);
 #endif
+
+  /// @brief  Returns true if the entity is registered in the registry.
+  /// @param id
+  /// @return true if the entity is registered, false otherwise.
+  inline bool IsEntityRegistered(const std::string &id) {
+    accessor acc;
+    return _entities.find(acc, id);
+  }
 
 private:
   storage _entities;

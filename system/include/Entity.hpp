@@ -4,7 +4,9 @@
 
 namespace celte {
 struct Entity {
-  std::string id = ""; ///< The entity's unique identifier.
+  using ETTNativeHandle = void *; ///< The entity's native handle used to
+                                  ///< interact with the engine.
+  std::string id = "";            ///< The entity's unique identifier.
   std::string ownerContainerId =
       "";                  ///< The entity's owner's container identifier.
   bool quarantine = false; ///< Whether the entity is quarantined (excluded from
@@ -13,6 +15,10 @@ struct Entity {
                            ///< ignored by the runtime until it is valid again)
   Executor
       executor; ///< The entity's executor used to push tasks for the entity.
+
+  std::optional<ETTNativeHandle>
+      ettNativeHandle; ///< The entity's native handle used to
+                       ///< interact with the engine.
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::string payload; ///< customdata that can be set by the game dev to help

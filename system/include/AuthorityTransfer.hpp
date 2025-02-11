@@ -24,10 +24,17 @@ public:
 
   static void ExecDropOrder(nlohmann::json args);
 
+#ifdef CELTE_SERVER_MODE_ENABLED
   static void ProxyTakeAuthority(const std::string &grapeId,
                                  const std::string &entityId,
                                  const std::string &fromContainerId,
                                  const std::string &payload);
+
+  static void __rp_proxyTakeAuthority(const std::string &newOwnerGrapeId,
+                                      const std::string &entityId,
+                                      const std::string &fromContainerId,
+                                      const std::string &payload);
+#endif
 
 private:
 };

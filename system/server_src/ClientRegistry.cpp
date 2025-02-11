@@ -49,7 +49,7 @@ void ClientRegistry::StartKeepAliveThread() {
   });
 }
 
-void ClientRegistry::UnregisterClient(const std::string &clientId) {
+void ClientRegistry::ForgetClient(const std::string &clientId) {
   _clients.erase(clientId);
 }
 

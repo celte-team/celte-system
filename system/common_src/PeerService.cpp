@@ -1,3 +1,4 @@
+#include "AuthorityTransfer.hpp"
 #include "Clock.hpp"
 #include "GrapeRegistry.hpp"
 #include "PeerService.hpp"
@@ -139,13 +140,11 @@ PeerService::__rp_spawnPositionRequest(const std::string &clientId) {
 }
 
 bool PeerService::__rp_acceptNewClient(const std::string &clientId) {
-  GRAPES.RunWithLock(RUNTIME.GetAssignedGrape(), [clientId](Grape &g) {
-    g.clientRegistry->RegisterClient(clientId, g.id, true);
+  RUNTIME.GetPeerService().GetClientRegistry().RegisterClient(clientId, "", "");
+  GRAPES.RunWithLock(RUNTIME.GetAssignedGrape(), [this, clientId](Grape &g) {
     g.executor.PushTaskToEngine(
         [clientId]() { RUNTIME.Hooks().onAcceptNewClient(clientId); });
   });
-
-  return true;
 }
 
 void PeerService::ConnectClientToThisNode(const std::string &clientId,
@@ -170,7 +169,6 @@ void PeerService::ConnectClientToThisNode(const std::string &clientId,
 void PeerService::SubscribeClientToContainer(const std::string &clientId,
                                              const std::string &containerId,
                                              std::function<void()> then) {
-
   GRAPES.RunWithLock(RUNTIME.GetAssignedGrape(), [this, clientId, containerId,
                                                   then](Grape &g) {
     if (not ContainerRegistry::GetInstance().ContainerIsLocallyOwned(
@@ -179,20 +177,21 @@ void PeerService::SubscribeClientToContainer(const std::string &clientId,
                " is not locally owned, could not subscribe client to it.");
       return;
     }
-    g.clientRegistry->RunWithLock(clientId, [&](ClientData &c) {
-      if (c.isSubscribedToContainer(containerId)) {
-        return;
-      }
-      c.remoteClientSubscriptions.insert(containerId);
+    RUNTIME.GetPeerService().GetClientRegistry().RunWithLock(
+        clientId, [&](ClientData &c) {
+          if (c.isSubscribedToContainer(containerId)) {
+            return;
+          }
+          c.remoteClientSubscriptions.insert(containerId);
 
-      RUNTIME.ScheduleAsyncIOTask([this, clientId, containerId]() {
-        LOGINFO("Subscribing client " + clientId + " to container " +
-                containerId);
-        _rpcService->CallVoid(tp::rpc(clientId),
-                              "__rp_subscribeClientToContainer", containerId,
-                              RUNTIME.GetAssignedGrape());
-      });
-    });
+          RUNTIME.ScheduleAsyncIOTask([this, clientId, containerId]() {
+            LOGINFO("Subscribing client " + clientId + " to container " +
+                    containerId);
+            _rpcService->CallVoid(tp::rpc(clientId),
+                                  "__rp_subscribeClientToContainer",
+                                  containerId, RUNTIME.GetAssignedGrape());
+          });
+        });
   });
 }
 

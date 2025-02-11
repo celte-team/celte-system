@@ -7,6 +7,9 @@
 #include <memory>
 #include <string>
 #include <tbb/concurrent_hash_map.h>
+#ifdef CELTE_SERVER_MODE_ENABLED
+#include <set>
+#endif
 
 namespace celte {
 class Grape;
@@ -58,7 +61,9 @@ private:
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::shared_ptr<net::WriterStream>
-      _replws; ///< The writer stream for replication
+      _replws;                          ///< The writer stream for replication
+  std::set<std::string> _ownedEntities; ///< Entities that are owned by this
+                                        ///< container.
 #endif
 
   friend class Grape;
@@ -137,5 +142,35 @@ public:
     }
     return false;
   }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  inline void RegisterNewOwnedEntityToContainer(const std::string &containerId,
+                                                const std::string &entityId) {
+    RunWithLock(containerId, [entityId](ContainerRefCell &c) {
+      c.GetContainer()._ownedEntities.insert(entityId);
+    });
+  }
+
+  inline void RemoveOwnedEntityFromContainer(const std::string &containerId,
+                                             const std::string &entityId) {
+    RunWithLock(containerId, [entityId](ContainerRefCell &c) {
+      c.GetContainer()._ownedEntities.erase(entityId);
+    });
+  }
+
+  std::vector<Entity::ETTNativeHandle>
+  GetOwnedEntitiesNativeHandles(const std::string &containerId) {
+    std::vector<Entity::ETTNativeHandle> handles;
+    RunWithLock(containerId, [&handles](ContainerRefCell &c) {
+      for (const auto &eid : c.GetContainer()._ownedEntities) {
+        auto handle = ETTREGISTRY.GetEntityNativeHandle(eid);
+        if (handle.has_value()) {
+          handles.push_back(handle.value());
+        }
+      }
+    });
+    return handles;
+  }
+#endif
 };
 } // namespace celte

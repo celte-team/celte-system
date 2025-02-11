@@ -155,15 +155,51 @@ public:
                                  std::function<void()> onReady);
   void UnsubscribeGrapeFromContainer(const std::string &grapeId,
                                      const std::string &containerId);
-#endif
+
+  inline void SetOwnedContainerNativeHandle(const std::string &ownerGrapeId,
+                                            const std::string &containerId,
+                                            void *handle) {
+    accessor acc;
+    if (_grapes.find(acc, ownerGrapeId)) {
+      acc->second.setOwnedContainerNativeHandle(containerId, handle);
+    }
+  }
 
   /// @brief If a server node detects that an entity should be owned by a
-  /// non locally owned grape, it can notify the grape through its proxy so that
-  /// the remote grape can take authority over the entity.
+  /// non locally owned grape, it can notify the grape through its proxy so
+  /// that the remote grape can take authority over the entity.
   void ProxyTakeAuthority(const std::string &grapeId,
-                          const std::string &entityId,
-                          const std::string &fromContainerId,
-                          const std::string &payload);
+                          const std::string &entityId);
+
+  inline std::optional<ContainerNativeHandle>
+  GetOwnedContainerNativeHandle(const std::string &ownerGrapeId,
+                                const std::string &containerId) {
+    accessor acc;
+    if (_grapes.find(acc, ownerGrapeId)) {
+      return acc->second.getOwnedContainerNativeHandle(containerId);
+    }
+    return std::nullopt;
+  }
+#endif
+
+  template <typename... Args>
+  void PushNamedTaskToEngine(const std::string &grapeId,
+                             const std::string &name, Args... args) {
+    accessor acc;
+    if (_grapes.find(acc, grapeId)) {
+      acc->second.pushNamedTaskToEngine(name, args...);
+    }
+  }
+
+  template <typename... Args>
+  std::optional<std::tuple<Args...>>
+  PopNamedTaskFromEngine(const std::string &grapeId, const std::string &name) {
+    accessor acc;
+    if (_grapes.find(acc, grapeId)) {
+      return acc->second.popNamedTaskFromEngine<Args...>(name);
+    }
+    return std::nullopt;
+  }
 
 private:
   tbb::concurrent_hash_map<std::string, Grape> _grapes;

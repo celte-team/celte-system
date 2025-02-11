@@ -15,7 +15,6 @@ static void __notifyTakeAuthority(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Notifying container to take authority.\n" +
                  args.dump());
-  std::cout << "NOTIFY TAKE AUTHORITY to container " << args["t"] << std::endl;
   RUNTIME.GetPeerService().GetRPCService().CallVoid(
       tp::rpc(args["t"]), "__rp_containerTakeAuthority", args.dump());
 }
@@ -61,7 +60,9 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
       Clock::ToISOString(2000_ms_later); // change will take effect in 2 seconds
   args["payload"] = payload;
 
-  std::cout << std::endl << args.dump() << std::endl << std::endl;
+  std::cout << "\nAUTH TRANSFER:\n";
+  std::cout << args.dump() << std::endl << std::endl;
+
   // notify the container that will take authority
   __notifyTakeAuthority(args);
 
@@ -82,6 +83,12 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
     e.quarantine = true;
     // TODO schedule ett for deletion
   }
+#ifdef CELTE_SERVER_MODE_ENABLED
+  if (fromContainerId != toContainerId) {
+    ContainerRegistry::GetInstance().RemoveOwnedEntityFromContainer(
+        fromContainerId, e.id);
+  }
+#endif
 }
 
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
@@ -106,6 +113,7 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
       e.ownerContainerId = toContainerId;
       e.quarantine = false;
     });
+
     // if ett does not exist, schedule it for creation (container will be
     // emplaced)
     if (!ettExists) {
@@ -114,6 +122,11 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
             ETTREGISTRY.EngineCallInstantiate(entityId, payload, toContainerId);
           });
     }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+    ContainerRegistry::GetInstance().RegisterNewOwnedEntityToContainer(
+        toContainerId, entityId);
+#endif
   });
 }
 
@@ -141,7 +154,24 @@ void AuthorityTransfer::ExecDropOrder(nlohmann::json args) {
       });
 }
 
+#ifdef CELTE_SERVER_MODE_ENABLED
 void AuthorityTransfer::ProxyTakeAuthority(const std::string &grapeId,
                                            const std::string &entityId,
                                            const std::string &fromContainerId,
-                                           const std::string &payload) {}
+                                           const std::string &payload) {
+  RUNTIME.GetPeerService().GetRPCService().CallVoid(
+      tp::peer(grapeId), "__rp_proxyTakeAuthority", entityId, fromContainerId,
+      payload);
+}
+
+void AuthorityTransfer::__rp_proxyTakeAuthority(
+    const std::string &newOwnerGrapeId, const std::string &entityId,
+    const std::string &fromContainerId, const std::string &payload) {
+  //  systems are not in capacity to decide which container is best suited for
+  //  this entity
+  // so we forward the job to the engine.
+  GRAPES.PushNamedTaskToEngine(newOwnerGrapeId, "proxyTakeAuthority", entityId,
+                               fromContainerId, payload);
+}
+
+#endif

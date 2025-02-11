@@ -35,12 +35,7 @@ void Container::WaitForNetworkReady(std::function<void()> onReady) {
   });
 }
 
-Container::~Container() {
-  std::cout << "[["
-               "sldkfjslkjLKJDFLKJSDFLKJSDFLKJSDFLKJSDFLKJSDFLKJSDFLKJSDLFKJSDL"
-               "FKJSLDKFJSLDKFJSLKDJFLSDKJF][ Container "
-            << _id << " is being destroyed." << std::endl;
-}
+Container::~Container() {}
 
 void Container::__initRPCs() {
 
@@ -49,8 +44,6 @@ void Container::__initRPCs() {
                                .listenOn = {tp::rpc(_id)},
                                .reponseTopic = tp::peer(RUNTIME.GetUUID()),
                                .serviceName = tp::rpc(_id)});
-  std::cout << "----- container " << _id << " listening on " << tp::rpc(_id)
-            << std::endl;
 
   _rpcService.Register<bool>("__rp_containerTakeAuthority",
                              std::function([this](std::string args) {

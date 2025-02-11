@@ -43,7 +43,7 @@ public:
   /// @brief Unregisters a client from the registry. This server node
   /// 'forgets' about the client but the client might still be connected to
   /// the cluster.
-  void UnregisterClient(const std::string &clientId);
+  void ForgetClient(const std::string &clientId);
 
   /// @brief Disconnects a client from the cluster. This signal will be
   /// broadcasted to all nodes in the cluster.
