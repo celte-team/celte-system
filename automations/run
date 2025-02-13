@@ -410,17 +410,10 @@ def export_all_vars():
 def run_all():
     export_all_vars()
     flush_pulsar()
+    os.chdir('../')
     print(f"{Fore.GREEN}Running all services with env : {env}{Style.RESET_ALL}")
     subprocess.run(['docker', 'compose', 'down'])
     subprocess.run(['docker', 'compose', 'up', '--no-deps', '--build'], env=env)
-
-def run_prod():
-    os.chdir('devops/prod')
-    export_all_vars()
-    print(f"{Fore.GREEN}Running all services with env : {env}{Style.RESET_ALL}")
-    subprocess.run(['docker', 'compose', 'down'])
-    subprocess.run(['docker', 'compose', 'up', '--no-deps', '--build'], env=env)
-    os.chdir('..')
 
 def run_server():
     """Placeholder method to simulate running a server."""
@@ -459,7 +452,6 @@ launcher = {
     '--redis': run_redis_sentinel,
     '--master': run_master,
     '--all': run_all,
-    '--prod': run_prod,
     '--flush': flush_pulsar,
     '--k8s': k8s.k8s_launch,
 }
