@@ -15,7 +15,7 @@ services:
       - redis
     restart: on-failure
     environment:
-      - REDIS_HOST=${REDIS_HOST}
+    - REDIS_HOST=${REDIS_HOST}
       - PULSAR_BROKERS=${PULSAR_BROKERS}
       - DOCKER_HOST_IP=${DOCKER_HOST_IP}
       - CONFIG_FILE=/config/configFile.yml
@@ -297,6 +297,13 @@ services:
     volumes:
       # - pulsar-data:/var/lib/grafana
       - ./pulsar/grafana:/var/lib/grafana
+
+  streamvisor:
+    image: ghcr.io/streamvisor/streamvisor:3.2.0
+    container_name: streamvisor
+    ports:
+      - "8888:8888"
+
 
 volumes:
   pulsar-data:
