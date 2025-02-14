@@ -24,14 +24,8 @@ struct Grape {
   bool isLocallyOwned; ///< True if this grape is owned by this peer. (only
                        ///< possible in server mode)
                        // #ifdef CELTE_SERVER_MODE_ENABLED
-  //   std::optional<ClientRegistry> clientRegistry; ///< The client registry
-  //   for
-  //                                                 ///< this grape. Only
-  //                                                 available
-  //                                                 ///< in server mode.
-  // #endif
-  Executor executor; ///< The executor for this grape. Tasks to be ran in the
-                     ///< engine can be pushed here.
+  Executor executor;   ///< The executor for this grape. Tasks to be ran in the
+                       ///< engine can be pushed here.
   std::optional<net::RPCService>
       rpcService; ///< The rpc service for this grape. Must be initialized after
   ///< the id has been set.
@@ -41,9 +35,6 @@ struct Grape {
       containerSubscriptionComponent; ///< only grapes instances in servers can
                                       ///< sub to a container. In client mode,
                                       ///< this goes through the peer service
-  // std::set<std::string> ownedContainers; ///< The containers that are owned
-  // by
-  // ///< this grape.
   std::map<std::string, std::optional<ContainerNativeHandle>>
       ownedContainers; ///< The containers that are
                        ///< owned by this grape.
@@ -137,6 +128,12 @@ private:
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::vector<std::string> __rp_getExistingOwnedContainers();
 #endif
+
+  /// @brief Called when the client with the given id is disconnected from the
+  /// cluster. It will clear all the data relatie to this client from the
+  /// systems. Engine cleanup should be performed by the game developer, in the
+  /// onClientDisconnect hook.
+  void __cleanupClientData(const std::string &clientId);
 };
 
 } // namespace celte

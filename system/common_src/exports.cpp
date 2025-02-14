@@ -1,5 +1,3 @@
-// Copyright (C) <2024> <CELTE> This file is part of CELTE must not be copied
-// and/or distributed without the express permission of  the CELTE team
 #include "AuthorityTransfer.hpp"
 #include "ETTRegistry.hpp"
 #include "GrapeRegistry.hpp"
@@ -120,6 +118,8 @@ EXPORT void RegisterClient(const std::string &clientId) {
 EXPORT void ForgetClient(const std::string &clientId) {
   RUNTIME.GetPeerService().GetClientRegistry().ForgetClient(clientId);
 }
+#else
+EXPORT void DisconnectFromServer() { RUNTIME.Disconnect(); }
 #endif
 
 EXPORT bool IsEntityRegistered(const std::string &id) {
@@ -262,9 +262,24 @@ SetOnAcceptNewClientHook(std::function<std::string(const std::string &)> f) {
   RUNTIME.Hooks().onAcceptNewClient = f;
 }
 
+EXPORT void
+SetOnClientRequestDisconnectHook(std::function<void(const std::string &)> f) {
+  RUNTIME.Hooks().onClientRequestDisconnect = f;
+}
+
+EXPORT void DisconnectClientFromCluster(const std::string &clientId,
+                                        const std::string &payload) {
+  RUNTIME.ForceDisconnectClient(clientId, payload);
+}
+
 #else // client hooks ------------------------------------------------------ */
 
 #endif // all peers hooks -------------------------------------------------- */
+
+EXPORT void
+SetOnClientDisconnectHook(std::function<void(std::string, std::string)> f) {
+  RUNTIME.Hooks().onClientDisconnect = f;
+}
 
 EXPORT void SetOnLoadGrapeHook(std::function<void(std::string, bool)> f) {
   RUNTIME.Hooks().onLoadGrape = f;

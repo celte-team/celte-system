@@ -1,4 +1,7 @@
 #include "AuthorityTransfer.hpp"
+#ifdef CELTE_SERVER_MODE_ENABLED
+#include "ClientRegistry.hpp"
+#endif
 #include "Container.hpp"
 #include "Grape.hpp"
 #include "Logger.hpp"
@@ -57,8 +60,23 @@ void Grape::initRPCService() {
                 id, entityId, fromContainerId, payload);
             return true;
           }));
+
+      rpcService->Register<bool>("__rp_requestClientDisconnect",
+                                 std::function([this](std::string clientId) {
+                                   RUNTIME.Hooks().onClientRequestDisconnect(
+                                       clientId);
+                                   return true;
+                                 }));
     }
 #endif
+
+    rpcService->Register<bool>(
+        "__rp_execClientDisconnect",
+        std::function([this](std::string clientId, std::string payload) {
+          RUNTIME.Hooks().onClientDisconnect(clientId, payload);
+          __cleanupClientData(clientId);
+          return true;
+        }));
   }
 }
 
@@ -120,3 +138,10 @@ std::vector<std::string> Grape::__rp_getExistingOwnedContainers() {
   return result;
 }
 #endif
+
+void Grape::__cleanupClientData(const std::string &clientId) {
+#ifdef CELTE_SERVER_MODE_ENABLED
+  RUNTIME.GetPeerService().GetClientRegistry().ForgetClient(clientId);
+#else
+#endif
+}

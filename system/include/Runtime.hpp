@@ -35,6 +35,15 @@ public:
   /// @note This function is blocking.
   void ConnectToCluster(const std::string &address, int port);
 
+#ifdef CELTE_SERVER_MODE_ENABLED
+  /// @brief Forces the disconnection of a client from the server.
+  void ForceDisconnectClient(const std::string &clientId,
+                             const std::string &payload);
+#else
+  /// @brief Disconnects this client from the cluster
+  void Disconnect();
+#endif
+
   /// @brief Executes the runtime loop once. Call this once per frame in the
   /// engine.
   void Tick();
