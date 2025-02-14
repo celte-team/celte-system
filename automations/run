@@ -410,7 +410,7 @@ def export_all_vars():
 def run_all():
     export_all_vars()
     flush_pulsar()
-    os.chdir('../')
+    print(f"Current dir: {os.getcwd()}")
     print(f"{Fore.GREEN}Running all services with env : {env}{Style.RESET_ALL}")
     subprocess.run(['docker', 'compose', 'down'])
     subprocess.run(['docker', 'compose', 'up', '--no-deps', '--build'], env=env)

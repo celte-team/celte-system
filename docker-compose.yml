@@ -83,6 +83,30 @@ services:
       - bookie
       - broker
 
+
+  # clock:
+
+  clock-server:
+    build:
+      context: ./clock-server
+      dockerfile: Dockerfile
+    container_name: clock-server
+    networks:
+      - pulsar
+    environment:
+      - PULSAR_BROKERS=${PULSAR_BROKERS}
+    restart: on-failure
+    depends_on:
+      - redis_master
+      - redis_slave
+      - sentinel
+      - redisinsight
+      - zookeeper
+      - pulsar-init
+      - bookie
+      - broker
+
+
   # redis:
   redis_master:
     image: redis/redis-stack:latest
@@ -303,6 +327,8 @@ services:
     container_name: streamvisor
     ports:
       - "8888:8888"
+    environment:
+      - PULSAR_BROKER_URL=pulsar://broker:6650
 
 
 volumes:
