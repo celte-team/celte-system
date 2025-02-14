@@ -9,6 +9,11 @@
 
   <ItemGroup>
     <PackageReference Include="Docker.DotNet" Version="3.125.15" />
+    <PackageReference Include="Google.Protobuf" Version="3.29.3" />
+    <PackageReference Include="Grpc.Tools" Version="2.69.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="MessagePack" Version="2.5.187" />
     <PackageReference Include="NRedisStack" Version="0.13.0" />
     <PackageReference Include="YamlDotNet" Version="16.0.0" />

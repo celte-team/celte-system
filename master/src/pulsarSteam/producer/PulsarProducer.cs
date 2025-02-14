@@ -1,47 +1,73 @@
-using System;
 using System.Text;
-using System.Threading.Tasks;
-using Pulsar.Client.Api;
-
+using DotPulsar.Extensions;
+using Google.Protobuf;
 class PulsarProducer
 {
-    private readonly PulsarClient? _client;
     private Master master = Master.GetInstance();
 
     public PulsarProducer()
     {
-        try
-        {
-            string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
-            if (string.IsNullOrEmpty(pulsarBrokers))
-            {
-                throw new ArgumentException("Pulsar brokers are not set.");
-            }
-            Uri uri = new Uri(pulsarBrokers);
-            _client = new PulsarClientBuilder()
-                .ServiceUrl(pulsarBrokers)
-                .BuildAsync().Result;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Error initializing Pulsar producer: {e.Message}");
-        }
     }
+
+
+    // ProduceMessageAsync protobuf
+
+public async Task ProduceMessageAsync(string topic, Celte.Req.RPRequest message)
+{
+    try
+    {
+        var pulsarClient = Master.GetInstance().GetPulsarClient();
+        if (pulsarClient == null)
+        {
+            Console.WriteLine("Error: Pulsar client is not initialized.");
+            return;
+        }
+
+        var producer = pulsarClient.NewProducer()
+            .Topic(topic)
+            .Create();
+
+        Google.Protobuf.JsonFormatter jsonFormatter = new JsonFormatter(new JsonFormatter.Settings(true));
+        string jsonString = jsonFormatter.Format(message);
+
+        Console.WriteLine($"[DEBUG] Producing message: {jsonString}\n");
+
+        if (string.IsNullOrWhiteSpace(jsonString))
+        {
+            Console.WriteLine("Error: JSON string is empty. Aborting.");
+            return;
+        }
+
+        await producer.Send(Encoding.UTF8.GetBytes(jsonString));
+        Console.WriteLine($"Successfully produced message to {topic}");
+
+        var actionLog = new Redis.ActionLog
+        {
+            ActionType = "ProduceMessage",
+            Details = $"Produced message to topic {topic}"
+        };
+        await Redis.RedisClient.GetInstance().rLogger.LogActionAsync(actionLog);
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine($"Error producing message: {e}");
+    }
+}
 
     public async Task ProduceMessageAsync(string topic, string message)
     {
         try
         {
-            var producer = await _client.NewProducer()
+            var producer = Master.GetInstance().GetPulsarClient().NewProducer()
                 .Topic(topic)
-                .CreateAsync();
+                .Create();
             Redis.ActionLog actionLog = new Redis.ActionLog
             {
                 ActionType = "ProduceMessage",
                 Details = $"Produced message to topic {topic}"
             };
             Redis.RedisClient.GetInstance().rLogger.LogActionAsync(actionLog).Wait();
-            await producer.SendAsync(Encoding.UTF8.GetBytes(message));
+            await producer.Send(Encoding.UTF8.GetBytes(message));
         }
         catch (Exception e)
         {
@@ -53,9 +79,9 @@ class PulsarProducer
     {
         try
         {
-            var producer = await _client.NewProducer()
+            var producer = (Master.GetInstance().GetPulsarClient()).NewProducer()
                 .Topic(topic)
-                .CreateAsync();
+                .Create();
         }
         catch (Exception e)
         {
@@ -63,19 +89,7 @@ class PulsarProducer
         }
     }
 
-    public async Task SendMessageAwaitResponseAsyncRpc(string topic, byte[] message, string uuidProcess, Action<byte[]> callBackFunction)
-    {
-        // Here will be implemented the logic to send a message and wait for a response to trigger a callback function
-    }
-
-    public void Dispose()
-    {
-        // _client.Close();
-        // _client.Dispose();
-    }
-
     ~PulsarProducer()
     {
-        Dispose();
     }
 }

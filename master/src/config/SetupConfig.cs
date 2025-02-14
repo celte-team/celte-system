@@ -33,8 +33,16 @@ class SetupConfig
 
     public void SettingUpMaster()
     {
-        GetConfigFile();
-        GetNumberOfGrapes();
+        try
+        {
+            GetConfigFile();
+            GetNumberOfGrapes();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error initializing Master: {e.Message}");
+        }
+
     }
 
     private int GetNumberOfGrapes()
@@ -55,10 +63,38 @@ class SetupConfig
         return 0;
     }
 
+
+
     public async Task Shutdown()
     {
         if (dockerSystem != null)
             await dockerSystem.ShutdownContainer();
+    }
+
+    private void ReadConfigFile(string configFilePath)
+    {
+        try
+        {
+            if (File.Exists(configFilePath))
+            {
+                string fileContents = File.ReadAllText(configFilePath);
+
+                var deserializer = new DeserializerBuilder()
+                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                    .Build();
+
+                _yamlObject = deserializer.Deserialize<Dictionary<string, object>>(fileContents);
+                dockerSystem = new DockerSystem(_yamlObject);
+            }
+            else
+            {
+                Console.WriteLine($"The file '{configFilePath}' does not exist.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred while trying to read the file: {ex.Message}");
+        }
     }
 
     private void GetConfigFile()
@@ -76,32 +112,20 @@ class SetupConfig
 
         if (configFilePath != null)
         {
-            try
-            {
-                if (File.Exists(configFilePath))
-                {
-                    string fileContents = File.ReadAllText(configFilePath);
-
-                    var deserializer = new DeserializerBuilder()
-                        .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                        .Build();
-
-                    _yamlObject = deserializer.Deserialize<Dictionary<string, object>>(fileContents);
-                    dockerSystem = new DockerSystem(_yamlObject);
-                }
-                else
-                {
-                    Console.WriteLine($"The file '{configFilePath}' does not exist.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred while trying to read the file: {ex.Message}");
-            }
+            ReadConfigFile(configFilePath);
         }
         else
         {
-            Console.WriteLine("Usage: --config <configFile.yml>");
+            string? configFileEnv = Environment.GetEnvironmentVariable("CONFIG_FILE");
+            if (configFileEnv != null)
+            {
+                ReadConfigFile(configFileEnv);
+            }
+            else
+            {
+                Console.WriteLine("No configuration file provided. Either use the --config option or set the CONFIG_FILE environment variable.");
+
+            }
         }
     }
 }

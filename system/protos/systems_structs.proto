@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package celte.req;
+
+message BinaryDataPacket {
+  string binaryData = 1;
+  string peerUuid = 2;
+}
+
+message SpawnPositionRequest {
+  string clientId = 1;
+  string payload = 2;
+}
+
+message ReplicationDataPacket {
+  map<string, string> data = 1; // entity id -> blob
+  bool active = 2;
+}
+
+message RPRequest {
+  string name = 1;           // the name of the rpc to invoke
+  string responds_to = 2;     // left empty for a call, set to the id of the rpc for a response of a previously called rpc
+  string response_topic = 3;  // where to send the response
+  string rpc_id = 4;          // unique id for this rpc
+  string args = 5;           // arguments to the rpc, serialized as a JSON string
+}
+
+message ClockTick {
+  int64 unified_time_ms = 2;
+}

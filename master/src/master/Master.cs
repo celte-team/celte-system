@@ -1,3 +1,8 @@
+
+using Celte.Req;
+using DotPulsar;
+using Google.Protobuf;
+
 class Master
 {
     public SetupConfig? _setupConfig;
@@ -6,6 +11,7 @@ class Master
     public PulsarProducer pulsarProducer;
     public CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
     public RPC rpc = new RPC();
+    private readonly DotPulsar.PulsarClient _client;
 
     private Master()
     {
@@ -19,10 +25,18 @@ class Master
             {
                 _master = this;
             }
-            // DotEnv.Load("../.env");
             _setupConfig = new SetupConfig(Environment.GetCommandLineArgs());
             _setupConfig.SettingUpMaster();
             Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
+            string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
+            Console.WriteLine($"Pulsar brokers: {pulsarBrokers}");
+            if (string.IsNullOrEmpty(pulsarBrokers))
+            {
+                throw new ArgumentException("Pulsar brokers are not set.");
+            }
+            _client = (PulsarClient)PulsarClient.Builder()
+                .ServiceUrl(new Uri(pulsarBrokers))
+                .Build();
             pulsarConsumer = new PulsarConsumer();
             pulsarProducer = new PulsarProducer();
             StartPulsarConsumer();
@@ -30,8 +44,13 @@ class Master
         catch (Exception e)
         {
             Console.WriteLine($"Error initializing Master: {e.Message}");
-
+            throw e;
         }
+    }
+
+    public PulsarClient GetPulsarClient()
+    {
+        return _client;
     }
 
     /// <summary>
@@ -39,21 +58,26 @@ class Master
     /// </summary>
     public void StartPulsarConsumer()
     {
-        ConnectNode connectNode = new ConnectNode();
-        ConnectClient connectClient = new ConnectClient();
-        pulsarConsumer.CreateConsumer(new SubscribeOptions
-        {
-            Topics = "persistent://public/default/" + M.Global.MasterHelloSn,
-            SubscriptionName = M.Global.MasterHelloSn,
-            Handler = (consumer, message) => connectNode.connectNewNode(message)
-        });
-        pulsarConsumer.CreateConsumer(new SubscribeOptions
-        {
-            Topics = "persistent://public/default/" + M.Global.MasterHelloClient,
-            SubscriptionName = M.Global.MasterHelloClient,
-            Handler = (consumer, message) => connectClient.ConnectNewClient(message)
-        });
-        rpc.InitConsumer();
+        try {
+            ConnectNode connectNode = new ConnectNode();
+            ConnectClient connectClient = new ConnectClient();
+            pulsarConsumer.CreateConsumer(new SubscribeOptions
+            {
+                Topics = "persistent://public/default/" + M.Global.MasterHelloSn,
+                SubscriptionName = M.Global.MasterHelloSn,
+                Handler = (consumer, message) => connectNode.connectNewNode(message)
+            });
+            pulsarConsumer.CreateConsumer(new SubscribeOptions
+            {
+                Topics = "persistent://public/default/" + M.Global.MasterHelloClient,
+                SubscriptionName = M.Global.MasterHelloClient,
+                Handler = (consumer, message) => connectClient.ConnectNewClient(message)
+            });
+            rpc.InitConsumer();
+        } catch (Exception e) {
+            Console.WriteLine($"Error starting Pulsar consumer: {e.Message}");
+            throw e;
+        }
     }
 
     public static Master GetInstance()

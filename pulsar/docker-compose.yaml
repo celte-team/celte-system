@@ -33,6 +33,8 @@ services:
     image: apachepulsar/pulsar:latest
     networks:
       - pulsar
+    environment:
+      - PULSAR_MEM=-Xms256m -Xmx256m -XX:MaxDirectMemorySize=256m
     command: >
       bin/pulsar initialize-cluster-metadata --cluster celte-pulsar --zookeeper zookeeper:2181 --configuration-store zookeeper:2181 --web-service-url http://broker:8080 --broker-service-url pulsar://broker:6650
     depends_on:
