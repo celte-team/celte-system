@@ -62,12 +62,18 @@ RUN dnf install -y perl perl-IPC-Cmd \
 
 RUN ls
 
-COPY . /workdir
+COPY . /
 
-WORKDIR /workdir/system
+WORKDIR /
 
 # RUN ls ; cd /system  ; ls -la ; cmake --preset default -G Ninja ..
-RUN rm -fr build ; mkdir build ; cd build ; cmake --preset default -G Ninja ..
+# RUN rm -fr build ; mkdir build ; cd build ; cmake --preset default -G Ninja ..
+
+# ////
+RUN cd system && rm -fr build && mkdir build && cd build && \
+    cmake --preset default -DCMAKE_INSTALL_PREFIX=/celte-godot/addons/celte/deps/ .. && \
+    ninja install && cd ../..
+
 
 # cd gdprojects/p1 ; make
 
