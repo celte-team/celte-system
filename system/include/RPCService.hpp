@@ -212,9 +212,6 @@ private:
   void __handleRemoteCall(const req::RPRequest &req);
   void __handleResponse(const req::RPRequest &req);
 
-  // static std::unordered_map<
-  //     std::string, std::function<nlohmann::json(const nlohmann::json &)>>
-  //     _rpcs;
   std::unordered_map<std::string,
                      std::function<nlohmann::json(const nlohmann::json &)>>
       _rpcs;

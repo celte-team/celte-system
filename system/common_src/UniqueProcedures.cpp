@@ -1,10 +1,3 @@
-/*
-** Authors: Celte Team (Eliot Janvier, Laurent Jiang, Ewen Brian, Thomas Laprie)
-** Date: 1/16/2025
-** File: /system/common_src/UniqueProcedures.cpp
-** Copyright: Celte Team
-*/
-
 #include "UniqueProcedures.hpp"
 
 using namespace celte;

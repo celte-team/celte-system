@@ -3,6 +3,9 @@ import sys
 from collections import defaultdict
 from pprint import pprint
 
+'''
+This script generates bindings for Celte systems in the CAPI class.
+'''
 
 def parse_cpp_file(file_path):
     functions_by_region = defaultdict(list)

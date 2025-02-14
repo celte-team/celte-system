@@ -1,5 +1,3 @@
-// Copyright (C) <2024> <CELTE> This file is part of CELTE must not be copied
-// and/or distributed without the express permission of  the CELTE team
 #include "Container.hpp"
 #include "ETTRegistry.hpp"
 #include "PeerService.hpp"

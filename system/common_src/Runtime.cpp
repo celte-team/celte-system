@@ -1,6 +1,8 @@
+#include "GrapeRegistry.hpp"
 #include "Logger.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
+#include "Topics.hpp"
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -112,3 +114,27 @@ void Runtime::CallScopedRPCAsync(const std::string &scope,
       .CallAsync<std::string>(scope, name, args)
       .Then(callback);
 }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+
+void Runtime::ForceDisconnectClient(const std::string &clientId,
+                                    const std::string &payload) {
+  // we send the final disconnect message to this grape rpc channel
+  _peerService->GetRPCService().CallVoid(tp::rpc(RUNTIME.GetAssignedGrape()),
+                                         "__rp_execClientDisconnect", clientId,
+                                         payload);
+}
+
+#else
+
+void Runtime::Disconnect() {
+  std::cout << "CLIENT DISCONNECTING FROM SERVER" << std::endl;
+  // we send the disconnect message to all grapes
+  for (auto &g : GRAPES.GetGrapes()) {
+    g.second.rpcService->CallVoid(
+        tp::peer(g.second.id), // tp::peer because msg is for the server, not
+                               // everyone in the grape
+        "__rp_requestClientDisconnect", _uuid);
+  }
+}
+#endif

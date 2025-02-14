@@ -6,10 +6,6 @@
 namespace celte {
 namespace net {
 
-// std::unordered_map<std::string,
-//                    std::function<nlohmann::json(const nlohmann::json &)>>
-//     RPCService::_rpcs;
-
 std::unordered_map<std::string, std::shared_ptr<std::promise<std::string>>>
     RPCService::rpcPromises;
 std::mutex RPCService::rpcPromisesMutex;

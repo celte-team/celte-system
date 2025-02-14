@@ -25,9 +25,16 @@ struct HookTable {
   std::function<std::string(const std::string &)> onAcceptNewClient =
       UNIMPLEMENTED<std::string, const std::string &>;
 
-#else // client only hooks
+  std::function<void(const std::string &)> onClientRequestDisconnect =
+      UNIMPLEMENTED<void, const std::string &>;
 
+#else  // client only hooks
 #endif // all peers hooks
+
+  /// @brief Called when a client disconnects from the cluster.
+  /// @param clientId The unique identifier of the client.
+  std::function<void(std::string, std::string)> onClientDisconnect =
+      UNIMPLEMENTED<void, std::string, std::string>;
 
   /// @brief Called when a grape is loaded (the game should load the map and the
   /// CSN object associated with it).

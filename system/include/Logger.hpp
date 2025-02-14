@@ -1,18 +1,3 @@
-/*
-** CELTE, 2025
-** celte-system
-
-** Team Members:
-** Eliot Janvier
-** Clement Toni
-** Ewen Briand
-** Laurent Jiang
-** Thomas Laprie
-
-** File description:
-** Logger
-*/
-
 #pragma once
 
 #include <atomic>
