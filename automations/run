@@ -48,8 +48,50 @@ def get_ip_address():
         print(f"{Fore.RED}Failed to get IP address: {e}{Style.RESET_ALL}")
         sys.exit(1)
 
+def export_all_vars():
+    export_env_vars('DOCKER_HOST_IP', ip_address)
+    export_env_vars('PULSAR_BROKERS', f"pulsar://{ip_address}:6650")
+    export_env_vars('REDIS_HOST', f"{ip_address}:6379")
+    env['DOCKER_HOST_IP'] = ip_address
+    env['PULSAR_BROKERS'] = f"pulsar://{ip_address}:6650"
+    env['REDIS_HOST'] = f"{ip_address}:6379"
+    os.environ['DOCKER_HOST_IP'] = ip_address
+    os.environ['PULSAR_BROKERS'] = f"pulsar://{ip_address}:6650"
+    os.environ['REDIS_HOST'] = f"{ip_address}:6379"
+
+def update_prometheus_config():
+    """
+    Update the Prometheus configuration file to scrape the Pulsar metrics.
+
+    Args:
+        ip_address (str): The IP address of the Pulsar and Prometheus services.
+    """
+    pulsar_target = f"{ip_address}:8080"
+    prometheus_target = f"{ip_address}:9090"
+
+    # Load the existing Prometheus configuration
+    prometheus_config_path = 'pulsar/prometheus.yml'
+    with open(prometheus_config_path, 'r') as f:
+        config = yaml.safe_load(f)
+
+    # Update the targets for each job
+    for job in config.get('scrape_configs', []):
+        if job['job_name'] == 'pulsar':
+            job['static_configs'][0]['targets'] = [pulsar_target]
+        elif job['job_name'] == 'prometheus':
+            job['static_configs'][0]['targets'] = [prometheus_target]
+
+    # Write the updated configuration back to the file
+    with open(prometheus_config_path, 'w') as f:
+        yaml.safe_dump(config, f, default_flow_style=False)
+
+    print(f"Updated {prometheus_config_path} with targets:\n - Pulsar: {pulsar_target}\n - Prometheus: {prometheus_target}")
+
+
 def run_docker_pulsar():
+    update_prometheus_config()
     global current_process
+    env['DOCKER_HOST_IP'] = ip_address
     os.chdir('pulsar')
     export_all_vars()
     env['DOCKER_HOST_IP'] = ip_address
