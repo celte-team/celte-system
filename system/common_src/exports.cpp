@@ -4,6 +4,9 @@
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
+#ifdef CELTE_SERVER_MODE_ENABLED
+#include "MetricsScrapper.hpp"
+#endif
 
 #ifdef __WIN32
 #define EXPORT __declspec(dllexport)
@@ -141,6 +144,11 @@ EXPORT void ForgetEntityNativeHandle(const std::string &id) {
 #ifdef CELTE_SERVER_MODE_ENABLED
 EXPORT void SendEntityDeleteOrder(const std::string &id) {
   ETTREGISTRY.SendEntityDeleteOrder(id);
+}
+
+EXPORT void RegisterMetric(const std::string &name,
+                           std::function<std::string()> getter) {
+  celte::METRICS.RegisterMetric(name, getter);
 }
 #endif
 

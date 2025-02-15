@@ -8,6 +8,9 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <functional>
 #include <iostream>
+#ifdef CELTE_SERVER_MODE_ENABLED
+#include "MetricsScrapper.hpp"
+#endif
 
 using namespace celte;
 
@@ -54,6 +57,9 @@ void Runtime::ConnectToCluster(const std::string &address, int port) {
         std::cout << "Connected to cluster" << std::endl;
         _hooks.onConnectionSuccess();
       }));
+#ifdef CELTE_SERVER_MODE_ENABLED
+  METRICS.Start(); // metrics should have been registered by now.
+#endif
 }
 
 void Runtime::Tick() { __advanceSyncTasks(); }
