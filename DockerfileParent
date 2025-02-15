@@ -13,21 +13,40 @@ RUN dnf update -y && \
     gcc-c++ \
     cmake \
     ninja-build \
-    curl
+    curl \
+    unzip
 
-RUN unzip \
+RUN dnf install -y \
     zip \
     tar \
     pkgconfig \
     which \
     make \
+    bash-completion \
     python3 \
     python3-pip \
+    pacman \
+    scons
+
+# Additional dependencies
+RUN dnf install -y \
     glib2-devel \
     libfl-devel \
+    openssl \
     openssl-devel \
+    perl \
+    libcurl-devel \
+    perl-IPC-Cmd \
+    kernel-devel \
     librdkafka-devel \
-    boost-devel
+    librdkafka \
+    perl-FindBin \
+    autoconf \
+    automake \
+    autoconf-archive \
+    snapd \
+    boost-devel \
+    ansible
 
 RUN git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT && \
     cd $VCPKG_ROOT && \
@@ -37,26 +56,48 @@ RUN pip3 install pyyaml
 
 RUN dnf install -y godot
 
+RUN dnf install -y perl perl-IPC-Cmd \
+    autoconf automake autoconf-archive
+
+
+RUN ls
+
+COPY . /
+
+WORKDIR /
+
+# RUN ls ; cd /system  ; ls -la ; cmake --preset default -G Ninja ..
+# RUN rm -fr build ; mkdir build ; cd build ; cmake --preset default -G Ninja ..
+
+# ////
+RUN cd system && rm -fr build && mkdir build && cd build && \
+    cmake --preset default -DCMAKE_INSTALL_PREFIX=/celte-godot/addons/celte/deps/ .. && \
+    ninja install && cd ../..
+
+
+# cd gdprojects/p1 ; make
+
 # //////////////////////////////
-FROM alpine:latest
+# FROM alpine:latest
 
-COPY --from=builder /opt/vcpkg /opt/vcpkg
-COPY --from=builder /usr/bin/godot /usr/bin/godot
-COPY --from=builder /usr/bin/c++ /usr/bin/c++
-COPY --from=builder /usr/bin/gcc /usr/bin/gcc
-COPY --from=builder /usr/lib64 /usr/lib64
-COPY --from=builder /lib64 /lib64
+# COPY --from=builder /opt/vcpkg /opt/vcpkg
+# COPY --from=builder /usr/bin/godot /usr/bin/godot
+# COPY --from=builder /usr/bin/c++ /usr/bin/c++
+# COPY --from=builder /usr/bin/gcc /usr/bin/gcc
+# COPY --from=builder /usr/lib64 /usr/lib64
+# COPY --from=builder /lib64 /lib64
 
-ENV VCPKG_ROOT=/opt/vcpkg
-ENV PATH=$PATH:/opt/vcpkg
-ENV GODOT_PATH=/usr/bin/
+# ENV VCPKG_ROOT=/opt/vcpkg
+# ENV PATH=$PATH:/opt/vcpkg
+# ENV GODOT_PATH=/usr/bin/
 
-RUN apk add --no-cache \
-    libstdc++ \
-    libc6-compat \
-    openssl \
-    curl \
-    bash \
-    python3
+# RUN apk add --no-cache \
+#     libstdc++ \
+#     libc6-compat \
+#     openssl \
+#     curl \
+#     bash \
+#     python3 \
+#     scons
 
-CMD ["/bin/bash"]
+# CMD ["/bin/bash"]
