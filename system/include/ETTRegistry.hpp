@@ -102,6 +102,8 @@ public:
     return std::nullopt;
   }
 
+  void ForgetEntityNativeHandle(const std::string &id);
+
   void Clear();
 
   /// @brief Loads all entities that are already instantiated in this container
@@ -120,6 +122,12 @@ public:
   bool SaveEntityPayload(const std::string &eid, const std::string &payload);
   std::expected<std::string, std::string>
   GetEntityPayload(const std::string &eid);
+
+  /// @brief If the entity is locally owned, notifies the network that it should
+  /// be deleted from the game world. If the entity is not locally owned,
+  /// nothing happens.
+  /// @param id
+  void SendEntityDeleteOrder(const std::string &id);
 #endif
 
   /// @brief  Returns true if the entity is registered in the registry.

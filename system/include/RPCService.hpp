@@ -193,9 +193,6 @@ public:
       if (r != pulsar::ResultOk) {
         std::cerr << "Error calling rpc on topic " << topic << " with name "
                   << name << std::endl;
-      } else {
-        std::cerr << "rpc call on topic " << topic << " with name " << name
-                  << " succeeded" << std::endl;
       }
     });
     return Awaitable<Ret>(future);

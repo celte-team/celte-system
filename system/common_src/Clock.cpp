@@ -37,12 +37,6 @@ void Clock::__updateCurrentTime(const req::ClockTick &tick) {
   _lastTickLocalTime = std::chrono::system_clock::now();
 }
 
-// celte::Clock::timepoint operator""_ms_later(const unsigned long long int val)
-// {
-//   return celte::Clock::Instance().GetUnifiedTime() +
-//          std::chrono::milliseconds(val);
-// }
-
 void Clock::ScheduleAt(const timepoint &unified_timepoint,
                        std::function<void()> task) {
   RUNTIME.ScheduleAsyncTask([this, unified_timepoint, task]() {

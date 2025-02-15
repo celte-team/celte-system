@@ -163,3 +163,40 @@ ETTRegistry::GetEntityPayload(const std::string &eid) {
   return std::unexpected("No such entity: " + eid);
 }
 #endif
+
+void ETTRegistry::ForgetEntityNativeHandle(const std::string &id) {
+#ifdef CELTE_SERVER_MODE_ENABLED
+  ContainerRegistry::GetInstance().RemoveOwnedEntityFromContainer(
+      GetEntityOwnerContainer(id), id);
+#endif
+  accessor acc;
+  if (_entities.find(acc, id)) {
+    acc->second.ettNativeHandle = std::nullopt;
+  }
+}
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void ETTRegistry::SendEntityDeleteOrder(const std::string &id) {
+  RunWithLock(id, [id](Entity &e) {
+    if (!e.isValid) {
+      return; // already deleted
+    }
+    e.quarantine = true;
+    e.isValid = false;
+
+    auto payload = e.payload;
+    auto ownerContainer = e.ownerContainerId;
+    ContainerRegistry::GetInstance().RunWithLock(
+        ownerContainer,
+        [id, ownerContainer, payload](ContainerRegistry::ContainerRefCell &c) {
+          if (not c.GetContainer().IsLocallyOwned()) {
+            return;
+          }
+          RUNTIME.ScheduleAsyncIOTask([id, ownerContainer, payload]() {
+            RUNTIME.GetPeerService().GetRPCService().CallVoid(
+                tp::rpc(ownerContainer), "__rp_deleteEntity", id, payload);
+          });
+        });
+  });
+}
+#endif

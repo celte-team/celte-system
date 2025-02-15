@@ -134,6 +134,16 @@ EXPORT std::optional<void *> GetETTNativeHandle(const std::string &id) {
   return ETTREGISTRY.GetEntityNativeHandle(id);
 }
 
+EXPORT void ForgetEntityNativeHandle(const std::string &id) {
+  ETTREGISTRY.ForgetEntityNativeHandle(id);
+}
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+EXPORT void SendEntityDeleteOrder(const std::string &id) {
+  ETTREGISTRY.SendEntityDeleteOrder(id);
+}
+#endif
+
 #pragma endregion
 /* ----------------------------- TASK MANAGEMENT ---------------------------- */
 #pragma region TASK MANAGEMENT
@@ -300,6 +310,11 @@ EXPORT void SetOnInstantiateEntityHook(
 
 EXPORT void SetOnRPCTimeoutHook(std::function<void(const std::string &)> f) {
   RUNTIME.Hooks().onRPCTimeout = f;
+}
+
+EXPORT void SetOnDeleteEntityHook(
+    std::function<void(const std::string &, const std::string &)> f) {
+  RUNTIME.Hooks().onDeleteEntity = f;
 }
 
 #pragma endregion

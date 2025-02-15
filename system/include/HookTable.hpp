@@ -51,6 +51,12 @@ struct HookTable {
   std::function<void(std::string, std::string)> onInstantiateEntity =
       UNIMPLEMENTED<void, std::string, std::string>;
 
+  /// @brief Called when an entity has to be deleted in the engine.
+  /// @param entityId The unique identifier of the entity.
+  /// @param payload The payload of the entity.
+  std::function<void(std::string, std::string)> onDeleteEntity =
+      UNIMPLEMENTED<void, std::string, std::string>;
+
   /* ----------------------------- ERROR HANDLERS -----------------------------
    */
 

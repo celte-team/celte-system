@@ -56,6 +56,13 @@ void Container::__initRPCs() {
                                __rp_containerDropAuthority(args);
                                return true;
                              }));
+
+  _rpcService.Register<bool>(
+      "__rp_deleteEntity",
+      std::function([this](std::string entityId, std::string payload) {
+        __rp_deleteEntity(entityId, payload);
+        return true;
+      }));
 }
 
 void Container::__initStreams() {
@@ -100,6 +107,15 @@ void Container::__rp_containerDropAuthority(const std::string &args) {
   } catch (const std::exception &e) {
     THROW_ERROR(net::RPCHandlingException, e.what());
   }
+}
+
+void Container::__rp_deleteEntity(const std::string &entityId,
+                                  const std::string &payload) {
+  RUNTIME.TopExecutor().PushTaskToEngine([entityId, payload]() {
+    ETTREGISTRY.SetEntityValid(entityId, false);
+    RUNTIME.Hooks().onDeleteEntity(entityId, payload);
+    ETTREGISTRY.UnregisterEntity(entityId);
+  });
 }
 
 /* --------------------------- CONTAINER REGISTRY --------------------------- */
@@ -147,8 +163,6 @@ void ContainerRegistry::UpdateRefCount(const std::string &containerId) {
   if (_containers.find(acc, containerId)) {
     if (acc->second.container.use_count() == 1) {
       _containers.erase(acc);
-      std::cout << "[[ContainerRegistry]] Container " << containerId
-                << " is no longer referenced." << std::endl;
       LOGDEBUG("Container " + containerId +
                " is no longer referenced and has been deleted.");
     }

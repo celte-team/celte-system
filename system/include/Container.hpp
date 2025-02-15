@@ -51,6 +51,8 @@ private:
 
   void __rp_containerTakeAuthority(const std::string &args);
   void __rp_containerDropAuthority(const std::string &args);
+  void __rp_deleteEntity(const std::string &entityId,
+                         const std::string &payload);
 
   std::string _id;             ///< Unique id on the network
   std::string _grapeId;        ///< The grape this container belongs to
