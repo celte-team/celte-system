@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 import pulsar
 import json
 import time
@@ -21,15 +20,14 @@ def main():
         message = f"{{\"action\": \"create\"}}"
         producer.send(message.encode('utf-8'))
         print("message sent!")
-        time.sleep(20)
+        time.sleep(30)
         message = f"{{\"action\": \"delete\"}}"
-        # producer.send(message.encode('utf-8'))
+        producer.send(message.encode('utf-8'))
 
     except KeyboardInterrupt:
         print("Production interrupted.")
 
     finally:
-        # Closing the producer and the client
         producer.close()
         client.close()
         print("Production finished.")

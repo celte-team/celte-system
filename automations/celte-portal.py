@@ -11,11 +11,17 @@ import docker
 client = ""
 
 def create_cluster():
-    cluster_uuid = uuid.uuid4()
+    # cluster_uuid = uuid.uuid4()
+    cluster_uuid = "1234"
     print(f"Cluster created with UUID: {cluster_uuid}")
     docker_client = docker.from_env()
-    docker_client.containers.run("clmt/celte-master:latest", name=f"celte-master-service-{cluster_uuid}", environment=["DOCKER_HOST_IP=192.168.0.161", "PULSAR_BROKERS=3.21.114.171", "REDIS_HOST=192.168.0.161"], detach=True)
-
+    if not docker_client.containers.list(all=True, filters={"name": f"celte-master-service-{cluster_uuid}"}):
+        try:
+            docker_client.containers.run("clmt/celte-master:latest", name=f"celte-master-service-{cluster_uuid}", environment=["DOCKER_HOST_IP=192.168.0.161", "PULSAR_BROKERS=pulsar://3.21.114.171:6650", "REDIS_HOST=192.168.0.161"])
+        except docker.errors.ContainerError as e:
+            print(f"Error running container: {e}")
+    else:
+        print("Container already exists.")
     # create a new pulsar namespace with the cluster_uuid
     global client
     # admin.namespaces().create_namespace('public', f'celte-cluster-{cluster_uuid}')
@@ -23,7 +29,7 @@ def create_cluster():
     # bin/pulsar-admin namespaces create public/celestial-cluster-{cluster_uuid}
 
 
-def delete_cluster(uuid):
+def delete_cluster(uuid = "1234"):
     print(f"Cluster deleted with UUID: {uuid}")
     docker_client = docker.from_env()
     try:
@@ -39,7 +45,7 @@ def compute_message(message):
         create_cluster()
     elif message["action"] == "delete":
         print("Deleting the cluster...")
-        delete_cluster(message["uuid"])  # Pass the uuid to delete
+        delete_cluster()
     elif message["action"] == "join":
         print("Joining the cluster... and sending back a UUID")
     else:
