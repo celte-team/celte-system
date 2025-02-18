@@ -369,11 +369,11 @@ EXPORT void SendInputToKafka(std::string uuid, std::string inputName, bool press
     ETTREGISTRY.sendInputToKafka(uuid, inputName, pressed, x, y);
 }
 
-EXPORT void RegisterTickCallback(std::function<void()> f)
-{
-    // @EliotJanvier faut ajouter une task qui va appeler cette fonction
-    // RUNTIME.RegisterTickCallback(f);
-}
+// EXPORT void RegisterTickCallback(std::function<void()> f)
+// {
+//     // @EliotJanvier faut ajouter une task qui va appeler cette fonction
+//     // RUNTIME.RegisterTickCallback(f);
+// }
 
 EXPORT std::optional<const celte::CelteInputSystem::INPUT> GetInputCircularBuf(std::string uuid, std::string InputName)
 {
@@ -382,7 +382,7 @@ EXPORT std::optional<const celte::CelteInputSystem::INPUT> GetInputCircularBuf(s
 
 EXPORT std::string GetUUID()
 {
-    return RUNTIME.GenUUID();
+    return RUNTIME.GetUUID();
 }
 
 #pragma endregion
