@@ -1,5 +1,7 @@
 #pragma once
 #include <tbb/concurrent_queue.h>
+#include <functional>
+#include <optional>
 
 namespace celte {
 /// @brief This class serves as an endpoint for the engine to push tasks to be

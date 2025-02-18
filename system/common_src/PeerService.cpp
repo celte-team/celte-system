@@ -140,11 +140,18 @@ PeerService::__rp_spawnPositionRequest(const std::string &clientId) {
 }
 
 bool PeerService::__rp_acceptNewClient(const std::string &clientId) {
+  std::cout << "Accepting new client " << clientId << std::endl;
   RUNTIME.GetPeerService().GetClientRegistry().RegisterClient(clientId, "", "");
+  std::cout << "Calling on accept new client hook" << std::endl;
   GRAPES.RunWithLock(RUNTIME.GetAssignedGrape(), [this, clientId](Grape &g) {
+    std::cout << "dedans" << std::endl;
     g.executor.PushTaskToEngine(
-        [clientId]() { RUNTIME.Hooks().onAcceptNewClient(clientId); });
+        [clientId]() { std::cout << "dedans2" << std::endl;
+           RUNTIME.Hooks().onAcceptNewClient(clientId);
+          std::cout << "dedans3" << std::endl;});
+           std::cout << "fini dedans" << std::endl;
   });
+  std::cout << "fini dehors" << std::endl;
   return true;
 }
 

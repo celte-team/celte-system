@@ -22,8 +22,8 @@ struct HookTable {
   /// client should connect to a grape in order to be able to load the map and
   /// start playing.
   /// @param clientId The unique identifier of the client.
-  std::function<std::string(const std::string &)> onAcceptNewClient =
-      UNIMPLEMENTED<std::string, const std::string &>;
+  std::function<std::string(std::string )> onAcceptNewClient =
+      UNIMPLEMENTED<std::string, std::string >;
 
   std::function<void(const std::string &)> onClientRequestDisconnect =
       UNIMPLEMENTED<void, const std::string &>;
