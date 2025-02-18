@@ -1,3 +1,4 @@
+#include "CelteInputSystem.hpp"
 #include "Container.hpp"
 #include "ETTRegistry.hpp"
 #include "PeerService.hpp"
@@ -114,6 +115,7 @@ void ETTRegistry::EngineCallInstantiate(const std::string &id,
       .ownerContainerId = ownerContainerId,
   });
   RUNTIME.Hooks().onInstantiateEntity(id, payload);
+  LOGGER.log(Logger::LogLevel::DEBUG, "Entity " + id + " instantiated.");
 }
 
 void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
@@ -199,3 +201,21 @@ void ETTRegistry::SendEntityDeleteOrder(const std::string &id) {
   });
 }
 #endif
+
+void ETTRegistry::sendInputToKafka(std::string uuid, std::string inputName,
+                                   bool pressed, float x, float y) {
+  std::string ownerChunk = GetEntityOwnerContainer(uuid);
+  if (ownerChunk.empty()) {
+    return; // can't send inputs if not owned by a chunk
+  }
+  // @EliotJanvier ca peut pété la a cause du cp jcpysur
+  std::string cp = tp::input(ownerChunk);
+  req::InputUpdate inputUpdate;
+  inputUpdate.set_name(inputName);
+  inputUpdate.set_pressed(pressed);
+  inputUpdate.set_uuid(uuid);
+  inputUpdate.set_x(x);
+  inputUpdate.set_y(y);
+
+  CINPUT.GetWriterPool().Write<req::InputUpdate>(cp, inputUpdate);
+}

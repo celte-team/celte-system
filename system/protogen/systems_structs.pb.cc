@@ -92,6 +92,33 @@ struct RPRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RPRequestDefaultTypeInternal _RPRequest_default_instance_;
 
+inline constexpr InputUpdate::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        uuid_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        pressed_{false},
+        x_{0},
+        y_{0},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR InputUpdate::InputUpdate(::_pbi::ConstantInitialized)
+    : _impl_(::_pbi::ConstantInitialized()) {}
+struct InputUpdateDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR InputUpdateDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~InputUpdateDefaultTypeInternal() {}
+  union {
+    InputUpdate _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 InputUpdateDefaultTypeInternal _InputUpdate_default_instance_;
+
 inline constexpr ClockTick::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : unified_time_ms_{::int64_t{0}},
@@ -156,7 +183,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReplicationDataPacketDefaultTypeInternal _ReplicationDataPacket_default_instance_;
 }  // namespace req
 }  // namespace celte
-static ::_pb::Metadata file_level_metadata_systems_5fstructs_2eproto[6];
+static ::_pb::Metadata file_level_metadata_systems_5fstructs_2eproto[7];
 static constexpr const ::_pb::EnumDescriptor**
     file_level_enum_descriptors_systems_5fstructs_2eproto = nullptr;
 static constexpr const ::_pb::ServiceDescriptor**
@@ -206,6 +233,19 @@ const ::uint32_t TableStruct_systems_5fstructs_2eproto::offsets[] PROTOBUF_SECTI
     PROTOBUF_FIELD_OFFSET(::celte::req::ReplicationDataPacket, _impl_.data_),
     PROTOBUF_FIELD_OFFSET(::celte::req::ReplicationDataPacket, _impl_.active_),
     ~0u,  // no _has_bits_
+    PROTOBUF_FIELD_OFFSET(::celte::req::InputUpdate, _internal_metadata_),
+    ~0u,  // no _extensions_
+    ~0u,  // no _oneof_case_
+    ~0u,  // no _weak_field_map_
+    ~0u,  // no _inlined_string_donated_
+    ~0u,  // no _split_
+    ~0u,  // no sizeof(Split)
+    PROTOBUF_FIELD_OFFSET(::celte::req::InputUpdate, _impl_.name_),
+    PROTOBUF_FIELD_OFFSET(::celte::req::InputUpdate, _impl_.pressed_),
+    PROTOBUF_FIELD_OFFSET(::celte::req::InputUpdate, _impl_.uuid_),
+    PROTOBUF_FIELD_OFFSET(::celte::req::InputUpdate, _impl_.x_),
+    PROTOBUF_FIELD_OFFSET(::celte::req::InputUpdate, _impl_.y_),
+    ~0u,  // no _has_bits_
     PROTOBUF_FIELD_OFFSET(::celte::req::RPRequest, _internal_metadata_),
     ~0u,  // no _extensions_
     ~0u,  // no _oneof_case_
@@ -235,8 +275,9 @@ static const ::_pbi::MigrationSchema
         {10, -1, -1, sizeof(::celte::req::SpawnPositionRequest)},
         {20, 30, -1, sizeof(::celte::req::ReplicationDataPacket_DataEntry_DoNotUse)},
         {32, -1, -1, sizeof(::celte::req::ReplicationDataPacket)},
-        {42, -1, -1, sizeof(::celte::req::RPRequest)},
-        {55, -1, -1, sizeof(::celte::req::ClockTick)},
+        {42, -1, -1, sizeof(::celte::req::InputUpdate)},
+        {55, -1, -1, sizeof(::celte::req::RPRequest)},
+        {68, -1, -1, sizeof(::celte::req::ClockTick)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -244,6 +285,7 @@ static const ::_pb::Message* const file_default_instances[] = {
     &::celte::req::_SpawnPositionRequest_default_instance_._instance,
     &::celte::req::_ReplicationDataPacket_DataEntry_DoNotUse_default_instance_._instance,
     &::celte::req::_ReplicationDataPacket_default_instance_._instance,
+    &::celte::req::_InputUpdate_default_instance_._instance,
     &::celte::req::_RPRequest_default_instance_._instance,
     &::celte::req::_ClockTick_default_instance_._instance,
 };
@@ -255,23 +297,25 @@ const char descriptor_table_protodef_systems_5fstructs_2eproto[] PROTOBUF_SECTIO
     "icationDataPacket\0228\n\004data\030\001 \003(\0132*.celte."
     "req.ReplicationDataPacket.DataEntry\022\016\n\006a"
     "ctive\030\002 \001(\010\032+\n\tDataEntry\022\013\n\003key\030\001 \001(\t\022\r\n"
-    "\005value\030\002 \001(\t:\0028\001\"d\n\tRPRequest\022\014\n\004name\030\001 "
-    "\001(\t\022\023\n\013responds_to\030\002 \001(\t\022\026\n\016response_top"
-    "ic\030\003 \001(\t\022\016\n\006rpc_id\030\004 \001(\t\022\014\n\004args\030\005 \001(\t\"$"
-    "\n\tClockTick\022\027\n\017unified_time_ms\030\002 \001(\003b\006pr"
-    "oto3"
+    "\005value\030\002 \001(\t:\0028\001\"P\n\013InputUpdate\022\014\n\004name\030"
+    "\001 \001(\t\022\017\n\007pressed\030\002 \001(\010\022\014\n\004uuid\030\003 \001(\t\022\t\n\001"
+    "x\030\004 \001(\002\022\t\n\001y\030\005 \001(\002\"d\n\tRPRequest\022\014\n\004name\030"
+    "\001 \001(\t\022\023\n\013responds_to\030\002 \001(\t\022\026\n\016response_t"
+    "opic\030\003 \001(\t\022\016\n\006rpc_id\030\004 \001(\t\022\014\n\004args\030\005 \001(\t"
+    "\"$\n\tClockTick\022\027\n\017unified_time_ms\030\002 \001(\003b\006"
+    "proto3"
 };
 static ::absl::once_flag descriptor_table_systems_5fstructs_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_systems_5fstructs_2eproto = {
     false,
     false,
-    444,
+    526,
     descriptor_table_protodef_systems_5fstructs_2eproto,
     "systems_structs.proto",
     &descriptor_table_systems_5fstructs_2eproto_once,
     nullptr,
     0,
-    6,
+    7,
     schemas,
     file_default_instances,
     TableStruct_systems_5fstructs_2eproto::offsets,
@@ -985,6 +1029,343 @@ void ReplicationDataPacket::InternalSwap(ReplicationDataPacket* PROTOBUF_RESTRIC
 }
 // ===================================================================
 
+class InputUpdate::_Internal {
+ public:
+};
+
+InputUpdate::InputUpdate(::google::protobuf::Arena* arena)
+    : ::google::protobuf::Message(arena) {
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:celte.req.InputUpdate)
+}
+inline PROTOBUF_NDEBUG_INLINE InputUpdate::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from)
+      : name_(arena, from.name_),
+        uuid_(arena, from.uuid_),
+        _cached_size_{0} {}
+
+InputUpdate::InputUpdate(
+    ::google::protobuf::Arena* arena,
+    const InputUpdate& from)
+    : ::google::protobuf::Message(arena) {
+  InputUpdate* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_);
+  ::memcpy(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, pressed_),
+           reinterpret_cast<const char *>(&from._impl_) +
+               offsetof(Impl_, pressed_),
+           offsetof(Impl_, y_) -
+               offsetof(Impl_, pressed_) +
+               sizeof(Impl_::y_));
+
+  // @@protoc_insertion_point(copy_constructor:celte.req.InputUpdate)
+}
+inline PROTOBUF_NDEBUG_INLINE InputUpdate::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : name_(arena),
+        uuid_(arena),
+        _cached_size_{0} {}
+
+inline void InputUpdate::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, pressed_),
+           0,
+           offsetof(Impl_, y_) -
+               offsetof(Impl_, pressed_) +
+               sizeof(Impl_::y_));
+}
+InputUpdate::~InputUpdate() {
+  // @@protoc_insertion_point(destructor:celte.req.InputUpdate)
+  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  SharedDtor();
+}
+inline void InputUpdate::SharedDtor() {
+  ABSL_DCHECK(GetArena() == nullptr);
+  _impl_.name_.Destroy();
+  _impl_.uuid_.Destroy();
+  _impl_.~Impl_();
+}
+
+PROTOBUF_NOINLINE void InputUpdate::Clear() {
+// @@protoc_insertion_point(message_clear_start:celte.req.InputUpdate)
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.name_.ClearToEmpty();
+  _impl_.uuid_.ClearToEmpty();
+  ::memset(&_impl_.pressed_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.y_) -
+      reinterpret_cast<char*>(&_impl_.pressed_)) + sizeof(_impl_.y_));
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+const char* InputUpdate::_InternalParse(
+    const char* ptr, ::_pbi::ParseContext* ctx) {
+  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+  return ptr;
+}
+
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 0, 38, 2> InputUpdate::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    &_InputUpdate_default_instance_._instance,
+    ::_pbi::TcParser::GenericFallback,  // fallback
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string name = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 63, 0, PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.name_)}},
+    // bool pressed = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(InputUpdate, _impl_.pressed_), 63>(),
+     {16, 63, 0, PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.pressed_)}},
+    // string uuid = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.uuid_)}},
+    // float x = 4;
+    {::_pbi::TcParser::FastF32S1,
+     {37, 63, 0, PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.x_)}},
+    // float y = 5;
+    {::_pbi::TcParser::FastF32S1,
+     {45, 63, 0, PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.y_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string name = 1;
+    {PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.name_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool pressed = 2;
+    {PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.pressed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kBool)},
+    // string uuid = 3;
+    {PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.uuid_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // float x = 4;
+    {PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.x_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kFloat)},
+    // float y = 5;
+    {PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.y_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kFloat)},
+  }},
+  // no aux_entries
+  {{
+    "\25\4\0\4\0\0\0\0"
+    "celte.req.InputUpdate"
+    "name"
+    "uuid"
+  }},
+};
+
+::uint8_t* InputUpdate::_InternalSerialize(
+    ::uint8_t* target,
+    ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:celte.req.InputUpdate)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // string name = 1;
+  if (!this->_internal_name().empty()) {
+    const std::string& _s = this->_internal_name();
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+        _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "celte.req.InputUpdate.name");
+    target = stream->WriteStringMaybeAliased(1, _s, target);
+  }
+
+  // bool pressed = 2;
+  if (this->_internal_pressed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(
+        2, this->_internal_pressed(), target);
+  }
+
+  // string uuid = 3;
+  if (!this->_internal_uuid().empty()) {
+    const std::string& _s = this->_internal_uuid();
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+        _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "celte.req.InputUpdate.uuid");
+    target = stream->WriteStringMaybeAliased(3, _s, target);
+  }
+
+  // float x = 4;
+  static_assert(sizeof(::uint32_t) == sizeof(float),
+                "Code assumes ::uint32_t and float are the same size.");
+  float tmp_x = this->_internal_x();
+  ::uint32_t raw_x;
+  memcpy(&raw_x, &tmp_x, sizeof(tmp_x));
+  if (raw_x != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(
+        4, this->_internal_x(), target);
+  }
+
+  // float y = 5;
+  static_assert(sizeof(::uint32_t) == sizeof(float),
+                "Code assumes ::uint32_t and float are the same size.");
+  float tmp_y = this->_internal_y();
+  ::uint32_t raw_y;
+  memcpy(&raw_y, &tmp_y, sizeof(tmp_y));
+  if (raw_y != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(
+        5, this->_internal_y(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:celte.req.InputUpdate)
+  return target;
+}
+
+::size_t InputUpdate::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:celte.req.InputUpdate)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // string name = 1;
+  if (!this->_internal_name().empty()) {
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                    this->_internal_name());
+  }
+
+  // string uuid = 3;
+  if (!this->_internal_uuid().empty()) {
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                    this->_internal_uuid());
+  }
+
+  // bool pressed = 2;
+  if (this->_internal_pressed() != 0) {
+    total_size += 2;
+  }
+
+  // float x = 4;
+  static_assert(sizeof(::uint32_t) == sizeof(float),
+                "Code assumes ::uint32_t and float are the same size.");
+  float tmp_x = this->_internal_x();
+  ::uint32_t raw_x;
+  memcpy(&raw_x, &tmp_x, sizeof(tmp_x));
+  if (raw_x != 0) {
+    total_size += 5;
+  }
+
+  // float y = 5;
+  static_assert(sizeof(::uint32_t) == sizeof(float),
+                "Code assumes ::uint32_t and float are the same size.");
+  float tmp_y = this->_internal_y();
+  ::uint32_t raw_y;
+  memcpy(&raw_y, &tmp_y, sizeof(tmp_y));
+  if (raw_y != 0) {
+    total_size += 5;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::google::protobuf::Message::ClassData InputUpdate::_class_data_ = {
+    InputUpdate::MergeImpl,
+    nullptr,  // OnDemandRegisterArenaDtor
+};
+const ::google::protobuf::Message::ClassData* InputUpdate::GetClassData() const {
+  return &_class_data_;
+}
+
+void InputUpdate::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
+  auto* const _this = static_cast<InputUpdate*>(&to_msg);
+  auto& from = static_cast<const InputUpdate&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:celte.req.InputUpdate)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_name().empty()) {
+    _this->_internal_set_name(from._internal_name());
+  }
+  if (!from._internal_uuid().empty()) {
+    _this->_internal_set_uuid(from._internal_uuid());
+  }
+  if (from._internal_pressed() != 0) {
+    _this->_internal_set_pressed(from._internal_pressed());
+  }
+  static_assert(sizeof(::uint32_t) == sizeof(float),
+                "Code assumes ::uint32_t and float are the same size.");
+  float tmp_x = from._internal_x();
+  ::uint32_t raw_x;
+  memcpy(&raw_x, &tmp_x, sizeof(tmp_x));
+  if (raw_x != 0) {
+    _this->_internal_set_x(from._internal_x());
+  }
+  static_assert(sizeof(::uint32_t) == sizeof(float),
+                "Code assumes ::uint32_t and float are the same size.");
+  float tmp_y = from._internal_y();
+  ::uint32_t raw_y;
+  memcpy(&raw_y, &tmp_y, sizeof(tmp_y));
+  if (raw_y != 0) {
+    _this->_internal_set_y(from._internal_y());
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void InputUpdate::CopyFrom(const InputUpdate& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:celte.req.InputUpdate)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+PROTOBUF_NOINLINE bool InputUpdate::IsInitialized() const {
+  return true;
+}
+
+::_pbi::CachedSize* InputUpdate::AccessCachedSize() const {
+  return &_impl_._cached_size_;
+}
+void InputUpdate::InternalSwap(InputUpdate* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.uuid_, &other->_impl_.uuid_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.y_)
+      + sizeof(InputUpdate::_impl_.y_)
+      - PROTOBUF_FIELD_OFFSET(InputUpdate, _impl_.pressed_)>(
+          reinterpret_cast<char*>(&_impl_.pressed_),
+          reinterpret_cast<char*>(&other->_impl_.pressed_));
+}
+
+::google::protobuf::Metadata InputUpdate::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_systems_5fstructs_2eproto_getter, &descriptor_table_systems_5fstructs_2eproto_once,
+      file_level_metadata_systems_5fstructs_2eproto[4]);
+}
+// ===================================================================
+
 class RPRequest::_Internal {
  public:
 };
@@ -1290,7 +1671,7 @@ void RPRequest::InternalSwap(RPRequest* PROTOBUF_RESTRICT other) {
 ::google::protobuf::Metadata RPRequest::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_systems_5fstructs_2eproto_getter, &descriptor_table_systems_5fstructs_2eproto_once,
-      file_level_metadata_systems_5fstructs_2eproto[4]);
+      file_level_metadata_systems_5fstructs_2eproto[5]);
 }
 // ===================================================================
 
@@ -1460,7 +1841,7 @@ void ClockTick::InternalSwap(ClockTick* PROTOBUF_RESTRICT other) {
 ::google::protobuf::Metadata ClockTick::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_systems_5fstructs_2eproto_getter, &descriptor_table_systems_5fstructs_2eproto_once,
-      file_level_metadata_systems_5fstructs_2eproto[5]);
+      file_level_metadata_systems_5fstructs_2eproto[6]);
 }
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace req

@@ -17,6 +17,14 @@ message ReplicationDataPacket {
   bool active = 2;
 }
 
+message InputUpdate {
+  string name = 1;
+  bool pressed = 2;
+  string uuid = 3;
+  float x = 4;
+  float y = 5;
+}
+
 message RPRequest {
   string name = 1;           // the name of the rpc to invoke
   string responds_to = 2;     // left empty for a call, set to the id of the rpc for a response of a previously called rpc
