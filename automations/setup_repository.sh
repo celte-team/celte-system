@@ -14,7 +14,7 @@ GODOT_PROJECT_PATH=$1
 
 
 # Set the install prefix dynamically
-INSTALL_PREFIX="$GODOT_PROJECT_PATH/bin/deps"
+INSTALL_PREFIX="$GODOT_PROJECT_PATH/addons/celte/deps"
 
 # Detect the operating system and set VCPKG_TARGET_TRIPLET accordingly
 case "$OSTYPE" in
