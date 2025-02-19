@@ -150,6 +150,10 @@ EXPORT void RegisterMetric(const std::string &name,
                            std::function<std::string()> getter) {
   celte::METRICS.RegisterMetric(name, getter);
 }
+
+EXPORT void MasterInstantiateServerNode(const std::string &payload) {
+  RUNTIME.MasterInstantiateServerNode(payload);
+}
 #endif
 
 #pragma endregion

@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <tbb/concurrent_queue.h>
 
 namespace celte {

@@ -91,7 +91,9 @@ void Runtime::CallScopedRPCNoRetVal(const std::string &scope,
               << std::endl;
     return;
   }
-  _peerService->GetRPCService().CallVoid(scope, name, args);
+  std::cout << "calling scoped rpc with args: " << args << std::endl;
+  std::cout << "topic : " << tp::default_scope + scope << std::endl;
+  _peerService->GetRPCService().CallVoid(tp::default_scope + scope, name, args);
 }
 
 std::string Runtime::CallScopedRPC(const std::string &scope,
@@ -103,7 +105,8 @@ std::string Runtime::CallScopedRPC(const std::string &scope,
               << std::endl;
     return "";
   }
-  return _peerService->GetRPCService().Call<std::string>(scope, name, args);
+  return _peerService->GetRPCService().Call<std::string>(
+      tp::default_scope + scope, name, args);
 }
 
 void Runtime::CallScopedRPCAsync(const std::string &scope,
@@ -117,11 +120,18 @@ void Runtime::CallScopedRPCAsync(const std::string &scope,
     return;
   }
   _peerService->GetRPCService()
-      .CallAsync<std::string>(scope, name, args)
+      .CallAsync<std::string>(tp::default_scope + scope, name, args)
       .Then(callback);
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
+
+void Runtime::MasterInstantiateServerNode(const std::string &payload) {
+  // we send the instantiate message to the master server
+  // _peerService->GetRPCService()
+  //     .CallAsync<int>(tp::rpc("master"), "__rp_instantiateNewNode", payload)
+  //     .Then([](int) { std:: });
+}
 
 void Runtime::ForceDisconnectClient(const std::string &clientId,
                                     const std::string &payload) {

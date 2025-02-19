@@ -114,7 +114,6 @@ void ETTRegistry::EngineCallInstantiate(const std::string &id,
       .ownerContainerId = ownerContainerId,
   });
   RUNTIME.Hooks().onInstantiateEntity(id, payload);
-  LOGGER.log(Logger::LogLevel::DEBUG, "Entity " + id + " instantiated.");
 }
 
 void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
