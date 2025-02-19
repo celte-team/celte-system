@@ -202,8 +202,8 @@ void ETTRegistry::SendEntityDeleteOrder(const std::string &id) {
 }
 #endif
 
-void ETTRegistry::sendInputToKafka(std::string uuid, std::string inputName,
-                                   bool pressed, float x, float y) {
+void ETTRegistry::UploadInputData(std::string uuid, std::string inputName,
+                                  bool pressed, float x, float y) {
   std::string ownerChunk = GetEntityOwnerContainer(uuid);
   if (ownerChunk.empty()) {
     return; // can't send inputs if not owned by a chunk
