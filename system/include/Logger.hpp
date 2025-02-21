@@ -31,13 +31,9 @@ public:
   static Logger &GetInstance();
   enum LogLevel { DEBUG, WARNING, ERROR, FATAL };
 
-  // uuid should be the RUNTIME.currentUUID
-  // key can be the pid to split logs by process, OR common to all process to
-  // centrilize them
   Logger();
   ~Logger();
 
-  //  log should be async, add a function to a pool to not slow the process
   void log(LogLevel level, const std::string &message);
 
 private:

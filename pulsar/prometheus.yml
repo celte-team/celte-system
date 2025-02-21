@@ -9,3 +9,7 @@ scrape_configs:
   static_configs:
   - targets:
     - 192.168.0.63:9090
+- job_name: pushgateway
+  static_configs:
+  - targets:
+    - pushgateway:9091

@@ -11,6 +11,17 @@ Config::Config() { // Set default values
 
   const char *redis_key = getenv("REDIS_KEY");
   _config["redis_key"] = redis_key ? redis_key : "logs";
+
+  const char *pushgateway_host = getenv("PUSHGATEWAY_HOST");
+  _config["pushgateway_host"] =
+      pushgateway_host ? pushgateway_host : "localhost";
+
+  const char *pushgateway_port = getenv("PUSHGATEWAY_PORT");
+  _config["pushgateway_port"] = pushgateway_port ? pushgateway_port : "9091";
+
+  const char *metrics_upload_interval = getenv("METRICS_UPLOAD_INTERVAL");
+  _config["metrics_upload_interval"] =
+      metrics_upload_interval ? metrics_upload_interval : "5";
 }
 
 std::optional<std::string> Config::Get(const std::string &key) const {

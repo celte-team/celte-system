@@ -5,6 +5,9 @@
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
+#ifdef CELTE_SERVER_MODE_ENABLED
+#include "MetricsScrapper.hpp"
+#endif
 
 #ifdef __WIN32
 #define EXPORT __declspec(dllexport)
@@ -165,7 +168,23 @@ EXPORT void SendEntityDeleteOrder(const std::string& id)
 {
     ETTREGISTRY.SendEntityDeleteOrder(id);
 }
+
+EXPORT void RegisterMetric(const std::string& name,
+    std::function<std::string()> getter)
+{
+    celte::METRICS.RegisterMetric(name, getter);
+}
+
+EXPORT void MasterInstantiateServerNode(const std::string& payload)
+{
+    RUNTIME.MasterInstantiateServerNode(payload);
+}
 #endif
+
+EXPORT bool IsEntityLocallyOwned(const std::string& entityId)
+{
+    return ETTREGISTRY.IsEntityLocallyOwned(entityId);
+}
 
 #pragma endregion
 /* ----------------------------- TASK MANAGEMENT ---------------------------- */
@@ -375,15 +394,20 @@ EXPORT void SendInputToKafka(std::string uuid, std::string inputName, bool press
 //     // RUNTIME.RegisterTickCallback(f);
 // }
 
-EXPORT std::optional<const celte::CelteInputSystem::INPUT> GetInputCircularBuf(std::string uuid, std::string InputName)
+//@EliotJanvier PTET CA PETE
+EXPORT void UploadInputData(std::string uuid, std::string inputName,
+    bool pressed, float x = 0, float y = 0)
+{
+    ETTREGISTRY.UploadInputData(uuid, inputName, pressed, x, y);
+}
+
+EXPORT std::optional<const celte::CelteInputSystem::INPUT>
+GetInputCircularBuf(std::string uuid, std::string InputName)
 {
     return CINPUT.GetInputCircularBuf(uuid, InputName);
 }
 
-EXPORT std::string GetUUID()
-{
-    return RUNTIME.GetUUID();
-}
+EXPORT std::string GetUUID() { return RUNTIME.GetUUID(); }
 
 #pragma endregion
 }

@@ -1,18 +1,3 @@
-/*
-** CELTE, 2025
-** celte-system
-
-** Team Members:
-** Eliot Janvier
-** Clement Toni
-** Ewen Briand
-** Laurent Jiang
-** Thomas Laprie
-
-** File description:
-** Logger
-*/
-
 #include "Clock.hpp"
 #include "Logger.hpp"
 #include "Runtime.hpp"
@@ -42,7 +27,6 @@ Logger::Logger() {
     } else {
       std::cerr << "Can't allocate redis context" << std::endl;
     }
-    // throw std::runtime_error("Failed to connect to Redis");
     std::cerr
         << "Failed to connect to Redis logs to redis, falling back to stdout"
         << std::endl;

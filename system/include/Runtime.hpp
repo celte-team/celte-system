@@ -108,6 +108,10 @@ public:
   inline void SetAssignedGrape(const std::string &grape) {
     _assignedGrape = grape;
   }
+
+  /// @brief Asks the master server to instantiate a new server node.
+  /// @param payload The payload to forward to the newly instantiated node.
+  void MasterInstantiateServerNode(const std::string &payload);
 #endif
 
   /// @brief This binding lets the user register custom RPCs from the game

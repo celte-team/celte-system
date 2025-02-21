@@ -17,7 +17,8 @@ namespace celte {
         using accessor = storage::accessor;
         static ETTRegistry& GetInstance();
 
-        // void RegisterOneInput(std::string uuid, std::string InputName, bool status, float x, float y);
+        // void RegisterOneInput(std::string uuid, std::string InputName, bool status,
+        // float x, float y);
 
         /// @brief Registers an entity in the registry.
         /// @param e The entity to register.
@@ -146,6 +147,16 @@ namespace celte {
          * @param pressed   Bool   status of the input (true for down false for up)
          */
         void sendInputToKafka(std::string uuid, std::string inputName, bool pressed, float x = 0, float y = 0);
+
+        /**
+         * @brief Send an input to kafka, this will trigger a RPC in the other client
+         * and server. Define in CelteInputSystem
+         *
+         * @param inputName String name/id of the input
+         * @param pressed   Bool   status of the input (true for down false for up)
+         */
+        void UploadInputData(std::string uuid, std::string inputName, bool pressed,
+            float x = 0, float y = 0);
 
         /// @brief  Returns true if the entity is registered in the registry.
         /// @param id

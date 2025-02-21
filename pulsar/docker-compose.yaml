@@ -157,3 +157,13 @@ services:
       - PULSAR_CLUSTER=celte-pulsar
     depends_on:
       - prometheus
+
+  pushgateway:
+    image: prom/pushgateway
+    container_name: pushgateway
+    ports:
+      - "9091:9091"
+    networks:
+      - pulsar
+    depends_on:
+      - prometheus

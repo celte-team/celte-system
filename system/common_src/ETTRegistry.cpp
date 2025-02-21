@@ -221,7 +221,8 @@ void ETTRegistry::SendEntityDeleteOrder(const std::string& id)
 }
 #endif
 
-void ETTRegistry::sendInputToKafka(std::string uuid, std::string inputName, bool pressed, float x, float y)
+void ETTRegistry::UploadInputData(std::string uuid, std::string inputName,
+    bool pressed, float x, float y)
 {
     std::string ownerChunk = GetEntityOwnerContainer(uuid);
     if (ownerChunk.empty()) {
@@ -236,6 +237,5 @@ void ETTRegistry::sendInputToKafka(std::string uuid, std::string inputName, bool
     inputUpdate.set_x(x);
     inputUpdate.set_y(y);
 
-    CINPUT.GetWriterPool().Write<req::InputUpdate>(
-        cp, inputUpdate);
+    CINPUT.GetWriterPool().Write<req::InputUpdate>(cp, inputUpdate);
 }

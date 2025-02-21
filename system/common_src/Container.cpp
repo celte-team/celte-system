@@ -117,6 +117,20 @@ void Container::__initStreams()
 #ifdef CELTE_SERVER_MODE_ENABLED
     }
 #endif
+
+    _createReaderStream<req::InputUpdate>({
+        .thisPeerUuid = RUNTIME.GetUUID(),
+        // @EliotJanvier ca peut pété la a cause des ids jcpysur
+        .topics = { tp::input(_id) },
+        .subscriptionName = tp::peer(RUNTIME.GetUUID()),
+        .exclusive = false,
+        .messageHandlerSync =
+            [this](const pulsar::Consumer, req::InputUpdate req) {
+                // @EliotJanvier ca peut pété ici mais je suis un peu confiant
+                CINPUT.HandleInput(req.uuid(), req.name(), req.pressed(), req.x(),
+                    req.y());
+            },
+    });
 }
 
 void Container::__rp_containerTakeAuthority(const std::string& args)
