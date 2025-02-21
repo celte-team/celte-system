@@ -22,6 +22,10 @@ Config::Config() { // Set default values
   const char *metrics_upload_interval = getenv("METRICS_UPLOAD_INTERVAL");
   _config["metrics_upload_interval"] =
       metrics_upload_interval ? metrics_upload_interval : "5";
+
+  const char *replication_interval = getenv("REPLICATION_INTERVAL");
+  _config["replication_interval"] =
+      replication_interval ? replication_interval : "0";
 }
 
 std::optional<std::string> Config::Get(const std::string &key) const {

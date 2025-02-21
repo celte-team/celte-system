@@ -1,5 +1,6 @@
 #pragma once
 #include "CelteService.hpp"
+#include "systems_structs.pb.h"
 #include <chrono>
 #include <ctime>
 #include <iomanip>

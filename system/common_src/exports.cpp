@@ -1,6 +1,7 @@
 #include "AuthorityTransfer.hpp"
 #include "CelteInputSystem.hpp"
 #include "ETTRegistry.hpp"
+#include "GhostSystem.hpp"
 #include "GrapeRegistry.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
@@ -159,6 +160,18 @@ EXPORT void MasterInstantiateServerNode(const std::string &payload) {
 
 EXPORT bool IsEntityLocallyOwned(const std::string &entityId) {
   return ETTREGISTRY.IsEntityLocallyOwned(entityId);
+}
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+EXPORT void UpdatePropertyState(const std::string &eid, const std::string &key,
+                                const std::string &value) {
+  GHOSTSYSTEM.UpdatePropertyState(eid, key, value);
+}
+#endif
+
+EXPORT std::optional<std::string> PollPropertyUpdate(const std::string &eid,
+                                                     const std::string &key) {
+  return GHOSTSYSTEM.PollPropertyUpdate(eid, key);
 }
 
 #pragma endregion

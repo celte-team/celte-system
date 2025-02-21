@@ -1,11 +1,14 @@
 #include "CelteInputSystem.hpp"
 #include "Container.hpp"
 #include "ETTRegistry.hpp"
+#include "GhostSystem.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
 
 using namespace celte;
+
+Entity::~Entity() { GhostSystem::TryRemoveEntity(id); }
 
 ETTRegistry &ETTRegistry::GetInstance() {
   static ETTRegistry instance;

@@ -33,9 +33,6 @@
 #include "google/protobuf/message.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
-#include "google/protobuf/map.h"  // IWYU pragma: export
-#include "google/protobuf/map_entry.h"
-#include "google/protobuf/map_field_inl.h"
 #include "google/protobuf/unknown_field_set.h"
 // @@protoc_insertion_point(includes)
 
@@ -75,9 +72,6 @@ extern RPRequestDefaultTypeInternal _RPRequest_default_instance_;
 class ReplicationDataPacket;
 struct ReplicationDataPacketDefaultTypeInternal;
 extern ReplicationDataPacketDefaultTypeInternal _ReplicationDataPacket_default_instance_;
-class ReplicationDataPacket_DataEntry_DoNotUse;
-struct ReplicationDataPacket_DataEntry_DoNotUseDefaultTypeInternal;
-extern ReplicationDataPacket_DataEntry_DoNotUseDefaultTypeInternal _ReplicationDataPacket_DataEntry_DoNotUse_default_instance_;
 class SpawnPositionRequest;
 struct SpawnPositionRequestDefaultTypeInternal;
 extern SpawnPositionRequestDefaultTypeInternal _SpawnPositionRequest_default_instance_;
@@ -295,35 +289,186 @@ class SpawnPositionRequest final :
   friend struct ::TableStruct_systems_5fstructs_2eproto;
 };// -------------------------------------------------------------------
 
-class ReplicationDataPacket_DataEntry_DoNotUse final
-    : public ::google::protobuf::internal::MapEntry<
-          ReplicationDataPacket_DataEntry_DoNotUse, std::string, std::string,
-          ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-          ::google::protobuf::internal::WireFormatLite::TYPE_STRING> {
+class ReplicationDataPacket final :
+    public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:celte.req.ReplicationDataPacket) */ {
  public:
-  using SuperType = ::google::protobuf::internal::MapEntry<
-      ReplicationDataPacket_DataEntry_DoNotUse, std::string, std::string,
-      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-      ::google::protobuf::internal::WireFormatLite::TYPE_STRING>;
-  ReplicationDataPacket_DataEntry_DoNotUse();
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR ReplicationDataPacket_DataEntry_DoNotUse(
-      ::google::protobuf::internal::ConstantInitialized);
-  explicit ReplicationDataPacket_DataEntry_DoNotUse(::google::protobuf::Arena* arena);
-  static const ReplicationDataPacket_DataEntry_DoNotUse* internal_default_instance() {
-    return reinterpret_cast<const ReplicationDataPacket_DataEntry_DoNotUse*>(
-        &_ReplicationDataPacket_DataEntry_DoNotUse_default_instance_);
+  inline ReplicationDataPacket() : ReplicationDataPacket(nullptr) {}
+  ~ReplicationDataPacket() override;
+  template<typename = void>
+  explicit PROTOBUF_CONSTEXPR ReplicationDataPacket(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReplicationDataPacket(const ReplicationDataPacket& from)
+      : ReplicationDataPacket(nullptr, from) {}
+  ReplicationDataPacket(ReplicationDataPacket&& from) noexcept
+    : ReplicationDataPacket() {
+    *this = ::std::move(from);
   }
-  static bool ValidateKey(std::string* s) {
-    return ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::google::protobuf::internal::WireFormatLite::PARSE, "celte.req.ReplicationDataPacket.DataEntry.key");
- }
-  static bool ValidateValue(std::string* s) {
-    return ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::google::protobuf::internal::WireFormatLite::PARSE, "celte.req.ReplicationDataPacket.DataEntry.value");
- }
+
+  inline ReplicationDataPacket& operator=(const ReplicationDataPacket& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReplicationDataPacket& operator=(ReplicationDataPacket&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetArena() == from.GetArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReplicationDataPacket& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ReplicationDataPacket* internal_default_instance() {
+    return reinterpret_cast<const ReplicationDataPacket*>(
+               &_ReplicationDataPacket_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    2;
+
+  friend void swap(ReplicationDataPacket& a, ReplicationDataPacket& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ReplicationDataPacket* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetArena() != nullptr &&
+        GetArena() == other->GetArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetArena() == other->GetArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReplicationDataPacket* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReplicationDataPacket* New(::google::protobuf::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<ReplicationDataPacket>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ReplicationDataPacket& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom( const ReplicationDataPacket& from) {
+    ReplicationDataPacket::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  ::size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::google::protobuf::internal::ParseContext* ctx) final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  ::google::protobuf::internal::CachedSize* AccessCachedSize() const final;
+  void SharedCtor(::google::protobuf::Arena* arena);
+  void SharedDtor();
+  void InternalSwap(ReplicationDataPacket* other);
+
+  private:
+  friend class ::google::protobuf::internal::AnyMetadata;
+  static ::absl::string_view FullMessageName() {
+    return "celte.req.ReplicationDataPacket";
+  }
+  protected:
+  explicit ReplicationDataPacket(::google::protobuf::Arena* arena);
+  ReplicationDataPacket(::google::protobuf::Arena* arena, const ReplicationDataPacket& from);
+  public:
+
+  static const ClassData _class_data_;
+  const ::google::protobuf::Message::ClassData*GetClassData() const final;
+
   ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kDataFieldNumber = 1,
+  };
+  // string data = 1;
+  void clear_data() ;
+  const std::string& data() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_data(Arg_&& arg, Args_... args);
+  std::string* mutable_data();
+  PROTOBUF_NODISCARD std::string* release_data();
+  void set_allocated_data(std::string* value);
+
+  private:
+  const std::string& _internal_data() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_data(
+      const std::string& value);
+  std::string* _internal_mutable_data();
+
+  public:
+  // @@protoc_insertion_point(class_scope:celte.req.ReplicationDataPacket)
+ private:
+  class _Internal;
+
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      0, 1, 0,
+      44, 2>
+      _table_;
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+
+        inline explicit constexpr Impl_(
+            ::google::protobuf::internal::ConstantInitialized) noexcept;
+        inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                              ::google::protobuf::Arena* arena);
+        inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                              ::google::protobuf::Arena* arena, const Impl_& from);
+    ::google::protobuf::internal::ArenaStringPtr data_;
+    mutable ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
   friend struct ::TableStruct_systems_5fstructs_2eproto;
-};
-// -------------------------------------------------------------------
+};// -------------------------------------------------------------------
 
 class RPRequest final :
     public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:celte.req.RPRequest) */ {
@@ -384,7 +529,7 @@ class RPRequest final :
                &_RPRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    4;
 
   friend void swap(RPRequest& a, RPRequest& b) {
     a.Swap(&b);
@@ -637,7 +782,7 @@ class InputUpdate final :
                &_InputUpdate_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    4;
+    3;
 
   friend void swap(InputUpdate& a, InputUpdate& b) {
     a.Swap(&b);
@@ -872,7 +1017,7 @@ class ClockTick final :
                &_ClockTick_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    5;
 
   friend void swap(ClockTick& a, ClockTick& b) {
     a.Swap(&b);
@@ -1185,202 +1330,6 @@ class BinaryDataPacket final :
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_systems_5fstructs_2eproto;
-};// -------------------------------------------------------------------
-
-class ReplicationDataPacket final :
-    public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:celte.req.ReplicationDataPacket) */ {
- public:
-  inline ReplicationDataPacket() : ReplicationDataPacket(nullptr) {}
-  ~ReplicationDataPacket() override;
-  template<typename = void>
-  explicit PROTOBUF_CONSTEXPR ReplicationDataPacket(::google::protobuf::internal::ConstantInitialized);
-
-  inline ReplicationDataPacket(const ReplicationDataPacket& from)
-      : ReplicationDataPacket(nullptr, from) {}
-  ReplicationDataPacket(ReplicationDataPacket&& from) noexcept
-    : ReplicationDataPacket() {
-    *this = ::std::move(from);
-  }
-
-  inline ReplicationDataPacket& operator=(const ReplicationDataPacket& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline ReplicationDataPacket& operator=(ReplicationDataPacket&& from) noexcept {
-    if (this == &from) return *this;
-    if (GetArena() == from.GetArena()
-  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
-        && GetArena() != nullptr
-  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
-    ) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const ReplicationDataPacket& default_instance() {
-    return *internal_default_instance();
-  }
-  static inline const ReplicationDataPacket* internal_default_instance() {
-    return reinterpret_cast<const ReplicationDataPacket*>(
-               &_ReplicationDataPacket_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    3;
-
-  friend void swap(ReplicationDataPacket& a, ReplicationDataPacket& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(ReplicationDataPacket* other) {
-    if (other == this) return;
-  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetArena() != nullptr &&
-        GetArena() == other->GetArena()) {
-   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetArena() == other->GetArena()) {
-  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(ReplicationDataPacket* other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  ReplicationDataPacket* New(::google::protobuf::Arena* arena = nullptr) const final {
-    return CreateMaybeMessage<ReplicationDataPacket>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const ReplicationDataPacket& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom( const ReplicationDataPacket& from) {
-    ReplicationDataPacket::MergeImpl(*this, from);
-  }
-  private:
-  static void MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg);
-  public:
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  ::size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::google::protobuf::internal::ParseContext* ctx) final;
-  ::uint8_t* _InternalSerialize(
-      ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  ::google::protobuf::internal::CachedSize* AccessCachedSize() const final;
-  void SharedCtor(::google::protobuf::Arena* arena);
-  void SharedDtor();
-  void InternalSwap(ReplicationDataPacket* other);
-
-  private:
-  friend class ::google::protobuf::internal::AnyMetadata;
-  static ::absl::string_view FullMessageName() {
-    return "celte.req.ReplicationDataPacket";
-  }
-  protected:
-  explicit ReplicationDataPacket(::google::protobuf::Arena* arena);
-  ReplicationDataPacket(::google::protobuf::Arena* arena, const ReplicationDataPacket& from);
-  public:
-
-  static const ClassData _class_data_;
-  const ::google::protobuf::Message::ClassData*GetClassData() const final;
-
-  ::google::protobuf::Metadata GetMetadata() const final;
-
-  // nested types ----------------------------------------------------
-
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kDataFieldNumber = 1,
-    kActiveFieldNumber = 2,
-  };
-  // map<string, string> data = 1;
-  int data_size() const;
-  private:
-  int _internal_data_size() const;
-
-  public:
-  void clear_data() ;
-  const ::google::protobuf::Map<std::string, std::string>& data() const;
-  ::google::protobuf::Map<std::string, std::string>* mutable_data();
-
-  private:
-  const ::google::protobuf::Map<std::string, std::string>& _internal_data() const;
-  ::google::protobuf::Map<std::string, std::string>* _internal_mutable_data();
-
-  public:
-  // bool active = 2;
-  void clear_active() ;
-  bool active() const;
-  void set_active(bool value);
-
-  private:
-  bool _internal_active() const;
-  void _internal_set_active(bool value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:celte.req.ReplicationDataPacket)
- private:
-  class _Internal;
-
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<
-      0, 2, 1,
-      44, 2>
-      _table_;
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-
-        inline explicit constexpr Impl_(
-            ::google::protobuf::internal::ConstantInitialized) noexcept;
-        inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
-                              ::google::protobuf::Arena* arena);
-        inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
-                              ::google::protobuf::Arena* arena, const Impl_& from);
-    ::google::protobuf::internal::MapField<ReplicationDataPacket_DataEntry_DoNotUse, std::string, std::string,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING>
-        data_;
-    bool active_;
-    mutable ::google::protobuf::internal::CachedSize _cached_size_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_systems_5fstructs_2eproto;
 };
 
 // ===================================================================
@@ -1617,59 +1566,59 @@ inline void SpawnPositionRequest::set_allocated_payload(std::string* value) {
 
 // -------------------------------------------------------------------
 
-// -------------------------------------------------------------------
-
 // ReplicationDataPacket
 
-// map<string, string> data = 1;
-inline int ReplicationDataPacket::_internal_data_size() const {
-  return _internal_data().size();
-}
-inline int ReplicationDataPacket::data_size() const {
-  return _internal_data_size();
-}
+// string data = 1;
 inline void ReplicationDataPacket::clear_data() {
   PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-  _impl_.data_.Clear();
+  _impl_.data_.ClearToEmpty();
 }
-inline const ::google::protobuf::Map<std::string, std::string>& ReplicationDataPacket::_internal_data() const {
-  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-  return _impl_.data_.GetMap();
-}
-inline const ::google::protobuf::Map<std::string, std::string>& ReplicationDataPacket::data() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_map:celte.req.ReplicationDataPacket.data)
+inline const std::string& ReplicationDataPacket::data() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:celte.req.ReplicationDataPacket.data)
   return _internal_data();
 }
-inline ::google::protobuf::Map<std::string, std::string>* ReplicationDataPacket::_internal_mutable_data() {
-  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-  return _impl_.data_.MutableMap();
-}
-inline ::google::protobuf::Map<std::string, std::string>* ReplicationDataPacket::mutable_data() ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_mutable_map:celte.req.ReplicationDataPacket.data)
-  return _internal_mutable_data();
-}
-
-// bool active = 2;
-inline void ReplicationDataPacket::clear_active() {
-  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-  _impl_.active_ = false;
-}
-inline bool ReplicationDataPacket::active() const {
-  // @@protoc_insertion_point(field_get:celte.req.ReplicationDataPacket.active)
-  return _internal_active();
-}
-inline void ReplicationDataPacket::set_active(bool value) {
-  _internal_set_active(value);
-  // @@protoc_insertion_point(field_set:celte.req.ReplicationDataPacket.active)
-}
-inline bool ReplicationDataPacket::_internal_active() const {
-  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-  return _impl_.active_;
-}
-inline void ReplicationDataPacket::_internal_set_active(bool value) {
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ReplicationDataPacket::set_data(Arg_&& arg,
+                                                     Args_... args) {
   PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
   ;
-  _impl_.active_ = value;
+  _impl_.data_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:celte.req.ReplicationDataPacket.data)
+}
+inline std::string* ReplicationDataPacket::mutable_data() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_data();
+  // @@protoc_insertion_point(field_mutable:celte.req.ReplicationDataPacket.data)
+  return _s;
+}
+inline const std::string& ReplicationDataPacket::_internal_data() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.data_.Get();
+}
+inline void ReplicationDataPacket::_internal_set_data(const std::string& value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.data_.Set(value, GetArena());
+}
+inline std::string* ReplicationDataPacket::_internal_mutable_data() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  return _impl_.data_.Mutable( GetArena());
+}
+inline std::string* ReplicationDataPacket::release_data() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  // @@protoc_insertion_point(field_release:celte.req.ReplicationDataPacket.data)
+  return _impl_.data_.Release();
+}
+inline void ReplicationDataPacket::set_allocated_data(std::string* value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.data_.SetAllocated(value, GetArena());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+        if (_impl_.data_.IsDefault()) {
+          _impl_.data_.Set("", GetArena());
+        }
+  #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:celte.req.ReplicationDataPacket.data)
 }
 
 // -------------------------------------------------------------------

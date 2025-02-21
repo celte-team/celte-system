@@ -21,7 +21,6 @@
 #include <unordered_map>
 
 namespace celte {
-namespace runtime {
 
 class Replicator {
 public:
@@ -66,5 +65,4 @@ private:
 
   std::unordered_map<std::string, GetSet> _replicatedValues;
 };
-} // namespace runtime
 } // namespace celte

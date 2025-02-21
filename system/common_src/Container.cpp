@@ -80,18 +80,16 @@ void Container::__initStreams() {
         net::WriterStream::Options{.topic = {tp::repl(_id)}});
   } else {
 #endif
-
     _createReaderStream<req::ReplicationDataPacket>(
         {.thisPeerUuid = RUNTIME.GetUUID(),
-         .topics = {tp::peer(RUNTIME.GetUUID())},
+         .topics = {tp::repl(_id)},
          .subscriptionName = tp::peer(RUNTIME.GetUUID()),
          .exclusive = false,
          .messageHandlerSync = [this](const pulsar::Consumer,
                                       req::ReplicationDataPacket req) {},
          .messageHandler =
              [this](const pulsar::Consumer, req::ReplicationDataPacket req) {
-               std::cout << "[[Container]] handling replication data packet : "
-                         << req.DebugString() << std::endl;
+               GhostSystem::HandleReplicationPacket(req);
              }});
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -100,13 +98,11 @@ void Container::__initStreams() {
 
   _createReaderStream<req::InputUpdate>({
       .thisPeerUuid = RUNTIME.GetUUID(),
-      // @EliotJanvier ca peut pété la a cause des ids jcpysur
       .topics = {tp::input(_id)},
       .subscriptionName = tp::peer(RUNTIME.GetUUID()),
       .exclusive = false,
       .messageHandlerSync =
           [this](const pulsar::Consumer, req::InputUpdate req) {
-            // @EliotJanvier ca peut pété ici mais je suis un peu confiant
             CINPUT.HandleInput(req.uuid(), req.name(), req.pressed(), req.x(),
                                req.y());
           },

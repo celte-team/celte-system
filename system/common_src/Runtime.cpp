@@ -1,3 +1,4 @@
+#include "GhostSystem.hpp"
 #include "GrapeRegistry.hpp"
 #include "Logger.hpp"
 #include "PeerService.hpp"
@@ -59,6 +60,7 @@ void Runtime::ConnectToCluster(const std::string &address, int port) {
       }));
 #ifdef CELTE_SERVER_MODE_ENABLED
   METRICS.Start(); // metrics should have been registered by now.
+  GHOSTSYSTEM.StartReplicationUploadWorker();
 #endif
 }
 
