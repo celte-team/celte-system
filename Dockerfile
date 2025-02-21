@@ -81,7 +81,6 @@ RUN cd /workdir/celte-godot/projects/demo1 && godot . -v -e --quit-after 2 --hea
 
 ## Final runtime image
 
-# FROM alpine:latest AS runtime
 FROM fedora:41 AS runtime
 
 ENV CELTE_HOST=192.168.0.161
