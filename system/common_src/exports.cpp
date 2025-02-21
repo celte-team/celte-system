@@ -1,4 +1,5 @@
 #include "AuthorityTransfer.hpp"
+#include "CelteInputSystem.hpp"
 #include "ETTRegistry.hpp"
 #include "GrapeRegistry.hpp"
 #include "PeerService.hpp"
@@ -360,6 +361,28 @@ EXPORT void SetOnDeleteEntityHook(
     std::function<void(const std::string&, const std::string&)> f)
 {
     RUNTIME.Hooks().onDeleteEntity = f;
+}
+
+//@EliotJanvier PTET CA PETE
+EXPORT void SendInputToKafka(std::string uuid, std::string inputName, bool pressed, float x = 0, float y = 0)
+{
+    ETTREGISTRY.sendInputToKafka(uuid, inputName, pressed, x, y);
+}
+
+// EXPORT void RegisterTickCallback(std::function<void()> f)
+// {
+//     // @EliotJanvier faut ajouter une task qui va appeler cette fonction
+//     // RUNTIME.RegisterTickCallback(f);
+// }
+
+EXPORT std::optional<const celte::CelteInputSystem::INPUT> GetInputCircularBuf(std::string uuid, std::string InputName)
+{
+    return CINPUT.GetInputCircularBuf(uuid, InputName);
+}
+
+EXPORT std::string GetUUID()
+{
+    return RUNTIME.GetUUID();
 }
 
 #pragma endregion
