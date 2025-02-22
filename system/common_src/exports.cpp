@@ -347,7 +347,6 @@ EXPORT void SetOnDeleteEntityHook(
   RUNTIME.Hooks().onDeleteEntity = f;
 }
 
-//@EliotJanvier PTET CA PETE
 EXPORT void UploadInputData(std::string uuid, std::string inputName,
                             bool pressed, float x = 0, float y = 0) {
   ETTREGISTRY.UploadInputData(uuid, inputName, pressed, x, y);

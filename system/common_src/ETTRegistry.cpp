@@ -211,7 +211,6 @@ void ETTRegistry::UploadInputData(std::string uuid, std::string inputName,
   if (ownerChunk.empty()) {
     return; // can't send inputs if not owned by a chunk
   }
-  // @EliotJanvier ca peut pété la a cause du cp jcpysur
   std::string cp = tp::input(ownerChunk);
   req::InputUpdate inputUpdate;
   inputUpdate.set_name(inputName);

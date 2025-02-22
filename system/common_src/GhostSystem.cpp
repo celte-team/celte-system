@@ -76,8 +76,6 @@ void GhostSystem::UpdatePropertyState(const std::string &eid,
 void GhostSystem::ApplyUpdate(const std::string &jsonUpdate) {
   try {
     nlohmann::json update = nlohmann::json::parse(jsonUpdate);
-    // received update:
-    // {"537612df-efd6-46a5-9c9c-0ad3a0f78d67":{"pos":"\"[0.0217830277979374,0.390331417322159,0.42956155538559]\""}}
     for (auto &[eid, properties] : update.items()) {
       __withPropertyLock(eid, [&properties](Properties &props) {
         for (auto &[key, value] : properties.items()) {

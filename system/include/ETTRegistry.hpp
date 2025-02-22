@@ -17,9 +17,6 @@ public:
   using accessor = storage::accessor;
   static ETTRegistry &GetInstance();
 
-  // void RegisterOneInput(std::string uuid, std::string InputName, bool status,
-  // float x, float y);
-
   /// @brief Registers an entity in the registry.
   /// @param e The entity to register.
   void RegisterEntity(const Entity &e);
@@ -134,13 +131,10 @@ public:
   void SendEntityDeleteOrder(const std::string &id);
 #endif
 
-  /**
-   * @brief Send an input to kafka, this will trigger a RPC in the other client
-   * and server. Define in CelteInputSystem
-   *
-   * @param inputName String name/id of the input
-   * @param pressed   Bool   status of the input (true for down false for up)
-   */
+  ///@brief Send an input to kafka, this will trigger a RPC in the other client
+  /// and server. Define in CelteInputSystem
+  ///@param inputName String name/id of the input
+  ///@param pressed   Bool   status of the input (true for down false for up)
   void UploadInputData(std::string uuid, std::string inputName, bool pressed,
                        float x = 0, float y = 0);
 

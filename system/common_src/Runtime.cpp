@@ -129,10 +129,7 @@ void Runtime::CallScopedRPCAsync(const std::string &scope,
 #ifdef CELTE_SERVER_MODE_ENABLED
 
 void Runtime::MasterInstantiateServerNode(const std::string &payload) {
-  // we send the instantiate message to the master server
-  // _peerService->GetRPCService()
-  //     .CallAsync<int>(tp::rpc("master"), "__rp_instantiateNewNode", payload)
-  //     .Then([](int) { std:: });
+  throw std::runtime_error("Not implemented");
 }
 
 void Runtime::ForceDisconnectClient(const std::string &clientId,
