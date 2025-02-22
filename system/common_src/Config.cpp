@@ -12,7 +12,7 @@ Config::Config() { // Set default values
   const char *redis_key = getenv("REDIS_KEY");
   _config["redis_key"] = redis_key ? redis_key : "logs";
 
-  const char *pushgateway_host = getenv("PUSHGATEWAY_HOST");
+  const char *pushgateway_host = getenv("CELTE_HOST");
   _config["pushgateway_host"] =
       pushgateway_host ? pushgateway_host : "localhost";
 

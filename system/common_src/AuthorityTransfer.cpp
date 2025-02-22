@@ -1,6 +1,7 @@
 #include "AuthorityTransfer.hpp"
 #include "Clock.hpp"
 #include "ETTRegistry.hpp"
+#include "GhostSystem.hpp"
 #include "GrapeRegistry.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
@@ -45,11 +46,11 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
     e.quarantine = true;
     fromContainerId = e.ownerContainerId;
   });
+
+#ifdef CELTE_SERVER_MODE_ENABLED
   if (abort) {
     return;
   }
-
-#ifdef CELTE_SERVER_MODE_ENABLED
   const std::string procedureId = RUNTIME.GenUUID();
   nlohmann::json args;
   args["e"] = entityId;
@@ -59,8 +60,9 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   args["w"] =
       Clock::ToISOString(2000_ms_later); // change will take effect in 2 seconds
   args["payload"] = payload;
+  args["g"] = GHOSTSYSTEM.PeekProperties(entityId).value_or("");
 
-  std::cout << "\nAUTH TRANSFER:\n";
+  std::cout << "\nAUTHORITY TRANSFER:\n";
   std::cout << args.dump() << std::endl << std::endl;
 
   // notify the container that will take authority
@@ -91,6 +93,21 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
 #endif
 }
 
+static void applyGhostToEntity(const std::string &entityId,
+                               const std::string &ghostData) {
+  if (ghostData.empty()) {
+    return;
+  }
+  try {
+    std::cout << "auth transfer calling udpate ghost" << std::endl;
+    nlohmann::json ghost = nlohmann::json::parse(ghostData);
+    GHOSTSYSTEM.ApplyUpdate(entityId, ghost);
+  } catch (const std::exception &e) {
+    std::cerr << "Error while applying ghost to entity: " << e.what()
+              << std::endl;
+  }
+}
+
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing take order.\n" + args.dump());
@@ -101,6 +118,7 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   std::string procedureId = args["p"].get<std::string>();
   std::string when = args["w"].get<std::string>();
   std::string payload = args["payload"].get<std::string>();
+  std::string ghostData = args["g"].get<std::string>();
 
   Clock::timepoint whenTp = Clock::FromISOString(when);
 
@@ -118,8 +136,9 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
     // emplaced)
     if (!ettExists) {
       RUNTIME.TopExecutor().PushTaskToEngine(
-          [payload, entityId, toContainerId]() {
+          [payload, entityId, toContainerId, ghostData]() {
             ETTREGISTRY.EngineCallInstantiate(entityId, payload, toContainerId);
+            applyGhostToEntity(entityId, ghostData);
           });
     }
 

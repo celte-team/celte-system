@@ -73,6 +73,15 @@ void GhostSystem::UpdatePropertyState(const std::string &eid,
       });
 }
 
+void GhostSystem::ApplyUpdate(const std::string &eid, nlohmann::json &update) {
+  std::cout << "applied update at spawn: " << update.dump() << std::endl;
+  __withPropertyLock(eid, [&update](Properties &props) {
+    for (auto &[key, value] : update.items()) {
+      props.Set(key, value);
+    }
+  });
+}
+
 void GhostSystem::ApplyUpdate(const std::string &jsonUpdate) {
   try {
     nlohmann::json update = nlohmann::json::parse(jsonUpdate);
@@ -174,4 +183,18 @@ GhostSystem::PollPropertyUpdate(const std::string &eid,
     }
   });
   return value;
+}
+
+std::optional<nlohmann::json>
+GhostSystem::PeekProperties(const std::string &eid) {
+  std::optional<nlohmann::json> props = std::nullopt;
+  __withPropertyLock(eid, [&props](Properties &p) {
+    for (auto &[key, prop] : p.properties) {
+      if (not props.has_value()) {
+        props = nlohmann::json::object();
+      }
+      props.value()[key] = prop.value;
+    }
+  });
+  return props;
 }
