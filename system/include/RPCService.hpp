@@ -122,8 +122,6 @@ public:
       std::lock_guard<std::mutex> lock(rpcPromisesMutex);
       rpcPromises[req.rpc_id()] = promise;
     }
-    std::cout << "rpc service writting rpc to topic " << topic
-              << " with rpc id " << req.rpc_id() << std::endl;
     _writerStreamPool.Write(topic, req);
 
     std::string result;

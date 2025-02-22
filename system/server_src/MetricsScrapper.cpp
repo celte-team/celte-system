@@ -72,7 +72,6 @@ void MetricsScrapper::PushMetrics() {
       }
     }
   }
-  std::cout << "metrics_data: " << metrics_data << std::endl;
   curl_easy_setopt(_curl, CURLOPT_URL, _url.c_str());
   curl_easy_setopt(_curl, CURLOPT_POSTFIELDS, metrics_data.c_str());
 

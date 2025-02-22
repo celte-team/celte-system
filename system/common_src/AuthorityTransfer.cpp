@@ -60,7 +60,7 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   args["w"] =
       Clock::ToISOString(2000_ms_later); // change will take effect in 2 seconds
   args["payload"] = payload;
-  args["g"] = GHOSTSYSTEM.PeekProperties(entityId).value_or("");
+  args["g"] = GHOSTSYSTEM.PeekProperties(entityId).value_or("{}");
 
   std::cout << "\nAUTHORITY TRANSFER:\n";
   std::cout << args.dump() << std::endl << std::endl;
@@ -94,13 +94,9 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
 }
 
 static void applyGhostToEntity(const std::string &entityId,
-                               const std::string &ghostData) {
-  if (ghostData.empty()) {
-    return;
-  }
+                               nlohmann::json ghost) {
   try {
     std::cout << "auth transfer calling udpate ghost" << std::endl;
-    nlohmann::json ghost = nlohmann::json::parse(ghostData);
     GHOSTSYSTEM.ApplyUpdate(entityId, ghost);
   } catch (const std::exception &e) {
     std::cerr << "Error while applying ghost to entity: " << e.what()
@@ -111,6 +107,7 @@ static void applyGhostToEntity(const std::string &entityId,
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing take order.\n" + args.dump());
+  std::cout << "exec take" << std::endl;
 
   std::string entityId = args["e"].get<std::string>();
   std::string toContainerId = args["t"].get<std::string>();
@@ -118,7 +115,8 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   std::string procedureId = args["p"].get<std::string>();
   std::string when = args["w"].get<std::string>();
   std::string payload = args["payload"].get<std::string>();
-  std::string ghostData = args["g"].get<std::string>();
+  nlohmann::json ghostData = args["g"];
+  std::cout << "unwrapped args" << std::endl;
 
   Clock::timepoint whenTp = Clock::FromISOString(when);
 
