@@ -312,6 +312,10 @@ EXPORT void DisconnectClientFromCluster(const std::string &clientId,
   RUNTIME.ForceDisconnectClient(clientId, payload);
 }
 
+EXPORT void SetOnClientNotSeenHook(std::function<void(const std::string &)> f) {
+  RUNTIME.Hooks().onClientNotSeen = f;
+}
+
 #else // client hooks ------------------------------------------------------ */
 
 #endif // all peers hooks -------------------------------------------------- */

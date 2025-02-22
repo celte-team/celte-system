@@ -95,6 +95,13 @@ public:
     return *_client;
   }
 
+  inline std::shared_ptr<pulsar::Client> GetClientPtr() {
+    if (!_client) {
+      throw CelteNetException("Client not initialized");
+    }
+    return _client;
+  }
+
   void CreateProducer(ProducerOptions &options);
   void CreateConsumer(SubscribeOptions &options);
 
@@ -105,7 +112,7 @@ private:
   void __init(const std::string &brokers = "pulsar://localhost:6650",
               int timeoutMs = 1000);
 
-  std::unique_ptr<pulsar::Client> _client;
+  std::shared_ptr<pulsar::Client> _client;
 };
 } // namespace net
 } // namespace celte

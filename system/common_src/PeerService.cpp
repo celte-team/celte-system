@@ -116,6 +116,9 @@ void PeerService::__registerClientRPCs() {
       std::function([this](std::string containerId, std::string ownerGrapeId) {
         return __rp_subscribeClientToContainer(containerId, ownerGrapeId);
       }));
+
+  _rpcService->Register<bool>(
+      "__rp_ping", std::function([this](bool) { return __rp_ping(); }));
 }
 #endif
 
@@ -207,4 +210,6 @@ bool PeerService::__rp_subscribeClientToContainer(
   ETTREGISTRY.LoadExistingEntities(ownerGrapeId, containerId);
   return true;
 }
+
+bool PeerService::__rp_ping() { return true; }
 #endif

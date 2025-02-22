@@ -142,6 +142,39 @@ public:
     }
   }
 
+  template <typename Ret>
+  Ret Call(const std::string &topic, const std::string &name) {
+    req::RPRequest req;
+    req.set_name(name);
+    req.set_responds_to("");
+    req.set_response_topic(_options.reponseTopic);
+    req.set_rpc_id(boost::uuids::to_string(boost::uuids::random_generator()()));
+    req.set_args("");
+
+    std::shared_ptr<std::promise<std::string>> promise =
+        std::make_shared<std::promise<std::string>>();
+    {
+      std::lock_guard<std::mutex> lock(rpcPromisesMutex);
+      rpcPromises[req.rpc_id()] = promise;
+    }
+    _writerStreamPool.Write(topic, req);
+
+    std::string result;
+    auto fut = promise->get_future();
+    if (fut.wait_for(300ms) == std::future_status::timeout) {
+      throw RPCTimeoutException("Timeout waiting for rpc response", LOGGER);
+    }
+    result = fut.get();
+
+    try {
+      Ret ret = nlohmann::json::parse(result).get<Ret>();
+      return ret;
+    } catch (nlohmann::json::exception &e) {
+      std::cerr << "Error parsing json: " << e.what() << std::endl;
+      throw e; // todo custom error type
+    }
+  }
+
   template <typename... Args>
   void CallVoid(const std::string &topic, const std::string &name,
                 Args... args) {
