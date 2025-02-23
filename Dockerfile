@@ -64,6 +64,8 @@ WORKDIR /workdir
 
 # Compilation of the server
 
+RUN mkdir -p system/build
+
 RUN cd system/build && \
     cmake --preset default -DCMAKE_INSTALL_PREFIX=/workdir/celte-godot/addons/celte/deps/ ..
 
