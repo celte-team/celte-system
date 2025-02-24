@@ -55,7 +55,6 @@ void Runtime::ConnectToCluster(const std::string &address, int port) {
           _hooks.onConnectionFailed();
           return;
         }
-        std::cout << "Connected to cluster" << std::endl;
         _hooks.onConnectionSuccess();
       }));
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -93,8 +92,6 @@ void Runtime::CallScopedRPCNoRetVal(const std::string &scope,
               << std::endl;
     return;
   }
-  std::cout << "calling scoped rpc with args: " << args << std::endl;
-  std::cout << "topic : " << tp::default_scope + scope << std::endl;
   _peerService->GetRPCService().CallVoid(tp::default_scope + scope, name, args);
 }
 
@@ -143,7 +140,6 @@ void Runtime::ForceDisconnectClient(const std::string &clientId,
 #else
 
 void Runtime::Disconnect() {
-  std::cout << "CLIENT DISCONNECTING FROM SERVER" << std::endl;
   // we send the disconnect message to all grapes
   for (auto &g : GRAPES.GetGrapes()) {
     g.second.rpcService->CallVoid(

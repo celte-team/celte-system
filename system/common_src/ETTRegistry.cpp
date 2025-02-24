@@ -19,7 +19,6 @@ void ETTRegistry::RegisterEntity(const Entity &e) {
   accessor acc;
   if (_entities.insert(acc, e.id)) {
     acc->second = e;
-    std::cout << "Entity " << e.id << " registered." << std::endl;
   } else {
     throw std::runtime_error("Entity with id " + e.id + " already exists.");
   }
@@ -144,8 +143,18 @@ void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
       });
 }
 
-#ifdef CELTE_SERVER_MODE_ENABLED
+bool ETTRegistry::SaveEntityPayload(const std::string &eid,
+                                    const std::string &payload) {
+  accessor acc;
+  if (_entities.find(acc, eid)) {
+    acc->second.payload = payload;
+    return true;
+  } else {
+    return false;
+  }
+}
 
+#ifdef CELTE_SERVER_MODE_ENABLED
 std::map<std::string, std::string>
 ETTRegistry::GetExistingEntities(const std::string &containerId) {
   std::map<std::string, std::string> etts;
@@ -159,16 +168,6 @@ ETTRegistry::GetExistingEntities(const std::string &containerId) {
     }
   }
   return etts;
-}
-bool ETTRegistry::SaveEntityPayload(const std::string &eid,
-                                    const std::string &payload) {
-  accessor acc;
-  if (_entities.find(acc, eid)) {
-    acc->second.payload = payload;
-    return true;
-  } else {
-    return false;
-  }
 }
 
 std::expected<std::string, std::string>
@@ -233,4 +232,24 @@ void ETTRegistry::UploadInputData(std::string uuid, std::string inputName,
   inputUpdate.set_y(y);
 
   CINPUT.GetWriterPool().Write<req::InputUpdate>(cp, inputUpdate);
+}
+
+void ETTRegistry::DeleteEntitiesInContainer(const std::string &containerId) {
+  std::map<std::string, std::string> toDelete;
+  for (auto it = _entities.begin(); it != _entities.end(); ++it) {
+    accessor acc;
+    if (_entities.find(acc, it->first)) {
+      if (acc->second.ownerContainerId == containerId) {
+        acc->second.isValid = false;
+        acc->second.quarantine = true;
+        toDelete.insert({it->first, acc->second.payload});
+      }
+    }
+    for (auto &[id, payload] : toDelete) {
+      RUNTIME.TopExecutor().PushTaskToEngine([this, id, payload]() {
+        RUNTIME.Hooks().onDeleteEntity(id, payload);
+        ETTRegistry::UnregisterEntity(id);
+      });
+    }
+  }
 }

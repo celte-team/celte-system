@@ -69,6 +69,11 @@ EXPORT void ProcessEntityContainerAssignment(const std::string &entityId,
                                               ignoreNoMove);
 }
 
+EXPORT bool SaveEntityPayload(const std::string &eid,
+                              const std::string &payload) {
+  return ETTREGISTRY.SaveEntityPayload(eid, payload);
+}
+
 #ifdef CELTE_SERVER_MODE_ENABLED
 EXPORT void ConnectClientToThisNode(std::string clientId,
                                     std::function<void()> then) {
@@ -82,15 +87,12 @@ EXPORT void SubscribeClientToContainer(std::string clientId,
                                                       then);
 }
 
-EXPORT bool SaveEntityPayload(const std::string &eid,
-                              const std::string &payload) {
-  return ETTREGISTRY.SaveEntityPayload(eid, payload);
-}
-
-EXPORT void UpdateSubscriptionStatus(const std::string &grapeId,
+EXPORT void UpdateSubscriptionStatus(const std::string &ownerOfContainerId,
+                                     const std::string &grapeId,
                                      const std::string &containerId,
                                      bool subscribe) {
-  GRAPES.SetRemoteGrapeSubscription(grapeId, containerId, subscribe);
+  GRAPES.SetRemoteGrapeSubscription(ownerOfContainerId, grapeId, containerId,
+                                    subscribe);
 }
 
 EXPORT void ProxyTakeAuthority(const std::string &grapeId,

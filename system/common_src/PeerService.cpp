@@ -48,16 +48,13 @@ bool PeerService::__waitNetworkReady(
       return false;
     }
   }
-  std::cout << "Peer network is ready" << std::endl;
   return true;
 }
 
 void PeerService::__initPeerRPCs() {
 #ifdef CELTE_SERVER_MODE_ENABLED
-  std::cout << "[[SERVER MODE]]" << std::endl;
   __registerServerRPCs();
 #else
-  std::cout << "[[CLIENT MODE]]" << std::endl;
   __registerClientRPCs();
 #endif
 }
@@ -93,8 +90,6 @@ void PeerService::__registerServerRPCs() {
   _rpcService->Register<std::string>(
       "__rp_getPlayerSpawnPosition",
       std::function([this](std::string clientId) {
-        std::cout << "Requesting spawn position for client " << clientId
-                  << std::endl;
         return __rp_spawnPositionRequest(clientId);
       }));
 
@@ -124,7 +119,6 @@ void PeerService::__registerClientRPCs() {
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 bool PeerService::__rp_assignGrape(const std::string &grapeId) {
-  std::cout << "Assigning grape " << grapeId << std::endl;
   LOGINFO("Taking ownership of grape " + grapeId);
   RUNTIME.SetAssignedGrape(grapeId);
   RUNTIME.TopExecutor().PushTaskToEngine(
@@ -151,11 +145,9 @@ bool PeerService::__rp_acceptNewClient(const std::string &clientId) {
 void PeerService::ConnectClientToThisNode(const std::string &clientId,
                                           std::function<void()> then) {
   try {
-    std::cout << "calling rpc on topic " << tp::rpc(clientId) << std::endl;
     bool ok =
         _rpcService->Call<bool>(tp::rpc(clientId), "__rp_forceConnectToNode",
                                 RUNTIME.GetAssignedGrape());
-    std::cout << "ok: " << ok << std::endl;
     if (ok) {
       RUNTIME.TopExecutor().PushTaskToEngine(then);
     }

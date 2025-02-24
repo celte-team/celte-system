@@ -149,7 +149,8 @@ void ContainerRegistry::RunWithLock(const std::string &containerId,
   if (_containers.find(acc, containerId)) {
     f(acc->second);
   } else {
-    std::cerr << "Container not found: " << containerId << std::endl;
+    std::cerr << "Lock on container failed, container was not found: "
+              << containerId << std::endl;
   }
 }
 
@@ -180,6 +181,8 @@ void ContainerRegistry::UpdateRefCount(const std::string &containerId) {
   accessor acc;
   if (_containers.find(acc, containerId)) {
     if (acc->second.container.use_count() == 1) {
+      ETTREGISTRY.DeleteEntitiesInContainer(containerId);
+      RUNTIME.GetTrashBin().TrashItem(std::move(acc->second.GetContainerPtr()));
       _containers.erase(acc);
       LOGDEBUG("Container " + containerId +
                " is no longer referenced and has been deleted.");

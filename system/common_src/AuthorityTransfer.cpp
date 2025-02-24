@@ -62,8 +62,7 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   args["payload"] = payload;
   args["g"] = GHOSTSYSTEM.PeekProperties(entityId).value_or("{}");
 
-  std::cout << "\nAUTHORITY TRANSFER:\n";
-  std::cout << args.dump() << std::endl << std::endl;
+  LOGGER.log(celte::Logger::DEBUG, "AuthorityTransfer: \n" + args.dump());
 
   // notify the container that will take authority
   __notifyTakeAuthority(args);
@@ -79,8 +78,6 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
                                 const std::string &procedureId) {
   // if toContainerId does not exist here, schedule ett for deletion
   if (!GRAPES.ContainerExists(toContainerId)) {
-    std::cout << "toContainerId does not exist, scheduling for deletion"
-              << std::endl;
     e.isValid = false;
     e.quarantine = true;
     // TODO schedule ett for deletion
@@ -96,7 +93,6 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
 static void applyGhostToEntity(const std::string &entityId,
                                nlohmann::json ghost) {
   try {
-    std::cout << "auth transfer calling udpate ghost" << std::endl;
     GHOSTSYSTEM.ApplyUpdate(entityId, ghost);
   } catch (const std::exception &e) {
     std::cerr << "Error while applying ghost to entity: " << e.what()
@@ -107,7 +103,6 @@ static void applyGhostToEntity(const std::string &entityId,
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing take order.\n" + args.dump());
-  std::cout << "exec take" << std::endl;
 
   std::string entityId = args["e"].get<std::string>();
   std::string toContainerId = args["t"].get<std::string>();
@@ -116,7 +111,6 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   std::string when = args["w"].get<std::string>();
   std::string payload = args["payload"].get<std::string>();
   nlohmann::json ghostData = args["g"];
-  std::cout << "unwrapped args" << std::endl;
 
   Clock::timepoint whenTp = Clock::FromISOString(when);
 

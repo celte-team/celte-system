@@ -33,6 +33,11 @@ public:
   /// context of the engine.
   std::optional<std::function<void()>> PollEngineTask(const std::string &id);
 
+  /// @brief Calls the delete entity hook on all entities owned by the container
+  /// whose id is passed in argument.
+  /// @param containerId
+  void DeleteEntitiesInContainer(const std::string &containerId);
+
   inline storage &GetEntities() { return _entities; }
 
   /// @brief Instantiates an entity in the engine by calling the
@@ -112,6 +117,7 @@ public:
   /// onInstantiateEntity hook in the engine.
   void LoadExistingEntities(const std::string &grapeId,
                             const std::string &containerId);
+  bool SaveEntityPayload(const std::string &eid, const std::string &payload);
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 
@@ -120,7 +126,6 @@ public:
   /// @param containerId
   std::map<std::string, std::string>
   GetExistingEntities(const std::string &containerId);
-  bool SaveEntityPayload(const std::string &eid, const std::string &payload);
   std::expected<std::string, std::string>
   GetEntityPayload(const std::string &eid);
 

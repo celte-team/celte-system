@@ -74,7 +74,6 @@ void GhostSystem::UpdatePropertyState(const std::string &eid,
 }
 
 void GhostSystem::ApplyUpdate(const std::string &eid, nlohmann::json &update) {
-  std::cout << "applied update at spawn: " << update.dump() << std::endl;
   __withPropertyLock(eid, [&update](Properties &props) {
     for (auto &[key, value] : update.items()) {
       props.Set(key, value);
