@@ -9,8 +9,6 @@ services:
     restart: on-failure
     networks:
       - pulsar
-    volumes:
-      - ./data/zookeeper:/pulsar/data/zookeeper
     environment:
       - metadataStoreUrl=zk:zookeeper:2181
       - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
@@ -33,8 +31,10 @@ services:
     image: apachepulsar/pulsar:latest
     networks:
       - pulsar
+    environment:
+      - PULSAR_MEM=-Xms256m -Xmx256m -XX:MaxDirectMemorySize=256m
     command: >
-      bin/pulsar initialize-cluster-metadata --cluster celte-pulsar --zookeeper zookeeper:2181 --configuration-store zookeeper:2181 --web-service-url http://broker:8080 --broker-service-url pulsar://broker:6650
+      bin/pulsar initialize-cluster-metadata --cluster celte-pulsar --zookeeper zookeeper:2181 --configuration-store zookeeper:2181 --web-service-url http://broker:8080 --broker-service-url pulsar://172.31.21.110:6650
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -61,8 +61,8 @@ services:
       pulsar-init:
         condition: service_completed_successfully
     # Map the local directory to the container to avoid bookie startup failure due to insufficient container disks.
-    volumes:
-      - ./data/bookkeeper:/pulsar/data/bookkeeper
+    # volumes:
+    #   - ./data/bookkeeper:/pulsar/data/bookkeeper
     ports:
       - "3181:3181"
     command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie"
@@ -83,7 +83,14 @@ services:
       - managedLedgerDefaultWriteQuorum=1
       - managedLedgerDefaultAckQuorum=1
       - advertisedAddress=broker
-      - advertisedListeners=external:pulsar://127.0.0.1:6650
+      - advertisedListeners=external:pulsar://${DOCKER_HOST_IP}:6650
+      # - advertisedListeners=external:pulsar://3.21.114.171:6650
+
+      # delete inactive topics
+      - brokerDeleteInactiveTopicsEnabled=true
+      - PULSAR_PREFIX_brokerDeleteInactiveTopicsEnabled=true
+      - brokerProxyAllowedHostNames=*
+      - PULSAR_PREFIX_brokerProxyAllowedHostNames=*
       - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
     depends_on:
       zookeeper:
@@ -138,8 +145,8 @@ services:
       - "9090:9090"
     networks:
       - pulsar
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    # volumes:
+    #   - ./prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --web.enable-lifecycle
@@ -149,7 +156,7 @@ services:
     image: streamnative/apache-pulsar-grafana-dashboard:latest
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "3001:3001"
     networks:
       - pulsar
     environment:
