@@ -15,7 +15,7 @@ services:
       - redis
     restart: on-failure
     environment:
-    - REDIS_HOST=${REDIS_HOST}
+      - REDIS_HOST=${REDIS_HOST}
       - PULSAR_BROKERS=${PULSAR_BROKERS}
       - DOCKER_HOST_IP=${DOCKER_HOST_IP}
       - CONFIG_FILE=/config/configFile.yml
@@ -85,7 +85,6 @@ services:
 
 
   # clock:
-
   clock-server:
     build:
       context: ./clock-server
@@ -137,7 +136,7 @@ services:
       - '26379:26379'
     environment:
       - SENTINEL_NAME=mysentinel
-      - HOST_IP="${DOCKER_HOST_IP}"
+      - HOST_IP="redis_master"
 
   redisinsight:
     image: redis/redisinsight:latest
@@ -162,6 +161,7 @@ services:
     ports:
       - "5050:8081"
     user: redis
+
 # ///////////////////////////////////////
   # pulsar:
   zookeeper:
@@ -171,9 +171,6 @@ services:
     restart: on-failure
     networks:
       - pulsar
-    volumes:
-      - ./pulsar/data/zookeeper:/pulsar/data/zookeeper
-      # - zookeeper-data:/pulsar/data/zookeeper
     environment:
       - metadataStoreUrl=zk:zookeeper:2181
       - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
@@ -196,6 +193,8 @@ services:
     image: apachepulsar/pulsar:latest
     networks:
       - pulsar
+    environment:
+      - PULSAR_MEM=-Xms256m -Xmx256m -XX:MaxDirectMemorySize=256m
     command: >
       bin/pulsar initialize-cluster-metadata --cluster cluster-a --zookeeper zookeeper:2181 --configuration-store zookeeper:2181 --web-service-url http://broker:8080 --broker-service-url pulsar://broker:6650
     depends_on:
@@ -224,9 +223,8 @@ services:
       pulsar-init:
         condition: service_completed_successfully
     # Map the local directory to the container to avoid bookie startup failure due to insufficient container disks.
-    volumes:
-      - ./pulsar/data/bookkeeper:/pulsar/data/bookkeeper
-      # - bookkeeper-data:/pulsar/data/bookkeeper
+    # volumes:
+    #   - ./pulsar/data/bookkeeper:/pulsar/data/bookkeeper
     ports:
       - "3181:3181"
     command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie"
@@ -248,8 +246,12 @@ services:
       - managedLedgerDefaultAckQuorum=1
       - advertisedAddress=broker
       - advertisedListeners=external:pulsar://${DOCKER_HOST_IP}:6650
-      # - advertisedListeners=pulsar://broker:6650
+      # - advertisedListeners=external:pulsar://3.21.114.171:6650
       - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
+      - brokerDeleteInactiveTopicsEnabled=true
+      - PULSAR_PREFIX_brokerDeleteInactiveTopicsEnabled=true
+      - brokerProxyAllowedHostNames=*
+      - PULSAR_PREFIX_brokerProxyAllowedHostNames=*
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -292,8 +294,8 @@ services:
     ports:
       - "8090:8090"
     environment:
-      - DEKAF_PULSAR_BROKER_URL=pulsar://broker:6650
-      - DEKAF_PULSAR_WEB_URL=http://broker:8080
+      - DEKAF_PULSAR_BROKER_URL=pulsar://${DOCKER_HOST_IP}:6650
+      - DEKAF_PULSAR_WEB_URL=http://${DOCKER_HOST_IP}:8080
     depends_on:
       - broker
 
@@ -303,24 +305,25 @@ services:
       - "9090:9090"
     networks:
       - pulsar
-    volumes:
-      - ./pulsar/prometheus.yml:/etc/prometheus/prometheus.yml
+    # volumes:
+    #   - ./pulsar/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --web.enable-lifecycle
       - --web.enable-admin-api
 
   grafana:
-    image: grafana/grafana
+    image: streamnative/apache-pulsar-grafana-dashboard:latest
+    container_name: grafana
     ports:
-      - "3000:3000"
+      - "3001:3001"
     networks:
       - pulsar
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=eliotisthebest
-    volumes:
-      # - pulsar-data:/var/lib/grafana
-      - ./pulsar/grafana:/var/lib/grafana
+      - PULSAR_PROMETHEUS_URL=http://prometheus:9090
+      - PULSAR_CLUSTER=celte-pulsar
+    depends_on:
+      - prometheus
 
   streamvisor:
     image: ghcr.io/streamvisor/streamvisor:3.2.0
@@ -330,6 +333,15 @@ services:
     environment:
       - PULSAR_BROKER_URL=pulsar://broker:6650
 
+  pushgateway:
+    image: prom/pushgateway
+    container_name: pushgateway
+    ports:
+      - "9091:9091"
+    networks:
+      - pulsar
+    depends_on:
+      - prometheus
 
 volumes:
   pulsar-data:
