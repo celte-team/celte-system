@@ -38,6 +38,9 @@ public:
                                   const std::string &containerId,
                                   std::function<void()> then);
 
+  void UnsubscribeClientFromContainer(const std::string &clientId,
+                                      const std::string &containerId);
+
   inline ClientRegistry &GetClientRegistry() { return _clientRegistry; }
 
 #endif
@@ -78,6 +81,8 @@ private:
   /// still alive.
   /// @note the bool argument is not used, it is just a placeholder to make the
   /// rpc call.
+
+  bool __rp_unsubscribeClientFromContainer(const std::string &containerId);
   bool __rp_ping();
 #endif
   /* ------------------------------- SERVER RPC

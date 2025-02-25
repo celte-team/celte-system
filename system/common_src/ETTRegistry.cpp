@@ -236,9 +236,16 @@ void ETTRegistry::UploadInputData(std::string uuid, std::string inputName,
 
 void ETTRegistry::DeleteEntitiesInContainer(const std::string &containerId) {
   std::map<std::string, std::string> toDelete;
+  std::cout << "\033[031mDELETE\033[0m foreach in " << containerId.substr(0, 4)
+            << std::endl;
   for (auto it = _entities.begin(); it != _entities.end(); ++it) {
     accessor acc;
     if (_entities.find(acc, it->first)) {
+      std::cout << "\t["
+                << ((acc->second.ownerContainerId == containerId)
+                        ? "\033[31mx\033[0m"
+                        : "\033[032mV\033[0m")
+                << "] " << it->first.substr(0, 4) << std::endl;
       if (acc->second.ownerContainerId == containerId) {
         acc->second.isValid = false;
         acc->second.quarantine = true;

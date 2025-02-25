@@ -87,6 +87,12 @@ EXPORT void SubscribeClientToContainer(std::string clientId,
                                                       then);
 }
 
+EXPORT void UnsubscribeClientFromContainer(std::string clientId,
+                                           std::string containerId) {
+  RUNTIME.GetPeerService().UnsubscribeClientFromContainer(clientId,
+                                                          containerId);
+}
+
 EXPORT void UpdateSubscriptionStatus(const std::string &ownerOfContainerId,
                                      const std::string &grapeId,
                                      const std::string &containerId,
@@ -143,6 +149,10 @@ EXPORT std::optional<void *> GetETTNativeHandle(const std::string &id) {
 
 EXPORT void ForgetEntityNativeHandle(const std::string &id) {
   ETTREGISTRY.ForgetEntityNativeHandle(id);
+}
+
+EXPORT std::string GetETTOwnerContainerId(const std::string &id) {
+  return ETTREGISTRY.GetEntityOwnerContainer(id);
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED

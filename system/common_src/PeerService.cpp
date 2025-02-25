@@ -113,6 +113,11 @@ void PeerService::__registerClientRPCs() {
       }));
 
   _rpcService->Register<bool>(
+      "__rp_unsubscribeClient", std::function([this](std::string containerId) {
+        return __rp_unsubscribeClientFromContainer(containerId);
+      }));
+
+  _rpcService->Register<bool>(
       "__rp_ping", std::function([this](bool) { return __rp_ping(); }));
 }
 #endif
@@ -175,6 +180,9 @@ void PeerService::SubscribeClientToContainer(const std::string &clientId,
           if (c.isSubscribedToContainer(containerId)) {
             return;
           }
+          std::cout << "client " << clientId.substr(0, 7)
+                    << "\033[032m <- \033[0m" << containerId.substr(0, 4)
+                    << std::endl;
           c.remoteClientSubscriptions.insert(containerId);
 
           RUNTIME.ScheduleAsyncIOTask([this, clientId, containerId]() {
@@ -183,6 +191,36 @@ void PeerService::SubscribeClientToContainer(const std::string &clientId,
             _rpcService->CallVoid(tp::rpc(clientId),
                                   "__rp_subscribeClientToContainer",
                                   containerId, RUNTIME.GetAssignedGrape());
+          });
+        });
+  });
+}
+
+void PeerService::UnsubscribeClientFromContainer(
+    const std::string &clientId, const std::string &containerId) {
+  GRAPES.RunWithLock(RUNTIME.GetAssignedGrape(), [this, clientId,
+                                                  containerId](Grape &g) {
+    if (not ContainerRegistry::GetInstance().ContainerIsLocallyOwned(
+            containerId)) {
+      LOGERROR("Error: container " + containerId +
+               " is not locally owned, could not unsubscribe client from it.");
+      return;
+    }
+    RUNTIME.GetPeerService().GetClientRegistry().RunWithLock(
+        clientId, [&](ClientData &c) {
+          if (not c.isSubscribedToContainer(containerId)) {
+            return;
+          }
+          std::cout << "client " << clientId.substr(0, 7)
+                    << "\033[031m x- \033[0m" << containerId.substr(0, 4)
+                    << std::endl;
+          c.remoteClientSubscriptions.erase(containerId);
+
+          RUNTIME.ScheduleAsyncIOTask([this, clientId, containerId]() {
+            LOGINFO("Unsubscribing client " + clientId + " from container " +
+                    containerId);
+            _rpcService->CallVoid(tp::rpc(clientId), "__rp_unsubscribeClient",
+                                  containerId);
           });
         });
   });
@@ -198,8 +236,18 @@ bool PeerService::__rp_forceConnectToNode(const std::string &grapeId) {
 
 bool PeerService::__rp_subscribeClientToContainer(
     const std::string &containerId, const std::string &ownerGrapeId) {
+  std::cout << "self(" + RUNTIME.GetUUID().substr(0, 7) + ")\033[32m -> \033[0m"
+            << containerId.substr(0, 4) << std::endl;
   _containerSubscriptionComponent.Subscribe(containerId, []() {}, false);
   ETTREGISTRY.LoadExistingEntities(ownerGrapeId, containerId);
+  return true;
+}
+
+bool PeerService::__rp_unsubscribeClientFromContainer(
+    const std::string &containerId) {
+  std::cout << "self(" + RUNTIME.GetUUID().substr(0, 7) + ")\033[31m -x \033[0m"
+            << containerId.substr(0, 4) << std::endl;
+  _containerSubscriptionComponent.Unsubscribe(containerId);
   return true;
 }
 

@@ -29,6 +29,14 @@ static void __notifyDrop(nlohmann::json args) {
 }
 #endif
 
+static void prettyPrintAuthTransfer(nlohmann::json args) {
+  std::cout << "\n\033[1;32m[AT]:\033[0m entity ";
+  std::cout << args["e"].get<std::string>().substr(0, 4) << " ("
+            << args["f"].get<std::string>().substr(0, 4) << " -> "
+            << args["t"].get<std::string>().substr(0, 4) << ")" << std::endl;
+  std::cout << std::endl;
+}
+
 void AuthorityTransfer::TransferAuthority(const std::string &entityId,
                                           const std::string &toContainerId,
                                           const std::string &payload,
@@ -63,6 +71,7 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   args["g"] = GHOSTSYSTEM.PeekProperties(entityId).value_or("{}");
 
   LOGGER.log(celte::Logger::DEBUG, "AuthorityTransfer: \n" + args.dump());
+  prettyPrintAuthTransfer(args);
 
   // notify the container that will take authority
   __notifyTakeAuthority(args);
@@ -170,6 +179,11 @@ void AuthorityTransfer::ProxyTakeAuthority(const std::string &grapeId,
                                            const std::string &entityId,
                                            const std::string &fromContainerId,
                                            const std::string &payload) {
+  std::cout << "args for proxy take: \n";
+  std::cout << "\t- grapeId: " << grapeId.substr(0, 7) << std::endl;
+  std::cout << "\t- entityId: " << entityId.substr(0, 4) << std::endl;
+  std::cout << "\t- fromContainerId: " << fromContainerId.substr(0, 4)
+            << std::endl;
   RUNTIME.GetPeerService().GetRPCService().CallVoid(
       tp::peer(grapeId), "__rp_proxyTakeAuthority", entityId, fromContainerId,
       payload);
