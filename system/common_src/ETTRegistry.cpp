@@ -8,7 +8,7 @@
 
 using namespace celte;
 
-Entity::~Entity() { GhostSystem::TryRemoveEntity(id); }
+Entity::~Entity() {}
 
 ETTRegistry &ETTRegistry::GetInstance() {
   static ETTRegistry instance;
@@ -32,6 +32,7 @@ void ETTRegistry::UnregisterEntity(const std::string &id) {
           "Cannot unregister a valid entity as it is still in use.");
     }
     _entities.erase(acc);
+    GhostSystem::TryRemoveEntity(id);
   }
 }
 
@@ -129,7 +130,7 @@ void ETTRegistry::EngineCallInstantiate(const std::string &id,
 
 void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
                                        const std::string &containerId) {
-  std::cout << "\033[031mLOAD\033[0m foreach in " << containerId.substr(0, 4)
+  std::cout << "\033[032mLOAD\033[0m foreach in " << containerId.substr(0, 4)
             << std::endl;
   RUNTIME.GetPeerService()
       .GetRPCService()

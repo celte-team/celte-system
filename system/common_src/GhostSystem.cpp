@@ -10,10 +10,10 @@ using namespace celte;
 
 bool GhostSystem::Properties::Set(const std::string &key,
                                   const std::string &value) {
-  auto &prop = properties[key]; // created if it doesn't exist
-  if (prop.value != value) {
-    prop.value = value;
-    prop.lastChange = CLOCK.GetUnifiedTime();
+  auto it = properties.find(key);
+  if (it == properties.end() or it->second.value != value) {
+    properties[key].value = value;
+    properties[key].synced = false;
     return true;
   }
   return false;
@@ -22,7 +22,10 @@ bool GhostSystem::Properties::Set(const std::string &key,
 std::optional<std::string>
 GhostSystem::Properties::Get(const std::string &key) {
   auto it = properties.find(key);
-  if (it != properties.end() && it->second.lastSync < it->second.lastChange) {
+  if (it == properties.end()) {
+    return std::nullopt;
+  }
+  if (it != properties.end() && !it->second.synced) {
     return it->second.value;
   }
   return std::nullopt;
@@ -31,7 +34,7 @@ GhostSystem::Properties::Get(const std::string &key) {
 void GhostSystem::Properties::AcknowledgeSync(const std::string &key) {
   auto it = properties.find(key);
   if (it != properties.end()) {
-    it->second.lastSync = it->second.lastChange;
+    it->second.synced = true;
   }
 }
 
@@ -177,7 +180,7 @@ std::optional<std::string>
 GhostSystem::PollPropertyUpdate(const std::string &eid,
                                 const std::string &key) {
   std::optional<std::string> value;
-  __withPropertyLock(eid, [&value, key](Properties &props) {
+  __withPropertyLock(eid, [&value, key, eid](Properties &props) {
     value = props.Get(key);
     if (value.has_value()) {
       props.AcknowledgeSync(key);
@@ -197,9 +200,5 @@ GhostSystem::PeekProperties(const std::string &eid) {
       props.value()[key] = prop.value;
     }
   });
-  if (props.has_value()) {
-    std::cout << "peek properties returns json: \n"
-              << props.value() << std::endl;
-  }
   return props;
 }
