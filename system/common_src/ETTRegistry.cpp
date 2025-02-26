@@ -129,6 +129,8 @@ void ETTRegistry::EngineCallInstantiate(const std::string &id,
 
 void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
                                        const std::string &containerId) {
+  std::cout << "\033[031mLOAD\033[0m foreach in " << containerId.substr(0, 4)
+            << std::endl;
   RUNTIME.GetPeerService()
       .GetRPCService()
       .CallAsync<std::map<std::string, std::string>>(

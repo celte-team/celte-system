@@ -74,8 +74,10 @@ void GhostSystem::UpdatePropertyState(const std::string &eid,
 }
 
 void GhostSystem::ApplyUpdate(const std::string &eid, nlohmann::json &update) {
-  __withPropertyLock(eid, [&update](Properties &props) {
+  __withPropertyLock(eid, [&update, eid](Properties &props) {
     for (auto &[key, value] : update.items()) {
+      std::cout << "(" << eid.substr(0, 4) << ") " << key << " <= " << value
+                << std::endl;
       props.Set(key, value);
     }
   });
@@ -195,5 +197,9 @@ GhostSystem::PeekProperties(const std::string &eid) {
       props.value()[key] = prop.value;
     }
   });
+  if (props.has_value()) {
+    std::cout << "peek properties returns json: \n"
+              << props.value() << std::endl;
+  }
   return props;
 }
