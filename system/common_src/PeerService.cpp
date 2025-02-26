@@ -116,6 +116,9 @@ void PeerService::__registerClientRPCs() {
       std::function([this](std::string containerId, std::string ownerGrapeId) {
         return __rp_subscribeClientToContainer(containerId, ownerGrapeId);
       }));
+
+  _rpcService->Register<bool>(
+      "__rp_ping", std::function([this](bool) { return __rp_ping(); }));
 }
 #endif
 
@@ -132,10 +135,7 @@ bool PeerService::__rp_assignGrape(const std::string &grapeId) {
 std::string
 PeerService::__rp_spawnPositionRequest(const std::string &clientId) {
   std::string grapeId = RUNTIME.Hooks().onGetClientInitialGrape(clientId);
-  std::cout << "Requesting spawn position for client " << clientId
-            << " in grape " << grapeId << std::endl;
   nlohmann::json j = {{"grapeId", grapeId}, {"clientId", clientId}};
-  std::cout << "returning " << j.dump() << std::endl;
   return j.dump();
 }
 
@@ -210,4 +210,6 @@ bool PeerService::__rp_subscribeClientToContainer(
   ETTREGISTRY.LoadExistingEntities(ownerGrapeId, containerId);
   return true;
 }
+
+bool PeerService::__rp_ping() { return true; }
 #endif

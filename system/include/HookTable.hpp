@@ -28,6 +28,9 @@ struct HookTable {
   std::function<void(const std::string &)> onClientRequestDisconnect =
       UNIMPLEMENTED<void, const std::string &>;
 
+  std::function<void(const std::string &)> onClientNotSeen =
+      UNIMPLEMENTED<void, const std::string &>;
+
 #else  // client only hooks
 #endif // all peers hooks
 

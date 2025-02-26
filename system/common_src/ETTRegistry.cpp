@@ -1,10 +1,14 @@
+#include "CelteInputSystem.hpp"
 #include "Container.hpp"
 #include "ETTRegistry.hpp"
+#include "GhostSystem.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
 
 using namespace celte;
+
+Entity::~Entity() { GhostSystem::TryRemoveEntity(id); }
 
 ETTRegistry &ETTRegistry::GetInstance() {
   static ETTRegistry instance;
@@ -125,8 +129,17 @@ void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
           tp::peer(grapeId), "__rp_getExistingEntities", containerId)
       .Then([this,
              containerId](const std::map<std::string, std::string> &entities) {
-        for (auto &[id, payload] : entities) {
-          ETTRegistry::EngineCallInstantiate(id, payload, containerId);
+        for (auto &[id, data] : entities) {
+          try {
+            auto j = nlohmann::json::parse(data);
+            std::string payload = j["payload"];
+            nlohmann::json ghost = j["ghost"];
+            ETTRegistry::EngineCallInstantiate(id, payload, containerId);
+            GHOSTSYSTEM.ApplyUpdate(id, ghost);
+          } catch (const std::exception &e) {
+            std::cerr << "Error while loading entity " << id << ": " << e.what()
+                      << std::endl;
+          }
         }
       });
 }
@@ -138,7 +151,11 @@ ETTRegistry::GetExistingEntities(const std::string &containerId) {
   std::map<std::string, std::string> etts;
   for (auto &[id, e] : _entities) {
     if (e.ownerContainerId == containerId) {
-      etts.insert({id, GetEntityPayload(id).value_or("{}")});
+      nlohmann::json j;
+      j["payload"] = GetEntityPayload(id).value_or("{}");
+      j["ghost"] =
+          GHOSTSYSTEM.PeekProperties(id).value_or(nlohmann::json::object());
+      etts.insert({id, j.dump()});
     }
   }
   return etts;
@@ -200,3 +217,20 @@ void ETTRegistry::SendEntityDeleteOrder(const std::string &id) {
   });
 }
 #endif
+
+void ETTRegistry::UploadInputData(std::string uuid, std::string inputName,
+                                  bool pressed, float x, float y) {
+  std::string ownerChunk = GetEntityOwnerContainer(uuid);
+  if (ownerChunk.empty()) {
+    return; // can't send inputs if not owned by a chunk
+  }
+  std::string cp = tp::input(ownerChunk);
+  req::InputUpdate inputUpdate;
+  inputUpdate.set_name(inputName);
+  inputUpdate.set_pressed(pressed);
+  inputUpdate.set_uuid(uuid);
+  inputUpdate.set_x(x);
+  inputUpdate.set_y(y);
+
+  CINPUT.GetWriterPool().Write<req::InputUpdate>(cp, inputUpdate);
+}

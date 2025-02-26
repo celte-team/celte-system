@@ -1,9 +1,14 @@
 #include "AuthorityTransfer.hpp"
+#include "CelteInputSystem.hpp"
 #include "ETTRegistry.hpp"
+#include "GhostSystem.hpp"
 #include "GrapeRegistry.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
+#ifdef CELTE_SERVER_MODE_ENABLED
+#include "MetricsScrapper.hpp"
+#endif
 
 #ifdef __WIN32
 #define EXPORT __declspec(dllexport)
@@ -142,7 +147,32 @@ EXPORT void ForgetEntityNativeHandle(const std::string &id) {
 EXPORT void SendEntityDeleteOrder(const std::string &id) {
   ETTREGISTRY.SendEntityDeleteOrder(id);
 }
+
+EXPORT void RegisterMetric(const std::string &name,
+                           std::function<std::string()> getter) {
+  celte::METRICS.RegisterMetric(name, getter);
+}
+
+EXPORT void MasterInstantiateServerNode(const std::string &payload) {
+  RUNTIME.MasterInstantiateServerNode(payload);
+}
 #endif
+
+EXPORT bool IsEntityLocallyOwned(const std::string &entityId) {
+  return ETTREGISTRY.IsEntityLocallyOwned(entityId);
+}
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+EXPORT void UpdatePropertyState(const std::string &eid, const std::string &key,
+                                const std::string &value) {
+  GHOSTSYSTEM.UpdatePropertyState(eid, key, value);
+}
+#endif
+
+EXPORT std::optional<std::string> PollPropertyUpdate(const std::string &eid,
+                                                     const std::string &key) {
+  return GHOSTSYSTEM.PollPropertyUpdate(eid, key);
+}
 
 #pragma endregion
 /* ----------------------------- TASK MANAGEMENT ---------------------------- */
@@ -282,6 +312,10 @@ EXPORT void DisconnectClientFromCluster(const std::string &clientId,
   RUNTIME.ForceDisconnectClient(clientId, payload);
 }
 
+EXPORT void SetOnClientNotSeenHook(std::function<void(const std::string &)> f) {
+  RUNTIME.Hooks().onClientNotSeen = f;
+}
+
 #else // client hooks ------------------------------------------------------ */
 
 #endif // all peers hooks -------------------------------------------------- */
@@ -316,6 +350,18 @@ EXPORT void SetOnDeleteEntityHook(
     std::function<void(const std::string &, const std::string &)> f) {
   RUNTIME.Hooks().onDeleteEntity = f;
 }
+
+EXPORT void UploadInputData(std::string uuid, std::string inputName,
+                            bool pressed, float x = 0, float y = 0) {
+  ETTREGISTRY.UploadInputData(uuid, inputName, pressed, x, y);
+}
+
+EXPORT std::optional<const celte::CelteInputSystem::INPUT>
+GetInputCircularBuf(std::string uuid, std::string InputName) {
+  return CINPUT.GetInputCircularBuf(uuid, InputName);
+}
+
+EXPORT std::string GetUUID() { return RUNTIME.GetUUID(); }
 
 #pragma endregion
 }

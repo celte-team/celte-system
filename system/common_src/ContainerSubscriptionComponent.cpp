@@ -7,6 +7,7 @@ ContainerSubscriptionComponent::Subscribe(const std::string &containerId,
                                           std::function<void()> onReady,
                                           bool isLocallyOwned) {
   LOGINFO("Subscribing to container " + containerId);
+  std::cout << "SUBSCRIBING TO CONTAINER " << containerId << std::endl;
   if (_subscriptions.find(containerId) != _subscriptions.end()) {
     onReady();
     return std::nullopt;

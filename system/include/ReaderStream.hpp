@@ -28,6 +28,7 @@ struct ReaderStream {
     std::function<void()> onConnectError = nullptr;
   };
 
+  ReaderStream() { _clientRef = CelteNet::Instance().GetClientPtr(); }
   ~ReaderStream() { _consumer.close(); }
 
   template <typename Req> void Open(Options<Req> &options) {
@@ -107,6 +108,9 @@ struct ReaderStream {
   bool Ready() { return _ready; }
 
 protected:
+  std::shared_ptr<pulsar::Client>
+      _clientRef; ///< used for RAII, keeps the client alive until the stream is
+                  ///< closed
   pulsar::Consumer _consumer;
   std::atomic_bool _ready = false;
 };

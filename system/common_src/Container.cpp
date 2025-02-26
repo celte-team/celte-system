@@ -1,5 +1,13 @@
+/*
+** EPITECH PROJECT, 2025
+** celte-system
+** File description:
+** Container
+*/
+
 #include "AuthorityTransfer.hpp"
 #include "CelteError.hpp"
+#include "CelteInputSystem.hpp"
 #include "Container.hpp"
 #include "GrapeRegistry.hpp"
 #include "Logger.hpp"
@@ -72,23 +80,33 @@ void Container::__initStreams() {
         net::WriterStream::Options{.topic = {tp::repl(_id)}});
   } else {
 #endif
-
     _createReaderStream<req::ReplicationDataPacket>(
         {.thisPeerUuid = RUNTIME.GetUUID(),
-         .topics = {tp::peer(RUNTIME.GetUUID())},
+         .topics = {tp::repl(_id)},
          .subscriptionName = tp::peer(RUNTIME.GetUUID()),
          .exclusive = false,
          .messageHandlerSync = [this](const pulsar::Consumer,
                                       req::ReplicationDataPacket req) {},
          .messageHandler =
              [this](const pulsar::Consumer, req::ReplicationDataPacket req) {
-               std::cout << "[[Container]] handling replication data packet : "
-                         << req.DebugString() << std::endl;
+               GhostSystem::HandleReplicationPacket(req);
              }});
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   }
 #endif
+
+  _createReaderStream<req::InputUpdate>({
+      .thisPeerUuid = RUNTIME.GetUUID(),
+      .topics = {tp::input(_id)},
+      .subscriptionName = tp::peer(RUNTIME.GetUUID()),
+      .exclusive = false,
+      .messageHandlerSync =
+          [this](const pulsar::Consumer, req::InputUpdate req) {
+            CINPUT.HandleInput(req.uuid(), req.name(), req.pressed(), req.x(),
+                               req.y());
+          },
+  });
 }
 
 void Container::__rp_containerTakeAuthority(const std::string &args) {

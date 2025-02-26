@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Entity.hpp"
 #include <expected>
 #include <map>
@@ -129,6 +130,13 @@ public:
   /// @param id
   void SendEntityDeleteOrder(const std::string &id);
 #endif
+
+  ///@brief Send an input to kafka, this will trigger a RPC in the other client
+  /// and server. Define in CelteInputSystem
+  ///@param inputName String name/id of the input
+  ///@param pressed   Bool   status of the input (true for down false for up)
+  void UploadInputData(std::string uuid, std::string inputName, bool pressed,
+                       float x = 0, float y = 0);
 
   /// @brief  Returns true if the entity is registered in the registry.
   /// @param id

@@ -61,7 +61,10 @@ set(PROTO_SRCS
 )
 
 file(GLOB_RECURSE SOURCES "common_src/*.cpp")
-include_directories("${CMAKE_SOURCE_DIR}/include/" "${CMAKE_SOURCE_DIR}/protogen")
+include_directories(
+    "${CMAKE_SOURCE_DIR}/include/"
+    "${CMAKE_SOURCE_DIR}/protogen"
+)
 
 file(GLOB_RECURSE CLIENT_SRC "${CMAKE_SOURCE_DIR}/client_src/*.cpp")
 file(GLOB_RECURSE SERVER_SRC "${CMAKE_SOURCE_DIR}/server_src/*.cpp")

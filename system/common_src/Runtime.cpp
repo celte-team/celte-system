@@ -1,3 +1,4 @@
+#include "GhostSystem.hpp"
 #include "GrapeRegistry.hpp"
 #include "Logger.hpp"
 #include "PeerService.hpp"
@@ -8,6 +9,9 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <functional>
 #include <iostream>
+#ifdef CELTE_SERVER_MODE_ENABLED
+#include "MetricsScrapper.hpp"
+#endif
 
 using namespace celte;
 
@@ -54,6 +58,10 @@ void Runtime::ConnectToCluster(const std::string &address, int port) {
         std::cout << "Connected to cluster" << std::endl;
         _hooks.onConnectionSuccess();
       }));
+#ifdef CELTE_SERVER_MODE_ENABLED
+  METRICS.Start(); // metrics should have been registered by now.
+  GHOSTSYSTEM.StartReplicationUploadWorker();
+#endif
 }
 
 void Runtime::Tick() { __advanceSyncTasks(); }
@@ -85,7 +93,9 @@ void Runtime::CallScopedRPCNoRetVal(const std::string &scope,
               << std::endl;
     return;
   }
-  _peerService->GetRPCService().CallVoid(scope, name, args);
+  std::cout << "calling scoped rpc with args: " << args << std::endl;
+  std::cout << "topic : " << tp::default_scope + scope << std::endl;
+  _peerService->GetRPCService().CallVoid(tp::default_scope + scope, name, args);
 }
 
 std::string Runtime::CallScopedRPC(const std::string &scope,
@@ -97,7 +107,8 @@ std::string Runtime::CallScopedRPC(const std::string &scope,
               << std::endl;
     return "";
   }
-  return _peerService->GetRPCService().Call<std::string>(scope, name, args);
+  return _peerService->GetRPCService().Call<std::string>(
+      tp::default_scope + scope, name, args);
 }
 
 void Runtime::CallScopedRPCAsync(const std::string &scope,
@@ -111,11 +122,15 @@ void Runtime::CallScopedRPCAsync(const std::string &scope,
     return;
   }
   _peerService->GetRPCService()
-      .CallAsync<std::string>(scope, name, args)
+      .CallAsync<std::string>(tp::default_scope + scope, name, args)
       .Then(callback);
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
+
+void Runtime::MasterInstantiateServerNode(const std::string &payload) {
+  throw std::runtime_error("Not implemented");
+}
 
 void Runtime::ForceDisconnectClient(const std::string &clientId,
                                     const std::string &payload) {
