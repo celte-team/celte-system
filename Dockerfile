@@ -15,7 +15,14 @@ RUN dnf update -y && \
     cmake \
     ninja-build \
     curl \
-    unzip
+    unzip \
+    plocate
+
+RUN dnf install -y \
+    fontconfig \
+    boost-system \
+    fontconfig-devel\
+    boost-devel
 
 RUN dnf install -y \
     zip \
@@ -48,6 +55,11 @@ RUN dnf install -y \
     ansible \
     wget \
     godot
+
+RUN sudo updatedb
+
+RUN sudo ldconfig
+
 
 RUN git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT && \
     cd $VCPKG_ROOT && \
@@ -89,7 +101,11 @@ ENV CELTE_HOST=192.168.0.161
 ENV PUSHGATEWAY_HOST=192.168.0.161
 ENV CELTE_MODE=server
 
-RUN dnf install wget unzip -y
+# Install necessary dependencies for the runtime
+RUN dnf install -y \
+    fontconfig \
+    wget \
+    unzip
 
 # Detect architecture and set Godot URL accordingly
 RUN ARCH=$(uname -m) && \
