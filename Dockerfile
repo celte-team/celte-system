@@ -51,7 +51,6 @@ RUN dnf install -y \
     automake \
     autoconf-archive \
     snapd \
-    boost-devel \
     ansible \
     wget \
     godot
@@ -105,7 +104,9 @@ ENV CELTE_MODE=server
 RUN dnf install -y \
     fontconfig \
     wget \
-    unzip
+    unzip \
+    boost-system \
+    boost-devel
 
 # Detect architecture and set Godot URL accordingly
 RUN ARCH=$(uname -m) && \
@@ -121,7 +122,6 @@ RUN ARCH=$(uname -m) && \
     mv /usr/local/bin/Godot_v4.2.2-stable_linux.* /usr/local/bin/godot && \
     chmod +x /usr/local/bin/godot && \
     rm -f /tmp/godot.zip
-
 
 COPY --from=builder /workdir/celte-godot /workdir/celte-godot
 
