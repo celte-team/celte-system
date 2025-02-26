@@ -111,4 +111,4 @@ COPY --from=builder /workdir/celte-godot /workdir/celte-godot
 
 WORKDIR /workdir/celte-godot/projects/demo1
 
-CMD godot . --headless
+CMD export CELTE_MODE=server && godot . --headless
