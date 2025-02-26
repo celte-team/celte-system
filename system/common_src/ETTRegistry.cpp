@@ -20,7 +20,7 @@ void ETTRegistry::RegisterEntity(const Entity &e) {
   if (_entities.insert(acc, e.id)) {
     acc->second = e;
   } else {
-    throw std::runtime_error("Entity with id " + e.id + " already exists.");
+    throw ETTAlreadyRegisteredException(e.id);
   }
 }
 
@@ -112,10 +112,17 @@ void ETTRegistry::Clear() { _entities.clear(); }
 void ETTRegistry::EngineCallInstantiate(const std::string &id,
                                         const std::string &payload,
                                         const std::string &ownerContainerId) {
-  ETTRegistry::RegisterEntity({
-      .id = id,
-      .ownerContainerId = ownerContainerId,
-  });
+  try {
+    RegisterEntity({
+        .id = id,
+        .ownerContainerId = ownerContainerId,
+    });
+  } catch (const ETTAlreadyRegisteredException &e) {
+    RunWithLock(id, [ownerContainerId](Entity &e) {
+      e.ownerContainerId = ownerContainerId;
+    });
+    return;
+  }
   RUNTIME.Hooks().onInstantiateEntity(id, payload);
   LOGGER.log(Logger::LogLevel::DEBUG, "Entity " + id + " instantiated.");
 }
@@ -133,8 +140,8 @@ void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
             auto j = nlohmann::json::parse(data);
             std::string payload = j["payload"];
             nlohmann::json ghost = j["ghost"];
-            ETTRegistry::EngineCallInstantiate(id, payload, containerId);
             GHOSTSYSTEM.ApplyUpdate(id, ghost);
+            EngineCallInstantiate(id, payload, containerId);
           } catch (const std::exception &e) {
             std::cerr << "Error while loading entity " << id << ": " << e.what()
                       << std::endl;

@@ -89,7 +89,6 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
   if (!GRAPES.ContainerExists(toContainerId)) {
     e.isValid = false;
     e.quarantine = true;
-    // TODO schedule ett for deletion
   }
 #ifdef CELTE_SERVER_MODE_ENABLED
   if (fromContainerId != toContainerId) {
@@ -112,7 +111,6 @@ static void applyGhostToEntity(const std::string &entityId,
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing take order.\n" + args.dump());
-
   std::string entityId = args["e"].get<std::string>();
   std::string toContainerId = args["t"].get<std::string>();
   std::string fromContainerId = args["f"].get<std::string>();
@@ -124,18 +122,20 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   Clock::timepoint whenTp = Clock::FromISOString(when);
 
   CLOCK.ScheduleAt(whenTp, [=]() {
-    bool ettExists = false;
+    // std::cout << "is ett registered? "
+    //           << ETTREGISTRY.IsEntityRegistered(entityId) << std::endl;
 
     // if ett exists, transfer auth
     ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
-      ettExists = true;
+      // ettExists = true;
       e.ownerContainerId = toContainerId;
       e.quarantine = false;
     });
 
     // if ett does not exist, schedule it for creation (container will be
     // emplaced)
-    if (!ettExists) {
+    // if (!ettExists) {
+    if (!ETTREGISTRY.IsEntityRegistered(entityId)) {
       RUNTIME.TopExecutor().PushTaskToEngine(
           [payload, entityId, toContainerId, ghostData]() {
             ETTREGISTRY.EngineCallInstantiate(entityId, payload, toContainerId);
@@ -179,11 +179,6 @@ void AuthorityTransfer::ProxyTakeAuthority(const std::string &grapeId,
                                            const std::string &entityId,
                                            const std::string &fromContainerId,
                                            const std::string &payload) {
-  std::cout << "args for proxy take: \n";
-  std::cout << "\t- grapeId: " << grapeId.substr(0, 7) << std::endl;
-  std::cout << "\t- entityId: " << entityId.substr(0, 4) << std::endl;
-  std::cout << "\t- fromContainerId: " << fromContainerId.substr(0, 4)
-            << std::endl;
   RUNTIME.GetPeerService().GetRPCService().CallVoid(
       tp::peer(grapeId), "__rp_proxyTakeAuthority", entityId, fromContainerId,
       payload);

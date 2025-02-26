@@ -1,7 +1,8 @@
 #pragma once
-
 #include "Entity.hpp"
+#include <exception>
 #include <expected>
+#include <iostream>
 #include <map>
 #include <optional>
 #include <string>
@@ -10,6 +11,18 @@
 #define ETTREGISTRY celte::ETTRegistry::GetInstance()
 
 namespace celte {
+
+class ETTAlreadyRegisteredException : public std::exception {
+public:
+  ETTAlreadyRegisteredException(const std::string &id)
+      : _id(id), _msg("Entity with id " + id + " already exists.") {}
+
+  const char *what() const noexcept override { return _msg.c_str(); }
+
+private:
+  std::string _id;
+  std::string _msg;
+};
 
 class ETTRegistry {
 public:
@@ -49,8 +62,7 @@ public:
   /// @brief Runs a function with a lock on the entity.
   /// @param id
   /// @param f
-  inline void RunWithLock(const std::string &id,
-                          std::function<void(Entity &)> f) {
+  void RunWithLock(const std::string &id, std::function<void(Entity &)> f) {
     accessor acc;
     if (_entities.find(acc, id)) {
       f(acc->second);
@@ -146,7 +158,7 @@ public:
   /// @brief  Returns true if the entity is registered in the registry.
   /// @param id
   /// @return true if the entity is registered, false otherwise.
-  inline bool IsEntityRegistered(const std::string &id) {
+  bool IsEntityRegistered(const std::string &id) {
     accessor acc;
     return _entities.find(acc, id);
   }
