@@ -37,11 +37,11 @@ void Runtime::ConnectToCluster() {
   const char *host = std::getenv("CELTE_HOST");
   const char *port = std::getenv("CELTE_PORT");
   std::string address = host ? host : "localhost";
-  if (port) {
-    ConnectToCluster(address, std::stoi(port));
-  } else {
-    ConnectToCluster(address, 6650);
-  }
+  int iport = port ? std::stoi(port) : 6650;
+
+  std::cout << "Connecting to pulsar cluster at " << address << ":" << iport
+            << std::endl;
+  ConnectToCluster(address, iport);
 }
 
 void Runtime::ConnectToCluster(const std::string &address, int port) {

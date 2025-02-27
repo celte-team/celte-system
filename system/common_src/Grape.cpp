@@ -76,6 +76,9 @@ void Grape::initRPCService() {
                                    return true;
                                  }));
     }
+
+    rpcService->Register<bool>("__rp_ping",
+                               std::function([this](bool) { return true; }));
 #endif
 
     rpcService->Register<bool>(

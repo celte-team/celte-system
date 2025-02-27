@@ -4,6 +4,7 @@
 #include "GhostSystem.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
+#include <algorithm>
 #include <tbb/parallel_for_each.h>
 
 using namespace celte;
@@ -193,6 +194,9 @@ std::optional<nlohmann::json>
 GhostSystem::PeekProperties(const std::string &eid) {
   std::optional<nlohmann::json> props = std::nullopt;
   __withPropertyLock(eid, [&props](Properties &p) {
+    // erase all empty keys and values
+    std::erase_if(p.properties,
+                  [](const auto &pair) { return pair.first.empty(); });
     for (auto &[key, prop] : p.properties) {
       if (not props.has_value()) {
         props = nlohmann::json::object();
@@ -200,5 +204,9 @@ GhostSystem::PeekProperties(const std::string &eid) {
       props.value()[key] = prop.value;
     }
   });
+  if (props.has_value()) {
+    std::cout << "Peeked properties for " << eid.substr(0, 4) << ": "
+              << props.value().dump() << std::endl;
+  }
   return props;
 }

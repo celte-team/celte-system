@@ -196,6 +196,14 @@ public:
     return std::nullopt;
   }
 
+  inline std::vector<std::string> GetKnownGrapes() {
+    std::vector<std::string> grapes;
+    for (auto it = _grapes.begin(); it != _grapes.end(); ++it) {
+      grapes.push_back(it->first);
+    }
+    return grapes;
+  }
+
 private:
   tbb::concurrent_hash_map<std::string, Grape> _grapes;
 };

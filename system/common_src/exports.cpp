@@ -218,6 +218,10 @@ EXPORT bool AdvanceGrapeTask(const std::string &grapeId) {
   return false;
 }
 
+EXPORT std::map<std::string, int> GetLatency() {
+  return RUNTIME.GetPeerService().GetLatency();
+}
+
 #pragma endregion
 
 #pragma region NAMED_TASKS

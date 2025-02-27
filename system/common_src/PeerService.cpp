@@ -100,6 +100,7 @@ void PeerService::__registerServerRPCs() {
 }
 
 #else
+
 void PeerService::__registerClientRPCs() {
   _rpcService->Register<bool>("__rp_forceConnectToNode",
                               std::function([this](std::string nodeId) {
@@ -251,5 +252,24 @@ bool PeerService::__rp_unsubscribeClientFromContainer(
   return true;
 }
 
-bool PeerService::__rp_ping() { return true; }
 #endif
+
+bool PeerService::__rp_ping() { return true; }
+
+std::map<std::string, int> PeerService::GetLatency() {
+  std::map<std::string, int> latencies;
+  std::vector<std::string> grapes = GRAPES.GetKnownGrapes();
+  for (const auto &g : grapes) {
+    try {
+      auto start = std::chrono::steady_clock::now();
+      _rpcService->Call<bool>(tp::peer(g), "__rp_ping", true);
+      auto end = std::chrono::steady_clock::now();
+      latencies[g] =
+          std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+              .count();
+    } catch (net::RPCTimeoutException &e) {
+      latencies[g] = -1;
+    }
+  }
+  return latencies;
+}

@@ -6,6 +6,7 @@
 #include "RPCService.hpp"
 #include "WriterStreamPool.hpp"
 #include <functional>
+#include <map>
 
 using namespace std::chrono_literals;
 
@@ -45,6 +46,11 @@ public:
 
 #endif
 
+  /// @brief If the peer is a client returns a map of the latencies (ms) to each
+  /// of the known server nodes in the cluster.
+  /// @return
+  std::map<std::string, int> GetLatency();
+
 private:
   /// @brief Waits for the network of the rpc service to be ready
   /// @param connectionTimeout The time to wait for the network to be ready
@@ -83,8 +89,9 @@ private:
   /// rpc call.
 
   bool __rp_unsubscribeClientFromContainer(const std::string &containerId);
-  bool __rp_ping();
 #endif
+
+  bool __rp_ping();
   /* ------------------------------- SERVER RPC
    * -------------------------------
    */
