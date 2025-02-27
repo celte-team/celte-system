@@ -204,9 +204,5 @@ GhostSystem::PeekProperties(const std::string &eid) {
       props.value()[key] = prop.value;
     }
   });
-  if (props.has_value()) {
-    std::cout << "Peeked properties for " << eid.substr(0, 4) << ": "
-              << props.value().dump() << std::endl;
-  }
   return props;
 }
