@@ -40,8 +40,6 @@ RUN dnf install -y \
 RUN dnf install -y \
     glib2-devel \
     libfl-devel \
-    openssl \
-    openssl-devel \
     perl \
     libcurl-devel \
     perl-IPC-Cmd \
@@ -59,6 +57,7 @@ RUN sudo updatedb
 
 RUN sudo ldconfig
 
+# add godot-cpp
 
 RUN git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT && \
     cd $VCPKG_ROOT && \
