@@ -4,6 +4,7 @@
 #include "ETTRegistry.hpp"
 #include "HookTable.hpp"
 #include "Logger.hpp"
+#include "TrashBin.hpp"
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -83,6 +84,9 @@ public:
     return _asyncIOTaskScheduler;
   }
 
+  /// @brief Returns the trash bin of the system.
+  inline TrashBin &GetTrashBin() { return _trashBin; }
+
   /// @brief Returns the unique identifier of this peer on the network.
   inline const std::string &GetUUID() const { return _uuid; }
 
@@ -141,6 +145,7 @@ private:
   HookTable _hooks;
   std::unique_ptr<PeerService> _peerService;
   Config _config;
+  TrashBin _trashBin;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   std::string _assignedGrape;

@@ -4,16 +4,17 @@
 #include "GhostSystem.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
+#include <algorithm>
 #include <tbb/parallel_for_each.h>
 
 using namespace celte;
 
 bool GhostSystem::Properties::Set(const std::string &key,
                                   const std::string &value) {
-  auto &prop = properties[key]; // created if it doesn't exist
-  if (prop.value != value) {
-    prop.value = value;
-    prop.lastChange = CLOCK.GetUnifiedTime();
+  auto it = properties.find(key);
+  if (it == properties.end() or it->second.value != value) {
+    properties[key].value = value;
+    properties[key].synced = false;
     return true;
   }
   return false;
@@ -22,7 +23,10 @@ bool GhostSystem::Properties::Set(const std::string &key,
 std::optional<std::string>
 GhostSystem::Properties::Get(const std::string &key) {
   auto it = properties.find(key);
-  if (it != properties.end() && it->second.lastSync < it->second.lastChange) {
+  if (it == properties.end()) {
+    return std::nullopt;
+  }
+  if (it != properties.end() && !it->second.synced) {
     return it->second.value;
   }
   return std::nullopt;
@@ -31,7 +35,7 @@ GhostSystem::Properties::Get(const std::string &key) {
 void GhostSystem::Properties::AcknowledgeSync(const std::string &key) {
   auto it = properties.find(key);
   if (it != properties.end()) {
-    it->second.lastSync = it->second.lastChange;
+    it->second.synced = true;
   }
 }
 
@@ -74,9 +78,10 @@ void GhostSystem::UpdatePropertyState(const std::string &eid,
 }
 
 void GhostSystem::ApplyUpdate(const std::string &eid, nlohmann::json &update) {
-  std::cout << "applied update at spawn: " << update.dump() << std::endl;
-  __withPropertyLock(eid, [&update](Properties &props) {
+  __withPropertyLock(eid, [&update, eid](Properties &props) {
     for (auto &[key, value] : update.items()) {
+      std::cout << "(" << eid.substr(0, 4) << ") " << key << " <= " << value
+                << std::endl;
       props.Set(key, value);
     }
   });
@@ -176,7 +181,7 @@ std::optional<std::string>
 GhostSystem::PollPropertyUpdate(const std::string &eid,
                                 const std::string &key) {
   std::optional<std::string> value;
-  __withPropertyLock(eid, [&value, key](Properties &props) {
+  __withPropertyLock(eid, [&value, key, eid](Properties &props) {
     value = props.Get(key);
     if (value.has_value()) {
       props.AcknowledgeSync(key);
@@ -189,6 +194,9 @@ std::optional<nlohmann::json>
 GhostSystem::PeekProperties(const std::string &eid) {
   std::optional<nlohmann::json> props = std::nullopt;
   __withPropertyLock(eid, [&props](Properties &p) {
+    // erase all empty keys and values
+    std::erase_if(p.properties,
+                  [](const auto &pair) { return pair.first.empty(); });
     for (auto &[key, prop] : p.properties) {
       if (not props.has_value()) {
         props = nlohmann::json::object();

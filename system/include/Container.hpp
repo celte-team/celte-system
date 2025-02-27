@@ -102,6 +102,8 @@ public:
     /// may be invalidated.
     inline Container &GetContainer() { return *container; }
 
+    inline std::shared_ptr<Container> GetContainerPtr() { return container; }
+
     void IncRefCount() { refCount.fetch_add(1, std::memory_order_relaxed); }
 
     void DecRefCount() { refCount.fetch_sub(1, std::memory_order_relaxed); }

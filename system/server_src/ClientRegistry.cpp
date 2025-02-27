@@ -50,6 +50,5 @@ void ClientRegistry::ForgetClient(const std::string &clientId) {
 }
 
 void ClientRegistry::DisconnectClient(const std::string &clientId) {
-  std::cout << "Disconnecting client " << clientId << std::endl;
   std::cout << "NOT IMPLEMENTED" << std::endl;
 }

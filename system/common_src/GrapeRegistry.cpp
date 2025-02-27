@@ -64,12 +64,6 @@ std::string GrapeRegistry::ContainerCreateAndAttach(
   accessor acc;
 
   if (_grapes.find(acc, grapeId)) {
-    std::cout << std::endl
-              << "-------------------------------------" << std::endl
-              << "grape " << grapeId << " is creating a new container with id "
-              << id << " and isLocallyOwned: " << acc->second.isLocallyOwned
-              << std::endl
-              << std::endl;
     auto finalId = acc->second
                        .subscribeToContainer(
                            id,
@@ -96,9 +90,9 @@ bool GrapeRegistry::GrapeExists(const std::string &grapeId) {
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-void GrapeRegistry::SetRemoteGrapeSubscription(const std::string &grapeId,
-                                               const std::string &containerId,
-                                               bool subscribe) {
+void GrapeRegistry::SetRemoteGrapeSubscription(
+    const std::string &ownerOfContainerId, const std::string &grapeId,
+    const std::string &containerId, bool subscribe) {
   if (grapeId == RUNTIME.GetAssignedGrape()) {
     return;
   }
@@ -106,13 +100,15 @@ void GrapeRegistry::SetRemoteGrapeSubscription(const std::string &grapeId,
   if (_grapes.find(acc, grapeId)) {
     if (subscribe && not acc->second._proxySubscriptions.count(containerId)) {
       acc->second._proxySubscriptions.insert(containerId);
-      acc->second.rpcService->CallVoid(
-          tp::peer(grapeId), "__rp_subscribeToContainer", containerId);
+      acc->second.rpcService->CallVoid(tp::peer(grapeId),
+                                       "__rp_subscribeToContainer",
+                                       ownerOfContainerId, containerId);
     } else if (not subscribe and
                acc->second._proxySubscriptions.count(containerId)) {
       acc->second._proxySubscriptions.erase(containerId);
-      acc->second.rpcService->CallVoid(
-          tp::peer(grapeId), "__rp_unsubscribeFromContainer", containerId);
+      acc->second.rpcService->CallVoid(tp::peer(grapeId),
+                                       "__rp_unsubscribeFromContainer",
+                                       ownerOfContainerId, containerId);
     }
   }
 }
@@ -123,11 +119,8 @@ bool GrapeRegistry::SubscribeGrapeToContainer(const std::string &grapeId,
   accessor acc;
   if (_grapes.find(acc, grapeId)) {
     acc->second.subscribeToContainer(containerId, onReady, false);
-    std::cout << "Subscribed grape " << grapeId << " to container "
-              << containerId << std::endl;
     return true;
   }
-  std::cout << "Grape not found: " << grapeId << std::endl;
   return false;
 }
 
@@ -144,9 +137,6 @@ void GrapeRegistry::ProxyTakeAuthority(const std::string &grapeId,
   std::string fromContainerId = ETTREGISTRY.GetEntityOwnerContainer(entityId);
   if (not ContainerRegistry::GetInstance().ContainerIsLocallyOwned(
           fromContainerId)) {
-    std::cout << "entity " << entityId
-              << " is not locally owned, cannot take authority through proxy"
-              << std::endl;
     return;
   }
 
@@ -156,19 +146,11 @@ void GrapeRegistry::ProxyTakeAuthority(const std::string &grapeId,
     // if grape is locally owned, there is no need to take authority through
     // proxy
     if (acc->second.isLocallyOwned) {
-      std::cout
-          << "Grape is locally owned so no need to take authority through "
-             "proxy"
-          << std::endl;
       return;
     }
     // todo:  quaranteen ett
-    std::cout << "taking auth by proxy in grape registry" << std::endl;
     AuthorityTransfer::ProxyTakeAuthority(grapeId, entityId, fromContainerId,
                                           payload);
-  } else {
-    std::cout << "Grape not found: " << grapeId
-              << ", cannot take authority through proxy" << std::endl;
   }
 }
 

@@ -4,6 +4,7 @@
 #endif
 #include "Container.hpp"
 #include "Grape.hpp"
+#include "GrapeRegistry.hpp"
 #include "Logger.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
@@ -37,18 +38,25 @@ void Grape::initRPCService() {
         std::function<std::vector<std::string>()>(
             [this]() { return __rp_getExistingOwnedContainers(); }));
 
-    rpcService->Register<bool>("__rp_subscribeToContainer",
-                               std::function([this](std::string containerId) {
-                                 subscribeToContainer(
-                                     containerId, []() {}, false);
-                                 return true;
-                               }));
+    rpcService->Register<bool>(
+        "__rp_subscribeToContainer",
+        std::function([this](std::string ownerOfContainerId,
+                             std::string containerId) {
+          GRAPES.RunWithLock(ownerOfContainerId, [this, containerId](Grape &g) {
+            g.subscribeToContainer(containerId, []() {}, false);
+          });
+          return true;
+        }));
 
-    rpcService->Register<bool>("__rp_unsubscribeFromContainer",
-                               std::function([this](std::string containerId) {
-                                 unsubscribeFromContainer(containerId);
-                                 return true;
-                               }));
+    rpcService->Register<bool>(
+        "__rp_unsubscribeFromContainer",
+        std::function([this](std::string ownerOfContainerId,
+                             std::string containerId) {
+          GRAPES.RunWithLock(ownerOfContainerId, [this, containerId](Grape &g) {
+            g.unsubscribeFromContainer(containerId);
+          });
+          return true;
+        }));
 
     if (isLocallyOwned) {
       rpcService->Register<bool>(
@@ -68,6 +76,9 @@ void Grape::initRPCService() {
                                    return true;
                                  }));
     }
+
+    rpcService->Register<bool>("__rp_ping",
+                               std::function([this](bool) { return true; }));
 #endif
 
     rpcService->Register<bool>(
@@ -131,10 +142,6 @@ std::vector<std::string> Grape::__rp_getExistingOwnedContainers() {
       result.push_back(containerId);
     }
   }
-  for (auto &c : result) {
-    std::cout << "  - " << c << std::endl;
-  }
-  std::cout << "]" << std::endl;
   return result;
 }
 #endif

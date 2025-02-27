@@ -16,8 +16,7 @@ class GhostSystem {
 public:
   struct PropertyInfo {
     std::string value;
-    Clock::timepoint lastSync;
-    Clock::timepoint lastChange;
+    bool synced = false;
   };
 
   struct Properties {

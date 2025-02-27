@@ -84,8 +84,6 @@ public:
     accessor acc;
     if (_grapes.find(acc, grapeId)) {
       f(acc->second);
-    } else {
-      std::cout << "Grape not found: " << grapeId << std::endl;
     }
   }
 
@@ -95,8 +93,6 @@ public:
     accessor acc;
     if (_grapes.find(acc, grapeId)) {
       (instance->*memberFunc)(acc->second);
-    } else {
-      std::cout << "Grape not found: " << grapeId << std::endl;
     }
   }
 
@@ -106,8 +102,6 @@ public:
     accessor acc;
     if (_grapes.find(acc, grapeId)) {
       (instance->*memberFunc)(acc->second, args...);
-    } else {
-      std::cout << "Grape not found: " << grapeId << std::endl;
     }
   }
 
@@ -146,7 +140,8 @@ public:
                                        std::function<void()> onReady,
                                        const std::string &id = "");
 
-  void SetRemoteGrapeSubscription(const std::string &grapeId,
+  void SetRemoteGrapeSubscription(const std::string &ownerOfContainerId,
+                                  const std::string &grapeId,
                                   const std::string &containerId,
                                   bool subscribe);
 
@@ -199,6 +194,14 @@ public:
       return acc->second.popNamedTaskFromEngine<Args...>(name);
     }
     return std::nullopt;
+  }
+
+  inline std::vector<std::string> GetKnownGrapes() {
+    std::vector<std::string> grapes;
+    for (auto it = _grapes.begin(); it != _grapes.end(); ++it) {
+      grapes.push_back(it->first);
+    }
+    return grapes;
   }
 
 private:

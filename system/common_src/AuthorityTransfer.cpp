@@ -29,6 +29,14 @@ static void __notifyDrop(nlohmann::json args) {
 }
 #endif
 
+static void prettyPrintAuthTransfer(nlohmann::json args) {
+  std::cout << "\n\033[1;32m[AT]:\033[0m entity ";
+  std::cout << args["e"].get<std::string>().substr(0, 4) << " ("
+            << args["f"].get<std::string>().substr(0, 4) << " -> "
+            << args["t"].get<std::string>().substr(0, 4) << ")" << std::endl;
+  std::cout << std::endl;
+}
+
 void AuthorityTransfer::TransferAuthority(const std::string &entityId,
                                           const std::string &toContainerId,
                                           const std::string &payload,
@@ -62,8 +70,8 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   args["payload"] = payload;
   args["g"] = GHOSTSYSTEM.PeekProperties(entityId).value_or("{}");
 
-  std::cout << "\nAUTHORITY TRANSFER:\n";
-  std::cout << args.dump() << std::endl << std::endl;
+  LOGGER.log(celte::Logger::DEBUG, "AuthorityTransfer: \n" + args.dump());
+  prettyPrintAuthTransfer(args);
 
   // notify the container that will take authority
   __notifyTakeAuthority(args);
@@ -79,11 +87,8 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
                                 const std::string &procedureId) {
   // if toContainerId does not exist here, schedule ett for deletion
   if (!GRAPES.ContainerExists(toContainerId)) {
-    std::cout << "toContainerId does not exist, scheduling for deletion"
-              << std::endl;
     e.isValid = false;
     e.quarantine = true;
-    // TODO schedule ett for deletion
   }
 #ifdef CELTE_SERVER_MODE_ENABLED
   if (fromContainerId != toContainerId) {
@@ -96,7 +101,6 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
 static void applyGhostToEntity(const std::string &entityId,
                                nlohmann::json ghost) {
   try {
-    std::cout << "auth transfer calling udpate ghost" << std::endl;
     GHOSTSYSTEM.ApplyUpdate(entityId, ghost);
   } catch (const std::exception &e) {
     std::cerr << "Error while applying ghost to entity: " << e.what()
@@ -107,8 +111,6 @@ static void applyGhostToEntity(const std::string &entityId,
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing take order.\n" + args.dump());
-  std::cout << "exec take" << std::endl;
-
   std::string entityId = args["e"].get<std::string>();
   std::string toContainerId = args["t"].get<std::string>();
   std::string fromContainerId = args["f"].get<std::string>();
@@ -116,23 +118,24 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   std::string when = args["w"].get<std::string>();
   std::string payload = args["payload"].get<std::string>();
   nlohmann::json ghostData = args["g"];
-  std::cout << "unwrapped args" << std::endl;
 
   Clock::timepoint whenTp = Clock::FromISOString(when);
 
   CLOCK.ScheduleAt(whenTp, [=]() {
-    bool ettExists = false;
+    // std::cout << "is ett registered? "
+    //           << ETTREGISTRY.IsEntityRegistered(entityId) << std::endl;
 
     // if ett exists, transfer auth
     ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
-      ettExists = true;
+      // ettExists = true;
       e.ownerContainerId = toContainerId;
       e.quarantine = false;
     });
 
     // if ett does not exist, schedule it for creation (container will be
     // emplaced)
-    if (!ettExists) {
+    // if (!ettExists) {
+    if (!ETTREGISTRY.IsEntityRegistered(entityId)) {
       RUNTIME.TopExecutor().PushTaskToEngine(
           [payload, entityId, toContainerId, ghostData]() {
             ETTREGISTRY.EngineCallInstantiate(entityId, payload, toContainerId);

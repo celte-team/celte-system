@@ -32,12 +32,9 @@ EXPORT void RegisterGrape(const std::string &grapeId, bool isLocallyOwned,
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-EXPORT char *ContainerCreateAndAttach(std::string grapeId,
-                                      std::function<void()> onReady,
-                                      size_t *size) {
-  std::string result = GRAPES.ContainerCreateAndAttach(grapeId, onReady);
-  *size = result.size();
-  return strdup(result.c_str());
+EXPORT std::string ContainerCreateAndAttach(const std::string &grapeId,
+                                            std::function<void()> onReady) {
+  return GRAPES.ContainerCreateAndAttach(grapeId, onReady);
 }
 #endif
 
@@ -55,11 +52,7 @@ EXPORT void RegisterNewEntity(const std::string &id,
   });
 }
 
-EXPORT char *GetNewUUID(size_t *size) {
-  std::string uuid = RUNTIME.GenUUID();
-  *size = uuid.size();
-  return strdup(uuid.c_str());
-}
+EXPORT std::string GetNewUUID() { return RUNTIME.GenUUID(); }
 
 EXPORT void ProcessEntityContainerAssignment(const std::string &entityId,
                                              const std::string &toContainerId,
@@ -69,28 +62,36 @@ EXPORT void ProcessEntityContainerAssignment(const std::string &entityId,
                                               ignoreNoMove);
 }
 
-#ifdef CELTE_SERVER_MODE_ENABLED
-EXPORT void ConnectClientToThisNode(std::string clientId,
-                                    std::function<void()> then) {
-  RUNTIME.GetPeerService().ConnectClientToThisNode(clientId, then);
-}
-
-EXPORT void SubscribeClientToContainer(std::string clientId,
-                                       std::string containerId,
-                                       std::function<void()> then) {
-  RUNTIME.GetPeerService().SubscribeClientToContainer(clientId, containerId,
-                                                      then);
-}
-
 EXPORT bool SaveEntityPayload(const std::string &eid,
                               const std::string &payload) {
   return ETTREGISTRY.SaveEntityPayload(eid, payload);
 }
 
-EXPORT void UpdateSubscriptionStatus(const std::string &grapeId,
+#ifdef CELTE_SERVER_MODE_ENABLED
+EXPORT void ConnectClientToThisNode(const std::string &clientId,
+                                    std::function<void()> then) {
+  RUNTIME.GetPeerService().ConnectClientToThisNode(clientId, then);
+}
+
+EXPORT void SubscribeClientToContainer(const std::string &clientId,
+                                       const std::string &containerId,
+                                       std::function<void()> then) {
+  RUNTIME.GetPeerService().SubscribeClientToContainer(clientId, containerId,
+                                                      then);
+}
+
+EXPORT void UnsubscribeClientFromContainer(const std::string &clientId,
+                                           const std::string &containerId) {
+  RUNTIME.GetPeerService().UnsubscribeClientFromContainer(clientId,
+                                                          containerId);
+}
+
+EXPORT void UpdateSubscriptionStatus(const std::string &ownerOfContainerId,
+                                     const std::string &grapeId,
                                      const std::string &containerId,
                                      bool subscribe) {
-  GRAPES.SetRemoteGrapeSubscription(grapeId, containerId, subscribe);
+  GRAPES.SetRemoteGrapeSubscription(ownerOfContainerId, grapeId, containerId,
+                                    subscribe);
 }
 
 EXPORT void ProxyTakeAuthority(const std::string &grapeId,
@@ -141,6 +142,10 @@ EXPORT std::optional<void *> GetETTNativeHandle(const std::string &id) {
 
 EXPORT void ForgetEntityNativeHandle(const std::string &id) {
   ETTREGISTRY.ForgetEntityNativeHandle(id);
+}
+
+EXPORT std::string GetETTOwnerContainerId(const std::string &id) {
+  return ETTREGISTRY.GetEntityOwnerContainer(id);
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -213,6 +218,10 @@ EXPORT bool AdvanceGrapeTask(const std::string &grapeId) {
   return false;
 }
 
+EXPORT std::map<std::string, int> GetLatency() {
+  return RUNTIME.GetPeerService().GetLatency();
+}
+
 #pragma endregion
 
 #pragma region NAMED_TASKS
@@ -260,20 +269,15 @@ EXPORT void CallGlobalRPCNoRetVal(const std::string &name,
   RUNTIME.CallScopedRPCNoRetVal(celte::tp::global_rpc, name, args);
 }
 
-EXPORT [[nodiscard]] char *
-CallGlobalRPC(const std::string &name, const std::string &args, size_t *size) {
-  std::string result = RUNTIME.CallScopedRPC(celte::tp::global_rpc, name, args);
-  *size = result.size();
-  return strdup(result.c_str());
+EXPORT std::string CallGlobalRPC(const std::string &name,
+                                 const std::string &args) {
+  return RUNTIME.CallScopedRPC(celte::tp::global_rpc, name, args);
 }
 
-EXPORT [[nodiscard]] char *CallScopedRPC(const std::string &scope,
-                                         const std::string &name,
-                                         const std::string &args,
-                                         size_t *size) {
-  std::string result = RUNTIME.CallScopedRPC(scope, name, args);
-  *size = result.size();
-  return strdup(result.c_str());
+EXPORT std::string CallScopedRPC(const std::string &scope,
+                                 const std::string &name,
+                                 const std::string &args) {
+  return RUNTIME.CallScopedRPC(scope, name, args);
 }
 
 EXPORT void CallScopedRPCNoRetVal(const std::string &scope,
@@ -298,7 +302,7 @@ EXPORT void SetOnGetClientInitialGrapeHook(
 }
 
 EXPORT void
-SetOnAcceptNewClientHook(std::function<std::string(const std::string &)> f) {
+SetOnAcceptNewClientHook(std::function<void(const std::string &)> f) {
   RUNTIME.Hooks().onAcceptNewClient = f;
 }
 
@@ -320,8 +324,8 @@ EXPORT void SetOnClientNotSeenHook(std::function<void(const std::string &)> f) {
 
 #endif // all peers hooks -------------------------------------------------- */
 
-EXPORT void
-SetOnClientDisconnectHook(std::function<void(std::string, std::string)> f) {
+EXPORT void SetOnClientDisconnectHook(
+    std::function<void(const std::string &, const std::string &)> f) {
   RUNTIME.Hooks().onClientDisconnect = f;
 }
 
@@ -351,13 +355,14 @@ EXPORT void SetOnDeleteEntityHook(
   RUNTIME.Hooks().onDeleteEntity = f;
 }
 
-EXPORT void UploadInputData(std::string uuid, std::string inputName,
-                            bool pressed, float x = 0, float y = 0) {
+EXPORT void UploadInputData(const std::string &uuid,
+                            const std::string &inputName, bool pressed,
+                            float x = 0, float y = 0) {
   ETTREGISTRY.UploadInputData(uuid, inputName, pressed, x, y);
 }
 
 EXPORT std::optional<const celte::CelteInputSystem::INPUT>
-GetInputCircularBuf(std::string uuid, std::string InputName) {
+GetInputCircularBuf(const std::string &uuid, const std::string &InputName) {
   return CINPUT.GetInputCircularBuf(uuid, InputName);
 }
 

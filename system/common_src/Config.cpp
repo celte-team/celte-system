@@ -25,7 +25,7 @@ Config::Config() { // Set default values
 
   const char *replication_interval = getenv("REPLICATION_INTERVAL");
   _config["replication_interval"] =
-      replication_interval ? replication_interval : "100";
+      replication_interval ? replication_interval : "33";
 }
 
 std::optional<std::string> Config::Get(const std::string &key) const {

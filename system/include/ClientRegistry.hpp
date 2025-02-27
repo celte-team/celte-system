@@ -17,6 +17,7 @@ struct ClientData {
   std::chrono::time_point<std::chrono::system_clock> lastSeen;
   bool isLocallyOwned;
   std::string currentOwnerGrape;
+  std::chrono::milliseconds latency;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   inline bool isSubscribedToContainer(const std::string &containerId) {

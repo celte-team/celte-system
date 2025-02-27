@@ -44,8 +44,6 @@ public:
   /// @param getter
   template <typename T>
   void RegisterMetric(const std::string &name, std::function<T()> getter) {
-    std::cout << "registered metric with name: " << name << std::endl;
-    std::cout << "this is " << this << std::endl;
     std::lock_guard<std::mutex> lock(_metricsMutex);
     _metrics[name] = [getter]() {
       std::array<char, 64> buffer;
