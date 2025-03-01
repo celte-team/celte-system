@@ -14,7 +14,8 @@ bool GhostSystem::Properties::Set(const std::string &key,
   auto it = properties.find(key);
   if (it == properties.end() or it->second.value != value) {
     properties[key].value = value;
-    properties[key].synced = false;
+    // properties[key].synced = false;
+    properties[key].lastUpdate = std::chrono::high_resolution_clock::now();
     return true;
   }
   return false;
@@ -26,7 +27,8 @@ GhostSystem::Properties::Get(const std::string &key) {
   if (it == properties.end()) {
     return std::nullopt;
   }
-  if (it != properties.end() && !it->second.synced) {
+  // if (it != properties.end() && !it->second.synced) {
+  if (it != properties.end() && it->second.lastUpdate > it->second.lastSync) {
     return it->second.value;
   }
   return std::nullopt;
@@ -35,7 +37,8 @@ GhostSystem::Properties::Get(const std::string &key) {
 void GhostSystem::Properties::AcknowledgeSync(const std::string &key) {
   auto it = properties.find(key);
   if (it != properties.end()) {
-    it->second.synced = true;
+    // it->second.synced = true;
+    it->second.lastSync = std::chrono::high_resolution_clock::now();
   }
 }
 

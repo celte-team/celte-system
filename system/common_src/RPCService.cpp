@@ -52,9 +52,23 @@ void RPCService::__handleRemoteCall(const req::RPRequest &req) {
     std::cerr << "No such rpc: " << req.name() << std::endl;
     return;
   }
+
   auto f = it->second;
-  nlohmann::json argsJson = nlohmann::json::parse(req.args());
-  auto result = f(argsJson).dump();
+  nlohmann::json argsJson;
+  try {
+    argsJson = nlohmann::json::parse(req.args());
+  } catch (const std::exception &e) {
+    std::cerr << "Error parsing json: " << e.what() << std::endl;
+    return;
+  }
+
+  std::string result;
+  try {
+    result = f(argsJson).dump();
+  } catch (const std::exception &e) {
+    std::cerr << "Error calling rpc: " << e.what() << std::endl;
+    return;
+  }
 
   if (not req.response_topic().empty()) {
     req::RPRequest response;

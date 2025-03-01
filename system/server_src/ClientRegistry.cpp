@@ -34,8 +34,14 @@ void ClientRegistry::StartKeepAliveThread() {
       for (auto it = _clients.begin(); it != _clients.end(); ++it) {
         RUNTIME.ScheduleAsyncIOTask([this, it] {
           try {
-            RUNTIME.GetPeerService().GetRPCService().Call<bool>(
-                tp::rpc(it->first), "__rp_ping", true);
+            RUNTIME.GetPeerService().GetRPCService().CallWithTimeout<bool>(
+                tp::rpc(it->first), "__rp_ping",
+                std::chrono::milliseconds(
+                    std::atoi(RUNTIME.GetConfig()
+                                  .Get("client_timeout_ms")
+                                  .value_or("2000")
+                                  .c_str())),
+                true);
           } catch (net::RPCTimeoutException &e) {
             RUNTIME.Hooks().onClientNotSeen(it->first);
           }

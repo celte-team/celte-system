@@ -1,8 +1,8 @@
 #pragma once
-#include "Clock.hpp"
 #include "WriterStreamPool.hpp"
 #include "systems_structs.pb.h"
 #include <atomic>
+#include <chrono>
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -16,7 +16,11 @@ class GhostSystem {
 public:
   struct PropertyInfo {
     std::string value;
-    bool synced = false;
+    // bool synced = false;
+    std::chrono::time_point<std::chrono::high_resolution_clock> lastUpdate =
+        std::chrono::high_resolution_clock::now();
+    std::chrono::time_point<std::chrono::high_resolution_clock> lastSync =
+        std::chrono::high_resolution_clock::now();
   };
 
   struct Properties {

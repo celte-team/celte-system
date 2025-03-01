@@ -96,6 +96,16 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
         fromContainerId, e.id);
   }
 #endif
+  // if toContainerId is not registered here, we need to delete the entity.
+  if (not GRAPES.ContainerExists(toContainerId)) {
+    std::cout << "\033[1;DELETE\033[0m " << e.id << std::endl;
+    std::string id = e.id;
+    std::string payload = e.payload;
+    RUNTIME.TopExecutor().PushTaskToEngine(
+        [id = std::move(id), payload = std::move(payload)]() {
+          RUNTIME.Hooks().onDeleteEntity(id, payload);
+        });
+  }
 }
 
 static void applyGhostToEntity(const std::string &entityId,
