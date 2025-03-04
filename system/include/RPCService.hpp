@@ -107,6 +107,42 @@ public:
     };
   }
 
+  /// @brief Equivalent to using 'Call' but 'Call' has a set timeout of 300ms.
+  /// This function lets you set the timeout.
+  template <typename Ret, typename... Args>
+  Ret CallWithTimeout(const std::string &topic, const std::string &name,
+                      std::chrono::milliseconds timeout, Args... args) {
+    req::RPRequest req;
+    req.set_name(name);
+    req.set_responds_to("");
+    req.set_response_topic(_options.reponseTopic);
+    req.set_rpc_id(boost::uuids::to_string(boost::uuids::random_generator()()));
+    req.set_args(nlohmann::json(std::make_tuple(args...)).dump());
+
+    std::shared_ptr<std::promise<std::string>> promise =
+        std::make_shared<std::promise<std::string>>();
+    {
+      std::lock_guard<std::mutex> lock(rpcPromisesMutex);
+      rpcPromises[req.rpc_id()] = promise;
+    }
+    _writerStreamPool.Write(topic, req);
+
+    std::string result;
+    auto fut = promise->get_future();
+    if (fut.wait_for(timeout) == std::future_status::timeout) {
+      throw RPCTimeoutException("Timeout waiting for rpc response", LOGGER);
+    }
+    result = fut.get();
+
+    try {
+      Ret ret = nlohmann::json::parse(result).get<Ret>();
+      return ret;
+    } catch (nlohmann::json::exception &e) {
+      std::cerr << "Error parsing json: " << e.what() << std::endl;
+      throw e; // todo custom error type
+    }
+  }
+
   template <typename Ret, typename... Args>
   Ret Call(const std::string &topic, const std::string &name, Args... args) {
     req::RPRequest req;
@@ -122,8 +158,39 @@ public:
       std::lock_guard<std::mutex> lock(rpcPromisesMutex);
       rpcPromises[req.rpc_id()] = promise;
     }
-    std::cout << "rpc service writting rpc to topic " << topic
-              << " with rpc id " << req.rpc_id() << std::endl;
+    _writerStreamPool.Write(topic, req);
+
+    std::string result;
+    auto fut = promise->get_future();
+    if (fut.wait_for(300ms) == std::future_status::timeout) {
+      throw RPCTimeoutException("Timeout waiting for rpc response", LOGGER);
+    }
+    result = fut.get();
+
+    try {
+      Ret ret = nlohmann::json::parse(result).get<Ret>();
+      return ret;
+    } catch (nlohmann::json::exception &e) {
+      std::cerr << "Error parsing json: " << e.what() << std::endl;
+      throw e; // todo custom error type
+    }
+  }
+
+  template <typename Ret>
+  Ret Call(const std::string &topic, const std::string &name) {
+    req::RPRequest req;
+    req.set_name(name);
+    req.set_responds_to("");
+    req.set_response_topic(_options.reponseTopic);
+    req.set_rpc_id(boost::uuids::to_string(boost::uuids::random_generator()()));
+    req.set_args("");
+
+    std::shared_ptr<std::promise<std::string>> promise =
+        std::make_shared<std::promise<std::string>>();
+    {
+      std::lock_guard<std::mutex> lock(rpcPromisesMutex);
+      rpcPromises[req.rpc_id()] = promise;
+    }
     _writerStreamPool.Write(topic, req);
 
     std::string result;

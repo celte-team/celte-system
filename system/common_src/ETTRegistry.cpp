@@ -1,10 +1,14 @@
+#include "CelteInputSystem.hpp"
 #include "Container.hpp"
 #include "ETTRegistry.hpp"
+#include "GhostSystem.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
 
 using namespace celte;
+
+Entity::~Entity() {}
 
 ETTRegistry &ETTRegistry::GetInstance() {
   static ETTRegistry instance;
@@ -15,9 +19,8 @@ void ETTRegistry::RegisterEntity(const Entity &e) {
   accessor acc;
   if (_entities.insert(acc, e.id)) {
     acc->second = e;
-    std::cout << "Entity " << e.id << " registered." << std::endl;
   } else {
-    throw std::runtime_error("Entity with id " + e.id + " already exists.");
+    throw ETTAlreadyRegisteredException(e.id);
   }
 }
 
@@ -29,6 +32,7 @@ void ETTRegistry::UnregisterEntity(const std::string &id) {
           "Cannot unregister a valid entity as it is still in use.");
     }
     _entities.erase(acc);
+    GhostSystem::TryRemoveEntity(id);
   }
 }
 
@@ -109,40 +113,46 @@ void ETTRegistry::Clear() { _entities.clear(); }
 void ETTRegistry::EngineCallInstantiate(const std::string &id,
                                         const std::string &payload,
                                         const std::string &ownerContainerId) {
-  ETTRegistry::RegisterEntity({
-      .id = id,
-      .ownerContainerId = ownerContainerId,
-  });
+  try {
+    RegisterEntity({
+        .id = id,
+        .ownerContainerId = ownerContainerId,
+    });
+  } catch (const ETTAlreadyRegisteredException &e) {
+    RunWithLock(id, [ownerContainerId](Entity &e) {
+      e.ownerContainerId = ownerContainerId;
+    });
+    return;
+  }
   RUNTIME.Hooks().onInstantiateEntity(id, payload);
   LOGGER.log(Logger::LogLevel::DEBUG, "Entity " + id + " instantiated.");
 }
 
 void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
                                        const std::string &containerId) {
+  std::cout << "\033[032mLOAD\033[0m foreach in " << containerId.substr(0, 4)
+            << std::endl;
   RUNTIME.GetPeerService()
       .GetRPCService()
       .CallAsync<std::map<std::string, std::string>>(
           tp::peer(grapeId), "__rp_getExistingEntities", containerId)
       .Then([this,
              containerId](const std::map<std::string, std::string> &entities) {
-        for (auto &[id, payload] : entities) {
-          ETTRegistry::EngineCallInstantiate(id, payload, containerId);
+        for (auto &[id, data] : entities) {
+          try {
+            auto j = nlohmann::json::parse(data);
+            std::string payload = j["payload"];
+            nlohmann::json ghost = j["ghost"];
+            GHOSTSYSTEM.ApplyUpdate(id, ghost);
+            EngineCallInstantiate(id, payload, containerId);
+          } catch (const std::exception &e) {
+            std::cerr << "Error while loading entity " << id << ": " << e.what()
+                      << std::endl;
+          }
         }
       });
 }
 
-#ifdef CELTE_SERVER_MODE_ENABLED
-
-std::map<std::string, std::string>
-ETTRegistry::GetExistingEntities(const std::string &containerId) {
-  std::map<std::string, std::string> etts;
-  for (auto &[id, e] : _entities) {
-    if (e.ownerContainerId == containerId) {
-      etts.insert({id, GetEntityPayload(id).value_or("{}")});
-    }
-  }
-  return etts;
-}
 bool ETTRegistry::SaveEntityPayload(const std::string &eid,
                                     const std::string &payload) {
   accessor acc;
@@ -152,6 +162,22 @@ bool ETTRegistry::SaveEntityPayload(const std::string &eid,
   } else {
     return false;
   }
+}
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+std::map<std::string, std::string>
+ETTRegistry::GetExistingEntities(const std::string &containerId) {
+  std::map<std::string, std::string> etts;
+  for (auto &[id, e] : _entities) {
+    if (e.ownerContainerId == containerId) {
+      nlohmann::json j;
+      j["payload"] = GetEntityPayload(id).value_or("{}");
+      j["ghost"] =
+          GHOSTSYSTEM.PeekProperties(id).value_or(nlohmann::json::object());
+      etts.insert({id, j.dump()});
+    }
+  }
+  return etts;
 }
 
 std::expected<std::string, std::string>
@@ -200,3 +226,47 @@ void ETTRegistry::SendEntityDeleteOrder(const std::string &id) {
   });
 }
 #endif
+
+void ETTRegistry::UploadInputData(std::string uuid, std::string inputName,
+                                  bool pressed, float x, float y) {
+  std::string ownerChunk = GetEntityOwnerContainer(uuid);
+  if (ownerChunk.empty()) {
+    return; // can't send inputs if not owned by a chunk
+  }
+  std::string cp = tp::input(ownerChunk);
+  req::InputUpdate inputUpdate;
+  inputUpdate.set_name(inputName);
+  inputUpdate.set_pressed(pressed);
+  inputUpdate.set_uuid(uuid);
+  inputUpdate.set_x(x);
+  inputUpdate.set_y(y);
+
+  CINPUT.GetWriterPool().Write<req::InputUpdate>(cp, inputUpdate);
+}
+
+void ETTRegistry::DeleteEntitiesInContainer(const std::string &containerId) {
+  std::map<std::string, std::string> toDelete;
+  std::cout << "\033[031mDELETE\033[0m foreach in " << containerId.substr(0, 4)
+            << std::endl;
+  for (auto it = _entities.begin(); it != _entities.end(); ++it) {
+    accessor acc;
+    if (_entities.find(acc, it->first)) {
+      std::cout << "\t["
+                << ((acc->second.ownerContainerId == containerId)
+                        ? "\033[31mx\033[0m"
+                        : "\033[032mV\033[0m")
+                << "] " << it->first.substr(0, 4) << std::endl;
+      if (acc->second.ownerContainerId == containerId) {
+        acc->second.isValid = false;
+        acc->second.quarantine = true;
+        toDelete.insert({it->first, acc->second.payload});
+      }
+    }
+    for (auto &[id, payload] : toDelete) {
+      RUNTIME.TopExecutor().PushTaskToEngine([this, id, payload]() {
+        RUNTIME.Hooks().onDeleteEntity(id, payload);
+        ETTRegistry::UnregisterEntity(id);
+      });
+    }
+  }
+}

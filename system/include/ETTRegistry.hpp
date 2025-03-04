@@ -1,6 +1,8 @@
 #pragma once
 #include "Entity.hpp"
+#include <exception>
 #include <expected>
+#include <iostream>
 #include <map>
 #include <optional>
 #include <string>
@@ -9,6 +11,18 @@
 #define ETTREGISTRY celte::ETTRegistry::GetInstance()
 
 namespace celte {
+
+class ETTAlreadyRegisteredException : public std::exception {
+public:
+  ETTAlreadyRegisteredException(const std::string &id)
+      : _id(id), _msg("Entity with id " + id + " already exists.") {}
+
+  const char *what() const noexcept override { return _msg.c_str(); }
+
+private:
+  std::string _id;
+  std::string _msg;
+};
 
 class ETTRegistry {
 public:
@@ -32,6 +46,11 @@ public:
   /// context of the engine.
   std::optional<std::function<void()>> PollEngineTask(const std::string &id);
 
+  /// @brief Calls the delete entity hook on all entities owned by the container
+  /// whose id is passed in argument.
+  /// @param containerId
+  void DeleteEntitiesInContainer(const std::string &containerId);
+
   inline storage &GetEntities() { return _entities; }
 
   /// @brief Instantiates an entity in the engine by calling the
@@ -43,8 +62,7 @@ public:
   /// @brief Runs a function with a lock on the entity.
   /// @param id
   /// @param f
-  inline void RunWithLock(const std::string &id,
-                          std::function<void(Entity &)> f) {
+  void RunWithLock(const std::string &id, std::function<void(Entity &)> f) {
     accessor acc;
     if (_entities.find(acc, id)) {
       f(acc->second);
@@ -111,6 +129,7 @@ public:
   /// onInstantiateEntity hook in the engine.
   void LoadExistingEntities(const std::string &grapeId,
                             const std::string &containerId);
+  bool SaveEntityPayload(const std::string &eid, const std::string &payload);
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 
@@ -119,7 +138,6 @@ public:
   /// @param containerId
   std::map<std::string, std::string>
   GetExistingEntities(const std::string &containerId);
-  bool SaveEntityPayload(const std::string &eid, const std::string &payload);
   std::expected<std::string, std::string>
   GetEntityPayload(const std::string &eid);
 
@@ -130,10 +148,17 @@ public:
   void SendEntityDeleteOrder(const std::string &id);
 #endif
 
+  ///@brief Send an input to kafka, this will trigger a RPC in the other client
+  /// and server. Define in CelteInputSystem
+  ///@param inputName String name/id of the input
+  ///@param pressed   Bool   status of the input (true for down false for up)
+  void UploadInputData(std::string uuid, std::string inputName, bool pressed,
+                       float x = 0, float y = 0);
+
   /// @brief  Returns true if the entity is registered in the registry.
   /// @param id
   /// @return true if the entity is registered, false otherwise.
-  inline bool IsEntityRegistered(const std::string &id) {
+  bool IsEntityRegistered(const std::string &id) {
     accessor acc;
     return _entities.find(acc, id);
   }

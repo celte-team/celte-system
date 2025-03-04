@@ -1,5 +1,6 @@
 #pragma once
 #include "CelteService.hpp"
+#include "GhostSystem.hpp"
 #include "RPCService.hpp"
 #include "systems_structs.pb.h"
 #include <atomic>
@@ -38,6 +39,12 @@ public:
   inline const std::string &GetGrapeId() const { return _grapeId; }
 
   inline bool IsLocallyOwned() const { return _isLocallyOwned; }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  inline std::shared_ptr<net::WriterStream> GetReplicationWriterStream() {
+    return _replws;
+  }
+#endif
 
   /// @brief Manually set the id of a container. Called when creating a
   /// container on the order of a server node, in
@@ -94,6 +101,8 @@ public:
     /// @warning Do not store the result of this method, as the reference
     /// may be invalidated.
     inline Container &GetContainer() { return *container; }
+
+    inline std::shared_ptr<Container> GetContainerPtr() { return container; }
 
     void IncRefCount() { refCount.fetch_add(1, std::memory_order_relaxed); }
 

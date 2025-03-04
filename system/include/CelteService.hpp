@@ -2,6 +2,7 @@
 #include "CelteNet.hpp"
 #include "ReaderStream.hpp"
 #include "Runtime.hpp"
+#include "TrashBin.hpp"
 #include "WriterStream.hpp"
 #include "nlohmann/json.hpp"
 #include "pulsar/Schema.h"
@@ -13,7 +14,7 @@ namespace net {
 // This class is the base class for all network services. It provides basic
 // functionality for connecting to the network and sending and receiving
 // messages, and creating a stream of messages.
-class CelteService {
+class CelteService : public ITrashable {
 public:
   inline std::optional<std::shared_ptr<WriterStream>>
   GetWriterStream(const std::string &topic) {
@@ -22,16 +23,10 @@ public:
     return _writerStreams[topic];
   }
 
+  /// @brief overrides ITrashable __cleanup.
+  void __cleanup() override;
+
 protected:
-  inline void _destroyReaderStream(std::shared_ptr<ReaderStream> stream) {
-    _readerStreams.erase(
-        std::remove_if(_readerStreams.begin(), _readerStreams.end(),
-                       [stream](auto &s) { return s == stream; }),
-        _readerStreams.end());
-  }
-
-  inline void _destroyAllReaderStreams() { _readerStreams.clear(); }
-
   inline void _destroyWriterStream(const std::string &topic) {
     _writerStreams.erase(topic);
   }

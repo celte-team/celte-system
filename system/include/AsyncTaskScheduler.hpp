@@ -24,6 +24,9 @@ public:
   /// @brief Waits for all tasks to complete.
   void Wait();
 
+  /// @brief Returns the task arena.
+  tbb::task_arena &GetArena() { return arena; }
+
 private:
   tbb::task_arena arena; ///< Manages the thread pool and its size.
   tbb::task_group group; ///< Executes and manages scheduled tasks.

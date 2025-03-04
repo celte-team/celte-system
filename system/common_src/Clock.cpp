@@ -22,7 +22,7 @@ void Clock::Start() {
           }});
 }
 
-void Clock::Stop() { _destroyAllReaderStreams(); }
+void Clock::Stop() { __cleanup(); }
 
 Clock::timepoint Clock::GetUnifiedTime() {
   std::lock_guard<std::mutex> lock(_mutex);

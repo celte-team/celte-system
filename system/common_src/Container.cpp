@@ -1,5 +1,13 @@
+/*
+** EPITECH PROJECT, 2025
+** celte-system
+** File description:
+** Container
+*/
+
 #include "AuthorityTransfer.hpp"
 #include "CelteError.hpp"
+#include "CelteInputSystem.hpp"
 #include "Container.hpp"
 #include "GrapeRegistry.hpp"
 #include "Logger.hpp"
@@ -72,23 +80,33 @@ void Container::__initStreams() {
         net::WriterStream::Options{.topic = {tp::repl(_id)}});
   } else {
 #endif
-
     _createReaderStream<req::ReplicationDataPacket>(
         {.thisPeerUuid = RUNTIME.GetUUID(),
-         .topics = {tp::peer(RUNTIME.GetUUID())},
+         .topics = {tp::repl(_id)},
          .subscriptionName = tp::peer(RUNTIME.GetUUID()),
          .exclusive = false,
          .messageHandlerSync = [this](const pulsar::Consumer,
                                       req::ReplicationDataPacket req) {},
          .messageHandler =
              [this](const pulsar::Consumer, req::ReplicationDataPacket req) {
-               std::cout << "[[Container]] handling replication data packet : "
-                         << req.DebugString() << std::endl;
+               GhostSystem::HandleReplicationPacket(req);
              }});
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   }
 #endif
+
+  _createReaderStream<req::InputUpdate>({
+      .thisPeerUuid = RUNTIME.GetUUID(),
+      .topics = {tp::input(_id)},
+      .subscriptionName = tp::peer(RUNTIME.GetUUID()),
+      .exclusive = false,
+      .messageHandlerSync =
+          [this](const pulsar::Consumer, req::InputUpdate req) {
+            CINPUT.HandleInput(req.uuid(), req.name(), req.pressed(), req.x(),
+                               req.y());
+          },
+  });
 }
 
 void Container::__rp_containerTakeAuthority(const std::string &args) {
@@ -131,7 +149,8 @@ void ContainerRegistry::RunWithLock(const std::string &containerId,
   if (_containers.find(acc, containerId)) {
     f(acc->second);
   } else {
-    std::cerr << "Container not found: " << containerId << std::endl;
+    std::cerr << "Lock on container failed, container was not found: "
+              << containerId << std::endl;
   }
 }
 
@@ -162,6 +181,8 @@ void ContainerRegistry::UpdateRefCount(const std::string &containerId) {
   accessor acc;
   if (_containers.find(acc, containerId)) {
     if (acc->second.container.use_count() == 1) {
+      ETTREGISTRY.DeleteEntitiesInContainer(containerId);
+      RUNTIME.GetTrashBin().TrashItem(std::move(acc->second.GetContainerPtr()));
       _containers.erase(acc);
       LOGDEBUG("Container " + containerId +
                " is no longer referenced and has been deleted.");

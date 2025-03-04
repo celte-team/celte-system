@@ -13,8 +13,15 @@ message SpawnPositionRequest {
 }
 
 message ReplicationDataPacket {
-  map<string, string> data = 1; // entity id -> blob
-  bool active = 2;
+  string data = 1; // serialized json
+}
+
+message InputUpdate {
+  string name = 1;
+  bool pressed = 2;
+  string uuid = 3;
+  float x = 4;
+  float y = 5;
 }
 
 message RPRequest {

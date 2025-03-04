@@ -22,10 +22,13 @@ struct HookTable {
   /// client should connect to a grape in order to be able to load the map and
   /// start playing.
   /// @param clientId The unique identifier of the client.
-  std::function<std::string(const std::string &)> onAcceptNewClient =
-      UNIMPLEMENTED<std::string, const std::string &>;
+  std::function<void(const std::string &)> onAcceptNewClient =
+      UNIMPLEMENTED<void, const std::string &>;
 
   std::function<void(const std::string &)> onClientRequestDisconnect =
+      UNIMPLEMENTED<void, const std::string &>;
+
+  std::function<void(const std::string &)> onClientNotSeen =
       UNIMPLEMENTED<void, const std::string &>;
 
 #else  // client only hooks
@@ -33,13 +36,14 @@ struct HookTable {
 
   /// @brief Called when a client disconnects from the cluster.
   /// @param clientId The unique identifier of the client.
-  std::function<void(std::string, std::string)> onClientDisconnect =
-      UNIMPLEMENTED<void, std::string, std::string>;
+  std::function<void(const std::string &, const std::string &)>
+      onClientDisconnect =
+          UNIMPLEMENTED<void, const std::string &, const std::string &>;
 
   /// @brief Called when a grape is loaded (the game should load the map and the
   /// CSN object associated with it).
-  std::function<void(std::string, bool)> onLoadGrape =
-      UNIMPLEMENTED<void, std::string, bool>;
+  std::function<void(const std::string &, bool)> onLoadGrape =
+      UNIMPLEMENTED<void, const std::string &, bool>;
 
   /// @brief Called when the connection to the cluster is unsuccessful.
   std::function<void()> onConnectionFailed = UNIMPLEMENTED<void>;
@@ -48,14 +52,15 @@ struct HookTable {
   std::function<void()> onConnectionSuccess = UNIMPLEMENTED<void>;
 
   /// @brief Called when an entity has to be instantiated in the engine.
-  std::function<void(std::string, std::string)> onInstantiateEntity =
-      UNIMPLEMENTED<void, std::string, std::string>;
+  std::function<void(const std::string &, const std::string &)>
+      onInstantiateEntity =
+          UNIMPLEMENTED<void, const std::string &, const std::string &>;
 
   /// @brief Called when an entity has to be deleted in the engine.
   /// @param entityId The unique identifier of the entity.
   /// @param payload The payload of the entity.
-  std::function<void(std::string, std::string)> onDeleteEntity =
-      UNIMPLEMENTED<void, std::string, std::string>;
+  std::function<void(const std::string &, const std::string &)> onDeleteEntity =
+      UNIMPLEMENTED<void, const std::string &, const std::string &>;
 
   /* ----------------------------- ERROR HANDLERS -----------------------------
    */
