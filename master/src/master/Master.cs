@@ -1,7 +1,5 @@
 
-using Celte.Req;
 using DotPulsar;
-using Google.Protobuf;
 
 class Master
 {
@@ -10,6 +8,7 @@ class Master
     public PulsarConsumer pulsarConsumer;
     public PulsarProducer pulsarProducer;
     public CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    public Celte.Master.K8s.K8s k8s;
     public RPC rpc = new RPC();
     private readonly DotPulsar.PulsarClient _client;
 
@@ -25,15 +24,25 @@ class Master
             {
                 _master = this;
             }
+            // SetupConfig
             _setupConfig = new SetupConfig(Environment.GetCommandLineArgs());
             _setupConfig.SettingUpMaster();
+
+            // Redis
             Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
+
+            // K8s
+            k8s = new Celte.Master.K8s.K8s();
+            k8s.IsDeploymentReady();
+
+            // Pulsar
             string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
             Console.WriteLine($"Pulsar brokers: {pulsarBrokers}");
             if (string.IsNullOrEmpty(pulsarBrokers))
             {
                 throw new ArgumentException("Pulsar brokers are not set.");
             }
+            // Pulsar Client
             _client = (PulsarClient)PulsarClient.Builder()
                 .ServiceUrl(new Uri(pulsarBrokers))
                 .Build();
