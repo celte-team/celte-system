@@ -1,4 +1,3 @@
-
 using DotPulsar;
 
 class Master
@@ -32,9 +31,16 @@ class Master
             Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();
 
             // K8s
-            k8s = new Celte.Master.K8s.K8s();
-            k8s.IsDeploymentReady();
-
+            // Check if production mode is enabled
+            if (_setupConfig.IsProduction())
+            {
+                k8s = new Celte.Master.K8s.K8s(_setupConfig.GetYamlObjectConfig());
+                k8s.IsDeploymentReady();
+            } else {
+                Console.WriteLine("Production mode is disabled.");
+                // read
+                //
+            }
             // Pulsar
             string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
             Console.WriteLine($"Pulsar brokers: {pulsarBrokers}");
