@@ -30,11 +30,6 @@ spec:
         - name: {{ .name }}
           value: {{ .value | quote }}
         {{- end }}
-        # volumeMounts:
-        #   {{- range .Values.master.volumeMounts }}
-        #   - name: {{ .name }}
-        #     mountPath: {{ .mountPath }}
-        #   {{- end }}
         resources:
           requests:
             cpu: {{ .Values.master.resources.requests.cpu }}
@@ -42,8 +37,3 @@ spec:
           limits:
             cpu: {{ .Values.master.resources.limits.cpu }}
             memory: {{ .Values.master.resources.limits.memory }}
-      # volumes:
-      #   {{- range .Values.master.volumes }}
-      #   - name: {{ .name }}
-      #     {{ .type }}
-      #   {{- end }}

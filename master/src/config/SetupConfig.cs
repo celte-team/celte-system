@@ -1,6 +1,5 @@
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using Celte.Master.K8s;
 
 class SetupConfig
 {
@@ -33,23 +32,30 @@ class SetupConfig
         {
             GetConfigFile();
             GetNumberOfGrapes();
-            // if production is true, then we need to get the number of replicas
-            if (_yamlObject != null && _yamlObject.ContainsKey("production"))
-            {
-                var production = Convert.ToBoolean(_yamlObject["production"]);
-                if (production)
-                {
-                    Console.WriteLine("Production is true, getting number of replicas...");
-                    var k8s = new K8s();
-                    k8s.SnIncrease();
-                }
-            }
         }
         catch (Exception e)
         {
             Console.WriteLine($"Error initializing Master: {e.Message}");
         }
+    }
 
+    public bool IsProduction()
+    {
+        if (_yamlObject != null && _yamlObject.ContainsKey("production"))
+        {
+            return Convert.ToBoolean(_yamlObject["production"]);
+        }
+        return false;
+    }
+
+    // get any variable from the yaml file
+    public string GetVariable(string variable)
+    {
+        if (_yamlObject != null && _yamlObject.ContainsKey(variable))
+        {
+            return _yamlObject[variable].ToString();
+        }
+        return "";
     }
 
     private int GetNumberOfGrapes()

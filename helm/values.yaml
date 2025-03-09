@@ -1,3 +1,4 @@
+# helm install celte-stack ./helm
 # Master Configuration
 master:
   name: master
@@ -18,12 +19,12 @@ master:
     port: 8080
   environment:
     - name: PULSAR_BROKERS
-      value: pulsar://10.220.123.187:6650
+      value: pulsar://192.168.0.161:6650
     - name: REDIS_HOST
-      value: 10.220.123.187:6379
+      value: 192.168.0.161:6379
   autoscaling:
     enabled: true
-    minReplicas: 3
+    minReplicas: 1
     maxReplicas: 5
     targetCPUUtilizationPercentage: 80
     targetMemoryUtilizationPercentage: 80
@@ -46,9 +47,9 @@ serverNode:
       memory: 1024Mi
   environment:
     - name: CELTE_HOST
-      value: 10.220.123.187
+      value: 192.168.0.161
     - name: REDIS_HOST
-      value: 10.220.123.187
+      value: 192.168.0.161
   service:
     type: ClusterIP
     port: 8080

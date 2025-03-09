@@ -2,4 +2,9 @@ grapes:
 - LeChateauDuMechant
 - LeChateauDuGentil
 
+#  Kubernetes configuration:
 production: true
+namespace: celte
+deploymentName: server-node
+maxReplicas: 5
+minReplicas: 1

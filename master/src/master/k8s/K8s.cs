@@ -1,35 +1,52 @@
 using k8s;
-
+using System.Text.Json;
 namespace Celte.Master.K8s
 {
     public class K8s
     {
-        private static readonly string Namespace = "celte";
-        private static readonly string DeploymentName = "server-node";
-        private static readonly int MaxReplicas = 100;
+        private static string _namespace;
+        private static string _deploymentName;
+        private int _maxReplicas = 0;
+        private int _minReplicas = 1;
         private static IKubernetes _kubernetesClient;
 
-        public K8s()
+        public K8s(Dictionary<string, object>? yamlObject)
         {
-            var config = KubernetesClientConfiguration.InClusterConfig();
-            _kubernetesClient = new Kubernetes(config);
-            Console.WriteLine($"Kubernetes client initialized in namespace: {Namespace}");
-        }
-
-        public static async Task<K8s> CreateAsync()
-        {
-            var config = KubernetesClientConfiguration.InClusterConfig();
-            var kubernetesClient = new Kubernetes(config);
-            Console.WriteLine($"Kubernetes client initialized 2 in namespace: {Namespace}");
-            return new K8s();
+            try
+            {
+                var config = KubernetesClientConfiguration.InClusterConfig();
+                _kubernetesClient = new Kubernetes(config);
+                if (_kubernetesClient == null)
+                {
+                    throw new Exception("Kubernetes client is not initialized.");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error initializing Kubernetes client: {e.Message}\n{e.StackTrace}");
+            }
+            try
+            {
+                _maxReplicas = int.Parse(yamlObject?["maxReplicas"].ToString());
+                _minReplicas = int.Parse(yamlObject?["minReplicas"].ToString());
+                _deploymentName = yamlObject?["deploymentName"].ToString();
+                _namespace = yamlObject?["namespace"].ToString();
+                Console.WriteLine($"Kubernetes client initialized in namespace: {_namespace} \nwith containerId : {Environment.GetEnvironmentVariable("HOSTNAME")}");
+                Console.WriteLine($"Let's try to create a new SN!");
+                SnIncrease();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error parsing replica values: {e.Message}\n{e.StackTrace}");
+            }
         }
 
         public async Task<bool> IsDeploymentReady()
         {
             try
             {
-                var deployment = await _kubernetesClient.AppsV1.ReadNamespacedDeploymentAsync(DeploymentName, Namespace);
-                Console.WriteLine($"Deployment {DeploymentName} status: {deployment.Status.ReadyReplicas} OK");
+                var deployment = await _kubernetesClient.AppsV1.ReadNamespacedDeploymentAsync(_deploymentName, _namespace);
+                Console.WriteLine($"Deployment {_deploymentName} status: {deployment.Status.ReadyReplicas} OK");
                 return deployment.Status.ReadyReplicas > 0;
             }
             catch (Exception e)
@@ -43,14 +60,14 @@ namespace Celte.Master.K8s
         {
             try
             {
-                var deployment = await _kubernetesClient.AppsV1.ReadNamespacedDeploymentAsync(DeploymentName, Namespace);
+                var deployment = await _kubernetesClient.AppsV1.ReadNamespacedDeploymentAsync(_deploymentName, _namespace);
                 int currentReplicas = deployment.Spec.Replicas ?? 1;
-                if (currentReplicas < MaxReplicas)
+                if (currentReplicas < _maxReplicas)
                 {
-                    int newReplicas = Math.Min(currentReplicas + 1, MaxReplicas);
+                    int newReplicas = Math.Min(currentReplicas + 1, _maxReplicas);
                     deployment.Spec.Replicas = newReplicas;
-                    await _kubernetesClient.AppsV1.ReplaceNamespacedDeploymentAsync(deployment, DeploymentName, Namespace);
-                    Console.WriteLine($"Deployment {DeploymentName} scaled to {newReplicas} replicas");
+                    await _kubernetesClient.AppsV1.ReplaceNamespacedDeploymentAsync(deployment, _deploymentName, _namespace);
+                    Console.WriteLine($"Deployment {_deploymentName} scaled to {newReplicas} replicas");
                 }
                 return true;
             }
@@ -65,19 +82,19 @@ namespace Celte.Master.K8s
         {
             try
             {
-                var pod = await _kubernetesClient.CoreV1.ReadNamespacedPodAsync(snId, Namespace);
+                var pod = await _kubernetesClient.CoreV1.ReadNamespacedPodAsync(snId, _namespace);
 
-                await _kubernetesClient.CoreV1.DeleteNamespacedPodAsync(snId, Namespace);
+                await _kubernetesClient.CoreV1.DeleteNamespacedPodAsync(snId, _namespace);
                 Console.WriteLine($"Successfully deleted pod {snId}");
 
-                var deployment = await _kubernetesClient.AppsV1.ReadNamespacedDeploymentAsync(DeploymentName, Namespace);
+                var deployment = await _kubernetesClient.AppsV1.ReadNamespacedDeploymentAsync(_deploymentName, _namespace);
                 int currentReplicas = deployment.Spec.Replicas ?? 1;
 
-                if (currentReplicas > 1) // Keep at least 1 SN
+                if (currentReplicas > _minReplicas)
                 {
                     deployment.Spec.Replicas = currentReplicas - 1;
-                    await _kubernetesClient.AppsV1.ReplaceNamespacedDeploymentAsync(deployment, DeploymentName, Namespace);
-                    Console.WriteLine($"Deployment {DeploymentName} updated to {currentReplicas - 1} replicas");
+                    await _kubernetesClient.AppsV1.ReplaceNamespacedDeploymentAsync(deployment, _deploymentName, _namespace);
+                    Console.WriteLine($"Deployment {_deploymentName} updated to {currentReplicas - 1} replicas");
                 }
                 return true;
             }
