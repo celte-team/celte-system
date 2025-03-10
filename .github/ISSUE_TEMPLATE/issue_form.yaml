@@ -1,0 +1,55 @@
+name: Issue Report
+description: Create a new issue to describe a problem, feature, or improvement.
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: "## 📌 Description\nClearly describe the problem, feature, or improvement to be made."
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Clearly describe the problem, feature, or improvement.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "## 🎯 Objective\nExplain why this issue is necessary and what the intended goal is."
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: Explain why this issue is necessary and what the intended goal is.
+
+  - type: markdown
+    attributes:
+      value: "## 🔍 Context\nProvide contextual details such as reasons for this issue, links to discussions, or relevant references."
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any relevant context, references, or discussions.
+
+  - type: markdown
+    attributes:
+      value: "## ✅ Acceptance Criteria\nList the conditions that must be met for the issue to be considered resolved."
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List the conditions that must be met for the issue to be considered resolved.
+
+  - type: markdown
+    attributes:
+      value: "## 🪢 Related Issues or Sub-Issues\nList any related issues or sub-issues that are part of this task."
+
+  - type: textarea
+    id: related_issues
+    attributes:
+      label: Related Issues
+      description: List related issues or sub-issues.
