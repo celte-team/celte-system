@@ -92,7 +92,7 @@ void Runtime::CallScopedRPCNoRetVal(const std::string &scope,
               << std::endl;
     return;
   }
-  _peerService->GetRPCService().CallVoid(tp::rpc(scope), name, args);
+  _peerService->GetRPCService().CallVoid(tp::default_scope + scope, name, args);
 }
 
 std::string Runtime::CallScopedRPC(const std::string &scope,
