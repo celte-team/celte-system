@@ -1,10 +1,5 @@
-using System;
-using System.IO;
-using System.Linq;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 class SetupConfig
 {
@@ -42,7 +37,25 @@ class SetupConfig
         {
             Console.WriteLine($"Error initializing Master: {e.Message}");
         }
+    }
 
+    public bool IsProduction()
+    {
+        if (_yamlObject != null && _yamlObject.ContainsKey("production"))
+        {
+            return Convert.ToBoolean(_yamlObject["production"]);
+        }
+        return false;
+    }
+
+    // get any variable from the yaml file
+    public string GetVariable(string variable)
+    {
+        if (_yamlObject != null && _yamlObject.ContainsKey(variable))
+        {
+            return _yamlObject[variable].ToString();
+        }
+        return "";
     }
 
     private int GetNumberOfGrapes()
