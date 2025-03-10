@@ -48,7 +48,7 @@ class Program
                         redis.redisData.JSONRemove("logs");
                         redis.redisData.JSONRemove("clients_try_to_connect");
                     } catch (Exception e) {
-                        // Console.WriteLine($"Error deleting node from Redis: {e.Message}");
+                        Console.WriteLine($"Warning: Error during Redis cleanup: {e.Message}");
                     }
                     Environment.Exit(0);
                 }
