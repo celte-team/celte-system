@@ -34,8 +34,13 @@ class Master
             // Check if production mode is enabled
             if (_setupConfig.IsProduction())
             {
-                k8s = new Celte.Master.K8s.K8s(_setupConfig.GetYamlObjectConfig());
-                k8s.IsDeploymentReady();
+                try {
+                    k8s = new Celte.Master.K8s.K8s(_setupConfig.GetYamlObjectConfig());
+                    k8s.IsDeploymentReady();
+                } catch (Exception e) {
+                    Console.WriteLine($"Error initializing Kubernetes client: {e.Message}");
+                    // Decide if this should be fatal or if the application can continue
+                }
             } else {
                 Console.WriteLine("Production mode is disabled.");
                 // read
