@@ -82,6 +82,19 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
 #endif
 }
 
+/**
+ * @brief Executes the drop order process for an entity.
+ *
+ * This function checks whether the target container exists for the given entity. If the target container does not exist,
+ * the entity is marked as invalid and quarantined. When running in server mode, if the source and target containers differ,
+ * the entity is removed from its source container. Finally, if the target container is still absent, the function logs a deletion
+ * message and schedules the entity for deletion by pushing a task to the engine.
+ *
+ * @param e The entity to be processed for the drop order.
+ * @param toContainerId Identifier of the target container; absence leads to entity quarantine and deletion.
+ * @param fromContainerId Identifier of the source container; if differing from the target, triggers removal of the entity.
+ * @param procedureId Identifier for the drop order procedure (currently unused).
+ */
 static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
                                 const std::string &fromContainerId,
                                 const std::string &procedureId) {
@@ -118,6 +131,28 @@ static void applyGhostToEntity(const std::string &entityId,
   }
 }
 
+/**
+ * @brief Executes an authority take order based on the provided JSON arguments.
+ *
+ * This function schedules a task to transfer authority for an entity by updating its
+ * owner to a target container at a specified time. It extracts order details from the
+ * JSON object, including the entity identifier ("e"), target container identifier ("t"),
+ * source container identifier ("f"), procedure identifier ("p"), execution time in ISO format ("w"),
+ * payload details ("payload"), and ghost data ("g"). Within the scheduled task, the function
+ * updates the entity's ownership and clears its quarantine status if the entity exists. If the
+ * entity is not registered, it pushes a task to instantiate the entity and apply ghost data.
+ *
+ * @param args JSON object containing order details:
+ *             - "e": Entity identifier.
+ *             - "t": Target container identifier.
+ *             - "f": Source container identifier.
+ *             - "p": Procedure identifier.
+ *             - "w": Execution time in ISO format.
+ *             - "payload": Payload with additional transfer details.
+ *             - "g": Ghost data for updating the entity.
+ *
+ * @note In server mode, the new entity is also registered to the target container.
+ */
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing take order.\n" + args.dump());

@@ -168,13 +168,41 @@ EXPORT bool IsEntityLocallyOwned(const std::string &entityId) {
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
+/**
+ * @brief Updates the state of a specific property for an entity.
+ *
+ * This function assigns a new value to the property identified by the given key for the entity
+ * associated with the provided entity ID.
+ *
+ * @param eid Unique identifier of the entity.
+ * @param key Identifier of the property to update.
+ * @param value New value to assign to the property.
+ */
 EXPORT void UpdatePropertyState(const std::string &eid, const std::string &key,
                                 const std::string &value) {
   GHOSTSYSTEM.UpdatePropertyState(eid, key, value);
 }
+/**
+ * @brief Retrieves the assigned grape identifier.
+ *
+ * This function fetches the grape ID from the runtime environment and returns it as a string. It is available only when CELTE_SERVER_MODE_ENABLED is enabled.
+ *
+ * @return std::string The assigned grape identifier.
+ */
 EXPORT std::string GetAssignedGrapeId() { return RUNTIME.GetAssignedGrape(); }
 #endif
 
+/**
+ * @brief Polls for an updated property value of a specified entity.
+ *
+ * Checks if there is an update for the property identified by the provided key on the given entity.
+ * If an update is available, the new property value is returned wrapped in a std::optional; otherwise,
+ * an empty optional is returned.
+ *
+ * @param eid The unique identifier of the entity.
+ * @param key The key corresponding to the property to be polled.
+ * @return std::optional<std::string> The updated property value if available, otherwise std::nullopt.
+ */
 EXPORT std::optional<std::string> PollPropertyUpdate(const std::string &eid,
                                                      const std::string &key) {
   return GHOSTSYSTEM.PollPropertyUpdate(eid, key);
