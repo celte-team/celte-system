@@ -43,6 +43,18 @@ void CelteNet::CreateProducer(ProducerOptions &options) {
       });
 }
 
+/**
+ * @brief Creates a Pulsar consumer asynchronously.
+ *
+ * Configures the subscription using the provided options, sets a message listener that copies incoming messages to
+ * ensure controlled message lifecycle management, calls the specified message handler, and acknowledges the original message.
+ * The resulting consumer is delivered via asynchronous callbacks defined in the options.
+ *
+ * @param options Contains subscription configuration details including topics, subscription name, message handler,
+ *                and callbacks for handling the consumer creation result.
+ *
+ * @throws CelteNetException if the client is not initialized or if the message handler is not set.
+ */
 void CelteNet::CreateConsumer(SubscribeOptions &options) {
   if (!_client) {
     throw CelteNetException("Client not initialized");
