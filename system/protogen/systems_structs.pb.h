@@ -607,6 +607,7 @@ class RPRequest final :
     kResponseTopicFieldNumber = 3,
     kRpcIdFieldNumber = 4,
     kArgsFieldNumber = 5,
+    kErrorStatusFieldNumber = 6,
   };
   // string name = 1;
   void clear_name() ;
@@ -688,13 +689,23 @@ class RPRequest final :
   std::string* _internal_mutable_args();
 
   public:
+  // bool error_status = 6;
+  void clear_error_status() ;
+  bool error_status() const;
+  void set_error_status(bool value);
+
+  private:
+  bool _internal_error_status() const;
+  void _internal_set_error_status(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:celte.req.RPRequest)
  private:
   class _Internal;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<
-      3, 5, 0,
+      3, 6, 0,
       67, 2>
       _table_;
   friend class ::google::protobuf::MessageLite;
@@ -716,6 +727,7 @@ class RPRequest final :
     ::google::protobuf::internal::ArenaStringPtr response_topic_;
     ::google::protobuf::internal::ArenaStringPtr rpc_id_;
     ::google::protobuf::internal::ArenaStringPtr args_;
+    bool error_status_;
     mutable ::google::protobuf::internal::CachedSize _cached_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -2067,6 +2079,29 @@ inline void RPRequest::set_allocated_args(std::string* value) {
         }
   #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   // @@protoc_insertion_point(field_set_allocated:celte.req.RPRequest.args)
+}
+
+// bool error_status = 6;
+inline void RPRequest::clear_error_status() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.error_status_ = false;
+}
+inline bool RPRequest::error_status() const {
+  // @@protoc_insertion_point(field_get:celte.req.RPRequest.error_status)
+  return _internal_error_status();
+}
+inline void RPRequest::set_error_status(bool value) {
+  _internal_set_error_status(value);
+  // @@protoc_insertion_point(field_set:celte.req.RPRequest.error_status)
+}
+inline bool RPRequest::_internal_error_status() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.error_status_;
+}
+inline void RPRequest::_internal_set_error_status(bool value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.error_status_ = value;
 }
 
 // -------------------------------------------------------------------
