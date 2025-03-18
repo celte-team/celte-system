@@ -2,6 +2,7 @@
 #include "Container.hpp"
 #include "ETTRegistry.hpp"
 #include "GhostSystem.hpp"
+#include "Grape.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
@@ -132,25 +133,49 @@ void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
                                        const std::string &containerId) {
   std::cout << "\033[032mLOAD\033[0m foreach in " << containerId.substr(0, 4)
             << std::endl;
-  RUNTIME.GetPeerService()
-      .GetRPCService()
-      .CallAsync<std::map<std::string, std::string>>(
-          tp::peer(grapeId), "__rp_getExistingEntities", containerId)
-      .Then([this,
-             containerId](const std::map<std::string, std::string> &entities) {
-        for (auto &[id, data] : entities) {
-          try {
-            auto j = nlohmann::json::parse(data);
-            std::string payload = j["payload"];
-            nlohmann::json ghost = j["ghost"];
-            GHOSTSYSTEM.ApplyUpdate(id, ghost);
-            EngineCallInstantiate(id, payload, containerId);
-          } catch (const std::exception &e) {
-            std::cerr << "Error while loading entity " << id << ": " << e.what()
-                      << std::endl;
-          }
-        }
-      });
+  // RUNTIME.GetPeerService()
+  //     .GetRPCService()
+  //     .CallAsync<std::map<std::string, std::string>>(
+  //         tp::peer(grapeId), "__rp_getExistingEntities", containerId)
+  //     .Then([this,
+  //            containerId](const std::map<std::string, std::string> &entities)
+  //            {
+  //       for (auto &[id, data] : entities) {
+  //         try {
+  //           auto j = nlohmann::json::parse(data);
+  //           std::string payload = j["payload"];
+  //           nlohmann::json ghost = j["ghost"];
+  //           GHOSTSYSTEM.ApplyUpdate(id, ghost);
+  //           EngineCallInstantiate(id, payload, containerId);
+  //         } catch (const std::exception &e) {
+  //           std::cerr << "Error while loading entity " << id << ": " <<
+  //           e.what()
+  //                     << std::endl;
+  //         }
+  //       }
+  //     });
+  CallGrapeGetExistingEntities()
+      .on_peer(grapeId)
+      .on_fail_do([grapeId](auto &e) {
+        std::cout << "Failed to load existing entities" << std::endl;
+      })
+      .with_timeout(std::chrono::milliseconds(1000))
+      .retry(3)
+      .call_async(std::function<void(std::map<std::string, std::string>)>(
+          [this, containerId](std::map<std::string, std::string> entities) {
+            for (auto &[id, data] : entities) {
+              try {
+                auto j = nlohmann::json::parse(data);
+                std::string payload = j["payload"];
+                nlohmann::json ghost = j["ghost"];
+                GHOSTSYSTEM.ApplyUpdate(id, ghost);
+                EngineCallInstantiate(id, payload, containerId);
+              } catch (const std::exception &e) {
+                std::cerr << "Error while loading entity " << id << ": "
+                          << e.what() << std::endl;
+              }
+            }
+          }));
 }
 
 bool ETTRegistry::SaveEntityPayload(const std::string &eid,
@@ -219,8 +244,16 @@ void ETTRegistry::SendEntityDeleteOrder(const std::string &id) {
             return;
           }
           RUNTIME.ScheduleAsyncIOTask([id, ownerContainer, payload]() {
-            RUNTIME.GetPeerService().GetRPCService().CallVoid(
-                tp::rpc(ownerContainer), "__rp_deleteEntity", id, payload);
+            //   RUNTIME.GetPeerService().GetRPCService().CallVoid(
+            //       tp::rpc(ownerContainer), "__rp_deleteEntity", id, payload);
+            // });
+            CallContainerDeleteEntity()
+                .on_peer(ownerContainer)
+                .on_fail_log_error()
+                .fire_and_forget(id, payload);
+            // .call<void>(id,
+            //             payload); // TODO : check if this is correct, <void>
+            //                       // ret type might need fire and forget
           });
         });
   });

@@ -257,11 +257,12 @@ EXPORT void RegisterGrapeRPC(const std::string &grapeId,
                              const std::string &name,
                              std::function<std::string(std::string)> f) {
   GRAPES.RunWithLock(grapeId, [name, f](celte::Grape &g) {
-    if (!g.rpcService.has_value()) {
-      throw std::runtime_error(
-          "Grape has no RPC service, or it has not been initialized yet.");
-    }
-    g.rpcService->Register<std::string>(name, f);
+    // if (!g.rpcService.has_value()) {
+    //   throw std::runtime_error(
+    //       "Grape has no RPC service, or it has not been initialized yet.");
+    // }
+    // g.rpcService->Register<std::string>(name, f);
+    std::cout << "RegisterGrapeRPC not implemented yet" << std::endl;
   });
 }
 

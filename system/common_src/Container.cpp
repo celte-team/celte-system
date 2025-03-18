@@ -32,9 +32,9 @@ Container::Container()
 
 void Container::WaitForNetworkReady(std::function<void()> onReady) {
   RUNTIME.ScheduleAsyncTask([this, onReady]() {
-    while (!_rpcService.Ready()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+    // while (!_rpcService.Ready()) {
+    //   std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    // }
     while (not std::all_of(_readerStreams.begin(), _readerStreams.end(),
                            [](auto &rs) { return rs->Ready(); })) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -43,34 +43,42 @@ void Container::WaitForNetworkReady(std::function<void()> onReady) {
   });
 }
 
-Container::~Container() {}
+Container::~Container() {
+  ContainerTakeAuthorityReactor::unsubscribe(tp::rpc(_id));
+  ContainerDropAuthorityReactor::unsubscribe(tp::rpc(_id));
+  ContainerDeleteEntityReactor::unsubscribe(tp::rpc(_id));
+}
 
 void Container::__initRPCs() {
 
-  _rpcService.Init(
-      net::RPCService::Options{.thisPeerUuid = RUNTIME.GetUUID(),
-                               .listenOn = {tp::rpc(_id)},
-                               .reponseTopic = tp::peer(RUNTIME.GetUUID()),
-                               .serviceName = tp::rpc(_id)});
+  // _rpcService.Init(
+  //     net::RPCService::Options{.thisPeerUuid = RUNTIME.GetUUID(),
+  //                              .listenOn = {tp::rpc(_id)},
+  //                              .reponseTopic = tp::peer(RUNTIME.GetUUID()),
+  //                              .serviceName = tp::rpc(_id)});
 
-  _rpcService.Register<bool>("__rp_containerTakeAuthority",
-                             std::function([this](std::string args) {
-                               __rp_containerTakeAuthority(args);
-                               return true;
-                             }));
+  // _rpcService.Register<bool>("__rp_containerTakeAuthority",
+  //                            std::function([this](std::string args) {
+  //                              __rp_containerTakeAuthority(args);
+  //                              return true;
+  //                            }));
 
-  _rpcService.Register<bool>("__rp_containerDropAuthority",
-                             std::function([this](std::string args) {
-                               __rp_containerDropAuthority(args);
-                               return true;
-                             }));
+  // _rpcService.Register<bool>("__rp_containerDropAuthority",
+  //                            std::function([this](std::string args) {
+  //                              __rp_containerDropAuthority(args);
+  //                              return true;
+  //                            }));
 
-  _rpcService.Register<bool>(
-      "__rp_deleteEntity",
-      std::function([this](std::string entityId, std::string payload) {
-        __rp_deleteEntity(entityId, payload);
-        return true;
-      }));
+  // _rpcService.Register<bool>(
+  //     "__rp_deleteEntity",
+  //     std::function([this](std::string entityId, std::string payload) {
+  //       __rp_deleteEntity(entityId, payload);
+  //       return true;
+  //     }));
+
+  ContainerTakeAuthorityReactor::subscribe(tp::rpc(_id), this);
+  ContainerDropAuthorityReactor::subscribe(tp::rpc(_id), this);
+  ContainerDeleteEntityReactor::subscribe(tp::rpc(_id), this);
 }
 
 void Container::__initStreams() {
@@ -109,26 +117,25 @@ void Container::__initStreams() {
   });
 }
 
-void Container::__rp_containerTakeAuthority(const std::string &args) {
+void Container::TakeAuthority(std::string args) {
   try {
     nlohmann::json j = nlohmann::json::parse(args);
     AuthorityTransfer::ExecTakeOrder(j);
   } catch (const std::exception &e) {
-    THROW_ERROR(net::RPCHandlingException, e.what());
+    THROW_ERROR(AuthorityTransferException, e.what());
   }
 }
 
-void Container::__rp_containerDropAuthority(const std::string &args) {
+void Container::DropAuthority(std::string args) {
   try {
     nlohmann::json j = nlohmann::json::parse(args);
     AuthorityTransfer::ExecDropOrder(j);
   } catch (const std::exception &e) {
-    THROW_ERROR(net::RPCHandlingException, e.what());
+    THROW_ERROR(AuthorityTransferException, e.what());
   }
 }
 
-void Container::__rp_deleteEntity(const std::string &entityId,
-                                  const std::string &payload) {
+void Container::DeleteEntity(std::string entityId, std::string payload) {
   RUNTIME.TopExecutor().PushTaskToEngine([entityId, payload]() {
     ETTREGISTRY.SetEntityValid(entityId, false);
     RUNTIME.Hooks().onDeleteEntity(entityId, payload);

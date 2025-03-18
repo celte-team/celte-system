@@ -24,7 +24,8 @@ class ConnectClient
             JsonElement root = messageJson.RootElement;
             string clientId = root.GetProperty("peerUuid").GetString() ?? throw new InvalidOperationException("peerUuid property is missing or null");
             string uuidProcess = Guid.NewGuid().ToString();
-            const string rpcName = "__rp_getPlayerSpawnPosition";
+            // const string rpcName = "__rp_getPlayerSpawnPosition";
+            const string rpcName = "PeerService_call_GetPlayerSpawnPosition";
 
 
             Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();

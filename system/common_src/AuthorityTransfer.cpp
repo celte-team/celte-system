@@ -16,16 +16,24 @@ static void __notifyTakeAuthority(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Notifying container to take authority.\n" +
                  args.dump());
-  RUNTIME.GetPeerService().GetRPCService().CallVoid(
-      tp::rpc(args["t"]), "__rp_containerTakeAuthority", args.dump());
+  // RUNTIME.GetPeerService().GetRPCService().CallVoid(
+  //     tp::rpc(args["t"]), "__rp_containerTakeAuthority", args.dump());
+  CallContainerTakeAuthority()
+      .on_scope(args["t"].get<std::string>())
+      .on_fail_log_error()
+      .fire_and_forget(args.dump());
 }
 
 static void __notifyDrop(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Notifying container to drop authority.\n" +
                  args.dump());
-  RUNTIME.GetPeerService().GetRPCService().CallVoid(
-      tp::rpc(args["f"]), "__rp_containerDropAuthority", args.dump());
+  // RUNTIME.GetPeerService().GetRPCService().CallVoid(
+  //     tp::rpc(args["f"]), "__rp_containerDropAuthority", args.dump());
+  CallContainerDropAuthority()
+      .on_scope(args["f"].get<std::string>())
+      .on_fail_log_error()
+      .fire_and_forget(args.dump());
 }
 #endif
 
@@ -183,9 +191,15 @@ void AuthorityTransfer::ProxyTakeAuthority(const std::string &grapeId,
                                            const std::string &entityId,
                                            const std::string &fromContainerId,
                                            const std::string &payload) {
-  RUNTIME.GetPeerService().GetRPCService().CallVoid(
-      tp::peer(grapeId), "__rp_proxyTakeAuthority", entityId, fromContainerId,
-      payload);
+  // RUNTIME.GetPeerService().GetRPCService().CallVoid(
+  //     tp::peer(grapeId), "__rp_proxyTakeAuthority", entityId,
+  //     fromContainerId, payload);
+  CallGrapeProxyTakeAuthority()
+      .on_peer(grapeId)
+      .on_fail_log_error()
+      .with_timeout(std::chrono::milliseconds(1000))
+      .retry(3)
+      .fire_and_forget(entityId, fromContainerId, payload);
 }
 
 void AuthorityTransfer::__rp_proxyTakeAuthority(

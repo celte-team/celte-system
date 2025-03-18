@@ -35,10 +35,10 @@ void GrapeRegistry::RegisterGrape(const std::string &grapeId,
       accessor acc2;
       if (GRAPES.GetGrapes().find(acc2, grapeId)) {
         acc2->second.initRPCService();
-        while (!acc2->second.rpcService.has_value() and
-               not acc2->second.rpcService->Ready()) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        // while (!acc2->second.rpcService.has_value() and
+        //        not acc2->second.rpcService->Ready()) {
+        //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // }
 #ifdef CELTE_SERVER_MODE_ENABLED
         if (not isLocallyOwned) {
           acc2->second.fetchExistingContainers();
@@ -65,7 +65,7 @@ std::string GrapeRegistry::ContainerCreateAndAttach(
 
   if (_grapes.find(acc, grapeId)) {
     auto finalId = acc->second
-                       .subscribeToContainer(
+                       .__subscribeToContainer(
                            id,
                            [onReady]() {
                              RUNTIME.TopExecutor().PushTaskToEngine(onReady);
@@ -100,15 +100,28 @@ void GrapeRegistry::SetRemoteGrapeSubscription(
   if (_grapes.find(acc, grapeId)) {
     if (subscribe && not acc->second._proxySubscriptions.count(containerId)) {
       acc->second._proxySubscriptions.insert(containerId);
-      acc->second.rpcService->CallVoid(tp::peer(grapeId),
-                                       "__rp_subscribeToContainer",
-                                       ownerOfContainerId, containerId);
+      // acc->second.rpcService->CallVoid(tp::peer(grapeId),
+      //                                  "__rp_subscribeToContainer",
+      //                                  ownerOfContainerId, containerId);
+      CallGrapeSubscribeToContainer()
+          .on_peer(grapeId)
+          .on_fail_log_error()
+          .with_timeout(std::chrono::milliseconds(1000))
+          .retry(3)
+          .fire_and_forget(ownerOfContainerId, containerId);
+
     } else if (not subscribe and
                acc->second._proxySubscriptions.count(containerId)) {
       acc->second._proxySubscriptions.erase(containerId);
-      acc->second.rpcService->CallVoid(tp::peer(grapeId),
-                                       "__rp_unsubscribeFromContainer",
-                                       ownerOfContainerId, containerId);
+      // acc->second.rpcService->CallVoid(tp::peer(grapeId),
+      //                                  "__rp_unsubscribeFromContainer",
+      //                                  ownerOfContainerId, containerId);
+      CallGrapeUnsubscribeFromContainer()
+          .on_peer(grapeId)
+          .on_fail_log_error()
+          .with_timeout(std::chrono::milliseconds(1000))
+          .retry(3)
+          .fire_and_forget(ownerOfContainerId, containerId);
     }
   }
 }
@@ -118,7 +131,7 @@ bool GrapeRegistry::SubscribeGrapeToContainer(const std::string &grapeId,
                                               std::function<void()> onReady) {
   accessor acc;
   if (_grapes.find(acc, grapeId)) {
-    acc->second.subscribeToContainer(containerId, onReady, false);
+    acc->second.__subscribeToContainer(containerId, onReady, false);
     return true;
   }
   return false;
@@ -128,7 +141,7 @@ void GrapeRegistry::UnsubscribeGrapeFromContainer(
     const std::string &grapeId, const std::string &containerId) {
   accessor acc;
   if (_grapes.find(acc, grapeId)) {
-    acc->second.unsubscribeFromContainer(containerId);
+    acc->second.__unsubscribeFromContainer(containerId);
   }
 }
 

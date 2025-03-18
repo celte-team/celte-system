@@ -74,53 +74,62 @@ void Runtime::__advanceSyncTasks() {
 
 void Runtime::RegisterCustomGlobalRPC(
     const std::string &name, std::function<std::string(std::string)> f) {
-  if (not _peerService) {
-    std::cerr
-        << "Peer service not initialized. Please connect to the cluster first."
-        << std::endl;
-    return;
-  }
-  _peerService->GetRPCService().Register<std::string>(name, f);
+  std::cout << "RegisterCustomGlobalRPC not implemented yet" << std::endl;
+  // if (not _peerService) {
+  //   std::cerr
+  //       << "Peer service not initialized. Please connect to the cluster
+  //       first."
+  //       << std::endl;
+  //   return;
+  // }
+  // _peerService->GetRPCService().Register<std::string>(name, f);
 }
 
 void Runtime::CallScopedRPCNoRetVal(const std::string &scope,
                                     const std::string &name,
                                     const std::string &args) {
-  if (not _peerService) {
-    std::cerr << "Peer service not initialized. Please connect to the cluster "
-                 "first."
-              << std::endl;
-    return;
-  }
-  _peerService->GetRPCService().CallVoid(tp::rpc(scope), name, args);
+  std::cout << "CallScopedRPCNoRetVal not implemented yet" << std::endl;
+  // if (not _peerService) {
+  //   std::cerr << "Peer service not initialized. Please connect to the cluster
+  //   "
+  //                "first."
+  //             << std::endl;
+  //   return;
+  // }
+  // _peerService->GetRPCService().CallVoid(tp::rpc(scope), name, args);
 }
 
 std::string Runtime::CallScopedRPC(const std::string &scope,
                                    const std::string &name,
                                    const std::string &args) {
-  if (not _peerService) {
-    std::cerr << "Peer service not initialized. Please connect to the cluster "
-                 "first."
-              << std::endl;
-    return "";
-  }
-  return _peerService->GetRPCService().Call<std::string>(
-      tp::default_scope + scope, name, args);
+  // if (not _peerService) {
+  //   std::cerr << "Peer service not initialized. Please connect to the cluster
+  //   "
+  //                "first."
+  //             << std::endl;
+  //   return "";
+  // }
+  // return _peerService->GetRPCService().Call<std::string>(
+  //     tp::default_scope + scope, name, args);
+  std::cout << "CallScopedRPC not implemented yet" << std::endl;
+  return "";
 }
 
 void Runtime::CallScopedRPCAsync(const std::string &scope,
                                  const std::string &name,
                                  const std::string &args,
                                  std::function<void(std::string)> callback) {
-  if (not _peerService) {
-    std::cerr << "Peer service not initialized. Please connect to the cluster "
-                 "first."
-              << std::endl;
-    return;
-  }
-  _peerService->GetRPCService()
-      .CallAsync<std::string>(tp::default_scope + scope, name, args)
-      .Then(callback);
+  // if (not _peerService) {
+  //   std::cerr << "Peer service not initialized. Please connect to the cluster
+  //   "
+  //                "first."
+  //             << std::endl;
+  //   return;
+  // }
+  // _peerService->GetRPCService()
+  //     .CallAsync<std::string>(tp::default_scope + scope, name, args)
+  //     .Then(callback);
+  std::cout << "CallScopedRPCAsync not implemented yet" << std::endl;
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -132,9 +141,13 @@ void Runtime::MasterInstantiateServerNode(const std::string &payload) {
 void Runtime::ForceDisconnectClient(const std::string &clientId,
                                     const std::string &payload) {
   // we send the final disconnect message to this grape rpc channel
-  _peerService->GetRPCService().CallVoid(tp::rpc(RUNTIME.GetAssignedGrape()),
-                                         "__rp_execClientDisconnect", clientId,
-                                         payload);
+  // _peerService->GetRPCService().CallVoid(tp::rpc(RUNTIME.GetAssignedGrape()),
+  //                                        "__rp_execClientDisconnect",
+  //                                        clientId, payload);
+  CallGrapeExecClientDisconnect()
+      .on_scope(RUNTIME.GetAssignedGrape())
+      .on_fail_log_error()
+      .fire_and_forget(clientId, payload);
 }
 
 #else
@@ -142,10 +155,16 @@ void Runtime::ForceDisconnectClient(const std::string &clientId,
 void Runtime::Disconnect() {
   // we send the disconnect message to all grapes
   for (auto &g : GRAPES.GetGrapes()) {
-    g.second.rpcService->CallVoid(
-        tp::peer(g.second.id), // tp::peer because msg is for the server, not
-                               // everyone in the grape
-        "__rp_requestClientDisconnect", _uuid);
+    // g.second.rpcService->CallVoid(
+    //     tp::peer(g.second.id), // tp::peer because msg is for the server, not
+    //                            // everyone in the grape
+    //     "__rp_requestClientDisconnect", _uuid);
+    CallGrapeRequestClientDisconnect()
+        .on_peer(g.second.id)
+        .on_fail_log_error()
+        .with_timeout(std::chrono::milliseconds(10000))
+        .retry(10)
+        .fire_and_forget(_uuid);
   }
 }
 #endif

@@ -33,18 +33,29 @@ void ClientRegistry::StartKeepAliveThread() {
       tbb::concurrent_hash_map<std::string, ClientData>::accessor accessor;
       for (auto it = _clients.begin(); it != _clients.end(); ++it) {
         RUNTIME.ScheduleAsyncIOTask([this, it] {
-          try {
-            RUNTIME.GetPeerService().GetRPCService().CallWithTimeout<bool>(
-                tp::rpc(it->first), "__rp_ping",
-                std::chrono::milliseconds(
-                    std::atoi(RUNTIME.GetConfig()
-                                  .Get("client_timeout_ms")
-                                  .value_or("2000")
-                                  .c_str())),
-                true);
-          } catch (net::RPCTimeoutException &e) {
-            RUNTIME.Hooks().onClientNotSeen(it->first);
-          }
+          // RUNTIME.GetPeerService().GetRPCService().CallWithTimeout<bool>(
+          //     tp::rpc(it->first), "__rp_ping",
+          //     std::chrono::milliseconds(
+          //         std::atoi(RUNTIME.GetConfig()
+          //                       .Get("client_timeout_ms")
+          //                       .value_or("2000")
+          //                       .c_str())),
+          //     true);
+          std::string clientId = it->first;
+          CallPeerServicePing()
+              .on_peer(clientId)
+              // .on_fail_log_error()
+              .on_fail_do([clientId](auto &e) {
+                RUNTIME.Hooks().onClientNotSeen(clientId);
+              })
+              .with_timeout(std::chrono::milliseconds(
+                  std::atoi(RUNTIME.GetConfig()
+                                .Get("client_timeout_ms")
+                                .value_or("2000")
+                                .c_str())))
+              .retry(3)
+              .call<bool>()
+              .value_or(false);
         });
       }
     }

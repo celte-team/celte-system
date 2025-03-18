@@ -1,8 +1,17 @@
 #pragma once
+#include "CelteError.hpp"
 #include <nlohmann/json.hpp>
 #include <string>
 
 namespace celte {
+/// @brief Exception type related to authority transfer.
+class AuthorityTransferException : public CelteError {
+public:
+  AuthorityTransferException(const std::string &msg, Logger &log,
+                             std::string file, int line)
+      : CelteError(msg, log, file, line) {}
+};
+
 /// @brief This class is responsible for transferring authority over entities
 /// between containers. Containers may not necessarily be owned locally.
 class AuthorityTransfer {
