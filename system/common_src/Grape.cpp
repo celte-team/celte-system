@@ -15,91 +15,21 @@ using namespace celte;
 
 void Grape::initRPCService() {
   {
-    std::vector<std::string> topics = {tp::rpc(id)};
-    if (isLocallyOwned) {
-      topics.push_back(
-          tp::peer(id)); // not really a peer but the raw id without
-    }
-    // rpcService.emplace(
-    //     net::RPCService::Options{.thisPeerUuid = RUNTIME.GetUUID(),
-    //                              .listenOn = topics,
-    //                              .reponseTopic = tp::peer(RUNTIME.GetUUID()),
-    //                              .serviceName = tp::rpc(id)});
-
 #ifdef CELTE_SERVER_MODE_ENABLED
-    // rpcService->Register<std::map<std::string, std::string>>(
-    //     "__rp_getExistingEntities",
-    //     std::function<std::map<std::string, std::string>(std::string)>(
-    //         [this](std::string containerId) {
-    //           return ETTREGISTRY.GetExistingEntities(containerId);
-    //         }));
 
-    // rpcService->Register<std::vector<std::string>>(
-    //     "__rp_getExistingOwnedContainers",
-    //     std::function<std::vector<std::string>()>(
-    //         [this]() { return __rp_getExistingOwnedContainers(); }));
+    if (isLocallyOwned) {
+      GrapeGetExistingEntitiesReactor::subscribe(tp::peer(id), this);
+      GrapeGetExistingOwnedContainersReactor::subscribe(tp::peer(id), this);
+      GrapeSubscribeToContainerReactor::subscribe(tp::peer(id), this);
+      GrapeUnsubscribeFromContainerReactor::subscribe(tp::peer(id), this);
+      GrapeProxyTakeAuthorityReactor::subscribe(tp::peer(id), this);
+      GrapeRequestClientDisconnectReactor::subscribe(tp::peer(id), this);
+      GrapePingReactor::subscribe(tp::peer(id), this);
+    }
 
-    // rpcService->Register<bool>(
-    //     "__rp_subscribeToContainer",
-    //     std::function([this](std::string ownerOfContainerId,
-    //                          std::string containerId) {
-    //       GRAPES.RunWithLock(ownerOfContainerId, [this, containerId](Grape
-    //       &g) {
-    //         g.subscribeToContainer(containerId, []() {}, false);
-    //       });
-    //       return true;
-    //     }));
-
-    // rpcService->Register<bool>(
-    //     "__rp_unsubscribeFromContainer",
-    //     std::function([this](std::string ownerOfContainerId,
-    //                          std::string containerId) {
-    //       GRAPES.RunWithLock(ownerOfContainerId, [this, containerId](Grape
-    //       &g) {
-    //         g.unsubscribeFromContainer(containerId);
-    //       });
-    //       return true;
-    //     }));
-
-    // if (isLocallyOwned) {
-    //   rpcService->Register<bool>(
-    //       "__rp_proxyTakeAuthority",
-    //       std::function([this](std::string entityId,
-    //                            std::string fromContainerId,
-    //                            std::string payload) {
-    //         AuthorityTransfer::__rp_proxyTakeAuthority(
-    //             id, entityId, fromContainerId, payload);
-    //         return true;
-    //       }));
-
-    //   rpcService->Register<bool>("__rp_requestClientDisconnect",
-    //                              std::function([this](std::string clientId) {
-    //                                RUNTIME.Hooks().onClientRequestDisconnect(
-    //                                    clientId);
-    //                                return true;
-    //                              }));
-    // }
-
-    // rpcService->Register<bool>("__rp_ping",
-    //                            std::function([this](bool) { return true; }));
-
-    GrapeGetExistingEntitiesReactor::subscribe(tp::peer(id), this);
-    GrapeGetExistingOwnedContainersReactor::subscribe(tp::peer(id), this);
-    GrapeSubscribeToContainerReactor::subscribe(tp::peer(id), this);
-    GrapeUnsubscribeFromContainerReactor::subscribe(tp::peer(id), this);
-    GrapeProxyTakeAuthorityReactor::subscribe(tp::peer(id), this);
-    GrapeRequestClientDisconnectReactor::subscribe(tp::peer(id), this);
-    GrapePingReactor::subscribe(tp::peer(id), this);
 #endif
-    GrapeExecClientDisconnectReactor::subscribe(tp::rpc(id), this);
 
-    // rpcService->Register<bool>(
-    //     "__rp_execClientDisconnect",
-    //     std::function([this](std::string clientId, std::string payload) {
-    //       RUNTIME.Hooks().onClientDisconnect(clientId, payload);
-    //       __cleanupClientData(clientId);
-    //       return true;
-    //     }));
+    GrapeExecClientDisconnectReactor::subscribe(tp::rpc(id), this);
   }
 }
 
@@ -153,7 +83,6 @@ Grape::__subscribeToContainer(const std::string &containerId,
   }
   if (isLocallyOwned) {
     ownedContainers[id.value()] = std::nullopt;
-
   } else { // if not locally owned, fetch existing entities from the owner
     ETTREGISTRY.LoadExistingEntities(this->id, containerId);
   }
@@ -161,6 +90,11 @@ Grape::__subscribeToContainer(const std::string &containerId,
 }
 
 void Grape::__unsubscribeFromContainer(const std::string &containerId) {
+  // if container is locally owned, do not unsubscribe. If not needed, the
+  // container should be manually deleted but this is not the place to do it.
+  if (ContainerRegistry::GetInstance().ContainerIsLocallyOwned(containerId)) {
+    return;
+  }
   containerSubscriptionComponent.Unsubscribe(containerId);
 }
 
@@ -173,21 +107,9 @@ void Grape::fetchExistingContainers() {
   try {
     LOGINFO("Fetching existing containers in grape " + id);
     std::vector<std::string> existingContainers =
-        // RUNTIME.GetPeerService().GetRPCService().Call<std::vector<std::string>>(
-        //     tp::peer(id), "__rp_getExistingOwnedContainers", id);
         CallGrapeGetExistingOwnedContainers()
             .on_peer(id)
-            .on_fail_do([](CStatus &status) {
-              if (status) {
-                try {
-                  std::rethrow_exception(*status);
-                } catch (const std::exception &e) {
-                  std::cerr
-                      << "CallGrapeGetExistingOwnedContainers:  " << e.what()
-                      << std::endl;
-                }
-              }
-            })
+            .on_fail_log_error()
             .with_timeout(std::chrono::milliseconds(1000))
             .retry(3)
             .call<std::vector<std::string>>(id)

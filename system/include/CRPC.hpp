@@ -141,7 +141,10 @@ public:
     ProducerBucket bucket;
     bucket.producer = std::make_shared<pulsar::Producer>();
     bucket.lastUsed = std::chrono::system_clock::now();
-    _client->createProducer(topic, *bucket.producer);
+    auto result = _client->createProducer(topic, *bucket.producer);
+    if (result != pulsar::ResultOk) {
+      throw std::runtime_error("Failed to create producer for topic " + topic);
+    }
     producer_accessor accessor;
     if (_producers.insert(accessor, topic)) {
       accessor->second = bucket;
@@ -159,7 +162,7 @@ public:
   /// @brief Writes the specified request to the specified topic.
   /// @param topic
   /// @param request
-  void write(const std::string &topic, const req::RPRequest &request);
+  bool write(const std::string &topic, const req::RPRequest &request);
 
   ///@brief Cleans up the pool by removing unused producers.
   void cleanup();
@@ -232,7 +235,10 @@ public:
       request.set_response_topic("");
       request.set_rpc_id(
           boost::uuids::to_string(boost::uuids::random_generator()()));
-      _producerPool.write(scope, request);
+      if (not _producerPool.write(scope, request)) {
+        return std::make_exception_ptr(
+            std::runtime_error("Failed to write to topic " + scope));
+      }
     } catch (const std::exception &e) {
       return std::make_exception_ptr(e);
     }
@@ -400,6 +406,8 @@ public:
               }
             } catch (const std::exception &e) {
               LOGERROR("Remote call failed: " + std::string(e.what()));
+              std::cout << "\033[31mRemote call failed: \033[0m" << e.what()
+                        << std::endl;
             }
           });
     }

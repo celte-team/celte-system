@@ -18,7 +18,7 @@ class AuthorityTransfer {
 public:
   /// @brief This method will send the order on the network to transfer the
   /// authority of the entity to the target container. The rpcs
-  /// __rp_containerTakeAuthority and __rp_containerDropAuthority will be called
+  /// ContainerTakeAuthority and ContainerDropAuthority will be called
   /// on the target and source containers respectively.
   /// This will remotely trigger calls to ExecTakeOrder and
   /// ExecDropOrder

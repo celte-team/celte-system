@@ -3,7 +3,7 @@
 #include "ClientRegistry.hpp"
 #endif
 #include "ContainerSubscriptionComponent.hpp"
-#include "RPCService.hpp"
+
 #include "WriterStreamPool.hpp"
 #include <functional>
 #include <map>
@@ -27,9 +27,6 @@ public:
 
   /// @brief Destroy the Peer Service object
   ~PeerService();
-
-  /// @brief Returns the RPCService of this peer.
-  // inline net::RPCService &GetRPCService() { return *_rpcService; }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   void ConnectClientToThisNode(const std::string &clientId,
@@ -125,7 +122,6 @@ private:
 #endif
 
   net::WriterStreamPool _wspool;
-  // std::optional<net::RPCService> _rpcService;
 };
 
 REGISTER_SERVER_RPC(PeerService, AssignGrape);

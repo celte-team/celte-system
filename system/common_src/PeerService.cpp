@@ -2,7 +2,7 @@
 #include "Clock.hpp"
 #include "GrapeRegistry.hpp"
 #include "PeerService.hpp"
-#include "RPCService.hpp"
+
 #include "Runtime.hpp"
 #include "Topics.hpp"
 #include "systems_structs.pb.h"
@@ -35,20 +35,12 @@ PeerService::PeerService(std::function<void(bool)> onReady,
   });
 }
 
-PeerService::~PeerService() {
-  // _rpcService.reset();
-  CLOCK.Stop();
-}
+PeerService::~PeerService() { CLOCK.Stop(); }
 
 bool PeerService::__waitNetworkReady(
     std::chrono::milliseconds connectionTimeout) {
-  auto start = std::chrono::steady_clock::now();
-  // while (!_rpcService->Ready()) {
-  //   if (std::chrono::steady_clock::now() - start > connectionTimeout) {
-  //     std::cerr << "Timeout waiting for network to be ready" << std::endl;
-  //     return false;
-  //   }
-  // }
+  // Network init is synchronous now, will change in the future so we keep this
+  // method
   return true;
 }
 
@@ -83,64 +75,22 @@ void PeerService::__pingMaster(std::function<void(bool)> onReady) {
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 void PeerService::__registerServerRPCs() {
-  // _rpcService->Register<bool>("__rp_assignGrape",
-  //                             std::function([this](std::string grapeId) {
-  //                               return __rp_assignGrape(grapeId);
-  //                             }));
-
   PeerServiceAssignGrapeReactor::subscribe(tp::rpc(RUNTIME.GetUUID()), this);
-
-  // _rpcService->Register<std::string>(
-  //     "__rp_getPlayerSpawnPosition",
-  //     std::function([this](std::string clientId) {
-  //       return __rp_spawnPositionRequest(clientId);
-  //     }));
-
   PeerServiceRequestSpawnPositionReactor::subscribe(tp::rpc(RUNTIME.GetUUID()),
                                                     this);
-
-  // _rpcService->Register<bool>("__rp_acceptNewClient",
-  //                             std::function([this](std::string clientId) {
-  //                               return __rp_acceptNewClient(clientId);
-  //                             }));
-
   PeerServiceAcceptNewClientReactor::subscribe(tp::rpc(RUNTIME.GetUUID()),
                                                this);
 }
 
 #else
 void PeerService::__registerClientRPCs() {
-  // _rpcService->Register<bool>("__rp_forceConnectToNode",
-  //                             std::function([this](std::string nodeId) {
-  //                               return __rp_forceConnectToNode(nodeId);
-  //                             }));
-
   PeerServiceForceConnectToNodeReactor::subscribe(tp::peer(RUNTIME.GetUUID()),
                                                   this);
-
-  // _rpcService->Register<bool>(
-  //     "__rp_subscribeClientToContainer",
-  //     std::function([this](std::string containerId, std::string ownerGrapeId)
-  //     {
-  //       return __rp_subscribeClientToContainer(containerId, ownerGrapeId);
-  //     }));
-
   PeerServiceSubscribeClientToContainerReactor::subscribe(
       tp::peer(RUNTIME.GetUUID()), this);
-
-  // _rpcService->Register<bool>(
-  //     "__rp_unsubscribeClient", std::function([this](std::string containerId)
-  //     {
-  //       return __rp_unsubscribeClientFromContainer(containerId);
-  //     }));
-
   PeerServiceUnsubscribeClientFromContainerReactor::subscribe(
       tp::peer(RUNTIME.GetUUID()), this);
-
-  // _rpcService->Register<bool>(
-  //     "__rp_ping", std::function([this](bool) { return __rp_ping(); }));
-
-  PeerServicePingReactor::subscribe(tp::rpc(RUNTIME.GetUUID()), this);
+  PeerServicePingReactor::subscribe(tp::peer(RUNTIME.GetUUID()), this);
 }
 #endif
 
@@ -170,10 +120,6 @@ bool PeerService::AcceptNewClient(std::string clientId) {
 
 void PeerService::ConnectClientToThisNode(const std::string &clientId,
                                           std::function<void()> then) {
-  // bool ok =
-  // _rpcService->Call<bool>(tp::rpc(clientId),
-  // "__rp_forceConnectToNode",
-  //                         RUNTIME.GetAssignedGrape());
   bool ok = CallPeerServiceForceConnectToNode()
                 .on_peer(clientId)
                 .on_fail_log_error()
@@ -212,9 +158,6 @@ void PeerService::SubscribeClientToContainer(const std::string &clientId,
           RUNTIME.ScheduleAsyncIOTask([this, clientId, containerId]() {
             LOGINFO("Subscribing client " + clientId + " to container " +
                     containerId);
-            // _rpcService->CallVoid(tp::rpc(clientId),
-            //                       "__rp_subscribeClientToContainer",
-            //                       containerId, RUNTIME.GetAssignedGrape());
             CallPeerServiceSubscribeClientToContainer()
                 .on_peer(clientId)
                 .on_fail_log_error()
@@ -241,17 +184,16 @@ void PeerService::UnsubscribeClientFromContainer(
           if (not c.isSubscribedToContainer(containerId)) {
             return;
           }
+#ifdef DEBUG
           std::cout << "client " << clientId.substr(0, 7)
                     << "\033[031m x- \033[0m" << containerId.substr(0, 4)
                     << std::endl;
+#endif
           c.remoteClientSubscriptions.erase(containerId);
 
           RUNTIME.ScheduleAsyncIOTask([this, clientId, containerId]() {
             LOGINFO("Unsubscribing client " + clientId + " from container " +
                     containerId);
-            // _rpcService->CallVoid(tp::rpc(clientId),
-            // "__rp_unsubscribeClient",
-            //                       containerId);
             CallPeerServiceUnsubscribeClientFromContainer()
                 .on_peer(clientId)
                 .on_fail_log_error()
@@ -266,6 +208,8 @@ void PeerService::UnsubscribeClientFromContainer(
 #else
 
 bool PeerService::ForceConnectToNode(std::string grapeId) {
+  std::cout << "FORCE CONNECT TO NODE WAS CALLED FOR GRAPE "
+            << grapeId.substr(0, 7) << std::endl;
   RUNTIME.ScheduleAsyncTask(
       [grapeId]() { RUNTIME.Hooks().onLoadGrape(grapeId, false); });
   return true;
@@ -281,8 +225,10 @@ bool PeerService::SubscribeClientToContainer(std::string containerId,
 }
 
 bool PeerService::UnsubscribeClientFromContainer(std::string containerId) {
+#ifdef DEBUG
   std::cout << "self(" + RUNTIME.GetUUID().substr(0, 7) + ")\033[31m -x \033[0m"
             << containerId.substr(0, 4) << std::endl;
+#endif
   _containerSubscriptionComponent.Unsubscribe(containerId);
   return true;
 }
@@ -296,7 +242,6 @@ std::map<std::string, int> PeerService::GetLatency() {
   std::vector<std::string> grapes = GRAPES.GetKnownGrapes();
   for (const auto &g : grapes) {
     auto start = std::chrono::steady_clock::now();
-    // _rpcService->Call<bool>(tp::peer(g), "__rp_ping", true);
     CallGrapePing()
         .on_peer(g)
         .on_fail_do([&g, &latencies](auto &e) { latencies[g] = -1; })

@@ -13,11 +13,8 @@ using namespace celte;
 
 #ifdef CELTE_SERVER_MODE_ENABLED
 static void __notifyTakeAuthority(nlohmann::json args) {
-  LOGGER.log(celte::Logger::DEBUG,
-             "AuthorityTransfer: Notifying container to take authority.\n" +
-                 args.dump());
-  // RUNTIME.GetPeerService().GetRPCService().CallVoid(
-  //     tp::rpc(args["t"]), "__rp_containerTakeAuthority", args.dump());
+  LOGINFO("AuthorityTransfer: Notifying container to take authority.\n" +
+          args.dump());
   CallContainerTakeAuthority()
       .on_scope(args["t"].get<std::string>())
       .on_fail_log_error()
@@ -25,11 +22,8 @@ static void __notifyTakeAuthority(nlohmann::json args) {
 }
 
 static void __notifyDrop(nlohmann::json args) {
-  LOGGER.log(celte::Logger::DEBUG,
-             "AuthorityTransfer: Notifying container to drop authority.\n" +
-                 args.dump());
-  // RUNTIME.GetPeerService().GetRPCService().CallVoid(
-  //     tp::rpc(args["f"]), "__rp_containerDropAuthority", args.dump());
+  LOGINFO("AuthorityTransfer: Notifying container to drop authority.\n" +
+          args.dump());
   CallContainerDropAuthority()
       .on_scope(args["f"].get<std::string>())
       .on_fail_log_error()
@@ -79,7 +73,9 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   args["g"] = GHOSTSYSTEM.PeekProperties(entityId).value_or("{}");
 
   LOGGER.log(celte::Logger::DEBUG, "AuthorityTransfer: \n" + args.dump());
+#ifdef DEBUG
   prettyPrintAuthTransfer(args);
+#endif
 
   // notify the container that will take authority
   __notifyTakeAuthority(args);
@@ -106,7 +102,9 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
 #endif
   // if toContainerId is not registered here, we need to delete the entity.
   if (not GRAPES.ContainerExists(toContainerId)) {
+#ifdef DEBUG
     std::cout << "\033[1;31mDELETE\033[0m " << e.id << std::endl;
+#endif
     std::string id = e.id;
     std::string payload = e.payload;
     RUNTIME.TopExecutor().PushTaskToEngine(
@@ -142,7 +140,6 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   CLOCK.ScheduleAt(whenTp, [=]() {
     // if ett exists, transfer auth
     ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
-      // ettExists = true;
       e.ownerContainerId = toContainerId;
       e.quarantine = false;
     });
@@ -176,6 +173,12 @@ void AuthorityTransfer::ExecDropOrder(nlohmann::json args) {
   std::string payload = args["payload"].dump();
   Clock::timepoint whenTp = Clock::FromISOString(when);
 
+  if (fromContainerId == toContainerId) {
+    // no need to drop authority if the container is the same
+    // this happens once when the entity is created
+    return;
+  }
+
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing drop order.\n" + args.dump());
   CLOCK.ScheduleAt(
@@ -191,9 +194,6 @@ void AuthorityTransfer::ProxyTakeAuthority(const std::string &grapeId,
                                            const std::string &entityId,
                                            const std::string &fromContainerId,
                                            const std::string &payload) {
-  // RUNTIME.GetPeerService().GetRPCService().CallVoid(
-  //     tp::peer(grapeId), "__rp_proxyTakeAuthority", entityId,
-  //     fromContainerId, payload);
   CallGrapeProxyTakeAuthority()
       .on_peer(grapeId)
       .on_fail_log_error()

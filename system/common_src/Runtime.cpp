@@ -1,3 +1,4 @@
+#include "CRPC.hpp"
 #include "GhostSystem.hpp"
 #include "GrapeRegistry.hpp"
 #include "Logger.hpp"
@@ -48,6 +49,10 @@ void Runtime::ConnectToCluster(const std::string &address, int port) {
   LOGGER.log(Logger::DEBUG, "Connecting to pulsar cluster at " + address + ":" +
                                 std::to_string(port));
   net::CelteNet::Instance().Connect(address + ":" + std::to_string(port));
+  RPCCalleeStub::instance().SetClient(net::CelteNet::Instance().GetClientPtr());
+  RPCCallerStub::instance().SetClient(net::CelteNet::Instance().GetClientPtr());
+  RPCCallerStub::instance().StartListeningForAnswers();
+
   _peerService = std::make_unique<PeerService>(
       std::function<void(bool)>([this](bool connected) {
         if (!connected) {

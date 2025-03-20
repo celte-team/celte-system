@@ -1,9 +1,10 @@
 #include "CRPC.hpp"
+#include "Topics.hpp"
 #include <google/protobuf/util/json_util.h>
 
 namespace celte {
 namespace detail {
-void ApachePulsarRPCProducerPool::write(const std::string &topic,
+bool ApachePulsarRPCProducerPool::write(const std::string &topic,
                                         const req::RPRequest &request) {
   producer_accessor accessor;
 
@@ -13,7 +14,7 @@ void ApachePulsarRPCProducerPool::write(const std::string &topic,
     if (not google::protobuf::util::MessageToJsonString(request, &msgStr)
                 .ok()) {
       std::cerr << "Error while serializing request." << std::endl;
-      return;
+      return false;
     }
     accessor->second.producer->sendAsync(
         pulsar::MessageBuilder().setContent(msgStr).build(),
@@ -23,9 +24,19 @@ void ApachePulsarRPCProducerPool::write(const std::string &topic,
                       << pulsar::strResult(result) << std::endl;
           }
         });
+    return true;
   } else {
     accessor.release();
-    _createProducer(topic, [this, topic, request]() { write(topic, request); });
+
+    try {
+      _createProducer(topic,
+                      [this, topic, request]() { write(topic, request); });
+      return true;
+    } catch (const std::exception &e) {
+      std::cerr << "Failed to create producer for topic " << topic << ": "
+                << e.what() << std::endl;
+      return false;
+    }
   }
 }
 
@@ -66,7 +77,8 @@ void RPCCallerStub::StartListeningForAnswers() {
       return;
     }
     consumer.acknowledge(msg);
-    RPCCalleeStub::instance().try_handle_request(RUNTIME.GetUUID(), request);
+    RPCCalleeStub::instance().try_handle_request(
+        PERSISTENT_DEFAULT + RUNTIME.GetUUID(), request);
   });
 
   std::string subscriptionName = RUNTIME.GetUUID();
@@ -141,8 +153,6 @@ void RPCCalleeStub::try_handle_request(const std::string &scope,
                                        const req::RPRequest &request) {
   // do not run the handler if we have already processed an rpc with the same
   // uuid, to avoid repeating the same operation.
-  // std::cout << "processing request with id " << request.rpc_id << std::endl;
-  // std::cout << "msg: " << request.to_string() << std::endl;
   _uniqueTaskManager.run(request.rpc_id(), [this, scope, request]() {
     if (request.responds_to().length() > 0) {
       _handle_response(request);
@@ -170,7 +180,7 @@ void RPCCalleeStub::_handle_call(const std::string &scope,
                                  const req::RPRequest &request) {
   scope_method_accessor accessor;
   if (not _methods.find(accessor, scope)) {
-    std::cout << "method " << request.name() << " not found in scope " << scope
+    std::cerr << "rpc scope " << scope << " not found, cannot handle request"
               << std::endl;
     return;
   }
@@ -183,8 +193,27 @@ void RPCCalleeStub::_handle_call(const std::string &scope,
     accessor.release();
     nlohmann::json args = nlohmann::json::parse(request.args());
     response = handler(args);
+  } catch (std::out_of_range &e) {
+#ifdef DEBUG
+    std::cout << "rpc method " << request.name() << " not found in scope "
+              << scope << std::endl;
+#endif
+    response = "method not found";
+    responseRequest.set_error_status(1);
+  } catch (nlohmann::json::exception &e) {
+#ifdef DEBUG
+    std::cout << "error while parsing json: " << e.what() << std::endl;
+    std::cout << "json was: " << request.args() << std::endl;
+    std::cout << "method is " << request.name() << std::endl;
+#endif
+    response = std::string(e.what());
+    responseRequest.set_error_status(1);
   } catch (std::exception &e) {
+#ifdef DEBUG
     std::cout << "there was an exception: " << e.what() << std::endl;
+    std::cout << "json was: " << request.args() << std::endl;
+    std::cout << "method is " << request.name() << std::endl;
+#endif
     response = e.what();
     responseRequest.set_error_status(1);
   }
@@ -200,150 +229,3 @@ void RPCCalleeStub::_handle_call(const std::string &scope,
 }
 
 } // namespace celte
-
-// functional test below!
-
-class Test {
-public:
-  Test(const std::string name) : _name(name) {}
-  int Add(int a, int b) {
-    std::cout << _name << " adding " << a << " and " << b << std::endl;
-    return a + b;
-  };
-  void PrintHello() { std::cout << "hello! " << std::endl; }
-  int GetFive() { return 5; }
-
-private:
-  std::string _name;
-};
-
-REGISTER_RPC(Test, Add);
-REGISTER_RPC(Test, PrintHello);
-REGISTER_RPC(Test, GetFive);
-
-void RunCaller() {
-
-  CallTestPrintHello()
-      .on_peer("peer1")
-      .on_fail_do([](celte::CStatus &status) {
-        try {
-          if (status) {
-            std::rethrow_exception(*status);
-          }
-        } catch (const std::exception &e) {
-          std::cout << "Failed to call PrintHello: " << e.what() << std::endl;
-        }
-      })
-      .fire_and_forget();
-
-  CallTestGetFive()
-      .on_peer("peer1")
-      .on_fail_do([](celte::CStatus &status) {
-        try {
-          if (status) {
-            std::rethrow_exception(*status);
-          }
-        } catch (const std::exception &e) {
-          std::cout << "Failed to call GetFive: " << e.what() << std::endl;
-        }
-      })
-      .with_timeout(std::chrono::milliseconds(1000))
-      .retry(1)
-      .call_async<int>(
-          [](int x) { std::cout << "GetFive returned : " << x << std::endl; });
-
-  int x = CallTestAdd()
-              .on_peer("peer1")
-              .on_fail_do([](celte::CStatus &status) {
-                try {
-                  if (status) {
-                    std::rethrow_exception(*status);
-                  }
-                } catch (const std::exception &e) {
-                  std::cout << "Failed to call Add: " << e.what() << std::endl;
-                }
-              })
-              .with_timeout(std::chrono::milliseconds(1000))
-              .retry(1)
-              .call<int>(1, 2)
-              .value_or(0);
-  std::cout << "Result for instance 1: " << x << std::endl;
-
-  int y = CallTestAdd()
-              .on_peer("peer2")
-              .on_fail_do([](celte::CStatus &status) {
-                try {
-                  if (status) {
-                    std::rethrow_exception(*status);
-                  }
-                } catch (const std::exception &e) {
-                  std::cout << "Failed to call Add: " << e.what() << std::endl;
-                }
-              })
-              .with_timeout(std::chrono::milliseconds(1000))
-              .retry(1)
-              .call<int>(1, 2)
-              .value_or(0);
-  std::cout << "Result instance 2: " << y << std::endl;
-
-  while (std::cin) {
-    std::string line;
-    std::getline(std::cin, line);
-    if (line == "exit") {
-      break;
-    }
-  }
-}
-
-void RunCallee() {
-  Test test("instance 1");
-  TestAddReactor::subscribe("peer1", &test);
-  TestPrintHelloReactor::subscribe("peer1", &test);
-  TestGetFiveReactor::subscribe("peer1", &test);
-
-  Test test2("instance 2");
-  TestAddReactor::subscribe("peer2", &test2);
-
-  while (std::cin) {
-    std::string line;
-    std::getline(std::cin, line);
-    if (line == "exit") {
-      break;
-    }
-  }
-
-  TestAddReactor::unsubscribe("peer1");
-  TestPrintHelloReactor::unsubscribe("peer1");
-  TestGetFiveReactor::unsubscribe("peer1");
-
-  TestAddReactor::unsubscribe("peer2");
-}
-
-int test(int ac, char **av) {
-  if (ac > 1 && std::string(av[1]) == "--call")
-    static_uuid = "caller-peer";
-
-  // creating the pulsar client
-  pulsar::ClientConfiguration conf;
-  conf.setOperationTimeoutSeconds(10000 / 1000);
-  conf.setIOThreads(1);
-  conf.setMessageListenerThreads(1);
-  conf.setUseTls(false);
-  conf.setLogger(new pulsar::ConsoleLoggerFactory(pulsar::Logger::LEVEL_WARN));
-
-  std::string pulsarBrokers = "pulsar://localhost:6650";
-  auto client = std::make_shared<pulsar::Client>(pulsarBrokers, conf);
-  // wait until the client is connected to the cluster
-
-  celte::RPCCalleeStub::instance().SetClient(client);
-  celte::RPCCallerStub::instance().SetClient(client);
-  celte::RPCCallerStub::instance().StartListeningForAnswers();
-
-  // if --call in args, we are calling the method.. Else, we are subscribers
-  if (ac > 1 && std::string(av[1]) == "--call") {
-    RunCaller();
-  } else {
-    RunCallee();
-  }
-  return 0;
-}

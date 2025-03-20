@@ -11,7 +11,7 @@
 #include "Container.hpp"
 #include "GrapeRegistry.hpp"
 #include "Logger.hpp"
-#include "RPCService.hpp"
+
 #include "Topics.hpp"
 #include <algorithm>
 #include <boost/uuid/uuid_generators.hpp>
@@ -32,9 +32,6 @@ Container::Container()
 
 void Container::WaitForNetworkReady(std::function<void()> onReady) {
   RUNTIME.ScheduleAsyncTask([this, onReady]() {
-    // while (!_rpcService.Ready()) {
-    //   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    // }
     while (not std::all_of(_readerStreams.begin(), _readerStreams.end(),
                            [](auto &rs) { return rs->Ready(); })) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -50,32 +47,6 @@ Container::~Container() {
 }
 
 void Container::__initRPCs() {
-
-  // _rpcService.Init(
-  //     net::RPCService::Options{.thisPeerUuid = RUNTIME.GetUUID(),
-  //                              .listenOn = {tp::rpc(_id)},
-  //                              .reponseTopic = tp::peer(RUNTIME.GetUUID()),
-  //                              .serviceName = tp::rpc(_id)});
-
-  // _rpcService.Register<bool>("__rp_containerTakeAuthority",
-  //                            std::function([this](std::string args) {
-  //                              __rp_containerTakeAuthority(args);
-  //                              return true;
-  //                            }));
-
-  // _rpcService.Register<bool>("__rp_containerDropAuthority",
-  //                            std::function([this](std::string args) {
-  //                              __rp_containerDropAuthority(args);
-  //                              return true;
-  //                            }));
-
-  // _rpcService.Register<bool>(
-  //     "__rp_deleteEntity",
-  //     std::function([this](std::string entityId, std::string payload) {
-  //       __rp_deleteEntity(entityId, payload);
-  //       return true;
-  //     }));
-
   ContainerTakeAuthorityReactor::subscribe(tp::rpc(_id), this);
   ContainerDropAuthorityReactor::subscribe(tp::rpc(_id), this);
   ContainerDeleteEntityReactor::subscribe(tp::rpc(_id), this);
@@ -189,6 +160,8 @@ void ContainerRegistry::UpdateRefCount(const std::string &containerId) {
   if (_containers.find(acc, containerId)) {
     if (acc->second.container.use_count() == 1) {
       ETTREGISTRY.DeleteEntitiesInContainer(containerId);
+      std::cout << "trashing container " << containerId.substr(0, 4)
+                << std::endl;
       RUNTIME.GetTrashBin().TrashItem(std::move(acc->second.GetContainerPtr()));
       _containers.erase(acc);
       LOGDEBUG("Container " + containerId +

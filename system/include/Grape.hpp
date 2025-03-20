@@ -6,7 +6,7 @@
 #include "Container.hpp"
 #include "ContainerSubscriptionComponent.hpp"
 #include "Executor.hpp"
-#include "RPCService.hpp"
+
 #include <any>
 #include <functional>
 #include <map>
@@ -26,10 +26,6 @@ struct Grape {
                        // #ifdef CELTE_SERVER_MODE_ENABLED
   Executor executor;   ///< The executor for this grape. Tasks to be ran in the
                        ///< engine can be pushed here.
-  // std::optional<net::RPCService>
-  //     rpcService; ///< The rpc service for this grape. Must be initialized
-  //     after
-  ///< the id has been set.
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   ContainerSubscriptionComponent

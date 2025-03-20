@@ -131,51 +131,36 @@ void ETTRegistry::EngineCallInstantiate(const std::string &id,
 
 void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
                                        const std::string &containerId) {
+#ifdef DEBUG
   std::cout << "\033[032mLOAD\033[0m foreach in " << containerId.substr(0, 4)
             << std::endl;
-  // RUNTIME.GetPeerService()
-  //     .GetRPCService()
-  //     .CallAsync<std::map<std::string, std::string>>(
-  //         tp::peer(grapeId), "__rp_getExistingEntities", containerId)
-  //     .Then([this,
-  //            containerId](const std::map<std::string, std::string> &entities)
-  //            {
-  //       for (auto &[id, data] : entities) {
-  //         try {
-  //           auto j = nlohmann::json::parse(data);
-  //           std::string payload = j["payload"];
-  //           nlohmann::json ghost = j["ghost"];
-  //           GHOSTSYSTEM.ApplyUpdate(id, ghost);
-  //           EngineCallInstantiate(id, payload, containerId);
-  //         } catch (const std::exception &e) {
-  //           std::cerr << "Error while loading entity " << id << ": " <<
-  //           e.what()
-  //                     << std::endl;
-  //         }
-  //       }
-  //     });
+#endif
   CallGrapeGetExistingEntities()
       .on_peer(grapeId)
-      .on_fail_do([grapeId](auto &e) {
-        std::cout << "Failed to load existing entities" << std::endl;
-      })
+      .on_fail_log_error()
       .with_timeout(std::chrono::milliseconds(1000))
       .retry(3)
-      .call_async(std::function<void(std::map<std::string, std::string>)>(
-          [this, containerId](std::map<std::string, std::string> entities) {
-            for (auto &[id, data] : entities) {
-              try {
-                auto j = nlohmann::json::parse(data);
-                std::string payload = j["payload"];
-                nlohmann::json ghost = j["ghost"];
-                GHOSTSYSTEM.ApplyUpdate(id, ghost);
-                EngineCallInstantiate(id, payload, containerId);
-              } catch (const std::exception &e) {
-                std::cerr << "Error while loading entity " << id << ": "
-                          << e.what() << std::endl;
-              }
-            }
-          }));
+      .call_async(
+          std::function<void(std::map<std::string, std::string>)>(
+              [this, containerId](std::map<std::string, std::string> entities) {
+                for (auto &[id, data] : entities) {
+                  try {
+                    auto j = nlohmann::json::parse(data);
+                    std::string payload = j["payload"];
+                    nlohmann::json ghost = j["ghost"];
+                    GHOSTSYSTEM.ApplyUpdate(id, ghost);
+                    EngineCallInstantiate(id, payload, containerId);
+                  } catch (const std::exception &e) {
+#ifdef DEBUG
+                    std::cerr << "Error while loading entity " << id << ": "
+                              << e.what() << std::endl;
+#endif
+                    LOGERROR("Error while loading entity " + id + ": " +
+                             std::string(e.what()));
+                  }
+                }
+              }),
+          containerId);
 }
 
 bool ETTRegistry::SaveEntityPayload(const std::string &eid,
@@ -244,16 +229,10 @@ void ETTRegistry::SendEntityDeleteOrder(const std::string &id) {
             return;
           }
           RUNTIME.ScheduleAsyncIOTask([id, ownerContainer, payload]() {
-            //   RUNTIME.GetPeerService().GetRPCService().CallVoid(
-            //       tp::rpc(ownerContainer), "__rp_deleteEntity", id, payload);
-            // });
             CallContainerDeleteEntity()
                 .on_peer(ownerContainer)
                 .on_fail_log_error()
                 .fire_and_forget(id, payload);
-            // .call<void>(id,
-            //             payload); // TODO : check if this is correct, <void>
-            //                       // ret type might need fire and forget
           });
         });
   });
@@ -266,7 +245,6 @@ void ETTRegistry::UploadInputData(std::string uuid, std::string inputName,
   if (ownerChunk.empty()) {
     return; // can't send inputs if not owned by a chunk
   }
-  std::string cp = tp::input(ownerChunk);
   req::InputUpdate inputUpdate;
   inputUpdate.set_name(inputName);
   inputUpdate.set_pressed(pressed);
@@ -274,21 +252,26 @@ void ETTRegistry::UploadInputData(std::string uuid, std::string inputName,
   inputUpdate.set_x(x);
   inputUpdate.set_y(y);
 
-  CINPUT.GetWriterPool().Write<req::InputUpdate>(cp, inputUpdate);
+  CINPUT.GetWriterPool().Write<req::InputUpdate>(tp::input(ownerChunk),
+                                                 inputUpdate);
 }
 
 void ETTRegistry::DeleteEntitiesInContainer(const std::string &containerId) {
   std::map<std::string, std::string> toDelete;
+#ifdef DEBUG
   std::cout << "\033[031mDELETE\033[0m foreach in " << containerId.substr(0, 4)
             << std::endl;
+#endif
   for (auto it = _entities.begin(); it != _entities.end(); ++it) {
     accessor acc;
     if (_entities.find(acc, it->first)) {
+#ifdef DEBUG
       std::cout << "\t["
                 << ((acc->second.ownerContainerId == containerId)
                         ? "\033[31mx\033[0m"
                         : "\033[032mV\033[0m")
                 << "] " << it->first.substr(0, 4) << std::endl;
+#endif
       if (acc->second.ownerContainerId == containerId) {
         acc->second.isValid = false;
         acc->second.quarantine = true;

@@ -1,6 +1,6 @@
 #include "ClientRegistry.hpp"
 #include "PeerService.hpp"
-#include "RPCService.hpp"
+
 #include "Runtime.hpp"
 #include "Topics.hpp"
 
