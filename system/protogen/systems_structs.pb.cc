@@ -85,6 +85,7 @@ inline constexpr RPRequest::Impl_::Impl_(
         args_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        error_status_{false},
         _cached_size_{0} {}
 
 template <typename>
@@ -234,6 +235,7 @@ const ::uint32_t TableStruct_systems_5fstructs_2eproto::offsets[] PROTOBUF_SECTI
     PROTOBUF_FIELD_OFFSET(::celte::req::RPRequest, _impl_.response_topic_),
     PROTOBUF_FIELD_OFFSET(::celte::req::RPRequest, _impl_.rpc_id_),
     PROTOBUF_FIELD_OFFSET(::celte::req::RPRequest, _impl_.args_),
+    PROTOBUF_FIELD_OFFSET(::celte::req::RPRequest, _impl_.error_status_),
     ~0u,  // no _has_bits_
     PROTOBUF_FIELD_OFFSET(::celte::req::ClockTick, _internal_metadata_),
     ~0u,  // no _extensions_
@@ -252,7 +254,7 @@ static const ::_pbi::MigrationSchema
         {20, -1, -1, sizeof(::celte::req::ReplicationDataPacket)},
         {29, -1, -1, sizeof(::celte::req::InputUpdate)},
         {42, -1, -1, sizeof(::celte::req::RPRequest)},
-        {55, -1, -1, sizeof(::celte::req::ClockTick)},
+        {56, -1, -1, sizeof(::celte::req::ClockTick)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -270,17 +272,18 @@ const char descriptor_table_protodef_systems_5fstructs_2eproto[] PROTOBUF_SECTIO
     "clientId\030\001 \001(\t\022\017\n\007payload\030\002 \001(\t\"%\n\025Repli"
     "cationDataPacket\022\014\n\004data\030\001 \001(\t\"P\n\013InputU"
     "pdate\022\014\n\004name\030\001 \001(\t\022\017\n\007pressed\030\002 \001(\010\022\014\n\004"
-    "uuid\030\003 \001(\t\022\t\n\001x\030\004 \001(\002\022\t\n\001y\030\005 \001(\002\"d\n\tRPRe"
+    "uuid\030\003 \001(\t\022\t\n\001x\030\004 \001(\002\022\t\n\001y\030\005 \001(\002\"z\n\tRPRe"
     "quest\022\014\n\004name\030\001 \001(\t\022\023\n\013responds_to\030\002 \001(\t"
     "\022\026\n\016response_topic\030\003 \001(\t\022\016\n\006rpc_id\030\004 \001(\t"
-    "\022\014\n\004args\030\005 \001(\t\"$\n\tClockTick\022\027\n\017unified_t"
-    "ime_ms\030\002 \001(\003b\006proto3"
+    "\022\014\n\004args\030\005 \001(\t\022\024\n\014error_status\030\006 \001(\010\"$\n\t"
+    "ClockTick\022\027\n\017unified_time_ms\030\002 \001(\003b\006prot"
+    "o3"
 };
 static ::absl::once_flag descriptor_table_systems_5fstructs_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_systems_5fstructs_2eproto = {
     false,
     false,
-    420,
+    442,
     descriptor_table_protodef_systems_5fstructs_2eproto,
     "systems_structs.proto",
     &descriptor_table_systems_5fstructs_2eproto_once,
@@ -1309,6 +1312,7 @@ RPRequest::RPRequest(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_);
+  _impl_.error_status_ = from._impl_.error_status_;
 
   // @@protoc_insertion_point(copy_constructor:celte.req.RPRequest)
 }
@@ -1324,6 +1328,7 @@ inline PROTOBUF_NDEBUG_INLINE RPRequest::Impl_::Impl_(
 
 inline void RPRequest::SharedCtor(::_pb::Arena* arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.error_status_ = {};
 }
 RPRequest::~RPRequest() {
   // @@protoc_insertion_point(destructor:celte.req.RPRequest)
@@ -1352,6 +1357,7 @@ PROTOBUF_NOINLINE void RPRequest::Clear() {
   _impl_.response_topic_.ClearToEmpty();
   _impl_.rpc_id_.ClearToEmpty();
   _impl_.args_.ClearToEmpty();
+  _impl_.error_status_ = false;
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
@@ -1363,15 +1369,15 @@ const char* RPRequest::_InternalParse(
 
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 5, 0, 67, 2> RPRequest::_table_ = {
+const ::_pbi::TcParseTable<3, 6, 0, 67, 2> RPRequest::_table_ = {
   {
     0,  // no _has_bits_
     0, // no _extensions_
-    5, 56,  // max_field_number, fast_idx_mask
+    6, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294967232,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
+    6,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     &_RPRequest_default_instance_._instance,
@@ -1393,7 +1399,9 @@ const ::_pbi::TcParseTable<3, 5, 0, 67, 2> RPRequest::_table_ = {
     // string args = 5;
     {::_pbi::TcParser::FastUS1,
      {42, 63, 0, PROTOBUF_FIELD_OFFSET(RPRequest, _impl_.args_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // bool error_status = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(RPRequest, _impl_.error_status_), 63>(),
+     {48, 63, 0, PROTOBUF_FIELD_OFFSET(RPRequest, _impl_.error_status_)}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
@@ -1413,6 +1421,9 @@ const ::_pbi::TcParseTable<3, 5, 0, 67, 2> RPRequest::_table_ = {
     // string args = 5;
     {PROTOBUF_FIELD_OFFSET(RPRequest, _impl_.args_), 0, 0,
     (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool error_status = 6;
+    {PROTOBUF_FIELD_OFFSET(RPRequest, _impl_.error_status_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kBool)},
   }},
   // no aux_entries
   {{
@@ -1473,6 +1484,13 @@ const ::_pbi::TcParseTable<3, 5, 0, 67, 2> RPRequest::_table_ = {
     target = stream->WriteStringMaybeAliased(5, _s, target);
   }
 
+  // bool error_status = 6;
+  if (this->_internal_error_status() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(
+        6, this->_internal_error_status(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1520,6 +1538,11 @@ const ::_pbi::TcParseTable<3, 5, 0, 67, 2> RPRequest::_table_ = {
                                     this->_internal_args());
   }
 
+  // bool error_status = 6;
+  if (this->_internal_error_status() != 0) {
+    total_size += 2;
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -1554,6 +1577,9 @@ void RPRequest::MergeImpl(::google::protobuf::Message& to_msg, const ::google::p
   if (!from._internal_args().empty()) {
     _this->_internal_set_args(from._internal_args());
   }
+  if (from._internal_error_status() != 0) {
+    _this->_internal_set_error_status(from._internal_error_status());
+  }
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -1581,6 +1607,7 @@ void RPRequest::InternalSwap(RPRequest* PROTOBUF_RESTRICT other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.response_topic_, &other->_impl_.response_topic_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.rpc_id_, &other->_impl_.rpc_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.args_, &other->_impl_.args_, arena);
+        swap(_impl_.error_status_, other->_impl_.error_status_);
 }
 
 ::google::protobuf::Metadata RPRequest::GetMetadata() const {

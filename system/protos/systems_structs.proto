@@ -30,6 +30,7 @@ message RPRequest {
   string response_topic = 3;  // where to send the response
   string rpc_id = 4;          // unique id for this rpc
   string args = 5;           // arguments to the rpc, serialized as a JSON string
+  bool error_status = 6;     // true if the rpc failed
 }
 
 message ClockTick {

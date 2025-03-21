@@ -4,7 +4,7 @@
 #endif
 #include "Executor.hpp"
 #include "Grape.hpp"
-#include "RPCService.hpp"
+
 #include <string>
 #include <tbb/concurrent_hash_map.h>
 
