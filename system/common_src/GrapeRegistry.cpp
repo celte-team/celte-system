@@ -22,8 +22,6 @@ void GrapeRegistry::RegisterGrape(const std::string &grapeId,
   acc->second.isLocallyOwned = isLocallyOwned;
 #ifdef CELTE_SERVER_MODE_ENABLED
   if (isLocallyOwned) {
-    // acc->second.clientRegistry.emplace(); // create the client registry
-    // acc->second.clientRegistry->StartKeepAliveThread();
     RUNTIME.GetPeerService().GetClientRegistry().StartKeepAliveThread();
   }
 #endif
@@ -35,10 +33,6 @@ void GrapeRegistry::RegisterGrape(const std::string &grapeId,
       accessor acc2;
       if (GRAPES.GetGrapes().find(acc2, grapeId)) {
         acc2->second.initRPCService();
-        // while (!acc2->second.rpcService.has_value() and
-        //        not acc2->second.rpcService->Ready()) {
-        //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        // }
 #ifdef CELTE_SERVER_MODE_ENABLED
         if (not isLocallyOwned) {
           acc2->second.fetchExistingContainers();
@@ -100,22 +94,15 @@ void GrapeRegistry::SetRemoteGrapeSubscription(
   if (_grapes.find(acc, grapeId)) {
     if (subscribe && not acc->second._proxySubscriptions.count(containerId)) {
       acc->second._proxySubscriptions.insert(containerId);
-      // acc->second.rpcService->CallVoid(tp::peer(grapeId),
-      //                                  "__rp_subscribeToContainer",
-      //                                  ownerOfContainerId, containerId);
       CallGrapeSubscribeToContainer()
           .on_peer(grapeId)
           .on_fail_log_error()
           .with_timeout(std::chrono::milliseconds(1000))
           .retry(3)
           .fire_and_forget(ownerOfContainerId, containerId);
-
     } else if (not subscribe and
                acc->second._proxySubscriptions.count(containerId)) {
       acc->second._proxySubscriptions.erase(containerId);
-      // acc->second.rpcService->CallVoid(tp::peer(grapeId),
-      //                                  "__rp_unsubscribeFromContainer",
-      //                                  ownerOfContainerId, containerId);
       CallGrapeUnsubscribeFromContainer()
           .on_peer(grapeId)
           .on_fail_log_error()

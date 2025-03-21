@@ -168,11 +168,9 @@ public:
 
   inline void RemoveOwnedEntityFromContainer(const std::string &containerId,
                                              const std::string &entityId) {
-    std::cout << "remove owned entity from container, before lock" << std::endl;
     RunWithLock(containerId, [entityId](ContainerRefCell &c) {
       c.GetContainer()._ownedEntities.erase(entityId);
     });
-    std::cout << "remove owned entity from container, after lock" << std::endl;
   }
 
   std::vector<Entity::ETTNativeHandle>

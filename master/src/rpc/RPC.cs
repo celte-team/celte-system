@@ -140,7 +140,6 @@ public class RPC
             return;
         }
         // this function is used to send the spawn position of the player to the client.
-        // RegisterResponseHandler("__rp_getPlayerSpawnPosition", (args) =>
         RegisterResponseHandler("PeerService_call_RequestSpawnPosition", (args) =>
         {
             var nodes = Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes").Result;

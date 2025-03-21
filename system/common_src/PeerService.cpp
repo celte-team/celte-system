@@ -13,13 +13,7 @@ using namespace celte;
 
 PeerService::PeerService(std::function<void(bool)> onReady,
                          std::chrono::milliseconds connectionTimeout)
-    : //  _rpcService(net::RPCService::Options{
-      //       .thisPeerUuid = RUNTIME.GetUUID(),
-      //       .listenOn = {tp::rpc(RUNTIME.GetUUID()),
-      //       tp::rpc(tp::global_rpc)}, .reponseTopic =
-      //       tp::rpc(RUNTIME.GetUUID()), .serviceName =
-      //       tp::peer(RUNTIME.GetUUID())}),
-      _wspool({.idleTimeout = 10000ms}) {
+    : _wspool({.idleTimeout = 10000ms}) {
 
   std::cout << "Listening on " << tp::rpc(RUNTIME.GetUUID()) << " and "
             << tp::rpc(tp::global_rpc) << std::endl;
