@@ -541,9 +541,9 @@ public:
         std::get<std::future<nlohmann::json>>(r).wait();
       }
 
-      // if the response json is empty, it means the remote method failed
+      // if the response json is null, it means the remote method failed
       auto j = std::get<std::future<nlohmann::json>>(r).get();
-      if (j.empty()) {
+      if (j.is_null()) {
         CStatus status = std::make_exception_ptr(std::runtime_error(
             "Remote error in " + TypeIdentifier<MetaFunction>::name()));
         return __handle_failure<RetVal>(status, std::move(uuid), args...);
