@@ -26,26 +26,6 @@ body:
 
   - type: markdown
     attributes:
-      value: "## 🔍 Context\nProvide contextual details such as reasons for this issue, links to discussions, or relevant references."
-
-  - type: textarea
-    id: context
-    attributes:
-      label: Context
-      description: Provide any relevant context, references, or discussions.
-
-  - type: markdown
-    attributes:
-      value: "## ✅ Acceptance Criteria\nList the conditions that must be met for the issue to be considered resolved."
-
-  - type: textarea
-    id: acceptance_criteria
-    attributes:
-      label: Acceptance Criteria
-      description: List the conditions that must be met for the issue to be considered resolved.
-
-  - type: markdown
-    attributes:
       value: "## 🪢 Related Issues or Sub-Issues\nList any related issues or sub-issues that are part of this task."
 
   - type: textarea
