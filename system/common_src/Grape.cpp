@@ -36,7 +36,8 @@ void Grape::initRPCService() {
 #ifdef CELTE_SERVER_MODE_ENABLED
 std::map<std::string, std::string>
 Grape::GetExistingEntities(std::string containerId) {
-  return ETTREGISTRY.GetExistingEntities(containerId);
+  auto result = ETTREGISTRY.GetExistingEntities(containerId);
+  return result;
 }
 
 bool Grape::SubscribeToContainer(std::string ownerOfContainerId,
