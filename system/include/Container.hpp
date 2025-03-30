@@ -1,5 +1,6 @@
 #pragma once
 #include "CelteService.hpp"
+#include "ETTRegistry.hpp"
 #include "GhostSystem.hpp"
 
 #include "systems_structs.pb.h"

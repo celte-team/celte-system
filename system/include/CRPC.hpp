@@ -1,8 +1,8 @@
 #pragma once
 #include "Logger.hpp"
+#include "Runtime.hpp"
 #include "Topics.hpp"
 #include "systems_structs.pb.h"
-#include <Runtime.hpp>
 #include <algorithm>
 #include <any>
 #include <atomic>
@@ -291,7 +291,7 @@ namespace celte {
                 req::RPRequest request;
                 request.set_name(method_name);
                 request.set_args(__serialize__(args...));
-                request.set_response_topic(PERSISTENT_DEFAULT + RUNTIME.GetUUID());
+                request.set_response_topic(tp::default_scope + RUNTIME.GetUUID());
                 request.set_rpc_id(rpc_id);
 
                 {
@@ -587,7 +587,7 @@ namespace celte {
 
                 // if the response json is empty, it means the remote method failed
                 auto j = std::get<std::future<nlohmann::json>>(r).get();
-                if (j.empty()) {
+                if (j.is_null()) {
                     CStatus status = std::make_exception_ptr(std::runtime_error(
                         "Remote error in " + TypeIdentifier<MetaFunction>::name()));
                     return __handle_failure<RetVal>(status, std::move(uuid), args...);
@@ -639,7 +639,7 @@ namespace celte {
         /// @return
         inline auto on_peer(const std::string& peer)
         {
-            return FailHandlingPolicy(PERSISTENT_DEFAULT + peer, false);
+            return FailHandlingPolicy(tp::default_scope + peer, false);
         }
 
         /// @brief Use this method to specify that the method should be called on
@@ -649,7 +649,7 @@ namespace celte {
         /// @return
         inline auto on_scope(const std::string& scope)
         {
-            return FailHandlingPolicy(PERSISTENT_DEFAULT + scope + ".rpc", true);
+            return FailHandlingPolicy(tp::default_scope + scope + ".rpc", true);
         }
     };
 
