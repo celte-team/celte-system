@@ -271,7 +271,7 @@ public:
       req::RPRequest request;
       request.set_name(method_name);
       request.set_args(__serialize__(args...));
-      request.set_response_topic(PERSISTENT_DEFAULT + RUNTIME.GetUUID());
+      request.set_response_topic(tp::default_scope + RUNTIME.GetUUID());
       request.set_rpc_id(rpc_id);
 
       {
@@ -593,7 +593,7 @@ public:
   /// @param peer
   /// @return
   inline auto on_peer(const std::string &peer) {
-    return FailHandlingPolicy(PERSISTENT_DEFAULT + peer, false);
+    return FailHandlingPolicy(tp::default_scope + peer, false);
   }
 
   /// @brief Use this method to specify that the method should be called on
@@ -602,7 +602,7 @@ public:
   /// @param scope
   /// @return
   inline auto on_scope(const std::string &scope) {
-    return FailHandlingPolicy(PERSISTENT_DEFAULT + scope + ".rpc", true);
+    return FailHandlingPolicy(tp::default_scope + scope + ".rpc", true);
   }
 };
 

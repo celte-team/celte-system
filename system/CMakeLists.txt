@@ -3,6 +3,7 @@ project(celte-systems-api LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_COMPILER "clang++")
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_TOOLCHAIN_FILE "${ENV}/vcpkg/scripts/buildsystems/vcpkg.cmake"
