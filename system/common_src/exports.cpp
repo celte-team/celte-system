@@ -286,16 +286,72 @@ PopAssignmentByProxy(const std::string& grapeId)
 EXPORT void RegisterGlobalRPC(const std::string& name, int filter,
     std::function<void(std::string)> f)
 {
-    RUNTIME.GetPeerService().GetGlobalRPC().RegisterRPC(name, f);
+
+    if (filter == 0)
+        RUNTIME.GetPeerService().GetGlobalRPC().RegisterRPC(name, f);
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+    else if (filter == 1)
+        RUNTIME.GetPeerService().GetGlobalRPC().RegisterRPC(name, f);
+
+#else
+    else if (filter >= 2)
+        RUNTIME.GetPeerService().GetGlobalRPC().RegisterRPC(name, f);
+#endif
 }
 
-EXPORT void RegisterGrapeRPC(const std::string& grapeId,
+EXPORT void RegisterGrapeRPC(const std::string& grapeId, int filter,
     const std::string& name,
     std::function<void(std::string)> f)
 {
-    GRAPES.RunWithLock(grapeId, [name, f](celte::Grape& g) {
-        g.RegisterRPC(name, f);
-    });
+
+    if (filter == 0)
+        GRAPES.RunWithLock(grapeId, [name, f](celte::Grape& g) {
+            g.RegisterRPC(name, f);
+        });
+#ifdef CELTE_SERVER_MODE_ENABLED
+    else if (filter == 1)
+        GRAPES.RunWithLock(grapeId, [name, f](celte::Grape& g) {
+            g.RegisterRPC(name, f);
+        });
+#else
+    else if (filter >= 2)
+        GRAPES.RunWithLock(grapeId, [name, f](celte::Grape& g) {
+            g.RegisterRPC(name, f);
+        });
+#endif
+}
+
+EXPORT void RegisterEntityRPC(const std::string& entityId, int filter,
+    const std::string& name,
+    std::function<void(std::string)> f)
+{
+    if (filter == 0)
+        ETTREGISTRY.RunWithLock(entityId, [name, f](celte::Entity& e) {
+            e.RegisterRPC(name, f);
+        });
+#ifdef CELTE_SERVER_MODE_ENABLED
+    else if (filter == 1)
+        ETTREGISTRY.RunWithLock(entityId, [name, f](celte::Entity& e) {
+            e.RegisterRPC(name, f);
+        });
+#else
+    else if (filter >= 2)
+        ETTREGISTRY.RunWithLock(entityId, [name, f](celte::Entity& e) {
+            e.RegisterRPC(name, f);
+        });
+#endif
+}
+
+EXPORT void RegisterClientRPC(const std::string& clientId, int filter, const std::string& name,
+    std::function<void(std::string)> f)
+{
+#ifdef CELTE_CLIENT_MODE_ENABLED
+    if (RUNTIME.GetUUID() == clientId)
+        RUNTIME.GetPeerService().RegisterRPC(name, f);
+    else
+        std::cout << "    NOT GOOD UUID    ";
+#endif
 }
 
 EXPORT void CallGlobalRPC(const std::string& name, const std::string& args)
@@ -304,15 +360,6 @@ EXPORT void CallGlobalRPC(const std::string& name, const std::string& args)
         .on_scope(celte::tp::global_rpc)
         .on_fail_log_error()
         .fire_and_forget(name, args);
-}
-
-EXPORT void RegisterEntityRPC(const std::string& entityId, int filter,
-    const std::string& name,
-    std::function<void(std::string)> f)
-{
-    ETTREGISTRY.RunWithLock(entityId, [name, f](celte::Entity& e) {
-        e.RegisterRPC(name, f);
-    });
 }
 
 EXPORT void CallGrapeRPC(bool isPrivate, const std::string& grapeId,
@@ -363,17 +410,6 @@ EXPORT void CallClientRPC(const std::string& clientId,
         .on_peer(clientId)
         .on_fail_log_error()
         .fire_and_forget(name, args);
-#endif
-}
-
-EXPORT void RegisterClientRPC(const std::string& clientId, int filter, const std::string& name,
-    std::function<void(std::string)> f)
-{
-#ifdef CELTE_CLIENT_MODE_ENABLED
-    if (RUNTIME.GetUUID() == clientId)
-        RUNTIME.GetPeerService().RegisterRPC(name, f);
-    else
-        std::cout << "    NOT GOOD UUID    ";
 #endif
 }
 
