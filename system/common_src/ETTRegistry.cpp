@@ -190,13 +190,13 @@ ETTRegistry::GetExistingEntities(const std::string &containerId) {
   return etts;
 }
 
-std::expected<std::string, std::string>
+std::optional<std::string>
 ETTRegistry::GetEntityPayload(const std::string &eid) {
   accessor acc;
   if (_entities.find(acc, eid)) {
     return acc->second.payload;
   }
-  return std::unexpected("No such entity: " + eid);
+  return std::nullopt;
 }
 #endif
 

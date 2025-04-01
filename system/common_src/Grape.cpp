@@ -25,6 +25,7 @@ void Grape::initRPCService() {
       GrapeProxyTakeAuthorityReactor::subscribe(tp::peer(id), this);
       GrapeRequestClientDisconnectReactor::subscribe(tp::peer(id), this);
       GrapePingReactor::subscribe(tp::peer(id), this);
+      GrapeCMIInstantiateReactor::subscribe(tp::peer(id), this);
     }
 
 #endif
@@ -148,3 +149,11 @@ void Grape::__cleanupClientData(const std::string &clientId) {
 #else
 #endif
 }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void Grape::CMIInstantiate(std::string cmiId, std::string prefabId,
+                           std::string payload, std::string clientId) {
+  GRAPES.PushNamedTaskToEngine(
+      id,"CMIInstantiate", cmiId, prefabId, payload, clientId);
+}
+#endif
