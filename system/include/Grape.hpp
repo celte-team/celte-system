@@ -143,6 +143,7 @@ namespace celte {
             std::string payload);
         bool RequestClientDisconnect(std::string clientId);
         bool Ping();
+        void CMIInstantiate(std::string cmiId, std::string prefabId, std::string payload, std::string clientId);
 #endif
         bool ExecClientDisconnect(std::string clientId, std::string payload);
 
@@ -161,6 +162,7 @@ namespace celte {
     REGISTER_SERVER_RPC(Grape, ProxyTakeAuthority);
     REGISTER_SERVER_RPC(Grape, RequestClientDisconnect);
     REGISTER_SERVER_RPC(Grape, Ping);
+    REGISTER_SERVER_RPC(Grape, CMIInstantiate);
     REGISTER_RPC(Grape, ExecClientDisconnect);
     REGISTER_RPC(Grape, RPCHandler);
 

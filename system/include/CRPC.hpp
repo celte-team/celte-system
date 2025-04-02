@@ -1,8 +1,8 @@
 #pragma once
 #include "Logger.hpp"
-#include "Runtime.hpp"
 #include "Topics.hpp"
 #include "systems_structs.pb.h"
+#include <Runtime.hpp>
 #include <algorithm>
 #include <any>
 #include <atomic>
@@ -26,6 +26,9 @@
 #include <typeindex>
 #include <unordered_map>
 #include <variant>
+
+static const std::string PERSISTENT_DEFAULT = "persistent://public/default/";
+static std::string static_uuid = "peer1";
 
 namespace celte {
     namespace detail {
@@ -585,7 +588,7 @@ namespace celte {
                     std::get<std::future<nlohmann::json>>(r).wait();
                 }
 
-                // if the response json is empty, it means the remote method failed
+                // if the response json is null, it means the remote method failed
                 auto j = std::get<std::future<nlohmann::json>>(r).get();
                 if (j.is_null()) {
                     CStatus status = std::make_exception_ptr(std::runtime_error(
@@ -653,126 +656,6 @@ namespace celte {
         }
     };
 
-    /// @brief  Template for generic callables, will be used to find what the
-    /// return and arg types of a callable are
-    template <typename T>
-    struct FunctionTraits;
-
-    // specialization for function pointers
-    template <typename Ret, typename... Args>
-    struct FunctionTraits<Ret (*)(Args...)> {
-        using ReturnType = Ret;
-        using ArgsTuple = std::tuple<Args...>;
-    };
-
-    // specialization for std::function
-    template <typename Ret, typename... Args>
-    struct FunctionTraits<std::function<Ret(Args...)>> {
-        using ReturnType = Ret;
-        using ArgsTuple = std::tuple<Args...>;
-    };
-
-    // specialization for member function pointers
-    template <typename ClassType, typename Ret, typename... Args>
-    struct FunctionTraits<Ret (ClassType::*)(Args...)> {
-        using ReturnType = Ret;
-        using ArgsTuple = std::tuple<Args...>;
-    };
-
-    // specialization for const member functions
-    template <typename ClassType, typename Ret, typename... Args>
-    struct FunctionTraits<Ret (ClassType::*)(Args...) const> {
-        using ReturnType = Ret;
-        using ArgsTuple = std::tuple<Args...>;
-    };
-
-    // specialization for lambdas and other callables
-    template <typename Callable>
-    struct FunctionTraits : FunctionTraits<decltype(&Callable::operator())> { };
-
-    /// @brief template used to create a delegate to call a method on an object
-    /// @tparam Ret
-    /// @tparam ArgsTuple
-    template <typename Ret, typename ArgsTuple>
-    struct FunctionClassifier;
-
-    // specialization for non-void return type and no arguments
-    template <typename Ret>
-    struct FunctionClassifier<Ret, std::tuple<>> {
-        using FunctionType = Ret();
-
-        template <typename ClassType>
-        static auto build_delegate(ClassType* instance,
-            FunctionType ClassType::* func)
-        {
-            return [instance, func](nlohmann::json) -> nlohmann::json {
-                Ret result = (instance->*func)();
-                return nlohmann::json(result);
-            };
-        }
-    };
-
-    // specialization for void return type and no arguments
-    template <>
-    struct FunctionClassifier<void, std::tuple<>> {
-        using FunctionType = void();
-
-        template <typename ClassType>
-        static auto build_delegate(ClassType* instance,
-            FunctionType ClassType::* func)
-        {
-            return [instance, func](nlohmann::json) -> nlohmann::json {
-                (instance->*func)();
-                return nlohmann::json(); // Return an empty JSON object for void
-            };
-        }
-    };
-
-    // specialization for non-void return type
-    template <typename Ret, typename... Args>
-    struct FunctionClassifier<Ret, std::tuple<Args...>> {
-        using FunctionType = Ret(Args...);
-
-        template <typename ClassType>
-        static auto build_delegate(ClassType* instance,
-            FunctionType ClassType::* func)
-        {
-            return [instance, func](nlohmann::json jargs) -> nlohmann::json {
-                std::tuple<Args...> args;
-                jargs.get_to(args);
-
-                Ret result = std::apply(
-                    [instance, func](Args... unpackedArgs) {
-                        return (instance->*func)(unpackedArgs...);
-                    },
-                    args);
-                return nlohmann::json(result);
-            };
-        }
-    };
-
-    // specialization for void return type
-    template <typename... Args>
-    struct FunctionClassifier<void, std::tuple<Args...>> {
-        using FunctionType = void(Args...);
-
-        template <typename ClassType>
-        static auto build_delegate(ClassType* instance,
-            FunctionType ClassType::* func)
-        {
-            return [instance, func](nlohmann::json jargs) -> nlohmann::json {
-                std::tuple<Args...> args;
-                jargs.get_to(args);
-                std::apply(
-                    [instance, func](Args... unpackedArgs) {
-                        (instance->*func)(unpackedArgs...);
-                    },
-                    args);
-                return nlohmann::json(); // Return an empty JSON object for void
-            };
-        }
-    };
-
     /// @brief The RPCCalleeStub class is a singleton that allows to register
     /// methods that can be called remotely. It is thread safe.
     class RPCCalleeStub {
@@ -784,6 +667,126 @@ namespace celte {
                 methods;
         };
         using scope_method_accessor = tbb::concurrent_hash_map<std::string, ScopeMethods>::accessor;
+
+        /// @brief  Template for generic callables, will be used to find what the
+        /// return and arg types of a callable are
+        template <typename T>
+        struct FunctionTraits;
+
+        // specialization for function pointers
+        template <typename Ret, typename... Args>
+        struct FunctionTraits<Ret (*)(Args...)> {
+            using ReturnType = Ret;
+            using ArgsTuple = std::tuple<Args...>;
+        };
+
+        // specialization for std::function
+        template <typename Ret, typename... Args>
+        struct FunctionTraits<std::function<Ret(Args...)>> {
+            using ReturnType = Ret;
+            using ArgsTuple = std::tuple<Args...>;
+        };
+
+        // specialization for member function pointers
+        template <typename ClassType, typename Ret, typename... Args>
+        struct FunctionTraits<Ret (ClassType::*)(Args...)> {
+            using ReturnType = Ret;
+            using ArgsTuple = std::tuple<Args...>;
+        };
+
+        // specialization for const member functions
+        template <typename ClassType, typename Ret, typename... Args>
+        struct FunctionTraits<Ret (ClassType::*)(Args...) const> {
+            using ReturnType = Ret;
+            using ArgsTuple = std::tuple<Args...>;
+        };
+
+        // specialization for lambdas and other callables
+        template <typename Callable>
+        struct FunctionTraits : FunctionTraits<decltype(&Callable::operator())> { };
+
+        /// @brief template used to create a delegate to call a method on an object
+        /// @tparam Ret
+        /// @tparam ArgsTuple
+        template <typename Ret, typename ArgsTuple>
+        struct FunctionClassifier;
+
+        // specialization for non-void return type and no arguments
+        template <typename Ret>
+        struct FunctionClassifier<Ret, std::tuple<>> {
+            using FunctionType = Ret();
+
+            template <typename ClassType>
+            static auto build_delegate(ClassType* instance,
+                FunctionType ClassType::* func)
+            {
+                return [instance, func](nlohmann::json) -> nlohmann::json {
+                    Ret result = (instance->*func)();
+                    return nlohmann::json(result);
+                };
+            }
+        };
+
+        // specialization for void return type and no arguments
+        template <>
+        struct FunctionClassifier<void, std::tuple<>> {
+            using FunctionType = void();
+
+            template <typename ClassType>
+            static auto build_delegate(ClassType* instance,
+                FunctionType ClassType::* func)
+            {
+                return [instance, func](nlohmann::json) -> nlohmann::json {
+                    (instance->*func)();
+                    return nlohmann::json(); // Return an empty JSON object for void
+                };
+            }
+        };
+
+        // specialization for non-void return type
+        template <typename Ret, typename... Args>
+        struct FunctionClassifier<Ret, std::tuple<Args...>> {
+            using FunctionType = Ret(Args...);
+
+            template <typename ClassType>
+            static auto build_delegate(ClassType* instance,
+                FunctionType ClassType::* func)
+            {
+                return [instance, func](nlohmann::json jargs) -> nlohmann::json {
+                    std::tuple<Args...> args;
+                    jargs.get_to(args);
+
+                    Ret result = std::apply(
+                        [instance, func](Args... unpackedArgs) {
+                            return (instance->*func)(unpackedArgs...);
+                        },
+                        args);
+                    return nlohmann::json(result);
+                };
+            }
+        };
+
+        // specialization for void return type
+        template <typename... Args>
+        struct FunctionClassifier<void, std::tuple<Args...>> {
+            using FunctionType = void(Args...);
+
+            template <typename ClassType>
+            static auto build_delegate(ClassType* instance,
+                FunctionType ClassType::* func)
+            {
+                return [instance, func](nlohmann::json jargs) -> nlohmann::json {
+                    std::tuple<Args...> args;
+                    jargs.get_to(args);
+                    std::apply(
+                        [instance, func](Args... unpackedArgs) {
+                            (instance->*func)(unpackedArgs...);
+                        },
+                        args);
+                    return nlohmann::json(); // Return an empty JSON object for void
+                };
+            }
+        };
 
         /// @brief Register a method that can be called by another remote instance of
         /// the program. Note that this method is blocking and might perform IO
@@ -954,7 +957,7 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
     class bound_class##method_name##Reactor {                                   \
     private:                                                                    \
         using MethodType = decltype(&bound_class::method_name);                 \
-        using Traits = FunctionTraits<MethodType>;                              \
+        using Traits = celte::RPCCalleeStub::FunctionTraits<MethodType>;        \
         using ReturnType = typename Traits::ReturnType;                         \
         using ArgsTuple = typename Traits::ArgsTuple;                           \
                                                                                 \

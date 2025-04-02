@@ -86,7 +86,8 @@ namespace celte {
 
         std::string subscriptionName = RUNTIME.GetUUID();
         pulsar::Result result = _producerPool.GetClient()->subscribe(
-            RUNTIME.GetUUID(), subscriptionName, consumerConfig, _responseConsumer);
+            RUNTIME.GetUUID(), subscriptionName, consumerConfig,
+            _responseConsumer);
     }
 
     void RPCCallerStub::solve_promise(const std::string& rpc_id,
@@ -172,13 +173,15 @@ namespace celte {
     void RPCCalleeStub::_handle_response(const req::RPRequest& request)
     {
         if (request.error_status()) { // remote error
-            RPCCallerStub::instance().solve_promise(request.responds_to(), { nullptr });
+            RPCCallerStub::instance().solve_promise(request.responds_to(), nullptr);
+            return;
         }
         try { // unpack the response and solve the promise
             nlohmann::json args = nlohmann::json::parse(request.args());
             RPCCallerStub::instance().solve_promise(request.responds_to(), args);
         } catch (nlohmann::json::exception& e) { // handle bad json values
-            RPCCallerStub::instance().solve_promise(request.responds_to(), { nullptr });
+            RPCCallerStub::instance().solve_promise(request.responds_to(), nullptr);
+            return;
         }
     }
 

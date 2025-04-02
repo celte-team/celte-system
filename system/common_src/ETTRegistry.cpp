@@ -153,8 +153,8 @@ void ETTRegistry::LoadExistingEntities(const std::string& grapeId,
     CallGrapeGetExistingEntities()
         .on_peer(grapeId)
         .on_fail_log_error()
-        .with_timeout(std::chrono::milliseconds(1000))
-        .retry(3)
+        .with_timeout(std::chrono::milliseconds(10000))
+        .retry(0)
         .call_async(
             std::function<void(std::map<std::string, std::string>)>(
                 [this, containerId](std::map<std::string, std::string> entities) {
@@ -205,14 +205,14 @@ ETTRegistry::GetExistingEntities(const std::string& containerId)
     return etts;
 }
 
-std::expected<std::string, std::string>
+std::optional<std::string>
 ETTRegistry::GetEntityPayload(const std::string& eid)
 {
     accessor acc;
     if (_entities.find(acc, eid)) {
         return acc->second.payload;
     }
-    return std::unexpected("No such entity: " + eid);
+    return std::nullopt;
 }
 #endif
 

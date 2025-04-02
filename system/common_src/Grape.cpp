@@ -26,6 +26,7 @@ void Grape::initRPCService()
             GrapeProxyTakeAuthorityReactor::subscribe(tp::peer(id), this);
             GrapeRequestClientDisconnectReactor::subscribe(tp::peer(id), this);
             GrapePingReactor::subscribe(tp::peer(id), this);
+            GrapeCMIInstantiateReactor::subscribe(tp::peer(id), this);
             GrapeRPCHandlerReactor::subscribe(tp::peer(id), this);
         }
 
@@ -40,7 +41,8 @@ void Grape::initRPCService()
 std::map<std::string, std::string>
 Grape::GetExistingEntities(std::string containerId)
 {
-    return ETTREGISTRY.GetExistingEntities(containerId);
+    auto result = ETTREGISTRY.GetExistingEntities(containerId);
+    return result;
 }
 
 bool Grape::SubscribeToContainer(std::string ownerOfContainerId,
@@ -160,3 +162,12 @@ void Grape::__cleanupClientData(const std::string& clientId)
 #else
 #endif
 }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void Grape::CMIInstantiate(std::string cmiId, std::string prefabId,
+    std::string payload, std::string clientId)
+{
+    GRAPES.PushNamedTaskToEngine(
+        id, "CMIInstantiate", cmiId, prefabId, payload, clientId);
+}
+#endif
