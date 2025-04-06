@@ -102,9 +102,7 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
 #endif
   // if toContainerId is not registered here, we need to delete the entity.
   if (not GRAPES.ContainerExists(toContainerId)) {
-#ifdef DEBUG
     std::cout << "\033[1;31mDELETE\033[0m " << e.id << std::endl;
-#endif
     std::string id = e.id;
     std::string payload = e.payload;
     RUNTIME.TopExecutor().PushTaskToEngine(
@@ -138,12 +136,18 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   Clock::timepoint whenTp = Clock::FromISOString(when);
 
   CLOCK.ScheduleAt(whenTp, [=]() {
+    // std::cout << "is ett registered? "
+    //           << ETTREGISTRY.IsEntityRegistered(entityId) << std::endl;
+
     // if ett exists, transfer auth
     ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
       e.ownerContainerId = toContainerId;
       e.quarantine = false;
     });
 
+    // if ett does not exist, schedule it for creation (container will be
+    // emplaced)
+    // if (!ettExists) {
     if (!ETTREGISTRY.IsEntityRegistered(entityId)) {
       RUNTIME.TopExecutor().PushTaskToEngine(
           [payload, entityId, toContainerId, ghostData]() {

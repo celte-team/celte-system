@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.master.name }}-sa
+  namespace: celte
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.master.name }}-role
+  namespace: celte
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  resourceNames: ["{{ .Values.serverNode.name }}"]
+  verbs: ["get", "list", "watch", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "delete"]
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.master.name }}-rolebinding
+  namespace: celte
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.master.name }}-sa
+  namespace: celte
+roleRef:
+  kind: Role
+  name: {{ .Values.master.name }}-role
+  apiGroup: rbac.authorization.k8s.io

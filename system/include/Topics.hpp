@@ -21,7 +21,7 @@ namespace celte {
         static const std::string hello_master_sn = default_scope + "master.hello.sn";
         static const std::string hello_master_cl = default_scope + "master.hello.client";
         static const std::string global_clock = default_scope + "global.clock";
-        static const std::string global_rpc = "global";
+        static const std::string global_rpc = default_scope + "global.rpc";
 
     } // namespace tp
 } // namespace celte

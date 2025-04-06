@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.master.name }}
+  namespace: celte
+  labels:
+    app: {{ .Values.master.name }}
+spec:
+  replicas: {{ .Values.master.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.master.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.master.name }}
+    spec:
+      serviceAccountName: {{ .Values.master.name }}-sa
+      containers:
+      - name: {{ .Values.master.containerName }}
+        image: "{{ .Values.master.image.repository }}:{{ .Values.master.image.tag }}"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{ .Values.master.service.port }}
+          name: http
+        env:
+        - name: KUBERNETES_NAMESPACE
+          value: "celte"
+        {{- range .Values.master.environment }}
+        - name: {{ .name }}
+          value: {{ .value | quote }}
+        {{- end }}
+        resources:
+          requests:
+            cpu: {{ .Values.master.resources.requests.cpu }}
+            memory: {{ .Values.master.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.master.resources.limits.cpu }}
+            memory: {{ .Values.master.resources.limits.memory }}
