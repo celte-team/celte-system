@@ -1,7 +1,4 @@
 ﻿
-using System;
-using System.Threading;
-
 class Program
 {
     static void Main(string[] args)
@@ -40,7 +37,7 @@ class Program
                 {
                     Console.WriteLine("Space key pressed, exiting...");
                     Master.GetInstance().Dispose();
-                    // delete node from redis
+                    // Delete node from redis
                     Redis.RedisClient redis = Redis.RedisClient.GetInstance();
                     try {
                         redis.redisData.JSONRemove("nodes");
@@ -48,7 +45,7 @@ class Program
                         redis.redisData.JSONRemove("logs");
                         redis.redisData.JSONRemove("clients_try_to_connect");
                     } catch (Exception e) {
-                        Console.WriteLine($"Warning: Error during Redis cleanup: {e.Message}");
+                        Console.WriteLine($"Warning: during Redis cleanup: {e.Message}");
                     }
                     Environment.Exit(0);
                 }
