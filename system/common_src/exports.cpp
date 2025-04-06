@@ -6,6 +6,7 @@
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
+#include "Grape.hpp"
 #ifdef CELTE_SERVER_MODE_ENABLED
 #include "MetricsScrapper.hpp"
 #endif
@@ -179,6 +180,14 @@ EXPORT std::optional<std::string> PollPropertyUpdate(const std::string &eid,
   return GHOSTSYSTEM.PollPropertyUpdate(eid, key);
 }
 
+EXPORT void CallCMIInstantiate(const std::string &grapeId,
+  const std::string &cmiId,
+  const std::string &prefabId,
+  const std::string &payload,
+  const std::string &clientId) {
+celte::CallGrapeCMIInstantiate().on_peer(grapeId).on_fail_log_error().fire_and_forget(cmiId, prefabId, payload, clientId);
+}
+
 #pragma endregion
 /* ----------------------------- TASK MANAGEMENT ---------------------------- */
 #pragma region TASK MANAGEMENT
@@ -242,6 +251,15 @@ PopAssignmentByProxy(const std::string &grapeId) {
           grapeId, "proxyTakeAuthority");
   return result;
 }
+
+EXPORT std::optional<std::tuple<std::string, std::string, std::string, std::string>>
+PopCMIInstantiate(const std::string &grapeId) {
+  std::optional<std::tuple<std::string, std::string, std::string, std::string>> result =
+      GRAPES.PopNamedTaskFromEngine<std::string, std::string, std::string, std::string>(
+          grapeId, "CMIInstantiate");
+  return result;
+}
+
 #endif
 #pragma endregion
 
@@ -256,11 +274,12 @@ EXPORT void RegisterGrapeRPC(const std::string &grapeId,
                              const std::string &name,
                              std::function<std::string(std::string)> f) {
   GRAPES.RunWithLock(grapeId, [name, f](celte::Grape &g) {
-    if (!g.rpcService.has_value()) {
-      throw std::runtime_error(
-          "Grape has no RPC service, or it has not been initialized yet.");
-    }
-    g.rpcService->Register<std::string>(name, f);
+    // if (!g.rpcService.has_value()) {
+    //   throw std::runtime_error(
+    //       "Grape has no RPC service, or it has not been initialized yet.");
+    // }
+    // g.rpcService->Register<std::string>(name, f);
+    std::cout << "RegisterGrapeRPC not implemented yet" << std::endl;
   });
 }
 

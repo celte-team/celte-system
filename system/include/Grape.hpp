@@ -2,10 +2,11 @@
 #ifdef CELTE_SERVER_MODE_ENABLED
 #include "ClientRegistry.hpp"
 #endif
+#include "CRPC.hpp"
 #include "Container.hpp"
 #include "ContainerSubscriptionComponent.hpp"
 #include "Executor.hpp"
-#include "RPCService.hpp"
+
 #include <any>
 #include <functional>
 #include <map>
@@ -14,7 +15,6 @@
 #include <set>
 #include <string>
 #include <tbb/concurrent_set.h>
-
 namespace celte {
 // Wraps a handle to the object representing the container in the engine.
 using ContainerNativeHandle = void *;
@@ -26,9 +26,6 @@ struct Grape {
                        // #ifdef CELTE_SERVER_MODE_ENABLED
   Executor executor;   ///< The executor for this grape. Tasks to be ran in the
                        ///< engine can be pushed here.
-  std::optional<net::RPCService>
-      rpcService; ///< The rpc service for this grape. Must be initialized after
-  ///< the id has been set.
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   ContainerSubscriptionComponent
@@ -66,15 +63,15 @@ struct Grape {
   /// @return The id of the container, or std::nullopt if the container was
   /// already subscribed to by this particular grape.
   std::optional<std::string>
-  subscribeToContainer(const std::string &containerId,
-                       std::function<void()> onReady,
-                       bool isLocallyOwned = false);
+  __subscribeToContainer(const std::string &containerId,
+                         std::function<void()> onReady,
+                         bool isLocallyOwned = false);
 
   /// @brief Unsubscribes this peer from a container owned by the grape passed
   /// in argument. if the grape is owned by this peer, does nothing.
-  void unsubscribeFromContainer(const std::string &containerId);
-  void fetchExistingContainers();
+  void __unsubscribeFromContainer(const std::string &containerId);
 
+  void fetchExistingContainers();
 #endif
 
   /// @brief Pushes an named task to be executed in the engine's context, with
@@ -124,16 +121,40 @@ struct Grape {
 
   void initRPCService();
 
-private:
+/* ---------------------------------- RPCS ----------------------------------
+ */
 #ifdef CELTE_SERVER_MODE_ENABLED
-  std::vector<std::string> __rp_getExistingOwnedContainers();
+  std::map<std::string, std::string>
+  GetExistingEntities(std::string containerId);
+  std::vector<std::string> GetExistingOwnedContainers();
+  bool SubscribeToContainer(std::string ownerOfContainerId,
+                            std::string containerId);
+  bool UnsubscribeFromContainer(std::string ownerOfContainerId,
+                                std::string containerId);
+  bool ProxyTakeAuthority(std::string entityId, std::string fromContainerId,
+                          std::string payload);
+  bool RequestClientDisconnect(std::string clientId);
+  bool Ping();
+  void CMIInstantiate(std::string cmiId, std::string prefabId, std::string payload, std::string clientId);
 #endif
+  bool ExecClientDisconnect(std::string clientId, std::string payload);
 
+private:
   /// @brief Called when the client with the given id is disconnected from the
   /// cluster. It will clear all the data relatie to this client from the
   /// systems. Engine cleanup should be performed by the game developer, in the
   /// onClientDisconnect hook.
   void __cleanupClientData(const std::string &clientId);
 };
+
+REGISTER_SERVER_RPC(Grape, GetExistingEntities);
+REGISTER_SERVER_RPC(Grape, GetExistingOwnedContainers);
+REGISTER_SERVER_RPC(Grape, SubscribeToContainer);
+REGISTER_SERVER_RPC(Grape, UnsubscribeFromContainer);
+REGISTER_SERVER_RPC(Grape, ProxyTakeAuthority);
+REGISTER_SERVER_RPC(Grape, RequestClientDisconnect);
+REGISTER_SERVER_RPC(Grape, Ping);
+REGISTER_SERVER_RPC(Grape, CMIInstantiate);
+REGISTER_RPC(Grape, ExecClientDisconnect);
 
 } // namespace celte

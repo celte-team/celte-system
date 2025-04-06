@@ -1,15 +1,24 @@
 #pragma once
+#include "CelteError.hpp"
 #include <nlohmann/json.hpp>
 #include <string>
 
 namespace celte {
+/// @brief Exception type related to authority transfer.
+class AuthorityTransferException : public CelteError {
+public:
+  AuthorityTransferException(const std::string &msg, Logger &log,
+                             std::string file, int line)
+      : CelteError(msg, log, file, line) {}
+};
+
 /// @brief This class is responsible for transferring authority over entities
 /// between containers. Containers may not necessarily be owned locally.
 class AuthorityTransfer {
 public:
   /// @brief This method will send the order on the network to transfer the
   /// authority of the entity to the target container. The rpcs
-  /// __rp_containerTakeAuthority and __rp_containerDropAuthority will be called
+  /// ContainerTakeAuthority and ContainerDropAuthority will be called
   /// on the target and source containers respectively.
   /// This will remotely trigger calls to ExecTakeOrder and
   /// ExecDropOrder

@@ -2,6 +2,7 @@
 #ifdef CELTE_SERVER_MODE_ENABLED
 #include "ClientRegistry.hpp"
 #endif
+#include "CRPC.hpp"
 #include "Container.hpp"
 #include "Grape.hpp"
 #include "GrapeRegistry.hpp"
@@ -14,88 +15,69 @@ using namespace celte;
 
 void Grape::initRPCService() {
   {
-    std::vector<std::string> topics = {tp::rpc(id)};
-    if (isLocallyOwned) {
-      topics.push_back(
-          tp::peer(id)); // not really a peer but the raw id without
-    }
-    rpcService.emplace(
-        net::RPCService::Options{.thisPeerUuid = RUNTIME.GetUUID(),
-                                 .listenOn = topics,
-                                 .reponseTopic = tp::peer(RUNTIME.GetUUID()),
-                                 .serviceName = tp::rpc(id)});
-
 #ifdef CELTE_SERVER_MODE_ENABLED
-    rpcService->Register<std::map<std::string, std::string>>(
-        "__rp_getExistingEntities",
-        std::function<std::map<std::string, std::string>(std::string)>(
-            [this](std::string containerId) {
-              return ETTREGISTRY.GetExistingEntities(containerId);
-            }));
-
-    rpcService->Register<std::vector<std::string>>(
-        "__rp_getExistingOwnedContainers",
-        std::function<std::vector<std::string>()>(
-            [this]() { return __rp_getExistingOwnedContainers(); }));
-
-    rpcService->Register<bool>(
-        "__rp_subscribeToContainer",
-        std::function([this](std::string ownerOfContainerId,
-                             std::string containerId) {
-          GRAPES.RunWithLock(ownerOfContainerId, [this, containerId](Grape &g) {
-            g.subscribeToContainer(containerId, []() {}, false);
-          });
-          return true;
-        }));
-
-    rpcService->Register<bool>(
-        "__rp_unsubscribeFromContainer",
-        std::function([this](std::string ownerOfContainerId,
-                             std::string containerId) {
-          GRAPES.RunWithLock(ownerOfContainerId, [this, containerId](Grape &g) {
-            g.unsubscribeFromContainer(containerId);
-          });
-          return true;
-        }));
 
     if (isLocallyOwned) {
-      rpcService->Register<bool>(
-          "__rp_proxyTakeAuthority",
-          std::function([this](std::string entityId,
-                               std::string fromContainerId,
-                               std::string payload) {
-            AuthorityTransfer::__rp_proxyTakeAuthority(
-                id, entityId, fromContainerId, payload);
-            return true;
-          }));
-
-      rpcService->Register<bool>("__rp_requestClientDisconnect",
-                                 std::function([this](std::string clientId) {
-                                   RUNTIME.Hooks().onClientRequestDisconnect(
-                                       clientId);
-                                   return true;
-                                 }));
+      GrapeGetExistingEntitiesReactor::subscribe(tp::peer(id), this);
+      GrapeGetExistingOwnedContainersReactor::subscribe(tp::peer(id), this);
+      GrapeSubscribeToContainerReactor::subscribe(tp::peer(id), this);
+      GrapeUnsubscribeFromContainerReactor::subscribe(tp::peer(id), this);
+      GrapeProxyTakeAuthorityReactor::subscribe(tp::peer(id), this);
+      GrapeRequestClientDisconnectReactor::subscribe(tp::peer(id), this);
+      GrapePingReactor::subscribe(tp::peer(id), this);
+      GrapeCMIInstantiateReactor::subscribe(tp::peer(id), this);
     }
 
-    rpcService->Register<bool>("__rp_ping",
-                               std::function([this](bool) { return true; }));
 #endif
 
-    rpcService->Register<bool>(
-        "__rp_execClientDisconnect",
-        std::function([this](std::string clientId, std::string payload) {
-          RUNTIME.Hooks().onClientDisconnect(clientId, payload);
-          __cleanupClientData(clientId);
-          return true;
-        }));
+    GrapeExecClientDisconnectReactor::subscribe(tp::rpc(id), this);
   }
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
+std::map<std::string, std::string>
+Grape::GetExistingEntities(std::string containerId) {
+  auto result = ETTREGISTRY.GetExistingEntities(containerId);
+  return result;
+}
+
+bool Grape::SubscribeToContainer(std::string ownerOfContainerId,
+                                 std::string containerId) {
+  GRAPES.RunWithLock(ownerOfContainerId, [containerId](Grape &g) {
+    g.__subscribeToContainer(containerId, []() {}, false);
+  });
+  return true;
+}
+
+bool Grape::UnsubscribeFromContainer(std::string ownerOfContainerId,
+                                     std::string containerId) {
+  GRAPES.RunWithLock(ownerOfContainerId, [containerId](Grape &g) {
+    g.__unsubscribeFromContainer(containerId);
+  });
+  return true;
+}
+
+bool Grape::ProxyTakeAuthority(std::string entityId,
+                               std::string fromContainerId,
+                               std::string payload) {
+  AuthorityTransfer::__rp_proxyTakeAuthority(id, entityId, fromContainerId,
+                                             payload);
+  return true;
+}
+
+bool Grape::RequestClientDisconnect(std::string clientId) {
+  RUNTIME.Hooks().onClientRequestDisconnect(clientId);
+  return true;
+}
+
+bool Grape::Ping() { return true; }
+
+// this has no lock. if you need a lock, use the public binding
+// SubscribeToContainer
 std::optional<std::string>
-Grape::subscribeToContainer(const std::string &containerId,
-                            std::function<void()> onReady,
-                            bool isLocallyOwned) {
+Grape::__subscribeToContainer(const std::string &containerId,
+                              std::function<void()> onReady,
+                              bool isLocallyOwned) {
   auto id = containerSubscriptionComponent.Subscribe(containerId, onReady,
                                                      isLocallyOwned);
   if (!id.has_value()) {
@@ -103,14 +85,18 @@ Grape::subscribeToContainer(const std::string &containerId,
   }
   if (isLocallyOwned) {
     ownedContainers[id.value()] = std::nullopt;
-
   } else { // if not locally owned, fetch existing entities from the owner
     ETTREGISTRY.LoadExistingEntities(this->id, containerId);
   }
   return id;
 }
 
-void Grape::unsubscribeFromContainer(const std::string &containerId) {
+void Grape::__unsubscribeFromContainer(const std::string &containerId) {
+  // if container is locally owned, do not unsubscribe. If not needed, the
+  // container should be manually deleted but this is not the place to do it.
+  if (ContainerRegistry::GetInstance().ContainerIsLocallyOwned(containerId)) {
+    return;
+  }
   containerSubscriptionComponent.Unsubscribe(containerId);
 }
 
@@ -123,10 +109,15 @@ void Grape::fetchExistingContainers() {
   try {
     LOGINFO("Fetching existing containers in grape " + id);
     std::vector<std::string> existingContainers =
-        RUNTIME.GetPeerService().GetRPCService().Call<std::vector<std::string>>(
-            tp::peer(id), "__rp_getExistingOwnedContainers", id);
+        CallGrapeGetExistingOwnedContainers()
+            .on_peer(id)
+            .on_fail_log_error()
+            .with_timeout(std::chrono::milliseconds(1000))
+            .retry(3)
+            .call<std::vector<std::string>>(id)
+            .value_or(std::vector<std::string>{}); // empty vector if failed
     for (auto &containerId : existingContainers) {
-      subscribeToContainer(containerId, []() {}, false);
+      __subscribeToContainer(containerId, []() {}, false);
     }
   } catch (const std::exception &e) {
     std::cerr << "Error fetching existing containers: " << e.what()
@@ -134,7 +125,7 @@ void Grape::fetchExistingContainers() {
   }
 }
 
-std::vector<std::string> Grape::__rp_getExistingOwnedContainers() {
+std::vector<std::string> Grape::GetExistingOwnedContainers() {
   std::vector<std::string> result;
   {
     std::lock_guard<std::mutex> lock(ownedContainersMutex);
@@ -146,9 +137,23 @@ std::vector<std::string> Grape::__rp_getExistingOwnedContainers() {
 }
 #endif
 
+bool Grape::ExecClientDisconnect(std::string clientId, std::string payload) {
+  RUNTIME.Hooks().onClientDisconnect(clientId, payload);
+  __cleanupClientData(clientId);
+  return true;
+}
+
 void Grape::__cleanupClientData(const std::string &clientId) {
 #ifdef CELTE_SERVER_MODE_ENABLED
   RUNTIME.GetPeerService().GetClientRegistry().ForgetClient(clientId);
 #else
 #endif
 }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void Grape::CMIInstantiate(std::string cmiId, std::string prefabId,
+                           std::string payload, std::string clientId) {
+  GRAPES.PushNamedTaskToEngine(
+      id,"CMIInstantiate", cmiId, prefabId, payload, clientId);
+}
+#endif

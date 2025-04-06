@@ -1,7 +1,6 @@
 #pragma once
 #include "Entity.hpp"
 #include <exception>
-#include <expected>
 #include <iostream>
 #include <map>
 #include <optional>
@@ -138,7 +137,7 @@ public:
   /// @param containerId
   std::map<std::string, std::string>
   GetExistingEntities(const std::string &containerId);
-  std::expected<std::string, std::string>
+  std::optional<std::string>
   GetEntityPayload(const std::string &eid);
 
   /// @brief If the entity is locally owned, notifies the network that it should

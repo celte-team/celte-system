@@ -140,7 +140,7 @@ public class RPC
             return;
         }
         // this function is used to send the spawn position of the player to the client.
-        RegisterResponseHandler("__rp_getPlayerSpawnPosition", (args) =>
+        RegisterResponseHandler("PeerService_call_RequestSpawnPosition", (args) =>
         {
             var nodes = Redis.RedisClient.GetInstance().redisData.JSONGetAll<List<string>>("nodes").Result;
             if (nodes.Count > 0)
@@ -184,13 +184,13 @@ public class RPC
                 Console.WriteLine($"clientIdArrayJson {clientIdArrayJson} is trying to connect.");
                 RPRequest r = new RPRequest
                 {
-                    Name = "__rp_acceptNewClient",
+                    Name = "PeerService_call_AcceptNewClient",
                     RespondsTo = "",
                     ResponseTopic = "persistent://public/default/master.rpc",
                     RpcId = new Random().Next().ToString(),
                     Args = clientIdArrayJson
                 };
-                RPC.Call(topic, "__rp_acceptNewClient", r);
+                RPC.Call(topic, "PeerService_call_AcceptNewClient", r);
             }
             else
             {

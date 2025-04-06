@@ -1,7 +1,7 @@
 #pragma once
 #include "CelteService.hpp"
 #include "GhostSystem.hpp"
-#include "RPCService.hpp"
+
 #include "systems_structs.pb.h"
 #include <atomic>
 #include <functional>
@@ -11,6 +11,7 @@
 #ifdef CELTE_SERVER_MODE_ENABLED
 #include <set>
 #endif
+#include "CRPC.hpp"
 
 namespace celte {
 class Grape;
@@ -52,20 +53,19 @@ public:
   /// @param id
   inline void __setIdInternal(const std::string &id) { _id = id; }
 
+  void TakeAuthority(std::string args);
+  void DropAuthority(std::string args);
+  void DeleteEntity(std::string entityId, std::string payload);
+
 private:
   void __initRPCs();
   void __initStreams();
 
-  void __rp_containerTakeAuthority(const std::string &args);
-  void __rp_containerDropAuthority(const std::string &args);
-  void __rp_deleteEntity(const std::string &entityId,
-                         const std::string &payload);
-
-  std::string _id;             ///< Unique id on the network
-  std::string _grapeId;        ///< The grape this container belongs to
-  bool _isLocallyOwned;        ///< True if this container is owned by this peer
-  net::RPCService _rpcService; ///< The rpc service for this container, for
-                               ///< calling methods
+  std::string _id;      ///< Unique id on the network
+  std::string _grapeId; ///< The grape this container belongs to
+  bool _isLocallyOwned; ///< True if this container is owned by this peer
+  // net::RPCService _rpcService; ///< The rpc service for this container, for
+  ///< calling methods
   ///< on all peers listening to this container.
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -79,6 +79,10 @@ private:
   friend class ContainerRegistry;
   friend class ContainerSubscriptionComponent;
 };
+
+REGISTER_RPC(Container, TakeAuthority);
+REGISTER_RPC(Container, DropAuthority);
+REGISTER_RPC(Container, DeleteEntity);
 
 class ContainerRegistry {
 public:

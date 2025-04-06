@@ -16,7 +16,6 @@ class ConnectClient
         if (!_clients.ContainsKey(binaryData))
             _clients.Add(binaryData, new Client { uuid = binaryData });
         string newTopic = "persistent://public/default/" + binaryData;
-        // await _master.pulsarProducer.OpenTopic(newTopic);
         try
         {
             string nodeId = await GetRandomNode();
@@ -24,7 +23,7 @@ class ConnectClient
             JsonElement root = messageJson.RootElement;
             string clientId = root.GetProperty("peerUuid").GetString() ?? throw new InvalidOperationException("peerUuid property is missing or null");
             string uuidProcess = Guid.NewGuid().ToString();
-            const string rpcName = "__rp_getPlayerSpawnPosition";
+            const string rpcName = "PeerService_call_RequestSpawnPosition";
 
 
             Redis.RedisClient redisClient = Redis.RedisClient.GetInstance();

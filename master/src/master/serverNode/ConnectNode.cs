@@ -164,14 +164,16 @@ class ConnectNode
             //Protobuf message RPRequest
             Celte.Req.RPRequest request = new Celte.Req.RPRequest
             {
-                Name = "__rp_assignGrape",
+                Name = "PeerService_call_AssignGrape",
                 RespondsTo = "",
                 ResponseTopic = "persistent://public/default/master.rpc",
                 RpcId = new Random().Next().ToString(),
-                Args = assignGrape.ToString()
+                Args = assignGrape.ToString(),
+                ErrorStatus = false,
             };
 
-            RPC.Call(rpcNode, "__rp_assignGrape", request);
+            RPC.Call(rpcNode, "PeerService_call_AssignGrape", request);
+            await AddNode(binaryData);
         }
         catch (Exception e)
         {
