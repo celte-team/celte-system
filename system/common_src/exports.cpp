@@ -7,7 +7,6 @@
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
-#include "Grape.hpp"
 #ifdef CELTE_SERVER_MODE_ENABLED
 #include "MetricsScrapper.hpp"
 #endif
@@ -210,12 +209,13 @@ EXPORT std::optional<std::string> PollPropertyUpdate(const std::string& eid,
     return GHOSTSYSTEM.PollPropertyUpdate(eid, key);
 }
 
-EXPORT void CallCMIInstantiate(const std::string &grapeId,
-  const std::string &cmiId,
-  const std::string &prefabId,
-  const std::string &payload,
-  const std::string &clientId) {
-celte::CallGrapeCMIInstantiate().on_peer(grapeId).on_fail_log_error().fire_and_forget(cmiId, prefabId, payload, clientId);
+EXPORT void CallCMIInstantiate(const std::string& grapeId,
+    const std::string& cmiId,
+    const std::string& prefabId,
+    const std::string& payload,
+    const std::string& clientId)
+{
+    celte::CallGrapeCMIInstantiate().on_peer(grapeId).on_fail_log_error().fire_and_forget(cmiId, prefabId, payload, clientId);
 }
 
 #pragma endregion
@@ -289,11 +289,11 @@ PopAssignmentByProxy(const std::string& grapeId)
 }
 
 EXPORT std::optional<std::tuple<std::string, std::string, std::string, std::string>>
-PopCMIInstantiate(const std::string &grapeId) {
-  std::optional<std::tuple<std::string, std::string, std::string, std::string>> result =
-      GRAPES.PopNamedTaskFromEngine<std::string, std::string, std::string, std::string>(
-          grapeId, "CMIInstantiate");
-  return result;
+PopCMIInstantiate(const std::string& grapeId)
+{
+    std::optional<std::tuple<std::string, std::string, std::string, std::string>> result = GRAPES.PopNamedTaskFromEngine<std::string, std::string, std::string, std::string>(
+        grapeId, "CMIInstantiate");
+    return result;
 }
 
 #endif
@@ -513,10 +513,10 @@ EXPORT void UploadInputData(const std::string& uuid,
     ETTREGISTRY.UploadInputData(uuid, inputName, pressed, x, y);
 }
 
-EXPORT std::optional<const celte::CelteInputSystem::INPUT>
+EXPORT std::optional<const celte::INPUT>
 GetInputCircularBuf(const std::string& uuid, const std::string& InputName)
 {
-    return CINPUT.GetInputCircularBuf(uuid, InputName);
+    return ETTREGISTRY.GetEntityCircularBuf(uuid, InputName);
 }
 
 EXPORT std::string GetUUID() { return RUNTIME.GetUUID(); }

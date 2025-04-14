@@ -1,9 +1,23 @@
 #pragma once
 #include "CustomRPC.hpp"
 #include "Executor.hpp"
+#include <boost/circular_buffer.hpp>
+#include <map>
+#include <memory>
 #include <string>
 
 namespace celte {
+
+    typedef struct DataInput_s {
+        bool status;
+        std::chrono::time_point<std::chrono::system_clock> timestamp;
+        float x;
+        float y;
+    } DataInput_t;
+
+    typedef std::map<std::string, boost::circular_buffer<DataInput_t>> LIST_INPUT;
+    typedef boost::circular_buffer<DataInput_t> INPUT;
+
     struct Entity : public CustomRPCTemplate {
         using ETTNativeHandle = void*; ///< The entity's native handle used to
         ///< interact with the engine.
@@ -25,6 +39,8 @@ namespace celte {
 
         std::string payload; ///< customdata that can be set by the game dev to help
         ///< other peers loading the entity
+
+        std::shared_ptr<LIST_INPUT> inputs = std::make_shared<LIST_INPUT>();
 
     public:
         void RPCHandler(std::string RPCname, std::string args)
