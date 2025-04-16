@@ -11,200 +11,216 @@
 #define GRAPES celte::GrapeRegistry::GetInstance()
 
 namespace celte {
-class GrapeRegistry : net::CelteService {
-public:
-  using accessor = tbb::concurrent_hash_map<std::string, Grape>::accessor;
-  static GrapeRegistry &GetInstance();
+    class GrapeRegistry : net::CelteService {
+    public:
+        using accessor = tbb::concurrent_hash_map<std::string, Grape>::accessor;
+        static GrapeRegistry& GetInstance();
 
-  /// @brief Registers a grape for this server node. The grape is either locally
-  /// owned or not. If it is not locally owned, it won't have a client registry.
-  /// @param grapeId
-  /// @param isLocallyOwned
-  /// @param onReady
-  void RegisterGrape(const std::string &grapeId, bool isLocallyOwned,
-                     std::function<void()> onReady = nullptr);
-  void UnregisterGrape(const std::string &grapeId);
+        /// @brief Registers a grape for this server node. The grape is either locally
+        /// owned or not. If it is not locally owned, it won't have a client registry.
+        /// @param grapeId
+        /// @param isLocallyOwned
+        /// @param onReady
+        void RegisterGrape(const std::string& grapeId, bool isLocallyOwned,
+            std::function<void()> onReady = nullptr);
+        void UnregisterGrape(const std::string& grapeId);
 
-  inline tbb::concurrent_hash_map<std::string, Grape> &GetGrapes() {
-    return _grapes;
-  }
+        inline tbb::concurrent_hash_map<std::string, Grape>& GetGrapes()
+        {
+            return _grapes;
+        }
 
-  /// @brief Checks if a container exists in the grape registry.
-  bool ContainerExists(const std::string &containerId);
+        /// @brief Checks if a container exists in the grape registry.
+        bool ContainerExists(const std::string& containerId);
 
-  /// @brief Returns true if the grape with the given id exists in the registry.
-  bool GrapeExists(const std::string &grapeId);
+        /// @brief Returns true if the grape with the given id exists in the registry.
+        bool GrapeExists(const std::string& grapeId);
 
-  /// @brief Pushes a task that will be asynchronously executed by the system.
-  /// If the task is an I/O task, use PushIOTaskToSystem instead.
-  /// @param grapeId
-  /// @param task
-  inline void PushTaskToSystem(const std::string &grapeId,
-                               std::function<void()> task) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      acc->second.executor.PushTaskToSystem(task);
-    }
-  }
+        /// @brief Pushes a task that will be asynchronously executed by the system.
+        /// If the task is an I/O task, use PushIOTaskToSystem instead.
+        /// @param grapeId
+        /// @param task
+        inline void PushTaskToSystem(const std::string& grapeId,
+            std::function<void()> task)
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                acc->second.executor.PushTaskToSystem(task);
+            }
+        }
 
-  /// @brief Pushes a task that will be asynchronously executed by the system.
-  /// This task is optimized for I/O tasks.
-  inline void PushIOTaskToSystem(const std::string &grapeId,
-                                 std::function<void()> task) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      acc->second.executor.PushIOTaskToSystem(task);
-    }
-  }
+        /// @brief Pushes a task that will be asynchronously executed by the system.
+        /// This task is optimized for I/O tasks.
+        inline void PushIOTaskToSystem(const std::string& grapeId,
+            std::function<void()> task)
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                acc->second.executor.PushIOTaskToSystem(task);
+            }
+        }
 
-  /// @brief Pushes a task that will be executed in the engine's context.
-  inline void PushTaskToEngine(const std::string &grapeId,
-                               std::function<void()> task) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      acc->second.executor.PushTaskToEngine(task);
-    }
-  }
+        /// @brief Pushes a task that will be executed in the engine's context.
+        inline void PushTaskToEngine(const std::string& grapeId,
+            std::function<void()> task)
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                acc->second.executor.PushTaskToEngine(task);
+            }
+        }
 
-  /// @brief  Returns the next task in the engine queue, if any. Use this method
-  /// only if you are in the engine's context.
-  /// @param grapeId
-  /// @return
-  inline std::optional<std::function<void()>>
-  PollEngineTask(const std::string &grapeId) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      return acc->second.executor.PollEngineTask();
-    }
-    return std::nullopt;
-  }
+        /// @brief  Returns the next task in the engine queue, if any. Use this method
+        /// only if you are in the engine's context.
+        /// @param grapeId
+        /// @return
+        inline std::optional<std::function<void()>>
+        PollEngineTask(const std::string& grapeId)
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                return acc->second.executor.PollEngineTask();
+            }
+            return std::nullopt;
+        }
 
-  inline void RunWithLock(const std::string &grapeId,
-                          std::function<void(Grape &)> f) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      f(acc->second);
-    }
-  }
+        inline void RunWithLock(const std::string& grapeId,
+            std::function<void(Grape&)> f)
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                f(acc->second);
+            }
+        }
 
-  template <typename T>
-  void RunWithLock(const std::string &grapeId, T *instance,
-                   void (T::*memberFunc)(Grape &)) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      (instance->*memberFunc)(acc->second);
-    }
-  }
+        template <typename T>
+        void RunWithLock(const std::string& grapeId, T* instance,
+            void (T::*memberFunc)(Grape&))
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                (instance->*memberFunc)(acc->second);
+            }
+        }
 
-  template <typename T, typename... Args>
-  void RunWithLock(const std::string &grapeId, T *instance,
-                   void (T::*memberFunc)(Grape &, Args...), Args... args) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      (instance->*memberFunc)(acc->second, args...);
-    }
-  }
+        template <typename T, typename... Args>
+        void RunWithLock(const std::string& grapeId, T* instance,
+            void (T::*memberFunc)(Grape&, Args...), Args... args)
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                (instance->*memberFunc)(acc->second, args...);
+            }
+        }
 
-  inline std::string GetGrapeId(const std::string &grapeId) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      return acc->second.id;
-    }
-    return "";
-  }
+        inline std::string GetGrapeId(const std::string& grapeId)
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                return acc->second.id;
+            }
+            return "";
+        }
 
-  inline bool IsGrapeLocallyOwned(const std::string &grapeId) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      return acc->second.isLocallyOwned;
-    }
-    return false;
-  }
+        inline bool IsGrapeLocallyOwned(const std::string& grapeId)
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                return acc->second.isLocallyOwned;
+            }
+            return false;
+        }
 
-  inline void SetGrapeLocallyOwned(const std::string &grapeId,
-                                   bool isLocallyOwned) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      acc->second.isLocallyOwned = isLocallyOwned;
-    }
-  }
+        inline void SetGrapeLocallyOwned(const std::string& grapeId,
+            bool isLocallyOwned)
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                acc->second.isLocallyOwned = isLocallyOwned;
+            }
+        }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-  /// @brief Creates a container and attaches it to the grape. The container
-  /// will wait for its network service to be ready before calling the onReady
-  /// callback.
-  /// @param grapeId
-  /// @param onReady
-  /// @return The id of the created container.
-  std::string ContainerCreateAndAttach(std::string grapeId,
-                                       std::function<void()> onReady,
-                                       const std::string &id = "");
+        /// @brief Creates a container and attaches it to the grape. The container
+        /// will wait for its network service to be ready before calling the onReady
+        /// callback.
+        /// @param grapeId
+        /// @param onReady
+        /// @return The id of the created container.
+        std::string ContainerCreateAndAttach(std::string grapeId,
+            std::function<void()> onReady,
+            const std::string& id = "");
 
-  void SetRemoteGrapeSubscription(const std::string &ownerOfContainerId,
-                                  const std::string &grapeId,
-                                  const std::string &containerId,
-                                  bool subscribe);
+        void SetRemoteGrapeSubscription(const std::string& ownerOfContainerId,
+            const std::string& grapeId,
+            const std::string& containerId,
+            bool subscribe);
 
-  bool SubscribeGrapeToContainer(const std::string &grapeId,
-                                 const std::string &containerId,
-                                 std::function<void()> onReady);
-  void UnsubscribeGrapeFromContainer(const std::string &grapeId,
-                                     const std::string &containerId);
+        bool SubscribeGrapeToContainer(const std::string& grapeId,
+            const std::string& containerId,
+            std::function<void()> onReady);
+        void UnsubscribeGrapeFromContainer(const std::string& grapeId,
+            const std::string& containerId);
 
-  inline void SetOwnedContainerNativeHandle(const std::string &ownerGrapeId,
-                                            const std::string &containerId,
-                                            void *handle) {
-    accessor acc;
-    if (_grapes.find(acc, ownerGrapeId)) {
-      acc->second.setOwnedContainerNativeHandle(containerId, handle);
-    }
-  }
+        inline void SetOwnedContainerNativeHandle(const std::string& ownerGrapeId,
+            const std::string& containerId,
+            void* handle)
+        {
+            accessor acc;
+            if (_grapes.find(acc, ownerGrapeId)) {
+                acc->second.setOwnedContainerNativeHandle(containerId, handle);
+            }
+        }
 
-  /// @brief If a server node detects that an entity should be owned by a
-  /// non locally owned grape, it can notify the grape through its proxy so
-  /// that the remote grape can take authority over the entity.
-  void ProxyTakeAuthority(const std::string &grapeId,
-                          const std::string &entityId);
+        /// @brief If a server node detects that an entity should be owned by a
+        /// non locally owned grape, it can notify the grape through its proxy so
+        /// that the remote grape can take authority over the entity.
+        void ProxyTakeAuthority(const std::string& grapeId,
+            const std::string& entityId);
 
-  inline std::optional<ContainerNativeHandle>
-  GetOwnedContainerNativeHandle(const std::string &ownerGrapeId,
-                                const std::string &containerId) {
-    accessor acc;
-    if (_grapes.find(acc, ownerGrapeId)) {
-      return acc->second.getOwnedContainerNativeHandle(containerId);
-    }
-    return std::nullopt;
-  }
+        inline std::optional<ContainerNativeHandle>
+        GetOwnedContainerNativeHandle(const std::string& ownerGrapeId,
+            const std::string& containerId)
+        {
+            accessor acc;
+            if (_grapes.find(acc, ownerGrapeId)) {
+                return acc->second.getOwnedContainerNativeHandle(containerId);
+            }
+            return std::nullopt;
+        }
 #endif
 
-  template <typename... Args>
-  void PushNamedTaskToEngine(const std::string &grapeId,
-                             const std::string &name, Args... args) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      acc->second.pushNamedTaskToEngine(name, args...);
-    }
-  }
+        template <typename... Args>
+        void PushNamedTaskToEngine(const std::string& grapeId,
+            const std::string& name, Args... args)
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                acc->second.pushNamedTaskToEngine(name, args...);
+            }
+        }
 
-  template <typename... Args>
-  std::optional<std::tuple<Args...>>
-  PopNamedTaskFromEngine(const std::string &grapeId, const std::string &name) {
-    accessor acc;
-    if (_grapes.find(acc, grapeId)) {
-      return acc->second.popNamedTaskFromEngine<Args...>(name);
-    }
-    return std::nullopt;
-  }
+        template <typename... Args>
+        std::optional<std::tuple<Args...>>
+        PopNamedTaskFromEngine(const std::string& grapeId, const std::string& name)
+        {
+            accessor acc;
+            if (_grapes.find(acc, grapeId)) {
+                return acc->second.popNamedTaskFromEngine<Args...>(name);
+            }
+            return std::nullopt;
+        }
 
-  inline std::vector<std::string> GetKnownGrapes() {
-    std::vector<std::string> grapes;
-    for (auto it = _grapes.begin(); it != _grapes.end(); ++it) {
-      grapes.push_back(it->first);
-    }
-    return grapes;
-  }
+        inline std::vector<std::string> GetKnownGrapes()
+        {
+            std::vector<std::string> grapes;
+            for (auto it = _grapes.begin(); it != _grapes.end(); ++it) {
+                grapes.push_back(it->first);
+            }
+            return grapes;
+        }
 
-private:
-  tbb::concurrent_hash_map<std::string, Grape> _grapes;
-};
+    private:
+        tbb::concurrent_hash_map<std::string, Grape> _grapes;
+    };
 } // namespace celte
