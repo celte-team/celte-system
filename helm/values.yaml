@@ -1,0 +1,57 @@
+# helm install celte-stack ./helm
+# Master Configuration
+master:
+  name: master
+  containerName: master
+  image:
+    repository: clmt/celte-master
+    tag: latest
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  service:
+    type: ClusterIP
+    port: 8080
+  environment:
+    - name: PULSAR_BROKERS
+      value: pulsar://192.168.0.161:6650
+    - name: REDIS_HOST
+      value: 192.168.0.161:6379
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+    scaleUpCooldownPeriod: 60
+    scaleDownCooldownPeriod: 300
+
+# Server Node Configuration
+serverNode:
+  name: server-node
+  image:
+    repository: clmt/celte-sn
+    tag: latest
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+  environment:
+    - name: CELTE_HOST
+      value: 192.168.0.161
+    - name: REDIS_HOST
+      value: 192.168.0.161
+  service:
+    type: ClusterIP
+    port: 8080
+  autoscaling:
+    enabled: false

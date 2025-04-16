@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.serverNode.name }}
+  namespace: celte
+  labels:
+    app: {{ .Values.serverNode.name }}
+spec:
+  replicas: {{ .Values.serverNode.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.serverNode.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.serverNode.name }}
+    spec:
+      containers:
+      - name: {{ .Values.serverNode.name }}
+        image: "{{ .Values.serverNode.image.repository }}:{{ .Values.serverNode.image.tag }}"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{ .Values.serverNode.service.port }}
+          name: http
+        env:
+        {{- toYaml .Values.serverNode.environment | nindent 8 }}
+        resources:
+          requests:
+            cpu: {{ .Values.serverNode.resources.requests.cpu }}
+            memory: {{ .Values.serverNode.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.serverNode.resources.limits.cpu }}
+            memory: {{ .Values.serverNode.resources.limits.memory }}

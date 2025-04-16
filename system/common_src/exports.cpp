@@ -201,7 +201,6 @@ EXPORT void UpdatePropertyState(const std::string& eid, const std::string& key,
 {
     GHOSTSYSTEM.UpdatePropertyState(eid, key, value);
 }
-EXPORT std::string GetAssignedGrapeId() { return RUNTIME.GetAssignedGrape(); }
 #endif
 
 EXPORT std::optional<std::string> PollPropertyUpdate(const std::string& eid,

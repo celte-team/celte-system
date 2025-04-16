@@ -304,5 +304,24 @@ namespace Redis {
                 return false;
             }
         }
+
+        public async Task<bool> AcquireLock(string key, string value, TimeSpan expiry)
+        {
+            return await _db.StringSetAsync(key, value, expiry, When.NotExists);
+        }
+
+        public async Task<bool> ReleaseLock(string key, string expectedValue)
+        {
+            var script = @"
+                if redis.call('get', KEYS[1]) == ARGV[1] then
+                    return redis.call('del', KEYS[1])
+                else
+                    return 0
+                end";
+            var result = await _db.ScriptEvaluateAsync(script,
+                new RedisKey[] { key },
+                new RedisValue[] { expectedValue });
+            return (int)result == 1;
+        }
     }
 }

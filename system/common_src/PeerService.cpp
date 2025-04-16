@@ -16,8 +16,6 @@ PeerService::PeerService(std::function<void(bool)> onReady,
     : _wspool({ .idleTimeout = 10000ms })
 {
 
-    std::cout << "Listening on " << tp::rpc(RUNTIME.GetUUID()) << " and "
-              << tp::rpc(tp::global_rpc) << std::endl;
 
     CLOCK.Start();
     RUNTIME.ScheduleAsyncTask([this, onReady, connectionTimeout]() {
@@ -81,14 +79,17 @@ void PeerService::__registerServerRPCs()
 }
 
 #else
-void PeerService::__registerClientRPCs()
-{
-    auto id = RUNTIME.GetUUID();
-    PeerServiceForceConnectToNodeReactor::subscribe(tp::peer(id), this);
-    PeerServiceSubscribeClientToContainerReactor::subscribe(tp::peer(id), this);
-    PeerServiceUnsubscribeClientFromContainerReactor::subscribe(tp::peer(id), this);
-    PeerServicePingReactor::subscribe(tp::peer(id), this);
-    PeerServiceRPCHandlerReactor::subscribe(tp::peer(id), this);
+
+
+void PeerService::__registerClientRPCs() {
+  PeerServiceForceConnectToNodeReactor::subscribe(tp::peer(RUNTIME.GetUUID()),
+                                                  this);
+  PeerServiceSubscribeClientToContainerReactor::subscribe(
+      tp::peer(RUNTIME.GetUUID()), this);
+  PeerServiceUnsubscribeClientFromContainerReactor::subscribe(
+      tp::peer(RUNTIME.GetUUID()), this);
+  PeerServicePingReactor::subscribe(tp::peer(RUNTIME.GetUUID()), this);
+
 }
 #endif
 
