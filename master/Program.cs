@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using DotNetEnv;
-using DotPulsar;
+﻿using DotNetEnv;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -14,7 +12,7 @@ class Program
     static async Task Main(string[] args)
     {
         Env.Load();
-
+        CheckEnvironmentVariables();
         PulsarSingleton.InitializeClient();
 
         var host = Host.CreateDefaultBuilder(args)
@@ -48,6 +46,22 @@ class Program
 
         await host.RunAsync();
         await PulsarSingleton.ShutdownAsync();
+    }
+
+    private static void CheckEnvironmentVariables()
+    {
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PULSAR_BROKERS")))
+        {
+            throw new ArgumentException("\n\nPULSAR_BROKERS witch is refered to the brokers of the pulsar cluster is not set.\n");
+        }
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CELTE_GODOT_PROJECT_PATH")))
+        {
+            throw new ArgumentException("\n\nCELTE_GODOT_PROJECT_PATH witch is refered to the path of the celte godot project is not set.\n");
+        }
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CELTE_GODOT_PATH")))
+        {
+            throw new ArgumentException("\n\nCELTE_GODOT_PATH witch is refered to the path of the godot executable is not set.\n");
+        }
     }
 }
 
