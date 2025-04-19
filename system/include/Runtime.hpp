@@ -17,13 +17,14 @@
 
 namespace celte {
 class PeerService; // forward declaration
+class PeerService; // forward declaration
 
 class Runtime {
 public:
   static Runtime &GetInstance();
   Runtime();
-
-  /* ---------------------- FUNCTIONS EXPOSED TO THE API ----------------------
+  /* ---------------------- FUNCTIONS EXPOSED TO THE API
+   * ----------------------
    */
 
 #ifdef CELTE_SERVER_MODE_ENABLED
@@ -46,9 +47,9 @@ public:
   /// @param celteHost : the address of the pulsar cluster to connect to.
   /// @param port : the port of the pulsar cluster to connect to.
   /// @param sessionId : the session id to use. Defaults to 'default'.
-  /// @param onConnectedToCluster : a callback to be called when the connection
-  /// to the cluster is established. The callback will be called with a boolean
-  /// indicating wether or not the connection failed.
+  /// @param onConnectedToCluster : a callback to be called when the
+  /// connection to the cluster is established. The callback will be called
+  /// with a boolean indicating wether or not the connection failed.
   void Connect(const std::string &celteHost, int port = 6650,
                const std::string &sessionId = "default");
 
@@ -66,7 +67,6 @@ public:
   /// @brief Disconnects this client from the cluster
   void Disconnect();
 #endif
-
   /// @brief Executes the runtime loop once. Call this once per frame in the
   /// engine.
   void Tick();
@@ -77,23 +77,22 @@ public:
     return boost::uuids::to_string(id);
   }
 
-  /* ---------------------- FUNCTIONS FOR INTERNAL USE ---------------------- */
-
-  /// @brief Registers a task that will run in the same thread as Runtime::Tick.
+  /* ---------------------- FUNCTIONS FOR INTERNAL USE ----------------------
+   */
+  /// @brief Registers a task that will run in the same thread as
+  /// Runtime::Tick.
   /// @param task
   inline void ScheduleSyncTask(std::function<void()> task) {
     _syncTasks.push(task);
   }
-
-  /// @brief Registers a task that will run in a separate thread. For I/O tasks,
-  /// use ScheduleAsyncIOTask instead.
+  /// @brief Registers a task that will run in a separate thread. For I/O
+  /// tasks, use ScheduleAsyncIOTask instead.
   /// @param task
   inline void ScheduleAsyncTask(std::function<void()> task) {
     _asyncScheduler.Schedule(task);
   }
-
-  /// @brief Registers a task that will run in a separate thread. Optimized for
-  /// I/O tasks.
+  /// @brief Registers a task that will run in a separate thread. Optimized
+  /// for I/O tasks.
   inline void ScheduleAsyncIOTask(std::function<void()> task) {
     _asyncIOTaskScheduler.Schedule(task);
   }
@@ -128,7 +127,6 @@ public:
 
   inline Executor &TopExecutor() { return _topExecutor; }
 
-/// @brief Returns the grape assigned to this server.
 #ifdef CELTE_SERVER_MODE_ENABLED
   inline const std::string &GetAssignedGrape() const { return _assignedGrape; }
   inline void SetAssignedGrape(const std::string &grape) {

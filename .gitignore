@@ -16,3 +16,4 @@ __pycache__
 pulsar
 celte-godot
 **/autotest
+.qodo

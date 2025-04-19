@@ -2,7 +2,6 @@
 
 using namespace celte;
 
-Global::Global()
-{
-    GlobalRPCHandlerReactor::subscribe(tp::rpc(tp::global_rpc), this);
+Global::Global() {
+  GlobalRPCHandlerReactor::subscribe(tp::rpc(tp::global_rpc()), this);
 }

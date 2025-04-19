@@ -2,14 +2,13 @@
 #include "CustomRPC.hpp"
 
 namespace celte {
-    class Global : public CustomRPCTemplate {
-    public:
-        Global();
-        void RPCHandler(std::string RPCname, std::string args)
-        {
-            Handler(RPCname, args, tp::global_rpc);
-        }
-    };
+class Global : public CustomRPCTemplate {
+public:
+  Global();
+  void RPCHandler(std::string RPCname, std::string args) {
+    Handler(RPCname, args, tp::global_rpc());
+  }
+};
 
-    REGISTER_RPC(Global, RPCHandler)
-}
+REGISTER_RPC(Global, RPCHandler)
+} // namespace celte

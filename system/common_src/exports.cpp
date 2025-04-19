@@ -195,7 +195,6 @@ EXPORT void UpdatePropertyState(const std::string &eid, const std::string &key,
                                 const std::string &value) {
   GHOSTSYSTEM.UpdatePropertyState(eid, key, value);
 }
-EXPORT std::string GetAssignedGrapeId() { return RUNTIME.GetAssignedGrape(); }
 #endif
 
 EXPORT std::optional<std::string> PollPropertyUpdate(const std::string &eid,
@@ -357,7 +356,7 @@ EXPORT void RegisterClientRPC(const std::string &clientId, int filter,
 
 EXPORT void CallGlobalRPC(const std::string &name, const std::string &args) {
   celte::CallGlobalRPCHandler()
-      .on_scope(celte::tp::global_rpc)
+      .on_scope(celte::tp::global_rpc())
       .on_fail_log_error()
       .fire_and_forget(name, args);
 }
