@@ -1,8 +1,10 @@
 #include "Config.hpp"
-
+#include <laserpants/dotenv/dotenv.h>
 using namespace celte;
 
-Config::Config() { // Set default values
+Config::Config() {
+  dotenv::init();
+
   const char *redis_host = getenv("REDIS_HOST");
   _config["redis_host"] = redis_host ? redis_host : "localhost";
 
@@ -31,6 +33,12 @@ Config::Config() { // Set default values
 std::optional<std::string> Config::Get(const std::string &key) const {
   auto it = _config.find(key);
   if (it == _config.end()) {
+    // try to get it from the environment
+    const char *env_value = getenv(key.c_str());
+    if (env_value) {
+      return std::string(env_value);
+    }
+    // if not found, return nullopt
     return std::nullopt;
   }
   return it->second;

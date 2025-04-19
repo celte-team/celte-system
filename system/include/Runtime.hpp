@@ -17,25 +17,47 @@
 
 namespace celte {
 class PeerService; // forward declaration
+class PeerService; // forward declaration
 
 class Runtime {
 public:
   static Runtime &GetInstance();
   Runtime();
-
-  /* ---------------------- FUNCTIONS EXPOSED TO THE API ----------------------
+  /* ---------------------- FUNCTIONS EXPOSED TO THE API
+   * ----------------------
    */
 
-  /// @brief Connects to the cluster using environment variables.
-  /// CELTE_HOST for the address. Port is the default pulsar port (6650).
-  /// @note This function is blocking.
-  void ConnectToCluster();
+#ifdef CELTE_SERVER_MODE_ENABLED
+  /// @brief Connects to the celte cluster. All parameters are qcquired using
+  /// environment variables.
+  /// CELTE_HOST for the address. Defaults to localhost.
+  /// CELTE_PORT for the port. Defaults to 6650.
+  /// CELTE_MASTER_HOST for the address of the master server. Defaults to
+  /// localhost. CELTE_MASTER_PORT for the port of the master server. Defaults
+  /// to 1908. CELTE_SESSION_ID for the session id. Defgaults to 'default'
+  void Connect();
 
-  /// @brief Connects to the cluster using the provided address and port.
-  /// @param address The address of the cluster.
-  /// @param port The port of the cluster.
-  /// @note This function is blocking.
-  void ConnectToCluster(const std::string &address, int port);
+private:
+  /// @brief Connects to the master server. This is used in server mode only.
+  bool __connectToMaster(const std::string &address, int port);
+
+public:
+#else
+  /// @brief Connects to the celte cluster.
+  /// @param celteHost : the address of the pulsar cluster to connect to.
+  /// @param port : the port of the pulsar cluster to connect to.
+  /// @param sessionId : the session id to use. Defaults to 'default'.
+  /// @param onConnectedToCluster : a callback to be called when the
+  /// connection to the cluster is established. The callback will be called
+  /// with a boolean indicating wether or not the connection failed.
+  void Connect(const std::string &celteHost, int port = 6650,
+               const std::string &sessionId = "default");
+
+private:
+  void __connectToCluster(const std::string &clusterAddress);
+
+public:
+#endif
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   /// @brief Forces the disconnection of a client from the server.
@@ -45,7 +67,6 @@ public:
   /// @brief Disconnects this client from the cluster
   void Disconnect();
 #endif
-
   /// @brief Executes the runtime loop once. Call this once per frame in the
   /// engine.
   void Tick();
@@ -56,23 +77,22 @@ public:
     return boost::uuids::to_string(id);
   }
 
-  /* ---------------------- FUNCTIONS FOR INTERNAL USE ---------------------- */
-
-  /// @brief Registers a task that will run in the same thread as Runtime::Tick.
+  /* ---------------------- FUNCTIONS FOR INTERNAL USE ----------------------
+   */
+  /// @brief Registers a task that will run in the same thread as
+  /// Runtime::Tick.
   /// @param task
   inline void ScheduleSyncTask(std::function<void()> task) {
     _syncTasks.push(task);
   }
-
-  /// @brief Registers a task that will run in a separate thread. For I/O tasks,
-  /// use ScheduleAsyncIOTask instead.
+  /// @brief Registers a task that will run in a separate thread. For I/O
+  /// tasks, use ScheduleAsyncIOTask instead.
   /// @param task
   inline void ScheduleAsyncTask(std::function<void()> task) {
     _asyncScheduler.Schedule(task);
   }
-
-  /// @brief Registers a task that will run in a separate thread. Optimized for
-  /// I/O tasks.
+  /// @brief Registers a task that will run in a separate thread. Optimized
+  /// for I/O tasks.
   inline void ScheduleAsyncIOTask(std::function<void()> task) {
     _asyncIOTaskScheduler.Schedule(task);
   }
@@ -108,7 +128,6 @@ public:
   inline Executor &TopExecutor() { return _topExecutor; }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-  /// @brief Returns the grape assigned to this server.
   inline const std::string &GetAssignedGrape() const { return _assignedGrape; }
   inline void SetAssignedGrape(const std::string &grape) {
     _assignedGrape = grape;

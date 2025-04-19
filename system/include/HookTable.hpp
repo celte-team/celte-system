@@ -12,6 +12,10 @@ struct HookTable {
 
 #ifdef CELTE_SERVER_MODE_ENABLED // server only hooks
 
+  std::function<void(const std::string &)>
+      onServerReceivedInitializationPayload =
+          UNIMPLEMENTED<void, const std::string &>;
+
   /// @brief Called by the master when a lcient connects to the cluster, to get
   /// the name of the grape that the client should be connecting to.
   std::function<std::string(const std::string &)> onGetClientInitialGrape =
@@ -22,8 +26,10 @@ struct HookTable {
   /// client should connect to a grape in order to be able to load the map and
   /// start playing.
   /// @param clientId The unique identifier of the client.
-  std::function<void(const std::string &)> onAcceptNewClient =
-      UNIMPLEMENTED<void, const std::string &>;
+  /// @param spawnerId The unique identifier of the grape that spawned the
+  std::function<void(const std::string &, const std::string &)>
+      onAcceptNewClient =
+          UNIMPLEMENTED<void, const std::string &, const std::string &>;
 
   std::function<void(const std::string &)> onClientRequestDisconnect =
       UNIMPLEMENTED<void, const std::string &>;

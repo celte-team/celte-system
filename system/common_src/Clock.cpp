@@ -13,8 +13,8 @@ void Clock::Start() {
   _createReaderStream<req::ClockTick>(
       net::ReaderStream::Options<req::ClockTick>{
           .thisPeerUuid = RUNTIME.GetUUID(),
-          .topics = {tp::global_clock},
-          .subscriptionName = RUNTIME.GetUUID() + "." + tp::global_clock,
+          .topics = {tp::global_clock()},
+          .subscriptionName = RUNTIME.GetUUID() + "." + tp::global_clock(),
           .exclusive = false,
           .messageHandlerSync = [this](const pulsar::Consumer,
                                        req::ClockTick tick) {
