@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
+using Master.Routes;
 
 class Program
 {
@@ -35,6 +36,14 @@ class Program
         {
             Console.WriteLine("Application stopped. Cleaning up Redis database...");
             await RedisDb.Database.ExecuteAsync("FLUSHDB");
+        });
+
+        // Add cleanup on application shutdown
+        lifetime.ApplicationStopping.Register(() =>
+        {
+            Console.WriteLine("Application is shutting down...");
+            UpAndDown.CleanupAllProcesses();
+            Console.WriteLine("All processes have been cleaned up.");
         });
 
         await host.RunAsync();
@@ -67,6 +76,7 @@ namespace HttpServer
                 endpoints.MapPost("/client/link", Routes.AcceptClient);
                 endpoints.MapPost("/server/create", Routes.CreateNode);
                 endpoints.MapPost("/redis/clear", Routes.ClearRedis);
+                endpoints.MapPost("/server/cleanup_session", Routes.CleanupSession);
                 // endpoints.MapPost("/master/create", Routes.CreateMaster);
             });
         }

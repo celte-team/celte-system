@@ -43,3 +43,4 @@ appsettings.Development.json
 .vscode/
 *.DS_Store
 *.skn
+.qodo

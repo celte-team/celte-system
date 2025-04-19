@@ -23,7 +23,7 @@ def run_dotnet():
     return process
 
 def start_clock():
-    os.chdir('ClockServer')
+    os.chdir('clock-server')
     process = subprocess.Popen(['dotnet', 'run'], preexec_fn=os.setsid)
     os.chdir('..')
     return process

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -16,6 +16,16 @@
     <PackageReference Include="redlock-cs" Version="2.0.8" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.31" />
     <PackageReference Include="TextCopy" Version="6.2.1" />
+    <PackageReference Include="Docker.DotNet" Version="3.125.15" />
+    <PackageReference Include="Grpc.Tools" Version="2.69.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="MessagePack" Version="2.5.187" />
+    <PackageReference Include="NRedisStack" Version="0.13.0" />
+    <PackageReference Include="YamlDotNet" Version="16.0.0" />
+    <PackageReference Include="Confluent.Kafka" Version="2.3" />
+    <PackageReference Include="Pulsar.Client" Version="3.6.1" />
   </ItemGroup>
 
 </Project>
