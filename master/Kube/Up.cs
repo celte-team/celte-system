@@ -10,17 +10,7 @@ class UpAndDown
     {
         // get godot_path from the environment variables
         string celte_godot_project_path = Environment.GetEnvironmentVariable("CELTE_GODOT_PROJECT_PATH");
-        if (string.IsNullOrEmpty(celte_godot_project_path))
-        {
-            Console.WriteLine("CELTE_GODOT_PROJECT_PATH is not set");
-            return;
-        }
         string godot_path = Environment.GetEnvironmentVariable("CELTE_GODOT_PATH");
-        if (string.IsNullOrEmpty(godot_path))
-        {
-            Console.WriteLine("CELTE_GODOT_PATH is not set");
-            return;
-        }
 
         // Create logs directory if it doesn't exist
         string logsDir = Path.Combine(celte_godot_project_path, "logs");
