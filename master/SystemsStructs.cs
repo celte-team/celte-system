@@ -9,19 +9,23 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace Celte.Req {
+namespace Celte.Req
+{
 
   /// <summary>Holder for reflection information generated from systems_structs.proto</summary>
-  public static partial class SystemsStructsReflection {
+  public static partial class SystemsStructsReflection
+  {
 
     #region Descriptor
     /// <summary>File descriptor for systems_structs.proto</summary>
-    public static pbr::FileDescriptor Descriptor {
+    public static pbr::FileDescriptor Descriptor
+    {
       get { return descriptor; }
     }
     private static pbr::FileDescriptor descriptor;
 
-    static SystemsStructsReflection() {
+    static SystemsStructsReflection()
+    {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "ChVzeXN0ZW1zX3N0cnVjdHMucHJvdG8SCWNlbHRlLnJlcSI4ChBCaW5hcnlE",
@@ -51,9 +55,9 @@ namespace Celte.Req {
   #region Messages
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class BinaryDataPacket : pb::IMessage<BinaryDataPacket>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
-  #endif
+#endif
   {
     private static readonly pb::MessageParser<BinaryDataPacket> _parser = new pb::MessageParser<BinaryDataPacket>(() => new BinaryDataPacket());
     private pb::UnknownFieldSet _unknownFields;
@@ -63,19 +67,22 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
+    public static pbr::MessageDescriptor Descriptor
+    {
       get { return global::Celte.Req.SystemsStructsReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
+    pbr::MessageDescriptor pb::IMessage.Descriptor
+    {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public BinaryDataPacket() {
+    public BinaryDataPacket()
+    {
       OnConstruction();
     }
 
@@ -83,7 +90,8 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public BinaryDataPacket(BinaryDataPacket other) : this() {
+    public BinaryDataPacket(BinaryDataPacket other) : this()
+    {
       binaryData_ = other.binaryData_;
       peerUuid_ = other.peerUuid_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
@@ -91,7 +99,8 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public BinaryDataPacket Clone() {
+    public BinaryDataPacket Clone()
+    {
       return new BinaryDataPacket(this);
     }
 
@@ -100,9 +109,11 @@ namespace Celte.Req {
     private string binaryData_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string BinaryData {
+    public string BinaryData
+    {
       get { return binaryData_; }
-      set {
+      set
+      {
         binaryData_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
@@ -112,26 +123,32 @@ namespace Celte.Req {
     private string peerUuid_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string PeerUuid {
+    public string PeerUuid
+    {
       get { return peerUuid_; }
-      set {
+      set
+      {
         peerUuid_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
+    public override bool Equals(object other)
+    {
       return Equals(other as BinaryDataPacket);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(BinaryDataPacket other) {
-      if (ReferenceEquals(other, null)) {
+    public bool Equals(BinaryDataPacket other)
+    {
+      if (ReferenceEquals(other, null))
+      {
         return false;
       }
-      if (ReferenceEquals(other, this)) {
+      if (ReferenceEquals(other, this))
+      {
         return true;
       }
       if (BinaryData != other.BinaryData) return false;
@@ -141,11 +158,13 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
+    public override int GetHashCode()
+    {
       int hash = 1;
       if (BinaryData.Length != 0) hash ^= BinaryData.GetHashCode();
       if (PeerUuid.Length != 0) hash ^= PeerUuid.GetHashCode();
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         hash ^= _unknownFields.GetHashCode();
       }
       return hash;
@@ -153,16 +172,18 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
+    public override string ToString()
+    {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void WriteTo(pb::CodedOutputStream output)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
-    #else
+#else
       if (BinaryData.Length != 0) {
         output.WriteRawTag(10);
         output.WriteString(BinaryData);
@@ -174,38 +195,46 @@ namespace Celte.Req {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (BinaryData.Length != 0) {
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output)
+    {
+      if (BinaryData.Length != 0)
+      {
         output.WriteRawTag(10);
         output.WriteString(BinaryData);
       }
-      if (PeerUuid.Length != 0) {
+      if (PeerUuid.Length != 0)
+      {
         output.WriteRawTag(18);
         output.WriteString(PeerUuid);
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         _unknownFields.WriteTo(ref output);
       }
     }
-    #endif
+#endif
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
+    public int CalculateSize()
+    {
       int size = 0;
-      if (BinaryData.Length != 0) {
+      if (BinaryData.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(BinaryData);
       }
-      if (PeerUuid.Length != 0) {
+      if (PeerUuid.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(PeerUuid);
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         size += _unknownFields.CalculateSize();
       }
       return size;
@@ -213,14 +242,18 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(BinaryDataPacket other) {
-      if (other == null) {
+    public void MergeFrom(BinaryDataPacket other)
+    {
+      if (other == null)
+      {
         return;
       }
-      if (other.BinaryData.Length != 0) {
+      if (other.BinaryData.Length != 0)
+      {
         BinaryData = other.BinaryData;
       }
-      if (other.PeerUuid.Length != 0) {
+      if (other.PeerUuid.Length != 0)
+      {
         PeerUuid = other.PeerUuid;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -228,10 +261,11 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void MergeFrom(pb::CodedInputStream input)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       input.ReadRawMessage(this);
-    #else
+#else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
       if ((tag & 7) == 4) {
@@ -252,43 +286,49 @@ namespace Celte.Req {
           }
         }
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input)
+    {
       uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+      while ((tag = input.ReadTag()) != 0)
+      {
+        if ((tag & 7) == 4)
+        {
+          // Abort on any end group tag.
+          return;
+        }
+        switch (tag)
+        {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 10: {
-            BinaryData = input.ReadString();
-            break;
-          }
-          case 18: {
-            PeerUuid = input.ReadString();
-            break;
-          }
+          case 10:
+            {
+              BinaryData = input.ReadString();
+              break;
+            }
+          case 18:
+            {
+              PeerUuid = input.ReadString();
+              break;
+            }
         }
       }
     }
-    #endif
+#endif
 
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class SpawnPositionRequest : pb::IMessage<SpawnPositionRequest>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
-  #endif
+#endif
   {
     private static readonly pb::MessageParser<SpawnPositionRequest> _parser = new pb::MessageParser<SpawnPositionRequest>(() => new SpawnPositionRequest());
     private pb::UnknownFieldSet _unknownFields;
@@ -298,19 +338,22 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
+    public static pbr::MessageDescriptor Descriptor
+    {
       get { return global::Celte.Req.SystemsStructsReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
+    pbr::MessageDescriptor pb::IMessage.Descriptor
+    {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public SpawnPositionRequest() {
+    public SpawnPositionRequest()
+    {
       OnConstruction();
     }
 
@@ -318,7 +361,8 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public SpawnPositionRequest(SpawnPositionRequest other) : this() {
+    public SpawnPositionRequest(SpawnPositionRequest other) : this()
+    {
       clientId_ = other.clientId_;
       payload_ = other.payload_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
@@ -326,7 +370,8 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public SpawnPositionRequest Clone() {
+    public SpawnPositionRequest Clone()
+    {
       return new SpawnPositionRequest(this);
     }
 
@@ -335,9 +380,11 @@ namespace Celte.Req {
     private string clientId_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string ClientId {
+    public string ClientId
+    {
       get { return clientId_; }
-      set {
+      set
+      {
         clientId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
@@ -347,26 +394,32 @@ namespace Celte.Req {
     private string payload_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Payload {
+    public string Payload
+    {
       get { return payload_; }
-      set {
+      set
+      {
         payload_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
+    public override bool Equals(object other)
+    {
       return Equals(other as SpawnPositionRequest);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(SpawnPositionRequest other) {
-      if (ReferenceEquals(other, null)) {
+    public bool Equals(SpawnPositionRequest other)
+    {
+      if (ReferenceEquals(other, null))
+      {
         return false;
       }
-      if (ReferenceEquals(other, this)) {
+      if (ReferenceEquals(other, this))
+      {
         return true;
       }
       if (ClientId != other.ClientId) return false;
@@ -376,11 +429,13 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
+    public override int GetHashCode()
+    {
       int hash = 1;
       if (ClientId.Length != 0) hash ^= ClientId.GetHashCode();
       if (Payload.Length != 0) hash ^= Payload.GetHashCode();
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         hash ^= _unknownFields.GetHashCode();
       }
       return hash;
@@ -388,16 +443,18 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
+    public override string ToString()
+    {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void WriteTo(pb::CodedOutputStream output)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
-    #else
+#else
       if (ClientId.Length != 0) {
         output.WriteRawTag(10);
         output.WriteString(ClientId);
@@ -409,38 +466,46 @@ namespace Celte.Req {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (ClientId.Length != 0) {
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output)
+    {
+      if (ClientId.Length != 0)
+      {
         output.WriteRawTag(10);
         output.WriteString(ClientId);
       }
-      if (Payload.Length != 0) {
+      if (Payload.Length != 0)
+      {
         output.WriteRawTag(18);
         output.WriteString(Payload);
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         _unknownFields.WriteTo(ref output);
       }
     }
-    #endif
+#endif
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
+    public int CalculateSize()
+    {
       int size = 0;
-      if (ClientId.Length != 0) {
+      if (ClientId.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(ClientId);
       }
-      if (Payload.Length != 0) {
+      if (Payload.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Payload);
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         size += _unknownFields.CalculateSize();
       }
       return size;
@@ -448,14 +513,18 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(SpawnPositionRequest other) {
-      if (other == null) {
+    public void MergeFrom(SpawnPositionRequest other)
+    {
+      if (other == null)
+      {
         return;
       }
-      if (other.ClientId.Length != 0) {
+      if (other.ClientId.Length != 0)
+      {
         ClientId = other.ClientId;
       }
-      if (other.Payload.Length != 0) {
+      if (other.Payload.Length != 0)
+      {
         Payload = other.Payload;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -463,10 +532,11 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void MergeFrom(pb::CodedInputStream input)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       input.ReadRawMessage(this);
-    #else
+#else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
       if ((tag & 7) == 4) {
@@ -487,43 +557,49 @@ namespace Celte.Req {
           }
         }
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input)
+    {
       uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+      while ((tag = input.ReadTag()) != 0)
+      {
+        if ((tag & 7) == 4)
+        {
+          // Abort on any end group tag.
+          return;
+        }
+        switch (tag)
+        {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 10: {
-            ClientId = input.ReadString();
-            break;
-          }
-          case 18: {
-            Payload = input.ReadString();
-            break;
-          }
+          case 10:
+            {
+              ClientId = input.ReadString();
+              break;
+            }
+          case 18:
+            {
+              Payload = input.ReadString();
+              break;
+            }
         }
       }
     }
-    #endif
+#endif
 
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class ReplicationDataPacket : pb::IMessage<ReplicationDataPacket>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
-  #endif
+#endif
   {
     private static readonly pb::MessageParser<ReplicationDataPacket> _parser = new pb::MessageParser<ReplicationDataPacket>(() => new ReplicationDataPacket());
     private pb::UnknownFieldSet _unknownFields;
@@ -533,19 +609,22 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
+    public static pbr::MessageDescriptor Descriptor
+    {
       get { return global::Celte.Req.SystemsStructsReflection.Descriptor.MessageTypes[2]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
+    pbr::MessageDescriptor pb::IMessage.Descriptor
+    {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ReplicationDataPacket() {
+    public ReplicationDataPacket()
+    {
       OnConstruction();
     }
 
@@ -553,14 +632,16 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ReplicationDataPacket(ReplicationDataPacket other) : this() {
+    public ReplicationDataPacket(ReplicationDataPacket other) : this()
+    {
       data_ = other.data_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ReplicationDataPacket Clone() {
+    public ReplicationDataPacket Clone()
+    {
       return new ReplicationDataPacket(this);
     }
 
@@ -572,26 +653,32 @@ namespace Celte.Req {
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Data {
+    public string Data
+    {
       get { return data_; }
-      set {
+      set
+      {
         data_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
+    public override bool Equals(object other)
+    {
       return Equals(other as ReplicationDataPacket);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(ReplicationDataPacket other) {
-      if (ReferenceEquals(other, null)) {
+    public bool Equals(ReplicationDataPacket other)
+    {
+      if (ReferenceEquals(other, null))
+      {
         return false;
       }
-      if (ReferenceEquals(other, this)) {
+      if (ReferenceEquals(other, this))
+      {
         return true;
       }
       if (Data != other.Data) return false;
@@ -600,10 +687,12 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
+    public override int GetHashCode()
+    {
       int hash = 1;
       if (Data.Length != 0) hash ^= Data.GetHashCode();
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         hash ^= _unknownFields.GetHashCode();
       }
       return hash;
@@ -611,16 +700,18 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
+    public override string ToString()
+    {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void WriteTo(pb::CodedOutputStream output)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
-    #else
+#else
       if (Data.Length != 0) {
         output.WriteRawTag(10);
         output.WriteString(Data);
@@ -628,31 +719,37 @@ namespace Celte.Req {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Data.Length != 0) {
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output)
+    {
+      if (Data.Length != 0)
+      {
         output.WriteRawTag(10);
         output.WriteString(Data);
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         _unknownFields.WriteTo(ref output);
       }
     }
-    #endif
+#endif
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
+    public int CalculateSize()
+    {
       int size = 0;
-      if (Data.Length != 0) {
+      if (Data.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Data);
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         size += _unknownFields.CalculateSize();
       }
       return size;
@@ -660,11 +757,14 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(ReplicationDataPacket other) {
-      if (other == null) {
+    public void MergeFrom(ReplicationDataPacket other)
+    {
+      if (other == null)
+      {
         return;
       }
-      if (other.Data.Length != 0) {
+      if (other.Data.Length != 0)
+      {
         Data = other.Data;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -672,10 +772,11 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void MergeFrom(pb::CodedInputStream input)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       input.ReadRawMessage(this);
-    #else
+#else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
       if ((tag & 7) == 4) {
@@ -692,39 +793,44 @@ namespace Celte.Req {
           }
         }
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input)
+    {
       uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+      while ((tag = input.ReadTag()) != 0)
+      {
+        if ((tag & 7) == 4)
+        {
+          // Abort on any end group tag.
+          return;
+        }
+        switch (tag)
+        {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 10: {
-            Data = input.ReadString();
-            break;
-          }
+          case 10:
+            {
+              Data = input.ReadString();
+              break;
+            }
         }
       }
     }
-    #endif
+#endif
 
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class InputUpdate : pb::IMessage<InputUpdate>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
-  #endif
+#endif
   {
     private static readonly pb::MessageParser<InputUpdate> _parser = new pb::MessageParser<InputUpdate>(() => new InputUpdate());
     private pb::UnknownFieldSet _unknownFields;
@@ -734,19 +840,22 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
+    public static pbr::MessageDescriptor Descriptor
+    {
       get { return global::Celte.Req.SystemsStructsReflection.Descriptor.MessageTypes[3]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
+    pbr::MessageDescriptor pb::IMessage.Descriptor
+    {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public InputUpdate() {
+    public InputUpdate()
+    {
       OnConstruction();
     }
 
@@ -754,7 +863,8 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public InputUpdate(InputUpdate other) : this() {
+    public InputUpdate(InputUpdate other) : this()
+    {
       name_ = other.name_;
       pressed_ = other.pressed_;
       uuid_ = other.uuid_;
@@ -765,7 +875,8 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public InputUpdate Clone() {
+    public InputUpdate Clone()
+    {
       return new InputUpdate(this);
     }
 
@@ -774,9 +885,11 @@ namespace Celte.Req {
     private string name_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Name {
+    public string Name
+    {
       get { return name_; }
-      set {
+      set
+      {
         name_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
@@ -786,9 +899,11 @@ namespace Celte.Req {
     private bool pressed_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Pressed {
+    public bool Pressed
+    {
       get { return pressed_; }
-      set {
+      set
+      {
         pressed_ = value;
       }
     }
@@ -798,9 +913,11 @@ namespace Celte.Req {
     private string uuid_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Uuid {
+    public string Uuid
+    {
       get { return uuid_; }
-      set {
+      set
+      {
         uuid_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
@@ -810,9 +927,11 @@ namespace Celte.Req {
     private float x_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public float X {
+    public float X
+    {
       get { return x_; }
-      set {
+      set
+      {
         x_ = value;
       }
     }
@@ -822,26 +941,32 @@ namespace Celte.Req {
     private float y_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public float Y {
+    public float Y
+    {
       get { return y_; }
-      set {
+      set
+      {
         y_ = value;
       }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
+    public override bool Equals(object other)
+    {
       return Equals(other as InputUpdate);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(InputUpdate other) {
-      if (ReferenceEquals(other, null)) {
+    public bool Equals(InputUpdate other)
+    {
+      if (ReferenceEquals(other, null))
+      {
         return false;
       }
-      if (ReferenceEquals(other, this)) {
+      if (ReferenceEquals(other, this))
+      {
         return true;
       }
       if (Name != other.Name) return false;
@@ -854,14 +979,16 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
+    public override int GetHashCode()
+    {
       int hash = 1;
       if (Name.Length != 0) hash ^= Name.GetHashCode();
       if (Pressed != false) hash ^= Pressed.GetHashCode();
       if (Uuid.Length != 0) hash ^= Uuid.GetHashCode();
       if (X != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(X);
       if (Y != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(Y);
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         hash ^= _unknownFields.GetHashCode();
       }
       return hash;
@@ -869,16 +996,18 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
+    public override string ToString()
+    {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void WriteTo(pb::CodedOutputStream output)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
-    #else
+#else
       if (Name.Length != 0) {
         output.WriteRawTag(10);
         output.WriteString(Name);
@@ -902,59 +1031,73 @@ namespace Celte.Req {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Name.Length != 0) {
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output)
+    {
+      if (Name.Length != 0)
+      {
         output.WriteRawTag(10);
         output.WriteString(Name);
       }
-      if (Pressed != false) {
+      if (Pressed != false)
+      {
         output.WriteRawTag(16);
         output.WriteBool(Pressed);
       }
-      if (Uuid.Length != 0) {
+      if (Uuid.Length != 0)
+      {
         output.WriteRawTag(26);
         output.WriteString(Uuid);
       }
-      if (X != 0F) {
+      if (X != 0F)
+      {
         output.WriteRawTag(37);
         output.WriteFloat(X);
       }
-      if (Y != 0F) {
+      if (Y != 0F)
+      {
         output.WriteRawTag(45);
         output.WriteFloat(Y);
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         _unknownFields.WriteTo(ref output);
       }
     }
-    #endif
+#endif
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
+    public int CalculateSize()
+    {
       int size = 0;
-      if (Name.Length != 0) {
+      if (Name.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Name);
       }
-      if (Pressed != false) {
+      if (Pressed != false)
+      {
         size += 1 + 1;
       }
-      if (Uuid.Length != 0) {
+      if (Uuid.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Uuid);
       }
-      if (X != 0F) {
+      if (X != 0F)
+      {
         size += 1 + 4;
       }
-      if (Y != 0F) {
+      if (Y != 0F)
+      {
         size += 1 + 4;
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         size += _unknownFields.CalculateSize();
       }
       return size;
@@ -962,23 +1105,30 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(InputUpdate other) {
-      if (other == null) {
+    public void MergeFrom(InputUpdate other)
+    {
+      if (other == null)
+      {
         return;
       }
-      if (other.Name.Length != 0) {
+      if (other.Name.Length != 0)
+      {
         Name = other.Name;
       }
-      if (other.Pressed != false) {
+      if (other.Pressed != false)
+      {
         Pressed = other.Pressed;
       }
-      if (other.Uuid.Length != 0) {
+      if (other.Uuid.Length != 0)
+      {
         Uuid = other.Uuid;
       }
-      if (other.X != 0F) {
+      if (other.X != 0F)
+      {
         X = other.X;
       }
-      if (other.Y != 0F) {
+      if (other.Y != 0F)
+      {
         Y = other.Y;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -986,10 +1136,11 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void MergeFrom(pb::CodedInputStream input)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       input.ReadRawMessage(this);
-    #else
+#else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
       if ((tag & 7) == 4) {
@@ -1022,55 +1173,64 @@ namespace Celte.Req {
           }
         }
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input)
+    {
       uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+      while ((tag = input.ReadTag()) != 0)
+      {
+        if ((tag & 7) == 4)
+        {
+          // Abort on any end group tag.
+          return;
+        }
+        switch (tag)
+        {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 10: {
-            Name = input.ReadString();
-            break;
-          }
-          case 16: {
-            Pressed = input.ReadBool();
-            break;
-          }
-          case 26: {
-            Uuid = input.ReadString();
-            break;
-          }
-          case 37: {
-            X = input.ReadFloat();
-            break;
-          }
-          case 45: {
-            Y = input.ReadFloat();
-            break;
-          }
+          case 10:
+            {
+              Name = input.ReadString();
+              break;
+            }
+          case 16:
+            {
+              Pressed = input.ReadBool();
+              break;
+            }
+          case 26:
+            {
+              Uuid = input.ReadString();
+              break;
+            }
+          case 37:
+            {
+              X = input.ReadFloat();
+              break;
+            }
+          case 45:
+            {
+              Y = input.ReadFloat();
+              break;
+            }
         }
       }
     }
-    #endif
+#endif
 
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class RPRequest : pb::IMessage<RPRequest>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
-  #endif
+#endif
   {
     private static readonly pb::MessageParser<RPRequest> _parser = new pb::MessageParser<RPRequest>(() => new RPRequest());
     private pb::UnknownFieldSet _unknownFields;
@@ -1080,19 +1240,22 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
+    public static pbr::MessageDescriptor Descriptor
+    {
       get { return global::Celte.Req.SystemsStructsReflection.Descriptor.MessageTypes[4]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
+    pbr::MessageDescriptor pb::IMessage.Descriptor
+    {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public RPRequest() {
+    public RPRequest()
+    {
       OnConstruction();
     }
 
@@ -1100,7 +1263,8 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public RPRequest(RPRequest other) : this() {
+    public RPRequest(RPRequest other) : this()
+    {
       name_ = other.name_;
       respondsTo_ = other.respondsTo_;
       responseTopic_ = other.responseTopic_;
@@ -1112,7 +1276,8 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public RPRequest Clone() {
+    public RPRequest Clone()
+    {
       return new RPRequest(this);
     }
 
@@ -1124,9 +1289,11 @@ namespace Celte.Req {
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Name {
+    public string Name
+    {
       get { return name_; }
-      set {
+      set
+      {
         name_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
@@ -1139,9 +1306,11 @@ namespace Celte.Req {
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string RespondsTo {
+    public string RespondsTo
+    {
       get { return respondsTo_; }
-      set {
+      set
+      {
         respondsTo_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
@@ -1154,9 +1323,11 @@ namespace Celte.Req {
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string ResponseTopic {
+    public string ResponseTopic
+    {
       get { return responseTopic_; }
-      set {
+      set
+      {
         responseTopic_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
@@ -1169,9 +1340,11 @@ namespace Celte.Req {
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string RpcId {
+    public string RpcId
+    {
       get { return rpcId_; }
-      set {
+      set
+      {
         rpcId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
@@ -1184,9 +1357,11 @@ namespace Celte.Req {
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Args {
+    public string Args
+    {
       get { return args_; }
-      set {
+      set
+      {
         args_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
@@ -1199,26 +1374,32 @@ namespace Celte.Req {
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool ErrorStatus {
+    public bool ErrorStatus
+    {
       get { return errorStatus_; }
-      set {
+      set
+      {
         errorStatus_ = value;
       }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
+    public override bool Equals(object other)
+    {
       return Equals(other as RPRequest);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(RPRequest other) {
-      if (ReferenceEquals(other, null)) {
+    public bool Equals(RPRequest other)
+    {
+      if (ReferenceEquals(other, null))
+      {
         return false;
       }
-      if (ReferenceEquals(other, this)) {
+      if (ReferenceEquals(other, this))
+      {
         return true;
       }
       if (Name != other.Name) return false;
@@ -1232,7 +1413,8 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
+    public override int GetHashCode()
+    {
       int hash = 1;
       if (Name.Length != 0) hash ^= Name.GetHashCode();
       if (RespondsTo.Length != 0) hash ^= RespondsTo.GetHashCode();
@@ -1240,7 +1422,8 @@ namespace Celte.Req {
       if (RpcId.Length != 0) hash ^= RpcId.GetHashCode();
       if (Args.Length != 0) hash ^= Args.GetHashCode();
       if (ErrorStatus != false) hash ^= ErrorStatus.GetHashCode();
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         hash ^= _unknownFields.GetHashCode();
       }
       return hash;
@@ -1248,16 +1431,18 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
+    public override string ToString()
+    {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void WriteTo(pb::CodedOutputStream output)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
-    #else
+#else
       if (Name.Length != 0) {
         output.WriteRawTag(10);
         output.WriteString(Name);
@@ -1285,66 +1470,82 @@ namespace Celte.Req {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Name.Length != 0) {
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output)
+    {
+      if (Name.Length != 0)
+      {
         output.WriteRawTag(10);
         output.WriteString(Name);
       }
-      if (RespondsTo.Length != 0) {
+      if (RespondsTo.Length != 0)
+      {
         output.WriteRawTag(18);
         output.WriteString(RespondsTo);
       }
-      if (ResponseTopic.Length != 0) {
+      if (ResponseTopic.Length != 0)
+      {
         output.WriteRawTag(26);
         output.WriteString(ResponseTopic);
       }
-      if (RpcId.Length != 0) {
+      if (RpcId.Length != 0)
+      {
         output.WriteRawTag(34);
         output.WriteString(RpcId);
       }
-      if (Args.Length != 0) {
+      if (Args.Length != 0)
+      {
         output.WriteRawTag(42);
         output.WriteString(Args);
       }
-      if (ErrorStatus != false) {
+      if (ErrorStatus != false)
+      {
         output.WriteRawTag(48);
         output.WriteBool(ErrorStatus);
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         _unknownFields.WriteTo(ref output);
       }
     }
-    #endif
+#endif
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
+    public int CalculateSize()
+    {
       int size = 0;
-      if (Name.Length != 0) {
+      if (Name.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Name);
       }
-      if (RespondsTo.Length != 0) {
+      if (RespondsTo.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(RespondsTo);
       }
-      if (ResponseTopic.Length != 0) {
+      if (ResponseTopic.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(ResponseTopic);
       }
-      if (RpcId.Length != 0) {
+      if (RpcId.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(RpcId);
       }
-      if (Args.Length != 0) {
+      if (Args.Length != 0)
+      {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Args);
       }
-      if (ErrorStatus != false) {
+      if (ErrorStatus != false)
+      {
         size += 1 + 1;
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         size += _unknownFields.CalculateSize();
       }
       return size;
@@ -1352,26 +1553,34 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(RPRequest other) {
-      if (other == null) {
+    public void MergeFrom(RPRequest other)
+    {
+      if (other == null)
+      {
         return;
       }
-      if (other.Name.Length != 0) {
+      if (other.Name.Length != 0)
+      {
         Name = other.Name;
       }
-      if (other.RespondsTo.Length != 0) {
+      if (other.RespondsTo.Length != 0)
+      {
         RespondsTo = other.RespondsTo;
       }
-      if (other.ResponseTopic.Length != 0) {
+      if (other.ResponseTopic.Length != 0)
+      {
         ResponseTopic = other.ResponseTopic;
       }
-      if (other.RpcId.Length != 0) {
+      if (other.RpcId.Length != 0)
+      {
         RpcId = other.RpcId;
       }
-      if (other.Args.Length != 0) {
+      if (other.Args.Length != 0)
+      {
         Args = other.Args;
       }
-      if (other.ErrorStatus != false) {
+      if (other.ErrorStatus != false)
+      {
         ErrorStatus = other.ErrorStatus;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -1379,10 +1588,11 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void MergeFrom(pb::CodedInputStream input)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       input.ReadRawMessage(this);
-    #else
+#else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
       if ((tag & 7) == 4) {
@@ -1419,59 +1629,69 @@ namespace Celte.Req {
           }
         }
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input)
+    {
       uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+      while ((tag = input.ReadTag()) != 0)
+      {
+        if ((tag & 7) == 4)
+        {
+          // Abort on any end group tag.
+          return;
+        }
+        switch (tag)
+        {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 10: {
-            Name = input.ReadString();
-            break;
-          }
-          case 18: {
-            RespondsTo = input.ReadString();
-            break;
-          }
-          case 26: {
-            ResponseTopic = input.ReadString();
-            break;
-          }
-          case 34: {
-            RpcId = input.ReadString();
-            break;
-          }
-          case 42: {
-            Args = input.ReadString();
-            break;
-          }
-          case 48: {
-            ErrorStatus = input.ReadBool();
-            break;
-          }
+          case 10:
+            {
+              Name = input.ReadString();
+              break;
+            }
+          case 18:
+            {
+              RespondsTo = input.ReadString();
+              break;
+            }
+          case 26:
+            {
+              ResponseTopic = input.ReadString();
+              break;
+            }
+          case 34:
+            {
+              RpcId = input.ReadString();
+              break;
+            }
+          case 42:
+            {
+              Args = input.ReadString();
+              break;
+            }
+          case 48:
+            {
+              ErrorStatus = input.ReadBool();
+              break;
+            }
         }
       }
     }
-    #endif
+#endif
 
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class ClockTick : pb::IMessage<ClockTick>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
-  #endif
+#endif
   {
     private static readonly pb::MessageParser<ClockTick> _parser = new pb::MessageParser<ClockTick>(() => new ClockTick());
     private pb::UnknownFieldSet _unknownFields;
@@ -1481,19 +1701,22 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
+    public static pbr::MessageDescriptor Descriptor
+    {
       get { return global::Celte.Req.SystemsStructsReflection.Descriptor.MessageTypes[5]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
+    pbr::MessageDescriptor pb::IMessage.Descriptor
+    {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ClockTick() {
+    public ClockTick()
+    {
       OnConstruction();
     }
 
@@ -1501,14 +1724,16 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ClockTick(ClockTick other) : this() {
+    public ClockTick(ClockTick other) : this()
+    {
       unifiedTimeMs_ = other.unifiedTimeMs_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ClockTick Clone() {
+    public ClockTick Clone()
+    {
       return new ClockTick(this);
     }
 
@@ -1517,26 +1742,32 @@ namespace Celte.Req {
     private long unifiedTimeMs_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public long UnifiedTimeMs {
+    public long UnifiedTimeMs
+    {
       get { return unifiedTimeMs_; }
-      set {
+      set
+      {
         unifiedTimeMs_ = value;
       }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
+    public override bool Equals(object other)
+    {
       return Equals(other as ClockTick);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(ClockTick other) {
-      if (ReferenceEquals(other, null)) {
+    public bool Equals(ClockTick other)
+    {
+      if (ReferenceEquals(other, null))
+      {
         return false;
       }
-      if (ReferenceEquals(other, this)) {
+      if (ReferenceEquals(other, this))
+      {
         return true;
       }
       if (UnifiedTimeMs != other.UnifiedTimeMs) return false;
@@ -1545,10 +1776,12 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
+    public override int GetHashCode()
+    {
       int hash = 1;
       if (UnifiedTimeMs != 0L) hash ^= UnifiedTimeMs.GetHashCode();
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         hash ^= _unknownFields.GetHashCode();
       }
       return hash;
@@ -1556,16 +1789,18 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
+    public override string ToString()
+    {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void WriteTo(pb::CodedOutputStream output)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
-    #else
+#else
       if (UnifiedTimeMs != 0L) {
         output.WriteRawTag(16);
         output.WriteInt64(UnifiedTimeMs);
@@ -1573,31 +1808,37 @@ namespace Celte.Req {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (UnifiedTimeMs != 0L) {
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output)
+    {
+      if (UnifiedTimeMs != 0L)
+      {
         output.WriteRawTag(16);
         output.WriteInt64(UnifiedTimeMs);
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         _unknownFields.WriteTo(ref output);
       }
     }
-    #endif
+#endif
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
+    public int CalculateSize()
+    {
       int size = 0;
-      if (UnifiedTimeMs != 0L) {
+      if (UnifiedTimeMs != 0L)
+      {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(UnifiedTimeMs);
       }
-      if (_unknownFields != null) {
+      if (_unknownFields != null)
+      {
         size += _unknownFields.CalculateSize();
       }
       return size;
@@ -1605,11 +1846,14 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(ClockTick other) {
-      if (other == null) {
+    public void MergeFrom(ClockTick other)
+    {
+      if (other == null)
+      {
         return;
       }
-      if (other.UnifiedTimeMs != 0L) {
+      if (other.UnifiedTimeMs != 0L)
+      {
         UnifiedTimeMs = other.UnifiedTimeMs;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -1617,10 +1861,11 @@ namespace Celte.Req {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    public void MergeFrom(pb::CodedInputStream input)
+    {
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       input.ReadRawMessage(this);
-    #else
+#else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
       if ((tag & 7) == 4) {
@@ -1637,31 +1882,36 @@ namespace Celte.Req {
           }
         }
       }
-    #endif
+#endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+#if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input)
+    {
       uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+      while ((tag = input.ReadTag()) != 0)
+      {
+        if ((tag & 7) == 4)
+        {
+          // Abort on any end group tag.
+          return;
+        }
+        switch (tag)
+        {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 16: {
-            UnifiedTimeMs = input.ReadInt64();
-            break;
-          }
+          case 16:
+            {
+              UnifiedTimeMs = input.ReadInt64();
+              break;
+            }
         }
       }
     }
-    #endif
+#endif
 
   }
 

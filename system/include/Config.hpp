@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Topics.hpp"
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -20,6 +21,10 @@ public:
   /// @param key The key of the configuration option.
   /// @param value The value of the configuration option.
   void Set(const std::string &key, const std::string &value);
+
+  inline void SetSessionId(const std::string &sessionId) {
+    tp::default_scope = "persistent://public/" + sessionId + "/";
+  }
 
 private:
   std::unordered_map<std::string, std::string> _config;

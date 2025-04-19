@@ -15,12 +15,9 @@ services:
       - redis
     restart: on-failure
     environment:
-    - REDIS_HOST=${REDIS_HOST}
+      - REDIS_HOST=${REDIS_HOST}
       - PULSAR_BROKERS=${PULSAR_BROKERS}
       - DOCKER_HOST_IP=${DOCKER_HOST_IP}
-      - CONFIG_FILE=/config/configFile.yml
-    volumes:
-      - ./master/configFile.yml:/config/configFile.yml
     depends_on:
       - redis_master
       - redis_slave
@@ -44,9 +41,6 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - PULSAR_BROKERS=${PULSAR_BROKERS}
       - DOCKER_HOST_IP=${DOCKER_HOST_IP}
-      - CONFIG_FILE=/config/configFile.yml
-    volumes:
-      - ./master/configFile.yml:/config/configFile.yml
     depends_on:
       - redis_master
       - redis_slave
@@ -70,9 +64,6 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - PULSAR_BROKERS=${PULSAR_BROKERS}
       - DOCKER_HOST_IP=${DOCKER_HOST_IP}
-      - CONFIG_FILE=/config/configFile.yml
-    volumes:
-      - ./master/configFile.yml:/config/configFile.yml
     depends_on:
       - redis_master
       - redis_slave
@@ -83,8 +74,6 @@ services:
       - bookie
       - broker
 
-
-  # clock:
 
   clock-server:
     build:
