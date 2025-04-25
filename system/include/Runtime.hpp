@@ -127,15 +127,155 @@ public:
 
   inline Executor &TopExecutor() { return _topExecutor; }
 
-#ifdef CELTE_SERVER_MODE_ENABLED
-  inline const std::string &GetAssignedGrape() const { return _assignedGrape; }
-  inline void SetAssignedGrape(const std::string &grape) {
-    _assignedGrape = grape;
-  }
+        /// @brief Executes the runtime loop once. Call this once per frame in the
+        /// engine.
+        void Tick();
 
-  /// @brief Asks the master server to instantiate a new server node.
-  /// @param payload The payload to forward to the newly instantiated node.
-  void MasterInstantiateServerNode(const std::string &payload);
+        /**
+         * @brief Generates a new UUID as a string.
+         *
+         * This function uses Boost's UUID library to generate a new unique identifier.
+         * It creates a random UUID and converts it to its standard string representation.
+         *
+         * @return std::string The newly generated unique identifier.
+         */
+        inline std::string GenUUID()
+        {
+            boost::uuids::random_generator gen;
+            boost::uuids::uuid id = gen();
+            return boost::uuids::to_string(id);
+        }
+
+        /* ---------------------- FUNCTIONS FOR INTERNAL USE ---------------------- */
+
+        /// @brief Registers a task that will run in the same thread as Runtime::Tick.
+        /**
+         * @brief Schedules a synchronous task for execution in the main thread.
+         *
+         * Enqueues the specified task to be executed during the next tick cycle.
+         *
+         * @param task A function with no parameters and no return value representing the task to be executed.
+         */
+        inline void ScheduleSyncTask(std::function<void()> task)
+        {
+            _syncTasks.push(task);
+        }
+
+        /// @brief Registers a task that will run in a separate thread. For I/O tasks,
+        /// use ScheduleAsyncIOTask instead.
+        /**
+         * @brief Schedules a task for asynchronous execution.
+         *
+         * Enqueues the given task to be executed on a separate thread managed by the asynchronous task scheduler.
+         *
+         * @param task A callable representing the work to be performed asynchronously.
+         */
+        inline void ScheduleAsyncTask(std::function<void()> task)
+        {
+            _asyncScheduler.Schedule(task);
+        }
+
+        /// @brief Registers a task that will run in a separate thread. Optimized for
+        /**
+         * @brief Schedules an asynchronous I/O task.
+         *
+         * Adds the provided callable to the I/O-optimized task scheduler for execution in a separate thread,
+         * enabling non-blocking I/O operations.
+         *
+         * @param task The function to execute asynchronously.
+         */
+        inline void ScheduleAsyncIOTask(std::function<void()> task)
+        {
+            _asyncIOTaskScheduler.Schedule(task);
+        }
+
+        /**
+ * @brief Retrieves the asynchronous task scheduler.
+ *
+ * Returns a reference to the internal AsyncTaskScheduler instance, which is responsible
+ * for managing and executing asynchronous tasks.
+ *
+ * @return AsyncTaskScheduler& Reference to the asynchronous task scheduler.
+ */
+        inline AsyncTaskScheduler& GetAsyncTaskScheduler() { return _asyncScheduler; }
+
+        /// @brief Returns the AsyncIOTaskScheduler instance.
+        inline AsyncIOTaskScheduler& GetAsyncIOTaskScheduler()
+        {
+            return _asyncIOTaskScheduler;
+        }
+
+        /// @brief Returns the trash bin of the system.
+        inline TrashBin& GetTrashBin() { return _trashBin; }
+
+        /// @brief Returns the unique identifier of this peer on the network.
+        inline const std::string& GetUUID() const { return _uuid; }
+
+        /// @brief Returns the hook table.
+        inline HookTable& Hooks() { return _hooks; }
+
+        /// @brief Returns the peer service.
+        /**
+         * @brief Retrieves the current PeerService instance.
+         *
+         * Returns a reference to the PeerService instance if it is initialized.
+         * Otherwise, throws a std::runtime_error indicating that the peer service is not initialized.
+         *
+         * @throws std::runtime_error if the peer service is not initialized.
+         */
+        inline PeerService& GetPeerService()
+        {
+            if (!_peerService) {
+                throw std::runtime_error("Peer service not initialized");
+            }
+            return *_peerService;
+        }
+
+        /**
+ * @brief Retrieves the runtime configuration.
+ *
+ * Provides access to the internal Config object that holds the system's configuration settings.
+ *
+ * @return Config& A reference to the runtime configuration.
+ */
+inline Config& GetConfig() { return _config; }
+
+        /**
+ * @brief Retrieves the top-level executor.
+ *
+ * This function returns a reference to the executor responsible for managing high-level tasks
+ * within the runtime environment.
+ *
+ * @return Executor& A reference to the top-level executor instance.
+ */
+inline Executor& TopExecutor() { return _topExecutor; }
+
+/// @brief Returns the grape assigned to this server.
+#ifdef CELTE_SERVER_MODE_ENABLED
+        /**
+ * @brief Retrieves the assigned grape identifier.
+ *
+ * This function returns the unique grape identifier associated with the server instance. It is applicable only in server mode.
+ *
+ * @return const std::string& A constant reference to the assigned grape.
+ */
+inline const std::string& GetAssignedGrape() const { return _assignedGrape; }
+        /**
+         * @brief Sets the assigned grape identifier.
+         *
+         * This function assigns the provided grape string to the internal variable representing
+         * the assigned grape for the server mode.
+         *
+         * @param grape The unique identifier for the grape.
+         */
+        inline void SetAssignedGrape(const std::string& grape)
+        {
+            _assignedGrape = grape;
+        }
+
+        /// @brief Asks the master server to instantiate a new server node.
+        /// @param payload The payload to forward to the newly instantiated node.
+        void MasterInstantiateServerNode(const std::string& payload);
 #endif
 
   /// @brief This binding lets the user register custom RPCs from the game

@@ -68,7 +68,17 @@ struct ReplicationDataPacketDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReplicationDataPacketDefaultTypeInternal _ReplicationDataPacket_default_instance_;
 
-inline constexpr RPRequest::Impl_::Impl_(
+/**
+         * @brief Constructs a constant-initialized RPRequest::Impl_ object.
+         *
+         * Initializes all members with their constant default values:
+         * - String fields (name_, responds_to_, response_topic_, rpc_id_, args_) are set to a fixed empty string.
+         * - The error_status_ flag is set to false.
+         * - The _cached_size_ is initialized to 0.
+         *
+         * @param ConstantInitialized A tag used to select this constant initialization constructor.
+         */
+        inline constexpr RPRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : name_(
             &::google::protobuf::internal::fixed_address_empty_string,
@@ -1303,6 +1313,16 @@ inline PROTOBUF_NDEBUG_INLINE RPRequest::Impl_::Impl_(
         args_(arena, from.args_),
         _cached_size_{0} {}
 
+/**
+ * @brief Copy constructs an RPRequest instance within a given arena.
+ *
+ * This constructor creates a new RPRequest by copying data from an existing instance. It merges the unknown
+ * field metadata and uses placement new to construct an internal implementation object in the provided arena.
+ * The error status and other internal fields are copied from the source instance.
+ *
+ * @param arena Pointer to the memory arena used for allocation.
+ * @param from The RPRequest instance to copy from.
+ */
 RPRequest::RPRequest(
     ::google::protobuf::Arena* arena,
     const RPRequest& from)
@@ -1326,10 +1346,23 @@ inline PROTOBUF_NDEBUG_INLINE RPRequest::Impl_::Impl_(
         args_(arena),
         _cached_size_{0} {}
 
+/**
+ * @brief Initializes the internal state of an RPRequest object.
+ *
+ * This function constructs the internal implementation in-place using placement new with the given arena
+ * for memory allocation, and resets the error status flag to its default value.
+ *
+ * @param[in] arena Arena used for memory allocation.
+ */
 inline void RPRequest::SharedCtor(::_pb::Arena* arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   _impl_.error_status_ = {};
 }
+/**
+ * @brief Destroys the RPRequest instance.
+ *
+ * Cleans up the RPRequest object by deleting any unknown field metadata and invoking shared cleanup operations.
+ */
 RPRequest::~RPRequest() {
   // @@protoc_insertion_point(destructor:celte.req.RPRequest)
   _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
@@ -1345,6 +1378,12 @@ inline void RPRequest::SharedDtor() {
   _impl_.~Impl_();
 }
 
+/**
+ * @brief Resets the RPRequest message to its default state.
+ *
+ * Clears all string fields (name, responds_to, response_topic, rpc_id, args) by setting them to empty values,
+ * resets the error_status flag to false, and removes any unknown fields from the internal metadata.
+ */
 PROTOBUF_NOINLINE void RPRequest::Clear() {
 // @@protoc_insertion_point(message_clear_start:celte.req.RPRequest)
   PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
@@ -1437,6 +1476,18 @@ const ::_pbi::TcParseTable<3, 6, 0, 67, 2> RPRequest::_table_ = {
   }},
 };
 
+/**
+ * @brief Serializes the RPRequest message into a byte array.
+ *
+ * This method serializes the non-empty string fields (name, responds_to, response_topic, rpc_id, args)
+ * with UTF-8 validation and writes them into the provided output byte array. The boolean field
+ * error_status is written if it is set. Additionally, any unknown fields present in the message
+ * are serialized at the end.
+ *
+ * @param target Pointer to the start of the output byte array.
+ * @param stream Pointer to the output stream used for serializing the data.
+ * @return Pointer to the updated position in the output byte array after serialization.
+ */
 ::uint8_t* RPRequest::_InternalSerialize(
     ::uint8_t* target,
     ::google::protobuf::io::EpsCopyOutputStream* stream) const {
@@ -1500,6 +1551,16 @@ const ::_pbi::TcParseTable<3, 6, 0, 67, 2> RPRequest::_table_ = {
   return target;
 }
 
+/**
+ * @brief Computes the total size in bytes required to serialize the RPRequest message.
+ *
+ * This function calculates the serialized size of the RPRequest by summing the sizes of each
+ * field that is present. For each non-empty string field (name, responds_to, response_topic, rpc_id, and args),
+ * it adds the size of the field's tag and its serialized content. For the boolean field error_status,
+ * it adds a fixed size when set. The final size includes any additional bytes needed for unknown fields.
+ *
+ * @return The total serialized size of the message in bytes.
+ */
 ::size_t RPRequest::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:celte.req.RPRequest)
   ::size_t total_size = 0;
@@ -1554,6 +1615,18 @@ const ::google::protobuf::Message::ClassData* RPRequest::GetClassData() const {
   return &_class_data_;
 }
 
+/**
+ * @brief Merges non-empty fields from a source RPRequest into a target instance.
+ *
+ * This function casts the given generic protobuf messages to RPRequest objects and updates 
+ * the target message with the corresponding values from the source if they are set. For string 
+ * fields (name, responds_to, response_topic, rpc_id, and args), the target is updated only if 
+ * the source field is non-empty. The error_status field is updated if its value in the source 
+ * is non-zero. Finally, any unknown field metadata from the source is merged into the target.
+ *
+ * @param to_msg The target message (an RPRequest instance) to be updated.
+ * @param from_msg The source message (an RPRequest instance) from which the fields are copied.
+ */
 void RPRequest::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
   auto* const _this = static_cast<RPRequest*>(&to_msg);
   auto& from = static_cast<const RPRequest&>(from_msg);
@@ -1610,6 +1683,14 @@ void RPRequest::InternalSwap(RPRequest* PROTOBUF_RESTRICT other) {
         swap(_impl_.error_status_, other->_impl_.error_status_);
 }
 
+/**
+ * @brief Retrieves the protobuf metadata for the RPRequest message.
+ *
+ * This function returns a Metadata object that encapsulates the descriptor information
+ * required for reflection, serialization, and other protobuf operations associated with RPRequest.
+ *
+ * @return ::google::protobuf::Metadata containing the metadata for the RPRequest message.
+ */
 ::google::protobuf::Metadata RPRequest::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_systems_5fstructs_2eproto_getter, &descriptor_table_systems_5fstructs_2eproto_once,

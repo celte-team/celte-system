@@ -157,12 +157,34 @@ void Runtime::RegisterCustomGlobalRPC(
   std::cout << "RegisterCustomGlobalRPC not implemented yet" << std::endl;
 }
 
+/**
+ * @brief Invokes a scoped RPC without expecting a return value.
+ *
+ * This function attempts to call a remote procedure within the specified scope by converting the scope using
+ * tp::rpc. It requires that the peer service is initialized; otherwise, it logs an error message to standard error.
+ *
+ * @param scope The RPC scope identifier.
+ * @param name The name of the RPC to invoke.
+ * @param args The arguments to pass to the RPC.
+ */
 void Runtime::CallScopedRPCNoRetVal(const std::string &scope,
                                     const std::string &name,
                                     const std::string &args) {
   std::cout << "CallScopedRPCNoRetVal not implemented yet" << std::endl;
 }
 
+/**
+ * @brief Calls a scoped remote procedure and returns its result.
+ *
+ * This method forms a complete RPC scope by appending the provided scope to a default scope prefix,
+ * then invokes the corresponding RPC with the given name and arguments. If the peer service is
+ * not initialized, it logs an error and returns an empty string.
+ *
+ * @param scope The specific segment of the RPC scope to use.
+ * @param name The name of the remote procedure to invoke.
+ * @param args A string containing RPC arguments.
+ * @return std::string The result returned by the RPC call, or an empty string if the peer service is not initialized.
+ */
 std::string Runtime::CallScopedRPC(const std::string &scope,
                                    const std::string &name,
                                    const std::string &args) {
