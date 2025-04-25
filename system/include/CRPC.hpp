@@ -1,4 +1,6 @@
 #pragma once
+#include "Logger.hpp"
+#include "Topics.hpp"
 #include "systems_structs.pb.h"
 #include <Runtime.hpp>
 #include <algorithm>
@@ -200,7 +202,10 @@ inline std::shared_ptr<pulsar::Client> GetClient() { return _client; }
     ProducerBucket bucket;
     bucket.producer = std::make_shared<pulsar::Producer>();
     bucket.lastUsed = std::chrono::system_clock::now();
-    _client->createProducer(topic, *bucket.producer);
+    auto result = _client->createProducer(topic, *bucket.producer);
+    if (result != pulsar::ResultOk) {
+      throw std::runtime_error("Failed to create producer for topic " + topic);
+    }
     producer_accessor accessor;
     if (_producers.insert(accessor, topic)) {
       accessor->second = bucket;
@@ -218,7 +223,7 @@ inline std::shared_ptr<pulsar::Client> GetClient() { return _client; }
   /// @brief Writes the specified request to the specified topic.
   /// @param topic
   /// @param request
-  void write(const std::string &topic, const req::RPRequest &request);
+  bool write(const std::string &topic, const req::RPRequest &request);
 
   ///@brief Cleans up the pool by removing unused producers.
   void cleanup();
@@ -356,7 +361,10 @@ public:
       request.set_response_topic("");
       request.set_rpc_id(
           boost::uuids::to_string(boost::uuids::random_generator()()));
-      _producerPool.write(scope, request);
+      if (not _producerPool.write(scope, request)) {
+        return std::make_exception_ptr(
+            std::runtime_error("Failed to write to topic " + scope));
+      }
     } catch (const std::exception &e) {
       return std::make_exception_ptr(e);
     }
@@ -409,7 +417,7 @@ public:
       req::RPRequest request;
       request.set_name(method_name);
       request.set_args(__serialize__(args...));
-      request.set_response_topic(PERSISTENT_DEFAULT + RUNTIME.GetUUID());
+      request.set_response_topic(tp::default_scope + RUNTIME.GetUUID());
       request.set_rpc_id(rpc_id);
 
       {
@@ -441,7 +449,7 @@ private:
   std::mutex _rpcPromisesMutex; ///< mutex to protect the promises map
   detail::ApachePulsarRPCProducerPool _producerPool; ///< pool of producers
   pulsar::Consumer _responseConsumer; ///< consumer to listen to responses to
-  ///< our remote calls
+                                      ///< our remote calls
 };
 
 /// @brief Class that allows to build a remote procedure call,
@@ -604,6 +612,50 @@ public:
     inline auto on_fail_do(std::function<void(CStatus &)> fail_callback) {
       return TimeoutPolicy(std::move(_scope), _called_on_multiple_peers,
                            fail_callback);
+    }
+
+    /// @brief Logs the error message to redis if the call fails.
+    inline auto on_fail_log_error() {
+      return TimeoutPolicy(
+          std::move(_scope), _called_on_multiple_peers, [](CStatus &status) {
+            try {
+              if (status) {
+                std::rethrow_exception(*status);
+              }
+            } catch (const std::exception &e) {
+              LOGERROR("Remote call failed: " + std::string(e.what()));
+              std::cout << "\033[31mRemote call failed: \033[0m" << e.what()
+                        << std::endl;
+            }
+          });
+    }
+
+    /// @brief Ignores the error if the call fails.
+    inline auto on_fail_ignore() {
+      return TimeoutPolicy(std::move(_scope), _called_on_multiple_peers,
+                           [](CStatus &status) {});
+    }
+
+    /// @brief Throws an exception if the call fails. Avoid using this along
+    /// with call_async as the error likely won't be caught or handled
+    /// correctly.
+    inline auto on_fail_throw() {
+      return TimeoutPolicy(std::move(_scope), _called_on_multiple_peers,
+                           [](CStatus &status) {
+                             if (status) {
+                               std::rethrow_exception(*status);
+                             }
+                           });
+    }
+
+    /// @brief Throws an exception if the call fails and the condition is met.
+    inline auto on_fail_throw_if(bool condition) {
+      return TimeoutPolicy(std::move(_scope), _called_on_multiple_peers,
+                           [condition](CStatus &status) {
+                             if (status && condition) {
+                               std::rethrow_exception(*status);
+                             }
+                           });
     }
 
   private:
@@ -771,9 +823,9 @@ public:
         std::get<std::future<nlohmann::json>>(r).wait();
       }
 
-      // if the response json is empty, it means the remote method failed
+      // if the response json is null, it means the remote method failed
       auto j = std::get<std::future<nlohmann::json>>(r).get();
-      if (j.empty()) {
+      if (j.is_null()) {
         CStatus status = std::make_exception_ptr(std::runtime_error(
             "Remote error in " + TypeIdentifier<MetaFunction>::name()));
         return __handle_failure<RetVal>(status, std::move(uuid), args...);
@@ -846,7 +898,7 @@ public:
    * @return A FailHandlingPolicy instance tailored for the specified peer.
    */
   inline auto on_peer(const std::string &peer) {
-    return FailHandlingPolicy(PERSISTENT_DEFAULT + peer, false);
+    return FailHandlingPolicy(tp::default_scope + peer, false);
   }
 
   /// @brief Use this method to specify that the method should be called on
@@ -864,7 +916,7 @@ public:
    * @return The configured FailHandlingPolicy instance.
    */
   inline auto on_scope(const std::string &scope) {
-    return FailHandlingPolicy(PERSISTENT_DEFAULT + scope + ".rpc", true);
+    return FailHandlingPolicy(tp::default_scope + scope + ".rpc", true);
   }
 };
 
@@ -1156,9 +1208,9 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
   using arg_types = std::tuple<Args...>;
 };
 
-#define REGISTER_RPC(bound_class, method_name)                                 \
+#define REGISTER_RPC_CALL_STUB(bound_class, method_name)                       \
   struct Call##bound_class##method_name;                                       \
-  template <> struct celte::TypeIdentifier<Call##bound_class##method_name> {   \
+  template <> struct TypeIdentifier<Call##bound_class##method_name> {          \
     static std::string name() {                                                \
       return std::string(#bound_class) + "_call_" + #method_name;              \
     }                                                                          \
@@ -1170,10 +1222,13 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
       int retry = 0;                                                           \
       std::function<void(celte::CStatus &)> fail_callback = [](celte::CStatus  \
                                                                    &) {        \
+        LOGERROR(                                                              \
+            "RPC failed : " +                                                  \
+            celte::TypeIdentifier<Call##bound_class##method_name>::name());    \
         std::cerr                                                              \
-            << "RPC failed : "                                                 \
+            << "\033[1;31mRPC failed : "                                       \
             << celte::TypeIdentifier<Call##bound_class##method_name>::name()   \
-            << std::endl;                                                      \
+            << "\033[0m" << std::endl;                                         \
       };                                                                       \
     };                                                                         \
     Call##bound_class##method_name() = default;                                \
@@ -1222,7 +1277,9 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
                                                                                \
   private:                                                                     \
     std::optional<Options> _options;                                           \
-  };                                                                           \
+  };
+
+#define REGISTER_RPC_REACTOR(bound_class, method_name)                         \
   class bound_class##method_name##Reactor {                                    \
   private:                                                                     \
     using MethodType = decltype(&bound_class::method_name);                    \
@@ -1244,3 +1301,25 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
           celte::TypeIdentifier<Call##bound_class##method_name>::name());      \
     }                                                                          \
   };
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+#define REGISTER_SERVER_RPC(bound_class, method_name)                          \
+  REGISTER_RPC_CALL_STUB(bound_class, method_name)                             \
+  REGISTER_RPC_REACTOR(bound_class, method_name)
+
+#define REGISTER_CLIENT_RPC(bound_class, method_name)                          \
+  REGISTER_RPC_CALL_STUB(bound_class, method_name)
+#else
+#define REGISTER_SERVER_RPC(bound_class, method_name)                          \
+  REGISTER_RPC_CALL_STUB(bound_class, method_name)
+
+#define REGISTER_CLIENT_RPC(bound_class, method_name)                          \
+  REGISTER_RPC_CALL_STUB(bound_class, method_name)                             \
+  REGISTER_RPC_REACTOR(bound_class, method_name)
+#endif
+
+/// @brief Registers a method that can be called remotely both on clients and
+/// servers.
+#define REGISTER_RPC(bound_class, method_name)                                 \
+  REGISTER_RPC_CALL_STUB(bound_class, method_name)                             \
+  REGISTER_RPC_REACTOR(bound_class, method_name)

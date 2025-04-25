@@ -1,25 +1,14 @@
-# Use the official .NET SDK image to build the app
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-
-WORKDIR /app
-
-COPY *.csproj ./
-RUN dotnet restore
-
+WORKDIR /src
+COPY ["master.csproj", "."]
+RUN dotnet restore "master.csproj"
 COPY . .
-RUN dotnet publish -c Release -o out
+RUN dotnet build "master.csproj" -c Release -o /app/build
 
-# Use the official .NET runtime image to run the app
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM build AS publish
+RUN dotnet publish "master.csproj" -c Release -o /app/publish
 
-# Install telnet
-RUN apt-get update && apt-get install -y telnet iputils-ping
-
-RUN ping -c 1 google.com
-
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-COPY --from=build /app/out .
-COPY configFile.yml configFile.yml
-# Set the entry point for the container
-ENTRYPOINT ["dotnet", "master.dll", "--config", "configFile.yml"]
-# ENTRYPOINT ["ping", "172.16.106.182"]
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "master.dll"]

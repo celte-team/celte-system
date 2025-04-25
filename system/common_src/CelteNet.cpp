@@ -66,10 +66,7 @@ void CelteNet::CreateConsumer(SubscribeOptions &options) {
 
   options.conf.setMessageListener(
       [options](pulsar::Consumer &consumer, const pulsar::Message &msg) {
-        auto msg_cpy =
-            msg; // copy the message to avoid it being deleted without control
-        options.messageHandler(consumer, msg_cpy);
-        consumer.acknowledge(msg);
+        options.messageHandler(consumer, msg);
       });
 
   _client->subscribeAsync(

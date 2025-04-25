@@ -5,6 +5,8 @@
     "tbb",
     "boost-asio",
     "hiredis",
+    "cpr",
+    "nlohmann-json",
     {
       "name": "protobuf",
       "version>=": "4.25.1"

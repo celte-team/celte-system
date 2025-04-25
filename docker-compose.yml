@@ -5,86 +5,75 @@ networks:
     driver: bridge
 
 services:
-  master1:
-    build:
-      context: ./master
-      dockerfile: Dockerfile
-    container_name: master1
-    networks:
-      - pulsar
-      - redis
-    restart: on-failure
-    environment:
-    - REDIS_HOST=${REDIS_HOST}
-      - PULSAR_BROKERS=${PULSAR_BROKERS}
-      - DOCKER_HOST_IP=${DOCKER_HOST_IP}
-      - CONFIG_FILE=/config/configFile.yml
-    volumes:
-      - ./master/configFile.yml:/config/configFile.yml
-    depends_on:
-      - redis_master
-      - redis_slave
-      - sentinel
-      - redisinsight
-      - zookeeper
-      - pulsar-init
-      - bookie
-      - broker
+  # master1:
+  #   build:
+  #     context: ./master
+  #     dockerfile: Dockerfile
+  #   container_name: master1
+  #   networks:
+  #     - pulsar
+  #     - redis
+  #   restart: on-failure
+  #   environment:
+  #     - REDIS_HOST=${REDIS_HOST}
+  #     - PULSAR_BROKERS=${PULSAR_BROKERS}
+  #     - DOCKER_HOST_IP=${DOCKER_HOST_IP}
+  #   depends_on:
+  #     - redis_master
+  #     - redis_slave
+  #     - sentinel
+  #     - redisinsight
+  #     - zookeeper
+  #     - pulsar-init
+  #     - bookie
+  #     - broker
 
-  master2:
-    build:
-      context: ./master
-      dockerfile: Dockerfile
-    container_name: master2
-    networks:
-      - pulsar
-      - redis
-    restart: on-failure
-    environment:
-      - REDIS_HOST=${REDIS_HOST}
-      - PULSAR_BROKERS=${PULSAR_BROKERS}
-      - DOCKER_HOST_IP=${DOCKER_HOST_IP}
-      - CONFIG_FILE=/config/configFile.yml
-    volumes:
-      - ./master/configFile.yml:/config/configFile.yml
-    depends_on:
-      - redis_master
-      - redis_slave
-      - sentinel
-      - redisinsight
-      - zookeeper
-      - pulsar-init
-      - bookie
-      - broker
+  # master2:
+  #   build:
+  #     context: ./master
+  #     dockerfile: Dockerfile
+  #   container_name: master2
+  #   networks:
+  #     - pulsar
+  #     - redis
+  #   restart: on-failure
+  #   environment:
+  #     - REDIS_HOST=${REDIS_HOST}
+  #     - PULSAR_BROKERS=${PULSAR_BROKERS}
+  #     - DOCKER_HOST_IP=${DOCKER_HOST_IP}
+  #   depends_on:
+  #     - redis_master
+  #     - redis_slave
+  #     - sentinel
+  #     - redisinsight
+  #     - zookeeper
+  #     - pulsar-init
+  #     - bookie
+  #     - broker
 
-  master3:
-    build:
-      context: ./master
-      dockerfile: Dockerfile
-    container_name: master3
-    networks:
-      - pulsar
-      - redis
-    restart: on-failure
-    environment:
-      - REDIS_HOST=${REDIS_HOST}
-      - PULSAR_BROKERS=${PULSAR_BROKERS}
-      - DOCKER_HOST_IP=${DOCKER_HOST_IP}
-      - CONFIG_FILE=/config/configFile.yml
-    volumes:
-      - ./master/configFile.yml:/config/configFile.yml
-    depends_on:
-      - redis_master
-      - redis_slave
-      - sentinel
-      - redisinsight
-      - zookeeper
-      - pulsar-init
-      - bookie
-      - broker
+  # master3:
+  #   build:
+  #     context: ./master
+  #     dockerfile: Dockerfile
+  #   container_name: master3
+  #   networks:
+  #     - pulsar
+  #     - redis
+  #   restart: on-failure
+  #   environment:
+  #     - REDIS_HOST=${REDIS_HOST}
+  #     - PULSAR_BROKERS=${PULSAR_BROKERS}
+  #     - DOCKER_HOST_IP=${DOCKER_HOST_IP}
+  #   depends_on:
+  #     - redis_master
+  #     - redis_slave
+  #     - sentinel
+  #     - redisinsight
+  #     - zookeeper
+  #     - pulsar-init
+  #     - bookie
+  #     - broker
 
-
-  # clock:
 
   clock-server:
     build:
@@ -173,7 +162,6 @@ services:
       - pulsar
     volumes:
       - ./pulsar/data/zookeeper:/pulsar/data/zookeeper
-      # - zookeeper-data:/pulsar/data/zookeeper
     environment:
       - metadataStoreUrl=zk:zookeeper:2181
       - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
@@ -223,10 +211,6 @@ services:
         condition: service_healthy
       pulsar-init:
         condition: service_completed_successfully
-    # Map the local directory to the container to avoid bookie startup failure due to insufficient container disks.
-    volumes:
-      - ./pulsar/data/bookkeeper:/pulsar/data/bookkeeper
-      # - bookkeeper-data:/pulsar/data/bookkeeper
     ports:
       - "3181:3181"
     command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie"
@@ -248,7 +232,6 @@ services:
       - managedLedgerDefaultAckQuorum=1
       - advertisedAddress=broker
       - advertisedListeners=external:pulsar://${DOCKER_HOST_IP}:6650
-      # - advertisedListeners=pulsar://broker:6650
       - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
     depends_on:
       zookeeper:
@@ -319,7 +302,6 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=eliotisthebest
     volumes:
-      # - pulsar-data:/var/lib/grafana
       - ./pulsar/grafana:/var/lib/grafana
 
   streamvisor:

@@ -4,7 +4,7 @@
 #endif
 #include "Executor.hpp"
 #include "Grape.hpp"
-#include "RPCService.hpp"
+
 #include <string>
 #include <tbb/concurrent_hash_map.h>
 
@@ -84,6 +84,10 @@ public:
     accessor acc;
     if (_grapes.find(acc, grapeId)) {
       f(acc->second);
+    } else {
+      std::cerr << "Grape " << grapeId
+                << " not found in the registry. Cannot run with lock."
+                << std::endl;
     }
   }
 

@@ -1,4 +1,5 @@
 #include "CRPC.hpp"
+#include "Topics.hpp"
 #include <google/protobuf/util/json_util.h>
 
 namespace celte {
@@ -24,7 +25,7 @@ void ApachePulsarRPCProducerPool::write(const std::string &topic,
     if (not google::protobuf::util::MessageToJsonString(request, &msgStr)
                 .ok()) {
       std::cerr << "Error while serializing request." << std::endl;
-      return;
+      return false;
     }
     accessor->second.producer->sendAsync(
         pulsar::MessageBuilder().setContent(msgStr).build(),
@@ -34,9 +35,19 @@ void ApachePulsarRPCProducerPool::write(const std::string &topic,
                       << pulsar::strResult(result) << std::endl;
           }
         });
+    return true;
   } else {
     accessor.release();
-    _createProducer(topic, [this, topic, request]() { write(topic, request); });
+
+    try {
+      _createProducer(topic,
+                      [this, topic, request]() { write(topic, request); });
+      return true;
+    } catch (const std::exception &e) {
+      std::cerr << "Failed to create producer for topic " << topic << ": "
+                << e.what() << std::endl;
+      return false;
+    }
   }
 }
 
@@ -100,7 +111,8 @@ void RPCCallerStub::StartListeningForAnswers() {
       return;
     }
     consumer.acknowledge(msg);
-    RPCCalleeStub::instance().try_handle_request(RUNTIME.GetUUID(), request);
+    RPCCalleeStub::instance().try_handle_request(
+        tp::default_scope + RUNTIME.GetUUID(), request);
   });
 
   std::string subscriptionName = RUNTIME.GetUUID();
@@ -235,8 +247,6 @@ void RPCCalleeStub::try_handle_request(const std::string &scope,
                                        const req::RPRequest &request) {
   // do not run the handler if we have already processed an rpc with the same
   // uuid, to avoid repeating the same operation.
-  // std::cout << "processing request with id " << request.rpc_id << std::endl;
-  // std::cout << "msg: " << request.to_string() << std::endl;
   _uniqueTaskManager.run(request.rpc_id(), [this, scope, request]() {
     if (request.responds_to().length() > 0) {
       _handle_response(request);
@@ -258,14 +268,14 @@ void RPCCalleeStub::try_handle_request(const std::string &scope,
  */
 void RPCCalleeStub::_handle_response(const req::RPRequest &request) {
   if (request.error_status()) { // remote error
-    RPCCallerStub::instance().solve_promise(request.responds_to(), {});
+    RPCCallerStub::instance().solve_promise(request.responds_to(), nullptr);
     return;
   }
   try { // unpack the response and solve the promise
     nlohmann::json args = nlohmann::json::parse(request.args());
     RPCCallerStub::instance().solve_promise(request.responds_to(), args);
   } catch (nlohmann::json::exception &e) { // handle bad json values
-    RPCCallerStub::instance().solve_promise(request.responds_to(), {});
+    RPCCallerStub::instance().solve_promise(request.responds_to(), nullptr);
     return;
   }
 }
@@ -285,7 +295,7 @@ void RPCCalleeStub::_handle_call(const std::string &scope,
                                  const req::RPRequest &request) {
   scope_method_accessor accessor;
   if (not _methods.find(accessor, scope)) {
-    std::cout << "method " << request.name() << " not found in scope " << scope
+    std::cerr << "rpc scope " << scope << " not found, cannot handle request"
               << std::endl;
     return;
   }
@@ -298,8 +308,27 @@ void RPCCalleeStub::_handle_call(const std::string &scope,
     accessor.release();
     nlohmann::json args = nlohmann::json::parse(request.args());
     response = handler(args);
+  } catch (std::out_of_range &e) {
+#ifdef DEBUG
+    std::cout << "rpc method " << request.name() << " not found in scope "
+              << scope << std::endl;
+#endif
+    response = "method not found";
+    responseRequest.set_error_status(1);
+  } catch (nlohmann::json::exception &e) {
+#ifdef DEBUG
+    std::cout << "error while parsing json: " << e.what() << std::endl;
+    std::cout << "json was: " << request.args() << std::endl;
+    std::cout << "method is " << request.name() << std::endl;
+#endif
+    response = std::string(e.what());
+    responseRequest.set_error_status(1);
   } catch (std::exception &e) {
+#ifdef DEBUG
     std::cout << "there was an exception: " << e.what() << std::endl;
+    std::cout << "json was: " << request.args() << std::endl;
+    std::cout << "method is " << request.name() << std::endl;
+#endif
     response = e.what();
     responseRequest.set_error_status(1);
   }
@@ -315,6 +344,7 @@ void RPCCalleeStub::_handle_call(const std::string &scope,
 }
 
 } // namespace celte
+
 
 // functional test below!
 

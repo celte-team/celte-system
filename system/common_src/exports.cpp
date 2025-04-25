@@ -2,10 +2,13 @@
 #include "CelteInputSystem.hpp"
 #include "ETTRegistry.hpp"
 #include "GhostSystem.hpp"
+#include "Grape.hpp"
 #include "GrapeRegistry.hpp"
+#include "HttpClient.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
+#include <exception>
 #ifdef CELTE_SERVER_MODE_ENABLED
 #include "MetricsScrapper.hpp"
 #endif
@@ -20,10 +23,30 @@ extern "C" {
 /* ------------------- EXPORT RUNTIME TOP LEVEL FUNCTIONS ------------------- */
 #pragma region TOP LEVEL BINDINGS
 
-EXPORT void ConnectToCluster() { RUNTIME.ConnectToCluster(); }
-EXPORT void ConnectToClusterWithAddress(const std::string &address, int port) {
-  RUNTIME.ConnectToCluster(address, port);
+#ifdef CELTE_SERVER_MODE_ENABLED
+EXPORT void ServerNodeConnect() { RUNTIME.Connect(); }
+#else
+EXPORT void ClientConnect(const std::string &celteHost, int port,
+                          const std::string &sessionId) {
+  RUNTIME.Connect(celteHost, port, sessionId);
 }
+#endif
+
+EXPORT void
+SendHttpRequest(const std::string &url, const std::string &jsonBody,
+                std::function<void(const std::string &)> callback,
+                std::function<void(int, const std::string &)> errorCallback) {
+  RUNTIME.ScheduleAsyncIOTask([callback, errorCallback, url, jsonBody]() {
+    try { // declare http client here to avoid RAII :)
+      celte::HttpClient http(errorCallback);
+      auto response = http.Post(url, nlohmann::json::parse(jsonBody));
+      callback(response);
+    } catch (std::exception &e) {
+      errorCallback(500, e.what());
+    }
+  });
+}
+
 EXPORT void CelteTick() { RUNTIME.Tick(); }
 
 EXPORT void RegisterGrape(const std::string &grapeId, bool isLocallyOwned,
@@ -182,6 +205,7 @@ EXPORT void UpdatePropertyState(const std::string &eid, const std::string &key,
                                 const std::string &value) {
   GHOSTSYSTEM.UpdatePropertyState(eid, key, value);
 }
+
 /**
  * @brief Retrieves the assigned grape identifier.
  *
@@ -190,6 +214,7 @@ EXPORT void UpdatePropertyState(const std::string &eid, const std::string &key,
  * @return std::string The assigned grape identifier.
  */
 EXPORT std::string GetAssignedGrapeId() { return RUNTIME.GetAssignedGrape(); }
+
 #endif
 
 /**
@@ -206,6 +231,17 @@ EXPORT std::string GetAssignedGrapeId() { return RUNTIME.GetAssignedGrape(); }
 EXPORT std::optional<std::string> PollPropertyUpdate(const std::string &eid,
                                                      const std::string &key) {
   return GHOSTSYSTEM.PollPropertyUpdate(eid, key);
+}
+
+EXPORT void CallCMIInstantiate(const std::string &grapeId,
+                               const std::string &cmiId,
+                               const std::string &prefabId,
+                               const std::string &payload,
+                               const std::string &clientId) {
+  celte::CallGrapeCMIInstantiate()
+      .on_peer(grapeId)
+      .on_fail_log_error()
+      .fire_and_forget(cmiId, prefabId, payload, clientId);
 }
 
 #pragma endregion
@@ -271,67 +307,153 @@ PopAssignmentByProxy(const std::string &grapeId) {
           grapeId, "proxyTakeAuthority");
   return result;
 }
+
+EXPORT std::optional<
+    std::tuple<std::string, std::string, std::string, std::string>>
+PopCMIInstantiate(const std::string &grapeId) {
+  std::optional<std::tuple<std::string, std::string, std::string, std::string>>
+      result =
+          GRAPES.PopNamedTaskFromEngine<std::string, std::string, std::string,
+                                        std::string>(grapeId, "CMIInstantiate");
+  return result;
+}
+
 #endif
 #pragma endregion
 
 /* --------------------------------- RPC API -------------------------------- */
 #pragma region RPC API
-EXPORT void RegisterGlobalRPC(const std::string &name,
-                              std::function<std::string(std::string)> f) {
-  RUNTIME.RegisterCustomGlobalRPC(name, f);
+EXPORT void RegisterGlobalRPC(const std::string &name, int filter,
+                              std::function<void(std::string)> f) {
+
+  if (filter == 0)
+    RUNTIME.GetPeerService().GetGlobalRPC().RegisterRPC(name, f);
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  else if (filter == 1)
+    RUNTIME.GetPeerService().GetGlobalRPC().RegisterRPC(name, f);
+
+#else
+  else if (filter >= 2)
+    RUNTIME.GetPeerService().GetGlobalRPC().RegisterRPC(name, f);
+#endif
 }
 
-EXPORT void RegisterGrapeRPC(const std::string &grapeId,
+EXPORT void RegisterGrapeRPC(const std::string &grapeId, int filter,
                              const std::string &name,
-                             std::function<std::string(std::string)> f) {
-  GRAPES.RunWithLock(grapeId, [name, f](celte::Grape &g) {
-    if (!g.rpcService.has_value()) {
-      throw std::runtime_error(
-          "Grape has no RPC service, or it has not been initialized yet.");
-    }
-    g.rpcService->Register<std::string>(name, f);
-  });
+                             std::function<void(std::string)> f) {
+
+  if (filter == 0)
+    GRAPES.RunWithLock(grapeId,
+                       [name, f](celte::Grape &g) { g.RegisterRPC(name, f); });
+#ifdef CELTE_SERVER_MODE_ENABLED
+  else if (filter == 1)
+    GRAPES.RunWithLock(grapeId,
+                       [name, f](celte::Grape &g) { g.RegisterRPC(name, f); });
+#else
+  else if (filter >= 2)
+    GRAPES.RunWithLock(grapeId,
+                       [name, f](celte::Grape &g) { g.RegisterRPC(name, f); });
+#endif
 }
 
-EXPORT void CallGlobalRPCNoRetVal(const std::string &name,
-                                  const std::string &args) {
-  RUNTIME.CallScopedRPCNoRetVal(celte::tp::global_rpc, name, args);
+EXPORT void RegisterEntityRPC(const std::string &entityId, int filter,
+                              const std::string &name,
+                              std::function<void(std::string)> f) {
+  if (filter == 0)
+    ETTREGISTRY.RunWithLock(
+        entityId, [name, f](celte::Entity &e) { e.RegisterRPC(name, f); });
+#ifdef CELTE_SERVER_MODE_ENABLED
+  else if (filter == 1)
+    ETTREGISTRY.RunWithLock(
+        entityId, [name, f](celte::Entity &e) { e.RegisterRPC(name, f); });
+#else
+  else if (filter >= 2)
+    ETTREGISTRY.RunWithLock(
+        entityId, [name, f](celte::Entity &e) { e.RegisterRPC(name, f); });
+#endif
 }
 
-EXPORT std::string CallGlobalRPC(const std::string &name,
-                                 const std::string &args) {
-  return RUNTIME.CallScopedRPC(celte::tp::global_rpc, name, args);
+EXPORT void RegisterClientRPC(const std::string &clientId, int filter,
+                              const std::string &name,
+                              std::function<void(std::string)> f) {
+#ifdef CELTE_CLIENT_MODE_ENABLED
+  if (RUNTIME.GetUUID() == clientId)
+    RUNTIME.GetPeerService().RegisterRPC(name, f);
+  else
+    std::cout << "    NOT GOOD UUID    ";
+#endif
 }
 
-EXPORT std::string CallScopedRPC(const std::string &scope,
-                                 const std::string &name,
-                                 const std::string &args) {
-  return RUNTIME.CallScopedRPC(scope, name, args);
+EXPORT void CallGlobalRPC(const std::string &name, const std::string &args) {
+  celte::CallGlobalRPCHandler()
+      .on_scope(celte::tp::global_rpc())
+      .on_fail_log_error()
+      .fire_and_forget(name, args);
 }
 
-EXPORT void CallScopedRPCNoRetVal(const std::string &scope,
-                                  const std::string &name,
-                                  const std::string &args) {
-  RUNTIME.CallScopedRPCNoRetVal(scope, name, args);
+EXPORT void CallGrapeRPC(bool isPrivate, const std::string &grapeId,
+                         const std::string &name, const std::string &args) {
+  if (GRAPES.GrapeExists(grapeId))
+    if (isPrivate)
+      celte::CallGrapeRPCHandler()
+          .on_peer(grapeId)
+          .on_fail_log_error()
+          .fire_and_forget(name, args);
+    else
+      celte::CallGrapeRPCHandler()
+          .on_scope(grapeId)
+          .on_fail_log_error()
+          .fire_and_forget(name, args);
+  else
+    std::cout << "Grape not registered" << std::endl;
 }
 
-EXPORT void CallScopedRPCAsync(const std::string &scope,
-                               const std::string &name, const std::string &args,
-                               std::function<void(std::string)> callback) {
-  RUNTIME.CallScopedRPCAsync(scope, name, args, callback);
+EXPORT void CallEntityRPC(bool isPrivate, const std::string &entityId,
+                          const std::string &name, const std::string &args) {
+  if (ETTREGISTRY.IsEntityRegistered(entityId) &&
+      ETTREGISTRY.IsEntityLocallyOwned(entityId))
+    if (isPrivate)
+      celte::CallEntityRPCHandler()
+          .on_peer(entityId)
+          .on_fail_log_error()
+          .fire_and_forget(name, args);
+    else
+      celte::CallEntityRPCHandler()
+          .on_scope(entityId)
+          .on_fail_log_error()
+          .fire_and_forget(name, args);
+  else
+    std::cout << "Entity not registered" << std::endl;
+}
+
+EXPORT void CallClientRPC(const std::string &clientId, const std::string &name,
+                          const std::string &args) {
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+  celte::CallPeerServiceRPCHandler()
+      .on_peer(clientId)
+      .on_fail_log_error()
+      .fire_and_forget(name, args);
+#endif
 }
 
 #pragma endregion
 /* -------------------------- EXPORT HOOKS SETTERS -------------------------- */
 #pragma region HOOKS
 #ifdef CELTE_SERVER_MODE_ENABLED // server hooks --------------------------- */
+EXPORT void SetOnServerReceivedInitializationPayloadHook(
+    std::function<void(const std::string &)> f) {
+  RUNTIME.Hooks().onServerReceivedInitializationPayload = f;
+}
+
 EXPORT void SetOnGetClientInitialGrapeHook(
     std::function<std::string(const std::string &)> f) {
   RUNTIME.Hooks().onGetClientInitialGrape = f;
 }
 
-EXPORT void
-SetOnAcceptNewClientHook(std::function<void(const std::string &)> f) {
+EXPORT void SetOnAcceptNewClientHook(
+    std::function<void(const std::string &, const std::string &)> f) {
   RUNTIME.Hooks().onAcceptNewClient = f;
 }
 
@@ -372,7 +494,9 @@ EXPORT void SetOnConnectionSuccessHook(std::function<void()> f) {
 
 EXPORT void SetOnInstantiateEntityHook(
     std::function<void(const std::string &, const std::string &)> f) {
+  std::cout << "before calling runtime" << std::endl;
   RUNTIME.Hooks().onInstantiateEntity = f;
+  std::cout << "after calling runtime" << std::endl;
 }
 
 EXPORT void SetOnRPCTimeoutHook(std::function<void(const std::string &)> f) {

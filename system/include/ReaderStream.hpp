@@ -110,10 +110,12 @@ struct ReaderStream {
           PendingRefCount prc(
               _pendingMessages); // RAII counter for pending handler messages.
           if (_closed) {
+            consumer.acknowledge(msg);
             return;
           }
           // if consumer is closed, don't handle the message
           if (not consumer.isConnected()) {
+            consumer.acknowledge(msg);
             return;
           }
           Req req;
@@ -121,16 +123,15 @@ struct ReaderStream {
                            msg.getLength());
 
           // { // don't remove this if its commented, someone will use it
-          //     // debugrea;a
-          //     if (msg.getTopicName().find("global.clock") ==
-          //     std::string::npos)
-          //         std::cout << "[[ReaderStream]] handling message " << data
-          //                   << " from topic " << msg.getTopicName() <<
-          //                   std::endl;
+          //   // debugrea;a
+          //   if (msg.getTopicName().find("global.clock") == std::string::npos)
+          //     std::cout << "[[ReaderStream]] handling message " << data
+          //               << " from topic " << msg.getTopicName() << std::endl;
           // }
 
           if (!google::protobuf::util::JsonStringToMessage(data, &req).ok()) {
             std::cerr << "Error parsing message: " << data << std::endl;
+            consumer.acknowledge(msg);
             return;
           }
           if (options.messageHandler)
@@ -139,6 +140,7 @@ struct ReaderStream {
             RUNTIME.ScheduleSyncTask([this, consumer, req, options]() {
               options.messageHandlerSync(consumer, req);
             });
+          consumer.acknowledge(msg);
         }};
     net.CreateConsumer(subOps);
   }

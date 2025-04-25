@@ -3,7 +3,9 @@
 #include "ClientRegistry.hpp"
 #endif
 #include "ContainerSubscriptionComponent.hpp"
-#include "RPCService.hpp"
+#include "CustomRPC.hpp"
+#include "ETTRegistry.hpp"
+#include "GlobalRPC.hpp"
 #include "WriterStreamPool.hpp"
 #include <functional>
 #include <map>
@@ -14,7 +16,7 @@ namespace celte {
 /// @brief The PeerService class is responsible for managing the connection of
 /// this instance of the celte runtime to the cluster.
 /// It holds the RPC endpoints for other peers to run rpcs on this instance.
-class PeerService {
+class PeerService : public CustomRPCTemplate {
 public:
   /// @brief Construct a new Peer Service object
   /// @param onReady A function to be called when the service is ready. The
@@ -28,8 +30,7 @@ public:
   /// @brief Destroy the Peer Service object
   ~PeerService();
 
-  /// @brief Returns the RPCService of this peer.
-  inline net::RPCService &GetRPCService() { return *_rpcService; }
+  inline Global &GetGlobalRPC() { return _globalRPC; }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   void ConnectClientToThisNode(const std::string &clientId,
@@ -46,6 +47,10 @@ public:
 
 #endif
 
+  void RPCHandler(std::string RPCname, std::string args) {
+    Handler(RPCname, args, tp::peer(RUNTIME.GetUUID()));
+  }
+
   /// @brief If the peer is a client returns a map of the latencies (ms) to each
   /// of the known server nodes in the cluster.
   /// @return
@@ -61,13 +66,17 @@ private:
   /// methods specific to this peer)
   void __initPeerRPCs();
 
-  /// @brief Pings the master server to let it know that this peer is ready
-  void __pingMaster(std::function<void(bool)> onReady);
-
 #ifdef CELTE_SERVER_MODE_ENABLED
   /// @brief Registers the rpc endpoints for the server mode
   void __registerServerRPCs();
 #else
+  /// @brief Pings the master server to let it know that this peer is ready
+  /// @param spawnerId The id of the spawner that will instantiate this client.
+  /// Provided by the lobby server, will be used by the master to decide which
+  /// node this client shoudl spawn in.
+  // void __pingMaster(const std::string &spawnerId,
+  //                   std::function<void(bool)> onReady);
+
   /// @brief Registers the rpc endpoints for the client mode
   void __registerClientRPCs();
 #endif
@@ -76,40 +85,48 @@ private:
    * -------------------------------
    */
 #ifndef CELTE_SERVER_MODE_ENABLED // ! ndef, we are in client mode here
+public:
   /// @brief Forces the client to connect to a specific node. Will register
   /// the associated grape in the grape registry.
-  bool __rp_forceConnectToNode(const std::string &grapeId);
+  bool ForceConnectToNode(std::string grapeId);
 
   /// @brief Subscribes the client to a container's network services.
-  bool __rp_subscribeClientToContainer(const std::string &containerId,
-                                       const std::string &ownerGrapeId);
+  bool SubscribeClientToContainer(std::string containerId,
+                                  std::string ownerGrapeId);
   /// @brief RPC called by servers interested in this client to check if it is
   /// still alive.
   /// @note the bool argument is not used, it is just a placeholder to make the
   /// rpc call.
 
-  bool __rp_unsubscribeClientFromContainer(const std::string &containerId);
+  bool UnsubscribeClientFromContainer(std::string containerId);
+
+private:
 #endif
 
-  bool __rp_ping();
+public:
+  bool Ping();
+
+private:
   /* ------------------------------- SERVER RPC
    * -------------------------------
    */
 #ifdef CELTE_SERVER_MODE_ENABLED
+public:
   /// @brief  Sets this server node as the owner of this grape.
   /// This node is expected to load the grape in game.
   /// @param grapeId
   /// @return
-  bool __rp_assignGrape(const std::string &grapeId);
+  bool AssignGrape(std::string grapeId);
 
   /// @brief Called by the master server, this method should return the name
   /// of the grape that the client should connect to.
-  std::string __rp_spawnPositionRequest(const std::string &clientId);
+  std::string RequestSpawnPosition(std::string clientId);
 
   /// @brief Called by the master server, this method notifies a server node
   /// that a client has been assigned to it.
-  bool __rp_acceptNewClient(const std::string &clientId);
+  bool AcceptNewClient(std::string clientId, std::string spawnerId);
 
+private:
   ClientRegistry _clientRegistry;
 #else
 
@@ -117,6 +134,18 @@ private:
 #endif
 
   net::WriterStreamPool _wspool;
-  std::optional<net::RPCService> _rpcService;
+  Global _globalRPC;
 };
+
+REGISTER_SERVER_RPC(PeerService, AssignGrape);
+REGISTER_SERVER_RPC(PeerService, RequestSpawnPosition);
+REGISTER_SERVER_RPC(PeerService, AcceptNewClient);
+
+REGISTER_CLIENT_RPC(PeerService, ForceConnectToNode);
+REGISTER_CLIENT_RPC(PeerService, SubscribeClientToContainer);
+REGISTER_CLIENT_RPC(PeerService, UnsubscribeClientFromContainer);
+
+REGISTER_RPC(PeerService, Ping);
+REGISTER_RPC(PeerService, RPCHandler);
+
 } // namespace celte

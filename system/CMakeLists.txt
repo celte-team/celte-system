@@ -30,6 +30,18 @@ find_package(TBB REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread system)
 find_package(unofficial-pulsar CONFIG)
 find_package(hiredis CONFIG REQUIRED)
+find_package(cpr CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+
+include(FetchContent)
+
+FetchContent_Declare(
+    dotenv
+    GIT_REPOSITORY https://github.com/laserpants/dotenv-cpp.git
+    GIT_TAG master
+)
+
+FetchContent_MakeAvailable(dotenv)
 
 
 # GENERATE PROTO FILES
@@ -64,6 +76,7 @@ file(GLOB_RECURSE SOURCES "common_src/*.cpp")
 include_directories(
     "${CMAKE_SOURCE_DIR}/include/"
     "${CMAKE_SOURCE_DIR}/protogen"
+    "${CMAKE_BINARY_DIR}/_deps/dotenv-src/include"
 )
 
 file(GLOB_RECURSE CLIENT_SRC "${CMAKE_SOURCE_DIR}/client_src/*.cpp")
@@ -80,6 +93,8 @@ set(LINK_LIBS_SYSTEMS_API
     protobuf::libprotobuf
     protobuf::libprotobuf-lite
     hiredis::hiredis
+    cpr::cpr
+    nlohmann_json::nlohmann_json
 )
 
 add_library(${PROJECT_NAME}_server SHARED ${SOURCES} ${SERVER_SRC} ${PROTO_SRCS})

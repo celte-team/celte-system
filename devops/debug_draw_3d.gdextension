@@ -1,0 +1,68 @@
+[configuration]
+entry_symbol = "debug_draw_3d_library_init"
+compatibility_minimum = "4.1.4"
+reloadable = false
+
+[dependencies]
+macos = { }
+windows.x86_64 = { }
+linux.x86_64 = { }
+linux.arm64 = { }
+
+web.wasm32.nothreads = {}
+web.wasm32 = {}
+
+android.arm32 = { }
+android.arm64 = { }
+android.x86_32 = { }
+android.x86_64 = { }
+
+ios = {}
+
+[dependencies.template_release]
+macos = { }
+windows.x86_64 = { }
+linux.x86_64 = { }
+linux.arm64 = { }
+
+web.wasm32.nothreads = { }
+web.wasm32 = { }
+
+android.arm32 = { }
+android.arm64 = { }
+android.x86_32 = { }
+android.x86_64 = { }
+
+ios = {}
+
+[libraries]
+macos = "libs/libdd3d.macos.editor.universal.framework"
+windows.x86_64 = "libs/libdd3d.windows.editor.x86_64.dll"
+linux.x86_64 = "libs/libdd3d.linux.editor.x86_64.so"
+linux.arm64 = "libs/libdd3d.linux.editor.arm64.so"
+
+web.wasm32.nothreads = "libs/libdd3d.web.template_debug.wasm32.wasm"
+web.wasm32 = "libs/libdd3d.web.template_debug.wasm32.threads.wasm"
+
+android.arm32 = "libs/libdd3d.android.template_debug.arm32.so"
+android.arm64 = "libs/libdd3d.android.template_debug.arm64.so"
+android.x86_32 = "libs/libdd3d.android.template_debug.x86_32.so"
+android.x86_64 = "libs/libdd3d.android.template_debug.x86_64.so"
+
+ios = "libs/libdd3d.ios.template_debug.universal.dylib"
+
+[libraries.template_release]
+macos = "libs/libdd3d.macos.template_release.universal.framework"
+windows.x86_64 = "libs/libdd3d.windows.template_release.x86_64.dll"
+linux.x86_64 = "libs/libdd3d.linux.template_release.x86_64.so"
+linux.arm64 = "libs/libdd3d.linux.template_release.arm64.so"
+
+web.wasm32.nothreads = "libs/libdd3d.web.template_release.wasm32.wasm"
+web.wasm32 = "libs/libdd3d.web.template_release.wasm32.threads.wasm"
+
+android.arm32 = "libs/libdd3d.android.template_release.arm32.so"
+android.arm64 = "libs/libdd3d.android.template_release.arm64.so"
+android.x86_32 = "libs/libdd3d.android.template_release.x86_32.so"
+android.x86_64 = "libs/libdd3d.android.template_release.x86_64.so"
+
+ios = "libs/libdd3d.ios.template_release.universal.dylib"
