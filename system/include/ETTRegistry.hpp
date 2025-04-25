@@ -171,6 +171,43 @@ namespace celte {
             return _entities.find(acc, id);
         }
 
+        std::shared_ptr<LIST_INPUT> GetEntityInputs(const std::string& id)
+        {
+            accessor acc;
+            if (_entities.find(acc, id)) {
+                return acc->second.inputs;
+            }
+            return nullptr;
+        }
+
+        std::optional<const INPUT> GetEntityCircularBuf(std::string id, std::string inputName)
+        {
+            accessor acc;
+            if (_entities.find(acc, id)) {
+                auto list = acc->second.inputs;
+                auto inputIt = list->find(inputName);
+                if (inputIt != list->end()) {
+                    return std::make_optional(inputIt->second);
+                }
+            }
+            return std::nullopt;
+        }
+
+        std::optional<const DataInput_t> GetSpecificInput(std::string id, std::string inputName, int indexHisto)
+        {
+            accessor acc;
+            if (_entities.find(acc, id)) {
+                auto list = acc->second.inputs;
+                auto inputIt = list->find(inputName);
+                if (inputIt != list->end()) {
+                    if (indexHisto >= 0 && indexHisto < inputIt->second.size()) {
+                        return std::make_optional(inputIt->second.at(indexHisto));
+                    }
+                }
+            }
+            return std::nullopt;
+        }
+
     private:
         storage _entities;
     };
