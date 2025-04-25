@@ -9,13 +9,17 @@ class UpAndDown
     public static void Up(Nodes.NodeInfo nodeinfo)
     {
         // get godot_path from the environment variables
-        string celte_godot_project_path = Environment.GetEnvironmentVariable("CELTE_GODOT_PROJECT_PATH");
-        string godot_path = Environment.GetEnvironmentVariable("CELTE_GODOT_PATH");
+        string celte_godot_project_path = Environment.GetEnvironmentVariable("CELTE_GODOT_PROJECT_PATH") ?? throw new InvalidOperationException("CELTE_GODOT_PROJECT_PATH is not set");
+        string godot_path = Environment.GetEnvironmentVariable("CELTE_GODOT_PATH") ?? throw new InvalidOperationException("CELTE_GODOT_PATH is not set");
 
         // Create logs directory if it doesn't exist
         string logsDir = Path.Combine(celte_godot_project_path, "logs");
         Directory.CreateDirectory(logsDir);
         string logFile = Path.Combine(logsDir, $"{nodeinfo.Id}.log");
+        if (File.Exists(logFile))
+        {
+            File.Delete(logFile);
+        }
 
         // Prepare the command
         string command = $"cd {celte_godot_project_path} ; export CELTE_MODE=server; export CELTE_NODE_ID={nodeinfo.Id}; export CELTE_NODE_PID={nodeinfo.Pid}; {godot_path} . --headless > {logFile} 2>&1";

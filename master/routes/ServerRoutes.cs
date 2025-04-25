@@ -80,30 +80,13 @@ namespace Master.Routes
         {
             try
             {
-                // Clear all nodes from Redis
-                var nodes = RedisDb.Database.HashGetAll("nodes");
-                foreach (var node in nodes)
-                {
-                    try
-                    {
-                        var nodeInfo = JsonSerializer.Deserialize<Nodes.NodeInfo>(node.Value);
-                        UpAndDown.Down(nodeInfo);
-                    }
-                    catch (JsonException)
-                    {
-                        // Skip invalid node data
-                        continue;
-                    }
-                }
-
-                // Clear Redis database
-                await RedisDb.Database.ExecuteAsync("FLUSHDB");
+                UpAndDown.CleanupAllProcesses();
 
                 context.Response.StatusCode = StatusCodes.Status200OK;
                 context.Response.ContentType = "application/json";
                 await context.Response.WriteAsync(new JsonObject
                 {
-                    ["message"] = "Session cleaned up successfully."
+                    ["message"] = "All servers have been terminated."
                 }.ToJsonString());
             }
             catch (Exception ex)
