@@ -16,7 +16,7 @@ build:
 
   - step: clock
     run: |
-      cd ./ClockServer
+      cd ./clock-server
       dotnet build
 
 test_suites:
