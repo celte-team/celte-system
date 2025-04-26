@@ -691,37 +691,6 @@ class RPRequest final :
   public:
   // bool error_status = 6;
   void clear_error_status() ;
-  /**
-   * @brief Retrieves the error status flag.
-   *
-   * Returns the current error status indicating whether an error condition is active.
-   *
-   * @return True if the error status is set, false otherwise.
-   */
-   
-  /**
-   * @brief Sets the error status flag.
-   *
-   * Updates the error status to reflect whether an error condition is active.
-   *
-   * @param value New state for the error status flag.
-   */
-   
-  /**
-   * @brief Internal accessor for the error status flag.
-   *
-   * Retrieves the internal error status used for state management.
-   *
-   * @return The internal error status.
-   */
-   
-  /**
-   * @brief Internal mutator for the error status flag.
-   *
-   * Sets the internal error status used for state management.
-   *
-   * @param value New internal error status value.
-   */
   bool error_status() const;
   void set_error_status(bool value);
 
@@ -2101,17 +2070,6 @@ inline std::string* RPRequest::release_args() {
   // @@protoc_insertion_point(field_release:celte.req.RPRequest.args)
   return _impl_.args_.Release();
 }
-/**
- * @brief Transfers ownership of a dynamically allocated string to the 'args' field.
- *
- * This function assigns the provided std::string pointer to the 'args' field of the RPRequest message,
- * transferring ownership to the message's internal storage. If the macro PROTOBUF_FORCE_COPY_DEFAULT_STRING is defined
- * and the assigned value corresponds to the default string, the field is reset to an empty string.
- *
- * Note that after calling this function, the caller should not use or free the pointer as its ownership is transferred.
- *
- * @param value Pointer to the allocated std::string to be set for the 'args' field.
- */
 inline void RPRequest::set_allocated_args(std::string* value) {
   PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
   _impl_.args_.SetAllocated(value, GetArena());
@@ -2123,58 +2081,23 @@ inline void RPRequest::set_allocated_args(std::string* value) {
   // @@protoc_insertion_point(field_set_allocated:celte.req.RPRequest.args)
 }
 
-/**
- * @brief Clears the error status flag.
- *
- * This function resets the error status of the RPRequest instance by setting it to false,
- * indicating that no error state is currently present.
- */
+// bool error_status = 6;
 inline void RPRequest::clear_error_status() {
   PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
   _impl_.error_status_ = false;
 }
-/**
- * @brief Retrieves the error status flag.
- *
- * This method returns a boolean indicating whether an error has been flagged on the RPRequest.
- *
- * @return bool True if the error status is set, false otherwise.
- */
 inline bool RPRequest::error_status() const {
   // @@protoc_insertion_point(field_get:celte.req.RPRequest.error_status)
   return _internal_error_status();
 }
-/**
- * @brief Updates the error status field.
- *
- * Sets the internal error status of the RPRequest to the provided boolean value.
- *
- * @param value The new error status to assign.
- */
 inline void RPRequest::set_error_status(bool value) {
   _internal_set_error_status(value);
   // @@protoc_insertion_point(field_set:celte.req.RPRequest.error_status)
 }
-/**
- * @brief Retrieves the internal error status flag.
- *
- * This internal inline function returns the value of the error status flag from the RPRequest
- * implementation. The returned value indicates whether an error condition has been flagged.
- *
- * @return true if the error status flag is set, false otherwise.
- */
 inline bool RPRequest::_internal_error_status() const {
   PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
   return _impl_.error_status_;
 }
-/**
- * @brief Updates the internal error status flag.
- *
- * Sets the internal error status field of the RPRequest message to the specified
- * boolean value.
- *
- * @param value The new error status (true indicates an error, false indicates no error).
- */
 inline void RPRequest::_internal_set_error_status(bool value) {
   PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
   ;

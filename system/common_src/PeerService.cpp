@@ -11,19 +11,6 @@
 #include <future>
 
 using namespace celte;
-
-/**
- * @brief Constructs a PeerService by initializing the RPC service and scheduling a network readiness check.
- *
- * Configures the RPC service with a runtime-generated UUID and wrapped addresses for listening and response topics.
- * The constructor logs the listening endpoints, starts an internal clock, and schedules an asynchronous task that waits
- * for the network to be ready within the specified timeout. If the network is not ready in time, the supplied callback
- * is invoked with a value of false. Otherwise, the peer RPC methods are initialized and the master server is pinged.
- *
- * @param onReady Callback function called upon completion of the network readiness check; receives true if the service is ready,
- *                false otherwise.
- * @param connectionTimeout Maximum duration to wait for the network to become ready.
- */
 PeerService::PeerService(std::function<void(bool)> onReady,
                          std::chrono::milliseconds connectionTimeout)
     : _wspool({.idleTimeout = 10000ms}) {
@@ -60,16 +47,6 @@ void PeerService::__initPeerRPCs() {
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-/**
- * @brief Registers RPC methods for server-specific operations.
- *
- * This function sets up the server-side RPC handlers by registering the following commands:
- * - **__rp_assignGrape:** Assigns a grape ID for the runtime.
- * - **__rp_getPlayerSpawnPosition:** Returns the initial spawn position for a client.
- * - **__rp_acceptNewClient:** Accepts and registers a new client.
- *
- * Each command is bound to a lambda that delegates to the corresponding internal method.
- */
 void PeerService::__registerServerRPCs() {
   auto id = RUNTIME.GetUUID();
   PeerServiceAssignGrapeReactor::subscribe(tp::rpc(id), this);
@@ -78,21 +55,6 @@ void PeerService::__registerServerRPCs() {
 }
 
 #else
-/**
- * @brief Registers RPC methods for client-specific operations.
- *
- * This function registers RPC endpoints that handle client-side requests:
- * - Forces a client connection to a node.
- * - Subscribes a client to a container.
- * - Unsubscribes a client from a container.
- * - Performs a ping check.
- */
-void PeerService::__registerClientRPCs() {
-  _rpcService->Register<bool>("__rp_forceConnectToNode",
-                              std::function([this](std::string nodeId) {
-                                return __rp_forceConnectToNode(nodeId);
-                              }));
-
 void PeerService::__registerClientRPCs() {
   PeerServiceForceConnectToNodeReactor::subscribe(tp::peer(RUNTIME.GetUUID()),
                                                   this);
