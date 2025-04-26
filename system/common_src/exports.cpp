@@ -223,6 +223,16 @@ EXPORT void UpdatePropertyState(const std::string& eid, const std::string& key,
 {
     GHOSTSYSTEM.UpdatePropertyState(eid, key, value);
 }
+
+/**
+ * @brief Retrieves the assigned grape identifier.
+ *
+ * This function fetches the grape ID from the runtime environment and returns it as a string. It is available only when CELTE_SERVER_MODE_ENABLED is enabled.
+ *
+ * @return std::string The assigned grape identifier.
+ */
+EXPORT std::string GetAssignedGrapeId() { return RUNTIME.GetAssignedGrape(); }
+
 #endif
 
 EXPORT std::optional<std::string> PollPropertyUpdate(const std::string& eid,
