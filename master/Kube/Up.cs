@@ -22,7 +22,12 @@ class UpAndDown
         }
 
         // Prepare the command
-        string command = $"cd {celte_godot_project_path} ; export CELTE_MODE=server; export CELTE_NODE_ID={nodeinfo.Id}; export CELTE_NODE_PID={nodeinfo.Pid}; {godot_path} . --headless > {logFile} 2>&1";
+        string headlessMode = "";
+        if (Environment.GetEnvironmentVariable("CELTE_SERVER_GRAPHICAL_MODE") != "true")
+        {
+            headlessMode = "--headless"; ;
+        }
+        string command = $"cd {celte_godot_project_path} ; export CELTE_MODE=server; export CELTE_NODE_ID={nodeinfo.Id}; export CELTE_NODE_PID={nodeinfo.Pid}; {godot_path} . {headlessMode}> {logFile} 2>&1";
 
         if (OperatingSystem.IsMacOS())
         {
