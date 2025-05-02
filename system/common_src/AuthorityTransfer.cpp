@@ -181,9 +181,6 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   Clock::timepoint whenTp = Clock::FromISOString(when);
 
   CLOCK.ScheduleAt(whenTp, [=]() {
-    // std::cout << "is ett registered? "
-    //           << ETTREGISTRY.IsEntityRegistered(entityId) << std::endl;
-
     // if ett exists, transfer auth
     ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
       e.ownerContainerId = toContainerId;

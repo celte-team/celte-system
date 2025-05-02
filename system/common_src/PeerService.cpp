@@ -122,22 +122,34 @@ void PeerService::SubscribeClientToContainer(const std::string &clientId,
     RUNTIME.GetPeerService().GetClientRegistry().RunWithLock(
         clientId, [&](ClientData &c) {
           if (c.isSubscribedToContainer(containerId)) {
+            then();
             return;
           }
           std::cout << "client " << clientId.substr(0, 7)
                     << "\033[032m <- \033[0m" << containerId.substr(0, 4)
                     << std::endl;
           c.remoteClientSubscriptions.insert(containerId);
-
-          RUNTIME.ScheduleAsyncIOTask([this, clientId, containerId]() {
+          RUNTIME.ScheduleAsyncIOTask([this, then, clientId, containerId]() {
             LOGINFO("Subscribing client " + clientId + " to container " +
                     containerId);
+            std::cout << "call sub client to container" << std::endl;
             CallPeerServiceSubscribeClientToContainer()
                 .on_peer(clientId)
                 .on_fail_log_error()
                 .with_timeout(std::chrono::milliseconds(1000))
                 .retry(3)
-                .fire_and_forget(containerId, RUNTIME.GetAssignedGrape());
+                // .fire_and_forget(containerId, RUNTIME.GetAssignedGrape());
+                .call_async<bool>(
+                    [then](bool ok) {
+                      std::cout << "callback for sub client to container"
+                                << std::endl;
+                      if (ok) {
+                        then();
+                      } else {
+                        LOGERROR("Error subscribing client to container");
+                      }
+                    },
+                    containerId, RUNTIME.GetAssignedGrape());
           });
         });
   });
