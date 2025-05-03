@@ -36,4 +36,16 @@ class RedisDb
     {
         return Database.HashGet(hashKey, fieldKey);
     }
+
+    public static string GetSNFromSpawnerId(string spawnerId)
+    {
+        string sessionId = Utils.GetConfigOption("sessionId", "default");
+        string redisKey = sessionId + spawnerId;
+        string? value = GetString(redisKey);
+        if (value == null)
+        {
+            throw new Exception($"SN not found for spawnerId: {spawnerId}");
+        }
+        return value;
+    }
 }

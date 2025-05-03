@@ -96,3 +96,50 @@ void Logger::__sendThreadWorker() {
     }
   }
 }
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+void Logger::SetRedisKVP(const std::string &key, const std::string &value) {
+  RUNTIME.ScheduleAsyncIOTask([this, key, value]() {
+    if (output_console) {
+      std::cout << key << " " << value << std::endl;
+      return;
+    }
+
+    std::string fullKey = RUNTIME.GetConfig().GetSessionId() + key;
+    redisReply *reply = (redisReply *)redisCommand(
+        context.get(), "SET %s %s", fullKey.c_str(), value.c_str());
+    if (reply == NULL)
+      std::cerr << "Error: " << context->errstr << std::endl;
+    else
+      freeReplyObject(reply);
+  });
+}
+
+std::optional<std::string> Logger::GetRedisKVP(const std::string &key) {
+  if (output_console) {
+    return std::nullopt;
+  }
+  std::string fullKey = RUNTIME.GetConfig().GetSessionId() + key;
+  redisReply *reply =
+      (redisReply *)redisCommand(context.get(), "GET %s", fullKey.c_str());
+  if (reply == NULL) {
+    std::cerr << "Error: " << context->errstr << std::endl;
+    return std::nullopt;
+  }
+  std::string value(reply->str, reply->len);
+  freeReplyObject(reply);
+  return value;
+}
+
+void Logger::GetRedisKVPAsync(const std::string &key,
+                              std::function<void(bool, std::string)> callback) {
+  RUNTIME.ScheduleAsyncIOTask([this, key, callback]() {
+    std::optional<std::string> value = GetRedisKVP(key);
+    if (value.has_value()) {
+      callback(true, value.value());
+    } else {
+      callback(false, "");
+    }
+  });
+}
+#endif

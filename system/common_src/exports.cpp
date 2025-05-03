@@ -5,6 +5,7 @@
 #include "Grape.hpp"
 #include "GrapeRegistry.hpp"
 #include "HttpClient.hpp"
+#include "Logger.hpp"
 #include "PeerService.hpp"
 #include "Runtime.hpp"
 #include "Topics.hpp"
@@ -59,6 +60,20 @@ EXPORT std::string ContainerCreateAndAttach(const std::string &grapeId,
                                             std::function<void()> onReady) {
   return GRAPES.ContainerCreateAndAttach(grapeId, onReady);
 }
+
+EXPORT void SetRedisKVP(const std::string &key, const std::string &value) {
+  LOGGER.SetRedisKVP(key, value);
+}
+
+EXPORT std::optional<std::string> GetRedisKVP(const std::string &key) {
+  return LOGGER.GetRedisKVP(key);
+}
+
+EXPORT void GetRedisKVPAsync(const std::string &key,
+                             std::function<void(bool, std::string)> callback) {
+  LOGGER.GetRedisKVPAsync(key, callback);
+}
+
 #endif
 
 EXPORT bool IsGrapeLocallyOwned(const std::string &grapeId) {

@@ -13,7 +13,20 @@ class Clients
     public static (int, JsonObject) ConnectClientToCluster(ClientConnectToClusterReqBody reqBody)
     {
         Console.WriteLine("Received link request");
-        string nodeId = "sn-LeChateauDuMechant";
+        string nodeId;
+        try
+        {
+            // TODO: uniformize nameing convention to adapt with future dynamic nodes
+            nodeId = "sn-" + RedisDb.GetSNFromSpawnerId(reqBody.spawnerId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting nodeId from spawnerId: {ex.Message}");
+            return (500, new JsonObject
+            {
+                ["message"] = "Failed to get nodeId from spawnerId.",
+            });
+        }
         if (!RPC.ConnectClientToNode(nodeId, reqBody.spawnerId, reqBody.clientId))
         {
             return (500, new JsonObject

@@ -24,9 +24,12 @@ public:
 
   inline void SetSessionId(const std::string &sessionId) {
     tp::default_scope = "persistent://public/" + sessionId + "/";
+    _sessionId = sessionId;
   }
+  inline const std::string &GetSessionId() const { return _sessionId; }
 
 private:
   std::unordered_map<std::string, std::string> _config;
+  std::string _sessionId = "default";
 };
 } // namespace celte

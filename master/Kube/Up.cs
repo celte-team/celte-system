@@ -50,6 +50,7 @@ class UpAndDown
 
             // Store the process ID in Redis for later reference
             nodeinfo.Pid = process.Id.ToString();
+
             RedisDb.SetHashField("nodes", nodeinfo.Id, JsonSerializer.Serialize(nodeinfo));
 
             Console.ForegroundColor = ConsoleColor.Green;
