@@ -7,6 +7,7 @@
 #include <string>
 #include <tbb/concurrent_queue.h>
 #include <thread>
+#include <optional>
 
 #define LOGGER celte::Logger::GetInstance()
 
