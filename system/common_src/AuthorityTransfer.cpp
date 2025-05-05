@@ -227,9 +227,6 @@ void AuthorityTransfer::ExecDropOrder(nlohmann::json args) {
 
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing drop order.\n" + args.dump());
-  std::cout << "exec drop, curr tick is "
-            << CLOCK.ToISOString(CLOCK.GetUnifiedTime()) << " and schedule is "
-            << when << std::endl;
   CLOCK.ScheduleAt(
       whenTp, [entityId, toContainerId, fromContainerId, procedureId]() {
         ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
