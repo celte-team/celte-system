@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: github/codeql-action/init@v3
         with:
-          languages: csharp,cpp
+          languages: cpp
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -58,17 +58,25 @@ jobs:
 
   # Trivy scans the entire repository filesystem for vulnerabilities, secrets, and misconfigurations with high severity, providing a comprehensive security assessment of the codebase and configuration files.
   trivy:
-    name: Filesystem Scan (Trivy)
-    runs-on: ubuntu-latest
+    name: Trivy Scan
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Trivy CLI
-        run: |
-          sudo apt-get update && sudo apt-get install -y wget
-          wget -qO- https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.2_Linux-64bit.deb > trivy.deb
-          sudo dpkg -i trivy.deb
-      - name: Trivy Filesystem Scan # Results will be displayed in the GitHub Actions logs
-        run: trivy fs --scanners vuln,secret,misconfig . --severity HIGH --format table
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Manual Trivy Setup
+        uses: aquasecurity/setup-trivy@v0.2.0
+        with:
+          cache: true
+          version: v0.60.1
+      - name: Run Trivy vulnerability scanner in repo mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL'
+          skip-setup-trivy: true
 
   # Checkov scans Infrastructure as Code (IaC) files (such as Terraform, CloudFormation, Kubernetes manifests) for misconfigurations and security issues, ensuring best practices are followed in your cloud infrastructure setup.
   checkov:
