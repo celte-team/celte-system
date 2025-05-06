@@ -9,7 +9,8 @@ on:
     - cron: '0 2 * * 1' # Weekly scan every Monday at 02:00 UTC
 
 jobs:
-  codeql: # CodeQL Static Analysis is used to scan the codebase for vulnerabilities and code quality issues.
+  # CodeQL Static Analysis is used to scan the codebase for vulnerabilities and code quality issues.
+  codeql:
     name: CodeQL Static Analysis
     runs-on: ubuntu-latest
     permissions:
