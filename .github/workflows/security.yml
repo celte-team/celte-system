@@ -59,7 +59,7 @@ jobs:
   # Trivy scans the entire repository filesystem for vulnerabilities, secrets, and misconfigurations with high severity, providing a comprehensive security assessment of the codebase and configuration files.
   trivy:
     name: Trivy Scan
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
