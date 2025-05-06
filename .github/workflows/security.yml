@@ -28,11 +28,11 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '8.0'
       - name: Restore dependencies
         run: dotnet restore master/*.sln || dotnet restore master/*.csproj
       - name: Build
-        run: dotnet build master/*.sln --no-restore || dotnet build master/*.csproj --no-restore
+        run: dotnet build master/*.csproj --no-restore
       - uses: github/codeql-action/analyze@v3
 
   # Gitleaks scans the repository for secrets such as API keys, passwords, and other sensitive information that may have been accidentally committed.
