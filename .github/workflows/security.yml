@@ -24,13 +24,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: github/codeql-action/init@v3
         with:
-          languages: cpp
+          languages: csharp
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0'
       - name: Restore dependencies
-        run: dotnet restore master/*.sln || dotnet restore master/*.csproj
+        run: dotnet restore master/*.csproj
       - name: Build
         run: dotnet build master/*.csproj --no-restore
       - uses: github/codeql-action/analyze@v3
