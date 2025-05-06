@@ -10,6 +10,7 @@ on:
 
 jobs:
   # CodeQL Static Analysis is used to scan the codebase for vulnerabilities and code quality issues.
+  # This job uses GitHub's CodeQL to perform static analysis on the codebase, identifying security vulnerabilities and code quality issues in supported languages (here: C# and C++).
   codeql:
     name: CodeQL Static Analysis
     runs-on: ubuntu-latest
@@ -26,6 +27,7 @@ jobs:
           languages: csharp,cpp
       - uses: github/codeql-action/analyze@v3
 
+  # Gitleaks scans the repository for secrets such as API keys, passwords, and other sensitive information that may have been accidentally committed.
   gitleaks:
     name: Secret Scanning (Gitleaks)
     runs-on: ubuntu-latest
@@ -35,15 +37,7 @@ jobs:
         with:
           args: --verbose --redact
 
-  trufflehog:
-    name: Secret Scanning (TruffleHog)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: trufflesecurity/trufflehog@v3
-        with:
-          scanArguments: '--regex --entropy=True'
-
+  # Dependency Review checks for vulnerable dependencies introduced by changes in pull requests, helping to prevent the introduction of known security issues via third-party packages.
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
@@ -53,6 +47,7 @@ jobs:
     steps:
       - uses: actions/dependency-review-action@v3
 
+  # Trivy scans the entire repository filesystem for vulnerabilities, secrets, and misconfigurations with high severity, providing a comprehensive security assessment of the codebase and configuration files.
   trivy:
     name: Filesystem Scan (Trivy)
     runs-on: ubuntu-latest
@@ -63,10 +58,10 @@ jobs:
           sudo apt-get update && sudo apt-get install -y wget
           wget -qO- https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.2_Linux-64bit.deb > trivy.deb
           sudo dpkg -i trivy.deb
-      - name: Trivy Filesystem Scan
-        run: |
-          trivy fs --scanners vuln,secret,misconfig . --severity HIGH || true
+      - name: Trivy Filesystem Scan # Results will be displayed in the GitHub Actions logs
+        run: trivy fs --scanners vuln,secret,misconfig . --severity HIGH --format table
 
+  # Checkov scans Infrastructure as Code (IaC) files (such as Terraform, CloudFormation, Kubernetes manifests) for misconfigurations and security issues, ensuring best practices are followed in your cloud infrastructure setup.
   checkov:
     name: IaC Scan with Checkov
     runs-on: ubuntu-latest
@@ -74,6 +69,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bridgecrewio/checkov-action@v12
 
+  # This job checks the permissions used by other GitHub Actions workflows to ensure they follow the principle of least privilege and do not have excessive access rights.
   permissions-check:
     name: GitHub Workflow Permissions Check
     runs-on: ubuntu-latest
