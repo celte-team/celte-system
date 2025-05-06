@@ -1,0 +1,79 @@
+name: Security Checks
+
+on:
+  push:
+    branches: [ main, 213-add-cicd-security-tools ]
+  pull_request:
+    branches: [ main, 213-add-cicd-security-tools ]
+  schedule:
+    - cron: '0 2 * * 1' # Weekly scan every Monday at 02:00 UTC
+
+jobs:
+  codeql: # CodeQL Static Analysis is used to scan the codebase for vulnerabilities and code quality issues.
+    name: CodeQL Static Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ['csharp']
+      - uses: github/codeql-action/analyze@v3
+
+  gitleaks:
+    name: Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gitleaks/gitleaks-action@v2
+        with:
+          args: --verbose --redact
+
+  trufflehog:
+    name: Secret Scanning (TruffleHog)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: trufflesecurity/trufflehog@v3
+        with:
+          scanArguments: '--regex --entropy=True'
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/dependency-review-action@v3
+
+  trivy:
+    name: Filesystem Scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Trivy CLI
+        run: |
+          sudo apt-get update && sudo apt-get install -y wget
+          wget -qO- https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.2_Linux-64bit.deb > trivy.deb
+          sudo dpkg -i trivy.deb
+      - name: Trivy Filesystem Scan
+        run: trivy fs --scanners vuln,secret,misconfig . --severity HIGH
+
+  checkov:
+    name: IaC Scan with Checkov
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bridgecrewio/checkov-action@v12
+
+  permissions-check:
+    name: GitHub Workflow Permissions Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: github/actions-permissions-check@v1
