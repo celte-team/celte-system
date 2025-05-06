@@ -79,9 +79,18 @@ jobs:
           severity: 'CRITICAL'
           skip-setup-trivy: true
 
-  # This job checks the permissions used by other GitHub Actions workflows to ensure they follow the principle of least privilege and do not have excessive access rights.
-  permissions-check:
-    name: GitHub Workflow Permissions Check
+  # # This job checks the permissions used by other GitHub Actions workflows to ensure they follow the principle of least privilege and do not have excessive access rights.
+  # permissions-check:
+  #   name: GitHub Workflow Permissions Check
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: github/actions-permissions-check@v1
+# Example corrected workflow snippet
+  security-checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: github/actions-permissions-check@v1
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Permissions Check
+        uses: actions/permissions-check@v1.0.0 # Ensure this matches the correct action in the GitHub Marketplace
