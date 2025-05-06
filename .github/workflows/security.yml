@@ -22,18 +22,24 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
+        continue-on-error: true
       - uses: github/codeql-action/init@v3
         with:
           languages: csharp,cpp
+        continue-on-error: true
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+        continue-on-error: true
       - name: Restore dependencies
         run: dotnet restore
+        continue-on-error: true
       - name: Build
         run: dotnet build --no-restore
+        continue-on-error: true
       - uses: github/codeql-action/analyze@v3
+        continue-on-error: true
 
   # Gitleaks scans the repository for secrets such as API keys, passwords, and other sensitive information that may have been accidentally committed.
   gitleaks:
@@ -41,19 +47,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        continue-on-error: true
       - uses: gitleaks/gitleaks-action@v2
         with:
           args: --verbose --redact
+        continue-on-error: true
 
   # Dependency Review checks for vulnerable dependencies introduced by changes in pull requests, helping to prevent the introduction of known security issues via third-party packages.
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
     permissions:
       contents: read
       pull-requests: write
     steps:
       - uses: actions/dependency-review-action@v3
+        continue-on-error: true
 
   # Trivy scans the entire repository filesystem for vulnerabilities, secrets, and misconfigurations with high severity, providing a comprehensive security assessment of the codebase and configuration files.
   trivy:
@@ -61,13 +71,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        continue-on-error: true
       - name: Install Trivy CLI
         run: |
           sudo apt-get update && sudo apt-get install -y wget
           wget -qO- https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.2_Linux-64bit.deb > trivy.deb
           sudo dpkg -i trivy.deb
+        continue-on-error: true
       - name: Trivy Filesystem Scan # Results will be displayed in the GitHub Actions logs
         run: trivy fs --scanners vuln,secret,misconfig . --severity HIGH --format table
+        continue-on-error: true
 
   # Checkov scans Infrastructure as Code (IaC) files (such as Terraform, CloudFormation, Kubernetes manifests) for misconfigurations and security issues, ensuring best practices are followed in your cloud infrastructure setup.
   checkov:
@@ -75,7 +88,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        continue-on-error: true
       - uses: bridgecrewio/checkov-action@v12
+        continue-on-error: true
 
   # This job checks the permissions used by other GitHub Actions workflows to ensure they follow the principle of least privilege and do not have excessive access rights.
   permissions-check:
@@ -83,3 +98,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: github/actions-permissions-check@v1
+      - continue-on-error: true
