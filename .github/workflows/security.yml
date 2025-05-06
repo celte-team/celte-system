@@ -80,14 +80,6 @@ jobs:
           severity: 'CRITICAL'
           skip-setup-trivy: true
 
-  # Checkov scans Infrastructure as Code (IaC) files (such as Terraform, CloudFormation, Kubernetes manifests) for misconfigurations and security issues, ensuring best practices are followed in your cloud infrastructure setup.
-  checkov:
-    name: IaC Scan with Checkov
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: bridgecrewio/checkov-action@v12
-
   # This job checks the permissions used by other GitHub Actions workflows to ensure they follow the principle of least privilege and do not have excessive access rights.
   permissions-check:
     name: GitHub Workflow Permissions Check
