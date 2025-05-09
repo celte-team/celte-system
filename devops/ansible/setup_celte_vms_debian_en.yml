@@ -1,0 +1,138 @@
+---
+- name: Configure Debian/Ubuntu VMs for Celte System
+  hosts: celte_vms
+  become: yes # Execute tasks as root (sudo)
+  vars:
+    git_repo_url: https://github.com/celte-team/celte-system.git
+    git_clone_dest: /opt/celte-system # Git repository clone directory
+
+  tasks:
+    - name: Update APT cache and install prerequisites for Docker
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+        update_cache: yes
+
+    - name: Create directory for APT GPG keys
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Add Docker's official GPG key
+      ansible.builtin.shell: # Uses shell to handle the pipe and gpg --dearmor command
+        cmd: curl -fsSL https://download.docker.com/linux/{{ ansible_facts.distribution | lower }}/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        args:
+          creates: /etc/apt/keyrings/docker.gpg # Makes the task idempotent
+      register: add_docker_gpg_key
+      changed_when: "'key DEARMORED' in add_docker_gpg_key.stdout" # Heuristic for change detection
+
+    - name: Ensure Docker GPG key has correct permissions
+      ansible.builtin.file:
+        path: /etc/apt/keyrings/docker.gpg
+        mode: '0644' # a+r permissions
+
+    - name: Get system architecture (dpkg)
+      ansible.builtin.command: dpkg --print-architecture
+      register: dpkg_arch
+      changed_when: false
+      check_mode: no # Ensure this task always runs to get the fact
+
+    - name: Add Docker APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch={{ dpkg_arch.stdout }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/{{ ansible_facts.distribution | lower }} {{ ansible_facts.distribution_codename }} stable"
+        state: present
+        filename: docker # Creates /etc/apt/sources.list.d/docker.list
+
+    - name: Install required packages (Docker, Git, Python, ACL, UFW)
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin # Recommended by Docker
+          - docker-compose-plugin
+          - git
+          - python3-pip
+          - acl       # For setfacl
+          - ufw       # Firewall
+        state: present
+        update_cache: yes # Update cache after adding the new repository
+
+    - name: Clone Celte System Git repository
+      ansible.builtin.git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ git_clone_dest }}"
+        version: main # or a specific branch/tag if needed
+
+    - name: Install 'colorama' Python package via pip3
+      ansible.builtin.pip:
+        name: colorama
+        executable: pip3 # Ensures pip3 is used
+
+    - name: Start and enable Docker service
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Allow '{{ ansible_user }}' to manage Docker via socket
+      ansible.builtin.acl:
+        path: /var/run/docker.sock
+        entity: "{{ ansible_user }}" # The user specified in the inventory
+        etype: user
+        permissions: rw
+        state: present
+      when: ansible_facts.services['docker.service'] is defined and ansible_facts.services['docker.service'].state == 'running'
+
+    # Commented-out task for ownership modification (needs more info)
+    # - name: "WARNING: Change ownership of 'pulsar folder' (path to be specified)"
+    #   ansible.builtin.file:
+    #     path: "/path/to/your/pulsar_folder" # <-- REPLACE THIS
+    #     owner: "{{ ansible_user }}"
+    #     group: "{{ ansible_user }}" # Or the appropriate group
+    #     recurse: yes
+    #   # Uncomment and configure the path if necessary.
+
+    - name: Install UFW (ensures it is installed)
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+
+    - name: Configure and enable UFW (firewall)
+      ansible.builtin.ufw:
+        state: enabled
+        policy: deny # Default policy: deny unauthorized incoming traffic
+
+    - name: Allow necessary ports through UFW
+      ansible.builtin.ufw:
+        rule: allow
+        port: "{{ item.port }}"
+        proto: "{{ item.proto | default('tcp') }}"
+      loop:
+        - { port: "22", proto: "tcp" } # IMPORTANT: SSH port to not lose access
+        - { port: "6650", proto: "tcp" }
+        - { port: "3000", proto: "tcp" }
+        - { port: "6379", proto: "tcp" }
+        - { port: "5540", proto: "tcp" }
+        # Commented-out ports from your draft (uncomment and specify protocol if needed)
+        # - { port: "2181", proto: "tcp" }
+        # - { port: "3181", proto: "tcp" }
+        # - { port: "8080", proto: "tcp" }
+        # - { port: "9000", proto: "tcp" }
+        # - { port: "8090", proto: "tcp" }
+        # - { port: "9090", proto: "tcp" }
+      notify: Reload UFW (if necessary per ufw module logic)
+      # The ufw module usually reloads rules if changes are made.
+
+  handlers:
+    - name: Reload UFW (if necessary per ufw module logic)
+      ansible.builtin.ufw:
+        state: reloaded
+      # This handler is a placeholder. The 'ufw' module is often smart enough
+      # to reload rules itself after changes.
+      # If an explicit reload is still desired after all rules,
+      # this notification can be used more aggressively.
