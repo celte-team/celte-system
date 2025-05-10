@@ -116,6 +116,92 @@
         - { port: "6379", proto: "tcp" }
         - { port: "5540", proto: "tcp" }
 
+    - name: Remove old or malformed Kubernetes APT repository files
+      ansible.builtin.file:
+        path: /etc/apt/sources.list.d/kubernetes.list
+        state: absent
+
+    - name: Add Kubernetes APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+        state: present
+        filename: kubernetes
+
+    - name: Install Kubernetes components (kubelet, kubeadm, kubectl)
+      ansible.builtin.apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+        update_cache: yes
+
+
+
+    - name: Get latest kubectl version
+      ansible.builtin.uri:
+        url: https://dl.k8s.io/release/stable.txt
+        return_content: yes
+      register: version
+
+    - name: create kubectl versioned directory
+      ansible.builtin.file:
+        path: /opt/kubectl-{{ version.content }}
+        state: directory
+      become: true
+
+    - name: Download the latest kubectl release
+      ansible.builtin.uri:
+        url: https://dl.k8s.io/release/{{ version.content }}/bin/linux/amd64/kubectl
+        dest: /opt/kubectl-{{ version.content }}/kubectl
+        mode: '0644'
+      register: kubectl
+      become: true
+
+    - name: Download the kubectl checksum
+      ansible.builtin.uri:
+        url: https://dl.k8s.io/release/{{ version.content }}/bin/linux/amd64/kubectl.sha256
+        dest: /opt/kubectl-{{ version.content }}/kubectl.sha256
+        mode: '0644'
+      register: kubectl_checksum
+      become: true
+
+    - name: Get kubectl sha256sum
+      ansible.builtin.shell: sha256sum /opt/kubectl-{{ version.content }}/kubectl | cut -d " " -f1
+      register: file_shasum
+
+    - name: set shasum1 fact
+      ansible.builtin.set_fact:
+        shasum1: "{{ file_shasum.stdout }}"
+
+    - name: get sha256sum value from file
+      ansible.builtin.command: cat /opt/kubectl-{{ version.content }}/kubectl.sha256
+      register: downloaded_shasum
+
+    - name: set shasum2 fact
+      ansible.builtin.set_fact:
+        shasum2: "{{ downloaded_shasum.stdout }}"
+
+    - name: Assert that the kubectl binary is OK
+      ansible.builtin.assert:
+        that:
+          - shasum1 == shasum2
+        fail_msg: "Shasum does not correspond"
+        success_msg: "kubectl shasum verified: ok"
+
+    - name: Change kubectl file permission
+      ansible.builtin.file:
+        path: "/opt/kubectl-{{ version.content }}/kubectl"
+        mode: '0755'
+      become: true
+
+    - name: create a symlink to kubectl
+      ansible.builtin.file:
+        src: "/opt/kubectl-{{ version.content }}/kubectl"
+        dest: "/usr/bin/kubectl"
+        state: link
+      become: true
+
 # ---------------------------------------------------------------------------
 # Play 2: Kubernetes (K3s) Prerequisites
 # ---------------------------------------------------------------------------
@@ -255,3 +341,162 @@
     - name: Reload UFW (if necessary per ufw module logic)
       ansible.builtin.ufw:
         state: reloaded
+
+
+# # ---------------------------------------------------------------------------
+# # Play 6: Install Keel for Automated Kubernetes Updates
+# # ---------------------------------------------------------------------------
+# - name: Install Keel for Automated Kubernetes Updates
+#   hosts: k3s_master # Deploy Keel from the master node
+#   become: yes # May not be needed if kubectl is configured for ansible_user
+#   vars:
+#     keel_namespace: "keel"
+#     keel_version: "0.20.1" # Check for the latest stable Keel version
+#   tasks:
+#     - name: Ensure kubectl is available (for applying manifests)
+#       ansible.builtin.command: "which kubectl"
+#       register: kubectl_exists
+#       changed_when: false
+#       failed_when: kubectl_exists.rc != 0
+#       check_mode: no # Always run this check
+
+#     - name: Create Keel namespace
+#       community.kubernetes.k8s:
+#         name: "{{ keel_namespace }}"
+#         api_version: v1
+#         kind: Namespace
+#         state: present
+#         kubeconfig: /etc/rancher/k3s/k3s.yaml # Point to K3s admin kubeconfig
+
+#     - name: Add Keel Helm repository
+#       community.kubernetes.helm_repository:
+#         name: keel
+#         repo_url: "https://charts.keel.sh"
+#         state: present
+#       # This task runs on the Ansible controller if not delegated.
+#       # For simplicity, you might prefer applying YAMLs directly if Helm isn't setup on target/controller for Ansible.
+#       # Let's use direct YAML application for Keel for fewer dependencies on Helm CLI on the node.
+
+#     - name: Download Keel deployment YAML (specific version)
+#       ansible.builtin.get_url:
+#         url: "https://raw.githubusercontent.com/keel-hq/keel/master/deployment/kubernetes/deployment.yaml" # Official basic deployment
+#         # For a specific version, you'd usually use Helm or find versioned YAMLs if provided.
+#         # The above URL points to master, which might not be ideal for fixed versions.
+#         # Alternative: Use a versioned release manifest if available, or helm chart.
+#         # For now, using the standard deployment.yaml, be aware it might change.
+#         dest: "/tmp/keel-deployment.yaml"
+#         mode: '0644'
+#       register: keel_yaml_downloaded
+
+#     - name: Modify Keel deployment YAML for namespace (if needed)
+#       ansible.builtin.replace:
+#         path: /tmp/keel-deployment.yaml
+#         regexp: 'namespace: default' # Default namespace in Keel's standard YAML
+#         replace: 'namespace: {{ keel_namespace }}'
+#       when: keel_yaml_downloaded.changed # Only if downloaded/changed
+
+#     - name: Apply Keel deployment YAML
+#       community.kubernetes.k8s:
+#         state: present
+#         src: /tmp/keel-deployment.yaml
+#         namespace: "{{ keel_namespace }}" # Ensure all resources go here
+#         kubeconfig: /etc/rancher/k3s/k3s.yaml
+#       # Note: Keel's standard deployment.yaml creates its own ClusterRoleBinding.
+#       # Review its permissions if you have strict security requirements.
+
+#     - name: Display Keel setup information
+#       ansible.builtin.debug:
+#         msg:
+#           - "Keel should now be deploying in the '{{ keel_namespace }}' namespace."
+#           - "To enable automatic updates for your 'celte-system' deployment:"
+#           - "1. Ensure your CI pipeline (e.g., GitHub Actions) builds and pushes images with version tags (e.g., v1.0.0, v1.0.1) to your container registry."
+#           - "2. Add the following labels to your 'celte-system' Kubernetes Deployment metadata:"
+#           - "   keel.sh/policy: \"semver\"  # Or 'all' (for any new tag), 'major', 'minor', 'patch', 'force'"
+#           - "   keel.sh/trigger: \"poll\"   # Keel will poll the registry"
+#           - "   # Optional: keel.sh/pollschedule: \"@every 30m\" # Default is 5m"
+#           - "Example Deployment snippet:"
+#           - |
+#             apiVersion: apps/v1
+#             kind: Deployment
+#             metadata:
+#               name: celte-system-deployment
+#               namespace: your-celte-app-namespace
+#               labels:
+#                 keel.sh/policy: "semver"
+#                 keel.sh/trigger: "poll"
+#             spec:
+#               template:
+#                 # ... your pod template ...
+#                 spec:
+#                   containers:
+#                   - name: celte-system-container
+#                     image: your-registry/celte-system:v1.0.0 # Keel will update this tag
+#                     # ...
+#           - "3. If your registry is private, create an ImagePullSecret and configure Keel to use it (see Keel documentation for details on 'keel.sh/pullsecret')."
+#       delegate_to: localhost
+#       run_once: true
+
+
+# ---------------------------------------------------------------------------
+# Play 6: Install Rancher Server (Single Node Docker Install for Test/Dev)
+# ---------------------------------------------------------------------------
+- name: Install Rancher Server
+  hosts: rancher_server_host # Target the VM designated in your inventory
+  become: yes
+  vars:
+    rancher_data_volume_path: "/opt/rancher" # Persistent data for Rancher
+    rancher_image_tag: "stable" # Or a specific version e.g., "v2.8.4" (check Rancher docs for latest)
+  tasks:
+    - name: Ensure Docker is installed and running
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
+      # This assumes Docker was installed by earlier plays.
+      # If rancher_server_host is not part of celte_vms, you'd need Docker install tasks here.
+
+    - name: Create persistent data directory for Rancher
+      ansible.builtin.file:
+        path: "{{ rancher_data_volume_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Run Rancher server Docker container
+      ansible.builtin.docker_container:
+        name: rancher-server
+        image: "rancher/rancher:{{ rancher_image_tag }}"
+        state: started
+        restart_policy: unless-stopped
+        privileged: yes
+        ports:
+          - "80:80"
+          - "443:443"
+        volumes:
+          - "{{ rancher_data_volume_path }}:/var/lib/rancher"
+      register: rancher_container_status
+
+    - name: Display Rancher server access information and next steps
+      ansible.builtin.debug:
+        msg:
+          - "Rancher server container has been started on {{ inventory_hostname }}."
+          - "Image: rancher/rancher:{{ rancher_image_tag }}"
+          - "If the container started successfully (check changed status above), wait a few minutes for it to initialize."
+          - "Then, access the Rancher UI at: https://{{ ansible_host }}"
+          - ""
+          - "NEXT MANUAL STEPS:"
+          - "1. Open the URL in your browser. You'll likely see a certificate warning (self-signed by default); proceed past it."
+          - "2. Set your Rancher admin password and agree to the terms."
+          - "3. Import your existing K3s Cluster: In Rancher UI -> Cluster Management -> Import Existing. Name it, click Create."
+          - "4. Rancher will give you a 'kubectl apply -f <URL>' command. Run this command on your K3s MASTER node."
+          - "5. Wait for the cluster to become 'Active' in Rancher."
+          - ""
+          - "TO SOLVE YOUR AUTOMATED IMAGE UPDATE PROBLEM (after K3s import):"
+          - "Follow the guidance on setting up Rancher Fleet (Continuous Delivery):"
+          - "  a. Prepare a separate Git 'Config Repo' for your celte-system Kubernetes manifests."
+          - "  b. Update your CI pipeline (e.g., GitHub Actions for celte-system app) to:"
+          - "     - Build and push the Docker image to a registry."
+          - "     - Clone the 'Config Repo', update the image tag in its manifests, commit, and push."
+          - "  c. In Rancher UI (Continuous Delivery -> Git Repos), add your 'Config Repo' for Fleet to monitor."
+          - "  d. Fleet will then automatically deploy changes from your 'Config Repo' to the K3s cluster."
+          - "Refer to official Rancher and Fleet documentation for detailed steps on Fleet configuration."
+      when: rancher_container_status is defined
