@@ -109,7 +109,8 @@ void GrapeRegistry::SetRemoteGrapeSubscription(
           .on_fail_log_error()
           .with_timeout(std::chrono::milliseconds(1000))
           .retry(3)
-          .fire_and_forget(ownerOfContainerId, containerId);
+          // .fire_and_forget(ownerOfContainerId, containerId);
+          .call<bool>(ownerOfContainerId, containerId);
     } else if (not subscribe and
                acc->second._proxySubscriptions.count(containerId)) {
       acc->second._proxySubscriptions.erase(containerId);
@@ -118,7 +119,7 @@ void GrapeRegistry::SetRemoteGrapeSubscription(
           .on_fail_log_error()
           .with_timeout(std::chrono::milliseconds(1000))
           .retry(3)
-          .fire_and_forget(ownerOfContainerId, containerId);
+          .call<bool>(ownerOfContainerId, containerId);
     }
   }
 }

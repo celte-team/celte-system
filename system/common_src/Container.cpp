@@ -160,8 +160,6 @@ void ContainerRegistry::UpdateRefCount(const std::string &containerId) {
   if (_containers.find(acc, containerId)) {
     if (acc->second.container.use_count() == 1) {
       ETTREGISTRY.DeleteEntitiesInContainer(containerId);
-      std::cout << "trashing container " << containerId.substr(0, 4)
-                << std::endl;
       RUNTIME.GetTrashBin().TrashItem(std::move(acc->second.GetContainerPtr()));
       _containers.erase(acc);
       LOGDEBUG("Container " + containerId +

@@ -14,9 +14,9 @@ Logger &Logger::GetInstance() {
 Logger::Logger() {
   int redis_port = std::stoi(RUNTIME.GetConfig().Get("redis_port").value());
   std::string redis_host = RUNTIME.GetConfig().Get("redis_host").value();
-  std::string key = RUNTIME.GetConfig().Get("redis_key").value();
+  // std::string key = RUNTIME.GetConfig().Get("redis_key").value();
   std::string uuid = RUNTIME.GetUUID();
-  redis_key = key;
+  // redis_key = key;
   this->uuid = uuid;
 
   redisContext *raw_context = redisConnect(redis_host.c_str(), redis_port);
@@ -27,9 +27,7 @@ Logger::Logger() {
     } else {
       std::cerr << "Can't allocate redis context" << std::endl;
     }
-    std::cerr
-        << "Failed to connect to Redis logs to redis, falling back to stdout"
-        << std::endl;
+    std::cerr << "Failed to connect to redis server." << std::endl;
     output_console = true;
   }
   context = std::shared_ptr<redisContext>(

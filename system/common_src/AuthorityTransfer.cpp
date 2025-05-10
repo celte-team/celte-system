@@ -47,6 +47,8 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   std::string fromContainerId;
 
   ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
+    // if ett is to be assigned to the container that it is already in, we
+    // don't need to do anything
     fromContainerId = e.ownerContainerId;
     if (e.quarantine || !e.isValid ||
         (e.ownerContainerId == toContainerId && !ignoreNoMove)) {
@@ -73,9 +75,9 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   args["g"] = GHOSTSYSTEM.PeekProperties(entityId).value_or("{}");
 
   LOGGER.log(celte::Logger::DEBUG, "AuthorityTransfer: \n" + args.dump());
-#ifdef DEBUG
+  // #ifdef DEBUG
   prettyPrintAuthTransfer(args);
-#endif
+  // #endif
 
   // notify the container that will take authority
   __notifyTakeAuthority(args);
@@ -121,7 +123,9 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
 #endif
   // if toContainerId is not registered here, we need to delete the entity.
   if (not GRAPES.ContainerExists(toContainerId)) {
-    std::cout << "to container id not registered, deleting entity" << std::endl;
+    std::cout << "to container id not registered ("
+              << toContainerId.substr(0, 4) << "), deleting entity"
+              << std::endl;
     std::cout << "\033[1;31mDELETE\033[0m " << e.id << std::endl;
     std::string id = e.id;
     std::string payload = e.payload;
@@ -189,10 +193,10 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
 
     // if ett does not exist, schedule it for creation (container will be
     // emplaced)
-    // if (!ettExists) {
     if (!ETTREGISTRY.IsEntityRegistered(entityId)) {
       RUNTIME.TopExecutor().PushTaskToEngine(
           [payload, entityId, toContainerId, ghostData]() {
+            std::cout << "call instantiate in exec take order" << std::endl;
             ETTREGISTRY.EngineCallInstantiate(entityId, payload, toContainerId);
             applyGhostToEntity(entityId, ghostData);
           });

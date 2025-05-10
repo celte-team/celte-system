@@ -132,16 +132,16 @@ void PeerService::SubscribeClientToContainer(const std::string &clientId,
           RUNTIME.ScheduleAsyncIOTask([this, then, clientId, containerId]() {
             LOGINFO("Subscribing client " + clientId + " to container " +
                     containerId);
-            std::cout << "call sub client to container" << std::endl;
             CallPeerServiceSubscribeClientToContainer()
                 .on_peer(clientId)
                 .on_fail_log_error()
                 .with_timeout(std::chrono::milliseconds(1000))
                 .retry(3)
-                // .fire_and_forget(containerId, RUNTIME.GetAssignedGrape());
                 .call_async<bool>(
-                    [then](bool ok) {
-                      std::cout << "callback for sub client to container"
+                    [then, containerId](bool ok) {
+                      std::cout << "Client was subscribed to container "
+                                << containerId.substr(0, 4) << " by grape "
+                                << RUNTIME.GetAssignedGrape().substr(0, 7)
                                 << std::endl;
                       if (ok) {
                         then();
