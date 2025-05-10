@@ -80,6 +80,38 @@ class UpAndDown
             Console.WriteLine($"Logs are being written to: {logFile}");
             Console.ResetColor();
         }
+        else if (OperatingSystem.IsLinux())
+        {
+            // Linux implementation
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "/bin/bash",
+                Arguments = $"-c \"{command}\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            var process = new Process { StartInfo = startInfo };
+            process.Start();
+
+            // Store the process for later cleanup
+            _processes.TryAdd(nodeinfo.Id, process);
+
+            // Store the process ID in Redis for later reference
+            nodeinfo.Pid = process.Id.ToString();
+            RedisDb.SetHashField("nodes", nodeinfo.Id, JsonSerializer.Serialize(nodeinfo));
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"Node {nodeinfo.Id} started with PID {process.Id}");
+            Console.WriteLine($"Logs are being written to: {logFile}");
+            Console.ResetColor();
+        }
+        else
+        {
+            throw new NotSupportedException("Unsupported operating system");
+        }
     }
 
     public static void Down(Nodes.NodeInfo nodeinfo)
