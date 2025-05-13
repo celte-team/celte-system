@@ -52,8 +52,19 @@ fi
 
 # print real path of the install prefix and ask for confirmation
 echo "The headers and libraries will be installed to $(cd "$INSTALL_PREFIX" && pwd)"
-read -p "Do you want to continue? (y/n) " -n 1 -r
-echo
+
+# Skip confirmation in non-interactive environments (like Docker/CI)
+# Check if CI/DOCKER env var is set or if stdin is not a terminal
+if [ "$CI" = "true" ] || [ "$DOCKER" = "true" ] || [ ! -t 0 ]; then
+    echo "Running in non-interactive mode, skipping confirmation"
+    # Set REPLY to 'y' to continue
+    REPLY="y"
+else
+    # Ask for confirmation in interactive mode
+    read -p "Do you want to continue? (y/n) " -n 1 -r
+    echo
+fi
+
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Exiting..."
     exit 1
