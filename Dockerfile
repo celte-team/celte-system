@@ -2,7 +2,7 @@
 FROM clmt/parent-builder:latest AS builder
 
 WORKDIR /workdir
-RUN dnf install -y clang && dnf clean all && rm -rf /var/cache/dnf/*
+RUN dnf install -y clang nlohmann-json-devel && dnf clean all && rm -rf /var/cache/dnf/*
 COPY . .
 
 # Copy godot_debug_draw_3d from parent builder image
@@ -27,10 +27,10 @@ RUN mkdir -p /workdir/celte-godot/addons/celte/deps && \
 ENV DOCKER=true
 
 # Build and setup
-RUN ./automations/setup_repository.sh /workdir/celte-godot/projects/demo-tek && \
-    cd system/build && ninja install && \
-    cd /workdir/celte-godot/extension-standalone && scons && \
-    cd /workdir/celte-godot/projects/demo-tek && godot . -v -e --quit-after 2 --headless
+RUN ./automations/setup_repository.sh /workdir/celte-godot/projects/demo-tek
+RUN cd system/build && ninja install
+RUN cd /workdir/celte-godot/extension-standalone && scons
+RUN cd /workdir/celte-godot/projects/demo-tek && godot . -v -e --quit-after 2 --headless
 
 ## Final runtime image
 FROM fedora:41 AS runtime
