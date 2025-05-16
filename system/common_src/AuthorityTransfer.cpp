@@ -132,6 +132,7 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
     RUNTIME.TopExecutor().PushTaskToEngine(
         [id = std::move(id), payload = std::move(payload)]() {
           RUNTIME.Hooks().onDeleteEntity(id, payload);
+          ETTREGISTRY.UnregisterEntity(id);
         });
   }
 }
@@ -174,6 +175,8 @@ static void applyGhostToEntity(const std::string &entityId,
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   LOGGER.log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing take order.\n" + args.dump());
+  std::cout << "AuthorityTransfer: Executing take order.\n"
+            << args["e"].get<std::string>().substr(0, 4) << std::endl;
   std::string entityId = args["e"].get<std::string>();
   std::string toContainerId = args["t"].get<std::string>();
   std::string fromContainerId = args["f"].get<std::string>();
@@ -184,29 +187,34 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
 
   Clock::timepoint whenTp = Clock::FromISOString(when);
 
-  CLOCK.ScheduleAt(whenTp, [=]() {
-    // if ett exists, transfer auth
-    ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
-      e.ownerContainerId = toContainerId;
-      e.quarantine = false;
-    });
+  // CLOCK.ScheduleAt(whenTp, [=]() {
+  //   // if ett exists, transfer auth
+  ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
+    e.ownerContainerId = toContainerId;
+    e.quarantine = false;
+  });
 
-    // if ett does not exist, schedule it for creation (container will be
-    // emplaced)
-    if (!ETTREGISTRY.IsEntityRegistered(entityId)) {
-      RUNTIME.TopExecutor().PushTaskToEngine(
-          [payload, entityId, toContainerId, ghostData]() {
-            std::cout << "call instantiate in exec take order" << std::endl;
-            ETTREGISTRY.EngineCallInstantiate(entityId, payload, toContainerId);
-            applyGhostToEntity(entityId, ghostData);
-          });
-    }
+  // if ett does not exist, schedule it for creation (container will be
+  // emplaced)
+  if (!ETTREGISTRY.IsEntityRegistered(entityId)) {
+    std::cout << "entity will be instantiated: " << entityId.substr(0, 4)
+              << std::endl;
+    RUNTIME.TopExecutor().PushTaskToEngine(
+        [payload, entityId, toContainerId, ghostData]() {
+          std::cout << "call instantiate in exec take order" << std::endl;
+          ETTREGISTRY.EngineCallInstantiate(entityId, payload, toContainerId);
+          applyGhostToEntity(entityId, ghostData);
+        });
+  } else {
+    std::cout << "entity is already registered: " << entityId.substr(0, 4)
+              << std::endl;
+  }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-    ContainerRegistry::GetInstance().RegisterNewOwnedEntityToContainer(
-        toContainerId, entityId);
+  ContainerRegistry::GetInstance().RegisterNewOwnedEntityToContainer(
+      toContainerId, entityId);
 #endif
-  });
+  // });
 }
 
 void AuthorityTransfer::ExecDropOrder(nlohmann::json args) {

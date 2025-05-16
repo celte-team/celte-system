@@ -44,6 +44,7 @@ ContainerSubscriptionComponent::Subscribe(const std::string &containerId,
 
 void ContainerSubscriptionComponent::Unsubscribe(
     const std::string &containerId) {
+
   LOGINFO("Unsubscribing from container " + containerId);
   if (_subscriptions.find(containerId) == _subscriptions.end()) {
     return;

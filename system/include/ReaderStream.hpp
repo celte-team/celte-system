@@ -46,19 +46,27 @@ struct ReaderStream {
     _consumer.close();
   }
 
-  template <typename Req> /**
-   * @brief Configures and opens a Pulsar consumer for asynchronous message processing.
-   *
-   * This function sets up a Pulsar consumer using the provided subscription options and callback
-   * handlers. It validates that the request type (Req) is derived from google::protobuf::Message, and, if
-   * no subscription name is provided, generates a unique one. The consumer type is set based on whether
-   * exclusive access is requested. Both synchronous and asynchronous connection event handlers are
-   * registered, as well as a message handler that parses JSON messages into a protobuf object of type Req.
-   *
-   * @tparam Req Protobuf message type used to parse and handle incoming JSON messages.
-   * @param options Options object containing subscription details, topics, consumer mode, and callback
-   *                functions for connection and message handling.
-   */
+  template <
+      typename Req> /**
+                     * @brief Configures and opens a Pulsar consumer for
+                     * asynchronous message processing.
+                     *
+                     * This function sets up a Pulsar consumer using the
+                     * provided subscription options and callback handlers. It
+                     * validates that the request type (Req) is derived from
+                     * google::protobuf::Message, and, if no subscription name
+                     * is provided, generates a unique one. The consumer type is
+                     * set based on whether exclusive access is requested. Both
+                     * synchronous and asynchronous connection event handlers
+                     * are registered, as well as a message handler that parses
+                     * JSON messages into a protobuf object of type Req.
+                     *
+                     * @tparam Req Protobuf message type used to parse and
+                     * handle incoming JSON messages.
+                     * @param options Options object containing subscription
+                     * details, topics, consumer mode, and callback functions
+                     * for connection and message handling.
+                     */
   void Open(Options<Req> &options) {
     static_assert(std::is_base_of<google::protobuf::Message, Req>::value,
                   "Req must be a protobuf message.");
@@ -106,9 +114,12 @@ struct ReaderStream {
         },
 
         .messageHandler = // executed when a message is received
-        [this, options](pulsar::Consumer consumer, const pulsar::Message &msg) {
+        [this, options](pulsar::Consumer consumer, const pulsar::Message msg) {
           PendingRefCount prc(
               _pendingMessages); // RAII counter for pending handler messages.
+          Req req;
+          std::string data(static_cast<const char *>(msg.getData()),
+                           msg.getLength());
           if (_closed) {
             consumer.acknowledge(msg);
             return;
@@ -118,9 +129,6 @@ struct ReaderStream {
             consumer.acknowledge(msg);
             return;
           }
-          Req req;
-          std::string data(static_cast<const char *>(msg.getData()),
-                           msg.getLength());
 
           // { // don't remove this if its commented, someone will use it
           //   // debugrea;a

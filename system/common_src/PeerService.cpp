@@ -180,12 +180,19 @@ void PeerService::UnsubscribeClientFromContainer(
           RUNTIME.ScheduleAsyncIOTask([this, clientId, containerId]() {
             LOGINFO("Unsubscribing client " + clientId + " from container " +
                     containerId);
-            CallPeerServiceUnsubscribeClientFromContainer()
-                .on_peer(clientId)
-                .on_fail_log_error()
-                .with_timeout(std::chrono::milliseconds(1000))
-                .retry(3)
-                .fire_and_forget(containerId);
+            bool sucess = CallPeerServiceUnsubscribeClientFromContainer()
+                              .on_peer(clientId)
+                              .on_fail_log_error()
+                              .with_timeout(std::chrono::milliseconds(1000))
+                              .retry(3)
+                              // .fire_and_forget(containerId);
+                              .call<bool>(containerId)
+                              .value_or(false);
+            if (!sucess) {
+              LOGERROR("Error unsubscribing client from container");
+              std::cerr << "Error unsubscribing client from container"
+                        << std::endl;
+            }
           });
         });
   });
