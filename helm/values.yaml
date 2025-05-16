@@ -19,9 +19,9 @@ master:
     port: 8080
   environment:
     - name: PULSAR_BROKERS
-      value: pulsar://192.168.0.161:6650
+      value: pulsar://57.128.60.39:6650
     - name: REDIS_HOST
-      value: 192.168.0.161:6379
+      value: 57.128.60.39:6379
   autoscaling:
     enabled: true
     minReplicas: 1
@@ -47,9 +47,9 @@ serverNode:
       memory: 1024Mi
   environment:
     - name: CELTE_HOST
-      value: 192.168.0.161
+      value: 57.128.60.39
     - name: REDIS_HOST
-      value: 192.168.0.161
+      value: 57.128.60.39
   service:
     type: ClusterIP
     port: 8080

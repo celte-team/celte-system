@@ -66,7 +66,7 @@ RUN pip3 install pyyaml
 RUN mkdir -p /workdir/godot-cpp && \
     git clone https://github.com/godotengine/godot-cpp.git /workdir/godot-cpp && \
     cd /workdir/godot-cpp && \
-    git checkout 4.2 && \
+    git checkout 4.4 && \
     git submodule update --init --recursive && \
     scons
 
@@ -104,15 +104,15 @@ RUN ARCH=$(uname -m) && \
 # Install Godot
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
-        GODOT_URL="https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip"; \
+        GODOT_URL="https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip"; \
     elif [ "$ARCH" = "aarch64" ]; then \
-        GODOT_URL="https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.arm64.zip"; \
+        GODOT_URL="https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.arm64.zip"; \
     else \
         echo "Unsupported architecture: $ARCH"; exit 1; \
     fi && \
     wget -O /tmp/godot.zip "${GODOT_URL}" && \
     unzip /tmp/godot.zip -d /usr/local/bin && \
-    mv /usr/local/bin/Godot_v4.2.2-stable_linux.* /usr/local/bin/godot && \
+    mv /usr/local/bin/Godot_v4.4.1-stable_linux.* /usr/local/bin/godot && \
     chmod +x /usr/local/bin/godot && \
     rm -f /tmp/godot.zip
 

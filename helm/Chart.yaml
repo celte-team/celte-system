@@ -1,6 +1,6 @@
 apiVersion: v2
-name: celte-stack
-description: A Helm chart for CELTE Stack including Service Node and Master with HPA
+name: celte-system
+description: A Helm chart for CELTE System
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
