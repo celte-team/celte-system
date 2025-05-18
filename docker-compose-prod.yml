@@ -1,0 +1,125 @@
+networks:
+  redis:
+    driver: bridge
+
+services:
+
+### MASTER
+  master1:
+    build:
+      context: ./master
+      dockerfile: Dockerfile
+    container_name: master1
+    networks:
+      - redis
+    restart: on-failure
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - PULSAR_BROKERS=${PULSAR_BROKERS}
+      - DOCKER_HOST_IP=${DOCKER_HOST_IP} # Assurez-vous que cette variable est définie dans votre environnement ou un fichier .env
+      - CELTE_GODOT_PROJECT_PATH=${CELTE_GODOT_PROJECT_PATH}
+      - CELTE_GODOT_PATH=${CELTE_GODOT_PATH}
+    depends_on:
+      - redis_master
+      - redis_slave
+      - sentinel
+      - redisinsight
+
+### CLOCK-SERVER
+  clock-server:
+    build:
+      context: ./clock-server
+      dockerfile: Dockerfile
+    container_name: clock-server
+    networks:
+      - redis
+    environment:
+      - PULSAR_BROKERS=${PULSAR_BROKERS}
+    restart: on-failure
+    depends_on:
+      - redis_master
+      - redis_slave
+      - sentinel
+      - redisinsight
+
+### LOBBY
+  lobby:
+    image: clmt/celte-lobby:1.0
+    environment:
+      - CELTE_MASTER_HOST=${CELTE_MASTER_HOST}
+      - CELTE_MASTER_PORT=1908
+      - CELTE_PULSAR_HOST=${PULSAR_BROKERS}
+    restart: on-failure
+    depends_on:
+      - redis_master
+      - redis_slave
+      - sentinel
+      - redisinsight
+
+### REDIS
+  redis_master:
+    image: redis/redis-stack:latest
+    container_name: redis_master
+    restart: on-failure
+    networks:
+      - redis
+    ports:
+      - '6379:6379'
+
+  redis_slave:
+    image: redis/redis-stack:latest
+    container_name: redis_slave
+    command: redis-server --port 6380 --replicaof redis_master 6379
+    restart: on-failure
+    networks:
+      - redis
+    ports:
+      - '6380:6380'
+    depends_on: # Ajouté pour s'assurer que master démarre avant
+      - redis_master
+
+  sentinel:
+    build: ./redis/sentinel
+    container_name: redis_sentinel
+    restart: on-failure
+    networks:
+      - redis
+    ports:
+      - '26379:26379'
+    environment:
+      - SENTINEL_NAME=mysentinel
+      - HOST_IP="${DOCKER_HOST_IP}" # Crucial: Assurez-vous que DOCKER_HOST_IP est correctement défini
+    depends_on: # Ajouté pour s'assurer que master/slave démarrent avant
+      - redis_master
+      - redis_slave
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    restart: on-failure
+    networks:
+      - redis
+    ports:
+      - '5540:5540'
+    environment:
+      - REDIS_URI=redis://redis_master:6379
+    depends_on:
+      - redis_master
+      - redis_slave
+
+  redis-commander:
+    container_name: redis-commander
+    hostname: redis-commander
+    image: ghcr.io/joeferner/redis-commander:latest
+    restart: always
+    environment:
+      # Corrigé : Les labels (première partie avant ":") doivent être uniques
+      - REDIS_HOSTS=master:redis_master:6379,slave:redis_slave:6380
+    networks:
+      - redis
+    ports:
+      - "5050:8081"
+    user: redis # Vérifiez si cet utilisateur a les permissions nécessaires si vous avez une configuration personnalisée
+    depends_on:
+      - redis_master
+      - redis_slave
