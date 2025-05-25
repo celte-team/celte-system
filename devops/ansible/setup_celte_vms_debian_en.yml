@@ -1,12 +1,28 @@
 ---
 - name: Configure Debian/Ubuntu VMs for Celte System (Part 1 - Base Setup)
-  hosts: celte_vms # This part targets all VMs for base setup
+  hosts: celte_vms
   become: yes
   vars:
     git_repo_url: https://github.com/celte-team/celte-system.git
     git_clone_dest: /opt/celte-system
 
   tasks:
+    - name: Ensure Celte System Git repository is cloned and at the correct version (branch for base setup)
+      ansible.builtin.git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ git_clone_dest }}"
+        version: 211-client-sometimes-deletes-itself-when-changing-servers
+        force: yes # Ensures the specified version is checked out
+
+    - name: Remove any existing Kubernetes APT source lists to prevent conflicts
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/apt/sources.list.d/kubernetes.list # Common name
+        - /etc/apt/sources.list.d/apt_kubernetes_io.list # Another possible name
+      # You might need to identify other specific filenames if the error persists for kubernetes.io
+
     - name: Update APT cache and install prerequisites for Docker and LSB
       ansible.builtin.apt:
         name:
@@ -15,10 +31,20 @@
           - gnupg
           - lsb-release
           - python3-pip
+          - librust-vcpkg-dev
+          - cmake
+          - build-essential
+          - pkg-config
+          - libssl-dev
+          - libffi-dev
+          - python3-dev
+          - libatlas-base-dev
+          - gfortran
+          - ninja-build
         state: present
-        update_cache: yes
+        update_cache: yes # This will now run after potentially problematic k8s repos are removed
 
-    - name: Create directory for APT GPG keys
+    - name: Create directory for APT GPG keys (if not exists)
       ansible.builtin.file:
         path: /etc/apt/keyrings
         state: directory
@@ -29,11 +55,13 @@
         cmd: curl -fsSL https://download.docker.com/linux/{{ ansible_facts.distribution | lower }}/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
         creates: /etc/apt/keyrings/docker.gpg
       register: add_docker_gpg_key
+      changed_when: add_docker_gpg_key.rc == 0 and not ansible_check_mode
 
     - name: Ensure Docker GPG key has correct permissions
       ansible.builtin.file:
         path: /etc/apt/keyrings/docker.gpg
         mode: '0644'
+      when: add_docker_gpg_key.changed
 
     - name: Get system architecture (dpkg)
       ansible.builtin.command: dpkg --print-architecture
@@ -52,7 +80,7 @@
       ansible.builtin.apt_repository:
         repo: "deb [arch={{ dpkg_arch.stdout }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/{{ ansible_facts.distribution | lower }} {{ os_release_info.stdout | trim }} stable"
         state: present
-        filename: docker
+        filename: docker # Creates /etc/apt/sources.list.d/docker.list
 
     - name: Install required packages (Docker, Git, Python libs, ACL, UFW)
       ansible.builtin.apt:
@@ -66,13 +94,14 @@
           - acl
           - ufw
         state: present
-        update_cache: yes
+        update_cache: yes # Update cache again after adding Docker repo
 
-    - name: Clone Celte System Git repository
+    - name: Clone Celte System Git repository (main branch)
       ansible.builtin.git:
         repo: "{{ git_repo_url }}"
         dest: "{{ git_clone_dest }}"
         version: main
+        force: yes
 
     - name: Install 'colorama' Python package via APT
       ansible.builtin.apt:
@@ -116,97 +145,25 @@
         - { port: "6379", proto: "tcp" }
         - { port: "5540", proto: "tcp" }
 
-    - name: Remove old or malformed Kubernetes APT repository files
-      ansible.builtin.file:
-        path: /etc/apt/sources.list.d/kubernetes.list
-        state: absent
-
-    - name: Add Kubernetes APT repository
-      ansible.builtin.apt_repository:
-        repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+    - name: Set VCPKG_ROOT environment variable system-wide
+      ansible.builtin.lineinfile:
+        path: /etc/environment
+        line: 'VCPKG_ROOT=/usr/share/vcpkg'
+        create: yes
         state: present
-        filename: kubernetes
 
-    - name: Install Kubernetes components (kubelet, kubeadm, kubectl)
-      ansible.builtin.apt:
-        name:
-          - kubelet
-          - kubeadm
-          - kubectl
+    - name: Ensure CMAKE_MAKE_PROGRAM is set for ninja
+      ansible.builtin.lineinfile:
+        path: /etc/environment
+        line: 'CMAKE_MAKE_PROGRAM=/usr/bin/ninja'
+        create: yes
         state: present
-        update_cache: yes
-
-
-
-    - name: Get latest kubectl version
-      ansible.builtin.uri:
-        url: https://dl.k8s.io/release/stable.txt
-        return_content: yes
-      register: version
-
-    - name: create kubectl versioned directory
-      ansible.builtin.file:
-        path: /opt/kubectl-{{ version.content }}
-        state: directory
-      become: true
-
-    - name: Download the latest kubectl release
-      ansible.builtin.uri:
-        url: https://dl.k8s.io/release/{{ version.content }}/bin/linux/amd64/kubectl
-        dest: /opt/kubectl-{{ version.content }}/kubectl
-        mode: '0644'
-      register: kubectl
-      become: true
-
-    - name: Download the kubectl checksum
-      ansible.builtin.uri:
-        url: https://dl.k8s.io/release/{{ version.content }}/bin/linux/amd64/kubectl.sha256
-        dest: /opt/kubectl-{{ version.content }}/kubectl.sha256
-        mode: '0644'
-      register: kubectl_checksum
-      become: true
-
-    - name: Get kubectl sha256sum
-      ansible.builtin.shell: sha256sum /opt/kubectl-{{ version.content }}/kubectl | cut -d " " -f1
-      register: file_shasum
-
-    - name: set shasum1 fact
-      ansible.builtin.set_fact:
-        shasum1: "{{ file_shasum.stdout }}"
-
-    - name: get sha256sum value from file
-      ansible.builtin.command: cat /opt/kubectl-{{ version.content }}/kubectl.sha256
-      register: downloaded_shasum
-
-    - name: set shasum2 fact
-      ansible.builtin.set_fact:
-        shasum2: "{{ downloaded_shasum.stdout }}"
-
-    - name: Assert that the kubectl binary is OK
-      ansible.builtin.assert:
-        that:
-          - shasum1 == shasum2
-        fail_msg: "Shasum does not correspond"
-        success_msg: "kubectl shasum verified: ok"
-
-    - name: Change kubectl file permission
-      ansible.builtin.file:
-        path: "/opt/kubectl-{{ version.content }}/kubectl"
-        mode: '0755'
-      become: true
-
-    - name: create a symlink to kubectl
-      ansible.builtin.file:
-        src: "/opt/kubectl-{{ version.content }}/kubectl"
-        dest: "/usr/bin/kubectl"
-        state: link
-      become: true
 
 # ---------------------------------------------------------------------------
 # Play 2: Kubernetes (K3s) Prerequisites
 # ---------------------------------------------------------------------------
 - name: Kubernetes (K3s) Prerequisites
-  hosts: k3s_cluster # Targets all master and agent nodes
+  hosts: k3s_cluster
   become: yes
   tasks:
     - name: Disable swap
@@ -238,22 +195,37 @@
         - { name: "net.ipv4.ip_forward", value: "1" }
         - { name: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
 
-    - name: Allow K3s required ports through UFW
+    - name: Define K3s master ports for UFW
+      ansible.builtin.set_fact:
+        k3s_master_specific_ports:
+          - { port: "6443", proto: "tcp", comment: "K3s API Server" }
+          - { port: "2379", proto: "tcp", comment: "K3s Embedded etcd client (master only)" }
+          - { port: "2380", proto: "tcp", comment: "K3s Embedded etcd peer (master only)" }
+          - { port: "8080", proto: "tcp", comment: "Custom Port (e.g., K3s API Server Rancher - verify if needed)" }
+
+    - name: Define K3s common node ports for UFW
+      ansible.builtin.set_fact:
+        k3s_common_node_ports:
+          - { port: "10250", proto: "tcp", comment: "Kubelet API (all nodes)" }
+          - { port: "8472", proto: "udp", comment: "K3s Flannel VXLAN (all nodes)" }
+
+    - name: Allow K3s required ports on Master nodes through UFW
       ansible.builtin.ufw:
         rule: allow
         port: "{{ item.port }}"
-        proto: "{{ item.proto | default('tcp') }}"
+        proto: "{{ item.proto }}"
         comment: "{{ item.comment }}"
-      loop:
-        # K3s Server Ports (on master)
-        - { port: "6443", proto: "tcp", comment: "K3s API Server (master)" } # All nodes need to reach this on master
-        - { port: "2379", proto: "tcp", comment: "K3s etcd client (master, if using embedded etcd HA)" } # Not strictly needed for agents for single master
-        - { port: "2380", proto: "tcp", comment: "K3s etcd peer (master, if using embedded etcd HA)" } # Not strictly needed for agents for single master
-        # K3s Agent Ports
-        - { port: "10250", proto: "tcp", comment: "Kubelet API (all nodes)" }
-        # Flannel VXLAN (default CNI for K3s)
-        - { port: "8472", proto: "udp", comment: "K3s Flannel VXLAN" }
-      when: inventory_hostname in groups['k3s_master'] or item.port == '6443' or item.port == '10250' or item.port == '8472'
+      loop: "{{ k3s_master_specific_ports + k3s_common_node_ports }}"
+      when: inventory_hostname in groups['k3s_master']
+
+    - name: Allow K3s required ports on Agent nodes through UFW
+      ansible.builtin.ufw:
+        rule: allow
+        port: "{{ item.port }}"
+        proto: "{{ item.proto }}"
+        comment: "{{ item.comment }}"
+      loop: "{{ k3s_common_node_ports }}"
+      when: inventory_hostname in groups['k3s_agents']
 
     - name: Reload UFW to apply new rules
       ansible.builtin.command: ufw reload
@@ -265,34 +237,129 @@
 - name: Install K3s Server (Master Node)
   hosts: k3s_master
   become: yes
+  vars:
+    git_repo_url: https://github.com/celte-team/celte-system.git
+    git_clone_dest: /opt/celte-system
   tasks:
-    - name: Install k3s server
-      ansible.builtin.shell:
-        cmd: "curl -sfL https://get.k3s.io | sh -s - server --cluster-init" # --cluster-init for first master, enabling etcd
-      args:
-        creates: /etc/systemd/system/k3s.service
+    - name: Ensure Celte System Git repository is cloned and at the correct version
+      ansible.builtin.git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ git_clone_dest }}"
+        version: 211-client-sometimes-deletes-itself-when-changing-servers
+        force: yes
 
-    - name: Wait for k3s server to be ready
+    - name: Stop and kill all existing K3s processes (if any)
+      ansible.builtin.command: /usr/local/bin/k3s-killall.sh
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Uninstall any previous K3s installation (using official script)
+      ansible.builtin.command: /usr/local/bin/k3s-uninstall.sh
+      ignore_errors: yes
+      register: k3s_uninstall_result
+      changed_when: k3s_uninstall_result.rc == 0
+
+    - name: Explicitly remove K3s service file (if exists)
+      ansible.builtin.file:
+        path: /etc/systemd/system/k3s.service
+        state: absent
+      notify: Reload systemd daemon # Important to notify systemd of changes
+
+    - name: Explicitly remove K3s agent service file (if it was mistakenly on a master)
+      ansible.builtin.file:
+        path: /etc/systemd/system/k3s-agent.service
+        state: absent
+      notify: Reload systemd daemon
+
+    - name: Explicitly remove K3s config directory (potential custom port settings)
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: absent # This removes the directory and its contents
+
+    - name: Explicitly remove K3s data directory (more aggressive cleanup)
+      ansible.builtin.file:
+        path: /var/lib/rancher/k3s
+        state: absent
+      # Note: k3s-uninstall.sh should handle this, but being explicit for stubborn cases.
+      # Be cautious if you ever have data in etcd you want to preserve through an upgrade (not applicable for a clean install).
+
+    - name: Install k3s server (defaults to port 6443)
+      ansible.builtin.shell:
+        cmd: "curl -sfL https://get.k3s.io | sh -s - server --cluster-init"
+      # Removed 'creates' to ensure the install script runs and can set up fresh,
+      # relying on the uninstall/cleanup steps for idempotency in terms of a clean state.
+      register: k3s_install_script_result
+      changed_when: k3s_install_script_result.rc == 0 # Assume change if script runs successfully
+
+    - name: Wait for k3s server API (port 6443) to be ready
       ansible.builtin.wait_for:
         host: "{{ ansible_default_ipv4.address | default(ansible_host) }}"
         port: 6443
-        delay: 20
+        delay: 30
         timeout: 300
         state: started
+      vars:
+        ansible_python_interpreter: /usr/bin/python3
 
     - name: Wait for k3s server node token to be available
       ansible.builtin.wait_for:
         path: /var/lib/rancher/k3s/server/node-token
         timeout: 60
+      vars:
+        ansible_python_interpreter: /usr/bin/python3
 
     - name: Read the k3s node token from master
-      ansible.builtin.command: cat /var/lib/rancher/k3s/server/node-token
-      register: k3s_node_token_raw
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_node_token_slurp
       changed_when: false
 
     - name: Set k3s join token fact for other hosts to use
       ansible.builtin.set_fact:
-        k3s_join_token: "{{ k3s_node_token_raw.stdout | trim }}"
+        k3s_join_token: "{{ k3s_node_token_slurp.content | b64decode | trim }}"
+        cacheable: yes
+
+    - name: Set k3s master IP fact
+      ansible.builtin.set_fact:
+        k3s_master_ip: "{{ ansible_default_ipv4.address | default(ansible_host) }}"
+        cacheable: yes
+
+    - name: DEBUG Master IP and Token after setting on master node
+      ansible.builtin.debug:
+        msg:
+          - "DEBUG ON MASTER {{ inventory_hostname }}: Master IP set to: {{ k3s_master_ip | default('k3s_master_ip IS NOT SET') }}"
+          - "DEBUG ON MASTER {{ inventory_hostname }}: Join Token set to: {{ k3s_join_token | default('k3s_join_token IS NOT SET') }}"
+
+    - name: Add Helm's official GPG key to keyring
+      ansible.builtin.shell:
+        cmd: curl -fsSL https://baltocdn.com/helm/signing.asc | gpg --dearmor -o /etc/apt/keyrings/helm.gpg
+        creates: /etc/apt/keyrings/helm.gpg
+      register: add_helm_gpg_key
+      changed_when: add_helm_gpg_key.rc == 0 and not ansible_check_mode
+
+    - name: Ensure Helm GPG key has correct permissions
+      ansible.builtin.file:
+        path: /etc/apt/keyrings/helm.gpg
+        mode: '0644'
+      when: add_helm_gpg_key.changed
+
+    - name: Add Helm APT repository (using signed-by)
+      ansible.builtin.apt_repository:
+        repo: "deb [arch={{ dpkg_arch.stdout }} signed-by=/etc/apt/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main"
+        state: present
+        filename: helm-stable-debian
+
+    - name: Install Helm
+      ansible.builtin.apt:
+        name:
+          - helm
+        state: present
+        update_cache: yes
+
+  handlers:
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
 
 # ---------------------------------------------------------------------------
 # Play 4: Install K3s Agents (Worker Nodes)
@@ -300,27 +367,87 @@
 - name: Install K3s Agents (Worker Nodes)
   hosts: k3s_agents
   become: yes
+  vars:
+    k3s_master_node_name: "{{ groups['k3s_master'][0] }}"
   tasks:
+    - name: Stop and kill all existing K3s agent processes (if any)
+      ansible.builtin.command: /usr/local/bin/k3s-killall.sh
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Uninstall any previous K3s agent installation
+      ansible.builtin.command: /usr/local/bin/k3s-agent-uninstall.sh
+      ignore_errors: yes
+      register: k3s_agent_uninstall_result
+      changed_when: k3s_agent_uninstall_result.rc == 0
+
+    - name: Explicitly remove K3s agent service file (if exists)
+      ansible.builtin.file:
+        path: /etc/systemd/system/k3s-agent.service
+        state: absent
+      notify: Reload systemd daemon # Agent play might need its own handler or ensure master's handler runs
+
+    - name: Explicitly remove K3s config directory on agent (if any was created)
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: absent
+
+    - name: Explicitly remove K3s data directory on agent
+      ansible.builtin.file:
+        path: /var/lib/rancher/k3s
+        state: absent
+
+    - name: Gather facts from the K3s master node to get its k3s_master_ip
+      ansible.builtin.setup:
+      delegate_to: "{{ k3s_master_node_name }}"
+      delegate_facts: True
+      run_once: true # Optimization: run this fact gathering only once per agent play batch
+
+    - name: Read K3s join token directly from the master node
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      delegate_to: "{{ k3s_master_node_name }}"
+      run_once: true # Optimization: run this file read only once per agent play batch
+      register: k3s_node_token_slurp_from_master_for_agent
+
+    - name: Set agent-specific facts for master IP and token
+      ansible.builtin.set_fact:
+        retrieved_k3s_master_ip: "{{ hostvars[k3s_master_node_name]['k3s_master_ip'] | default(hostvars[k3s_master_node_name]['ansible_default_ipv4']['address'] | default(k3s_master_node_name)) }}"
+        retrieved_k3s_join_token: "{{ k3s_node_token_slurp_from_master_for_agent.content | b64decode | trim }}"
+
+    - name: DEBUG Retrieved master IP and Token on agent node
+      ansible.builtin.debug:
+        msg:
+          - "DEBUG ON AGENT {{ inventory_hostname }}: Master node name: {{ k3s_master_node_name }}"
+          - "DEBUG ON AGENT {{ inventory_hostname }}: Retrieved Master IP: {{ retrieved_k3s_master_ip | default('retrieved_k3s_master_ip IS NOT SET') }}"
+          - "DEBUG ON AGENT {{ inventory_hostname }}: Retrieved Join Token: {{ retrieved_k3s_join_token | default('retrieved_k3s_join_token IS NOT SET') }}"
+
     - name: Install k3s agent
       ansible.builtin.shell:
         cmd: "curl -sfL https://get.k3s.io | sh -s -"
       environment:
-        K3S_URL: "https://{{ hostvars[groups['k3s_master'][0]]['ansible_host'] | default(groups['k3s_master'][0]) }}:6443"
-        K3S_TOKEN: "{{ hostvars[groups['k3s_master'][0]]['k3s_join_token'] }}"
-      args:
-        creates: /etc/systemd/system/k3s-agent.service
+        K3S_URL: "https://{{ retrieved_k3s_master_ip }}:6443"
+        K3S_TOKEN: "{{ retrieved_k3s_join_token }}"
+      # Removed 'creates' for agent as well, relying on uninstall for clean state
+      register: k3s_agent_install_script_result
+      changed_when: k3s_agent_install_script_result.rc == 0
+
+  handlers: # Agent play might need its own handler if master's isn't guaranteed to run or if they are separate batches
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
 
 # ---------------------------------------------------------------------------
 # Play 5: Post-Installation (Fetch Kubeconfig)
 # ---------------------------------------------------------------------------
 - name: Post-Installation (Fetch Kubeconfig)
-  hosts: k3s_master # Run this on the master node
-  become: yes # k3s.yaml is root-owned
+  hosts: k3s_master
+  become: yes
   tasks:
     - name: Fetch kubeconfig file from k3s master
       ansible.builtin.fetch:
         src: /etc/rancher/k3s/k3s.yaml
-        dest: "./k3s_config-{{ inventory_hostname }}.yaml" # Saves to your Ansible controller machine
+        dest: "./k3s_config-{{ inventory_hostname }}.yaml"
         flat: yes
         validate_checksum: yes
 
@@ -328,132 +455,64 @@
       ansible.builtin.debug:
         msg:
           - "K3s cluster setup initiated."
-          - "Kubeconfig file has been fetched to your Ansible control machine as ./k3s_config-{{ inventory_hostname }}.yaml"
+          - "Kubeconfig file(s) have been fetched to your Ansible control machine (e.g., ./k3s_config-{{ groups['k3s_master'][0] }}.yaml)."
           - "To use kubectl with this cluster:"
-          - "1. Ensure kubectl is installed on your local machine."
-          - "2. Update the server IP in the fetched k3s_config-{{ inventory_hostname }}.yaml if it points to an internal/unreachable IP (e.g., 127.0.0.1). It should point to {{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}."
-          - "3. Set the KUBECONFIG environment variable: export KUBECONFIG=$(pwd)/k3s_config-{{ inventory_hostname }}.yaml"
+          - "1. Ensure kubectl is installed on your local machine (the one running Ansible)."
+          - "2. The fetched kubeconfig's server URL is likely 'https://127.0.0.1:6443' or 'https://<master-node-hostname>:6443'."
+          - "   If accessing externally, you MUST change '127.0.0.1' or the internal hostname to the actual master IP: {{ hostvars[groups['k3s_master'][0]]['k3s_master_ip'] | default('MASTER_IP_NOT_FOUND_FOR_MSG') }}"
+          - "   Verify the 'server:' line in the fetched kubeconfig file."
+          - "3. Set the KUBECONFIG environment variable: export KUBECONFIG=$(pwd)/k3s_config-{{ groups['k3s_master'][0] }}.yaml"
           - "4. Test with: kubectl get nodes"
-      delegate_to: localhost # Show this message on your Ansible controller
-      run_once: true # Ensure this message appears only once
-
-  handlers: # Handlers from your original playbook
-    - name: Reload UFW (if necessary per ufw module logic)
-      ansible.builtin.ufw:
-        state: reloaded
-
-
-# # ---------------------------------------------------------------------------
-# # Play 6: Install Keel for Automated Kubernetes Updates
-# # ---------------------------------------------------------------------------
-# - name: Install Keel for Automated Kubernetes Updates
-#   hosts: k3s_master # Deploy Keel from the master node
-#   become: yes # May not be needed if kubectl is configured for ansible_user
-#   vars:
-#     keel_namespace: "keel"
-#     keel_version: "0.20.1" # Check for the latest stable Keel version
-#   tasks:
-#     - name: Ensure kubectl is available (for applying manifests)
-#       ansible.builtin.command: "which kubectl"
-#       register: kubectl_exists
-#       changed_when: false
-#       failed_when: kubectl_exists.rc != 0
-#       check_mode: no # Always run this check
-
-#     - name: Create Keel namespace
-#       community.kubernetes.k8s:
-#         name: "{{ keel_namespace }}"
-#         api_version: v1
-#         kind: Namespace
-#         state: present
-#         kubeconfig: /etc/rancher/k3s/k3s.yaml # Point to K3s admin kubeconfig
-
-#     - name: Add Keel Helm repository
-#       community.kubernetes.helm_repository:
-#         name: keel
-#         repo_url: "https://charts.keel.sh"
-#         state: present
-#       # This task runs on the Ansible controller if not delegated.
-#       # For simplicity, you might prefer applying YAMLs directly if Helm isn't setup on target/controller for Ansible.
-#       # Let's use direct YAML application for Keel for fewer dependencies on Helm CLI on the node.
-
-#     - name: Download Keel deployment YAML (specific version)
-#       ansible.builtin.get_url:
-#         url: "https://raw.githubusercontent.com/keel-hq/keel/master/deployment/kubernetes/deployment.yaml" # Official basic deployment
-#         # For a specific version, you'd usually use Helm or find versioned YAMLs if provided.
-#         # The above URL points to master, which might not be ideal for fixed versions.
-#         # Alternative: Use a versioned release manifest if available, or helm chart.
-#         # For now, using the standard deployment.yaml, be aware it might change.
-#         dest: "/tmp/keel-deployment.yaml"
-#         mode: '0644'
-#       register: keel_yaml_downloaded
-
-#     - name: Modify Keel deployment YAML for namespace (if needed)
-#       ansible.builtin.replace:
-#         path: /tmp/keel-deployment.yaml
-#         regexp: 'namespace: default' # Default namespace in Keel's standard YAML
-#         replace: 'namespace: {{ keel_namespace }}'
-#       when: keel_yaml_downloaded.changed # Only if downloaded/changed
-
-#     - name: Apply Keel deployment YAML
-#       community.kubernetes.k8s:
-#         state: present
-#         src: /tmp/keel-deployment.yaml
-#         namespace: "{{ keel_namespace }}" # Ensure all resources go here
-#         kubeconfig: /etc/rancher/k3s/k3s.yaml
-#       # Note: Keel's standard deployment.yaml creates its own ClusterRoleBinding.
-#       # Review its permissions if you have strict security requirements.
-
-#     - name: Display Keel setup information
-#       ansible.builtin.debug:
-#         msg:
-#           - "Keel should now be deploying in the '{{ keel_namespace }}' namespace."
-#           - "To enable automatic updates for your 'celte-system' deployment:"
-#           - "1. Ensure your CI pipeline (e.g., GitHub Actions) builds and pushes images with version tags (e.g., v1.0.0, v1.0.1) to your container registry."
-#           - "2. Add the following labels to your 'celte-system' Kubernetes Deployment metadata:"
-#           - "   keel.sh/policy: \"semver\"  # Or 'all' (for any new tag), 'major', 'minor', 'patch', 'force'"
-#           - "   keel.sh/trigger: \"poll\"   # Keel will poll the registry"
-#           - "   # Optional: keel.sh/pollschedule: \"@every 30m\" # Default is 5m"
-#           - "Example Deployment snippet:"
-#           - |
-#             apiVersion: apps/v1
-#             kind: Deployment
-#             metadata:
-#               name: celte-system-deployment
-#               namespace: your-celte-app-namespace
-#               labels:
-#                 keel.sh/policy: "semver"
-#                 keel.sh/trigger: "poll"
-#             spec:
-#               template:
-#                 # ... your pod template ...
-#                 spec:
-#                   containers:
-#                   - name: celte-system-container
-#                     image: your-registry/celte-system:v1.0.0 # Keel will update this tag
-#                     # ...
-#           - "3. If your registry is private, create an ImagePullSecret and configure Keel to use it (see Keel documentation for details on 'keel.sh/pullsecret')."
-#       delegate_to: localhost
-#       run_once: true
-
+      delegate_to: localhost
+      run_once: true
 
 # ---------------------------------------------------------------------------
-# Play 6: Install Rancher Server (Single Node Docker Install for Test/Dev)
+# Play 6: Deploy Celte Stack using Helm Chart (COMMENTED OUT)
+# ... (original commented out content remains the same)
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Play 7: Install Rancher Server (Single Node Docker Install for Test/Dev)
 # ---------------------------------------------------------------------------
 - name: Install Rancher Server
-  hosts: rancher_server_host # Target the VM designated in your inventory
+  hosts: rancher_server_host
   become: yes
+  gather_facts: yes # Explicitly gather facts for this play
   vars:
-    rancher_data_volume_path: "/opt/rancher" # Persistent data for Rancher
-    rancher_image_tag: "stable" # Or a specific version e.g., "v2.8.4" (check Rancher docs for latest)
+    rancher_data_volume_path: "/opt/rancher"
+    rancher_image_tag: "stable"
+    rancher_container_name: "rancher-server" # Define a consistent name
   tasks:
     - name: Ensure Docker is installed and running
       ansible.builtin.service:
         name: docker
         state: started
         enabled: yes
-      # This assumes Docker was installed by earlier plays.
-      # If rancher_server_host is not part of celte_vms, you'd need Docker install tasks here.
+
+    - name: Allow Rancher ports through UFW (if UFW is active)
+      ansible.builtin.ufw:
+        rule: allow
+        port: "{{ item.port }}"
+        proto: "{{ item.proto | default('tcp') }}"
+        comment: "{{ item.comment }}"
+      loop:
+        - { port: "80", comment: "Rancher HTTP" }
+        - { port: "443", comment: "Rancher HTTPS" }
+      notify: Reload UFW if changed on Rancher host
+      # This assumes UFW is managed on the rancher_server_host.
+      # If UFW is not active, these tasks will be skipped by ufw module.
+
+    - name: Stop and remove any existing Rancher container with the target name
+      ansible.builtin.docker_container:
+        name: "{{ rancher_container_name }}"
+        state: absent
+      ignore_errors: yes # Ignore if container doesn't exist
+
+    - name: Stop and remove any old Rancher container named 'rancher' (cleanup)
+      ansible.builtin.docker_container:
+        name: "rancher" # Specific name from user's 'docker ps' output
+        state: absent
+      ignore_errors: yes
 
     - name: Create persistent data directory for Rancher
       ansible.builtin.file:
@@ -463,7 +522,7 @@
 
     - name: Run Rancher server Docker container
       ansible.builtin.docker_container:
-        name: rancher-server
+        name: "{{ rancher_container_name }}"
         image: "rancher/rancher:{{ rancher_image_tag }}"
         state: started
         restart_policy: unless-stopped
@@ -480,23 +539,71 @@
         msg:
           - "Rancher server container has been started on {{ inventory_hostname }}."
           - "Image: rancher/rancher:{{ rancher_image_tag }}"
-          - "If the container started successfully (check changed status above), wait a few minutes for it to initialize."
-          - "Then, access the Rancher UI at: https://{{ ansible_host }}"
+          - "If the container started successfully, wait a few minutes for it to initialize."
+          - "Then, access the Rancher UI at: https://{{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}"
           - ""
           - "NEXT MANUAL STEPS:"
-          - "1. Open the URL in your browser. You'll likely see a certificate warning (self-signed by default); proceed past it."
-          - "2. Set your Rancher admin password and agree to the terms."
-          - "3. Import your existing K3s Cluster: In Rancher UI -> Cluster Management -> Import Existing. Name it, click Create."
-          - "4. Rancher will give you a 'kubectl apply -f <URL>' command. Run this command on your K3s MASTER node."
-          - "5. Wait for the cluster to become 'Active' in Rancher."
+          - "1. Open the URL in your browser. Proceed past any self-signed certificate warnings."
+          - "2. On first login, Rancher will provide a command to get the initial admin password (e.g., docker logs {{ rancher_container_name }} 2>&1 | grep \"Bootstrap Password\") or ask you to set one."
+          - "3. Set your Rancher admin password and agree to the terms."
+          - "4. Import your existing K3s Cluster: In Rancher UI -> Cluster Management -> Import Existing. Name it, click Create."
+          - "5. Rancher will give you a 'kubectl apply -f <URL>' command. Run this command on your K3s MASTER node (using the k3s.yaml you fetched, or 'sudo k3s kubectl apply -f <URL>')."
+          - "6. Wait for the cluster to become 'Active' in Rancher."
           - ""
-          - "TO SOLVE YOUR AUTOMATED IMAGE UPDATE PROBLEM (after K3s import):"
-          - "Follow the guidance on setting up Rancher Fleet (Continuous Delivery):"
-          - "  a. Prepare a separate Git 'Config Repo' for your celte-system Kubernetes manifests."
-          - "  b. Update your CI pipeline (e.g., GitHub Actions for celte-system app) to:"
-          - "     - Build and push the Docker image to a registry."
-          - "     - Clone the 'Config Repo', update the image tag in its manifests, commit, and push."
-          - "  c. In Rancher UI (Continuous Delivery -> Git Repos), add your 'Config Repo' for Fleet to monitor."
-          - "  d. Fleet will then automatically deploy changes from your 'Config Repo' to the K3s cluster."
-          - "Refer to official Rancher and Fleet documentation for detailed steps on Fleet configuration."
-      when: rancher_container_status is defined
+          - "FOR AUTOMATED IMAGE UPDATES (after K3s import and app deployment):"
+          - "Consider Rancher Fleet (Continuous Delivery)."
+          - "Rancher Fleet setup:"
+          - "  a. Prepare a Git 'Config Repo' for your celte-system Kubernetes manifests."
+          - "  b. Update your CI pipeline to build/push the Docker image and then update the image tag in the 'Config Repo'."
+          - "  c. In Rancher UI (Continuous Delivery -> Git Repos), add your 'Config Repo'."
+          - "Refer to official Rancher and Fleet documentation for detailed steps."
+      when: rancher_container_status is defined and rancher_container_status.changed
+      delegate_to: localhost
+      run_once: true
+
+  handlers:
+    - name: Reload UFW if changed on Rancher host
+      ansible.builtin.command: ufw reload
+      when: "'ufw' in (ansible_facts.packages | default({}))" # Safer check
+
+
+# ---------------------------------------------------------------------------
+# Play 8: Deploy Celte Stack using Helm CLI
+# ---------------------------------------------------------------------------
+- name: Deploy Celte Stack using Helm CLI
+  hosts: k3s_master # This play runs on the K3s master node
+  become: yes
+  vars:
+    git_repo_url: https://github.com/celte-team/celte-system.git
+    git_clone_dest: /opt/celte-system
+    custom_values_file_src: "values.yaml" # Name of your custom values file on the Ansible controller
+    custom_values_file_dest: "{{ git_clone_dest }}/values.yaml" # Path to copy it on the master node
+    celte_helm_chart_path: "{{ git_clone_dest }}/helm" # Path to the chart directory within the cloned repo
+    celte_app_namespace: "celte"
+    celte_helm_release_name: "celte-system"
+  tasks:
+    - name: Deploy Celte Stack using Helm CLI with custom values
+      ansible.builtin.command:
+        cmd: >
+          helm upgrade --install {{ celte_helm_release_name }}
+          {{ celte_helm_chart_path }}
+          --namespace {{ celte_app_namespace }}
+          --create-namespace
+          -f {{ celte_helm_chart_path }}/values.yaml
+        chdir: "{{ git_clone_dest }}"
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: helm_upgrade_install_result
+      changed_when: helm_upgrade_install_result.rc == 0
+      failed_when: helm_upgrade_install_result.rc != 0
+
+    - name: Show k3s service status if Helm deployment fails
+      ansible.builtin.shell: systemctl status k3s.service || journalctl -xeu k3s.service | tail -n 50
+      register: k3s_status_on_helm_fail
+      when: helm_upgrade_install_result is failed
+      ignore_errors: yes
+
+    - name: Print k3s service status on Helm failure
+      ansible.builtin.debug:
+        var: k3s_status_on_helm_fail.stdout_lines
+      when: k3s_status_on_helm_fail is defined and k3s_status_on_helm_fail.stdout_lines is defined

@@ -1,0 +1,102 @@
+---
+- name: Configure k3s master node
+  hosts: k3s_master
+  become: yes
+  gather_facts: yes # Required for ansible_host if not used directly from the inventory explicitly
+  tasks:
+    - name: Install k3s on master node
+      ansible.builtin.shell: >
+        curl -sfL https://get.k3s.io | sh -s - server
+        --write-kubeconfig-mode "644"
+        --node-ip "{{ ansible_host }}"
+        --advertise-address "{{ ansible_host }}"
+        --tls-san "{{ ansible_host }}"
+      args:
+        creates: /etc/rancher/k3s/k3s.yaml # For idempotency
+      register: k3s_master_install_result
+      changed_when: "'Node ID' in k3s_master_install_result.stdout or 'Applied manifest' in k3s_master_install_result.stdout or 'k3s is up and running' in k3s_master_install_result.stdout"
+
+
+    - name: Wait for k3s master to be fully ready
+      ansible.builtin.command: "kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get nodes"
+      register: kubectl_get_nodes
+      until: "kubectl_get_nodes.rc == 0 and ' Ready' in kubectl_get_nodes.stdout" # Checks that the master node is ready
+      retries: 30
+      delay: 10
+      changed_when: false # This task does not change anything, it only waits
+
+    - name: Read k3s node token from master
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_token_file
+
+    - name: Store k3s token as a fact
+      ansible.builtin.set_fact:
+        k3s_token: "{{ k3s_token_file.content | b64decode | trim }}"
+
+    - name: Store k3s master IP as a fact
+      ansible.builtin.set_fact:
+        k3s_master_ip: "{{ ansible_host }}" # Uses the public IP from the inventory
+
+- name: Configure k3s agent nodes
+  hosts: k3s_agents
+  become: yes
+  gather_facts: yes
+  vars:
+    k3s_master_ip: "{{ hostvars[groups['k3s_master'][0]]['k3s_master_ip'] }}"
+    k3s_token: "{{ hostvars[groups['k3s_master'][0]]['k3s_token'] }}"
+  tasks:
+    - name: Verify master IP and token are available
+      ansible.builtin.assert:
+        that:
+          - k3s_master_ip is defined
+          - k3s_token is defined
+        fail_msg: "Master IP or Token not found. Ensure master setup was successful."
+        quiet: yes
+
+    - name: Install k3s on agent node(s)
+      ansible.builtin.shell: >
+        curl -sfL https://get.k3s.io |
+        K3S_URL="https://{{ k3s_master_ip }}:6443"
+        K3S_TOKEN="{{ k3s_token }}"
+        sh -s - agent
+        --node-ip "{{ ansible_host }}"
+      args:
+        creates: /etc/systemd/system/k3s-agent.service # For idempotency (Debian uses systemd)
+      register: k3s_agent_install_result
+      changed_when: "'Node ID' in k3s_agent_install_result.stdout or 'Applied manifest' in k3s_agent_install_result.stdout or 'k3s-agent is up and running' in k3s_agent_install_result.stdout"
+
+
+- name: Fetch and prepare kubeconfig
+  hosts: k3s_master # Run on the master to fetch the kubeconfig
+  tasks:
+    - name: Fetch k3s.yaml kubeconfig file from master
+      become: yes
+      ansible.builtin.fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: "./k3s_celte_config.yaml" # Saved on your Ansible control machine
+        flat: yes # Prevents creating a subfolder with the hostname
+
+    - name: Update kubeconfig server IP for external access
+      ansible.builtin.replace:
+        path: "./k3s_celte_config.yaml"
+        regexp: 'https://127\\.0\\.0\\.1:6443'
+        replace: "https://{{ hostvars[groups['k3s_master'][0]]['ansible_host'] }}:6443"
+      delegate_to: localhost # This task runs on the Ansible control machine
+      become: no
+
+    - name: Kubeconfig information
+      ansible.builtin.debug:
+        msg: |
+          The kubeconfig file for k3s has been downloaded as 'k3s_celte_config.yaml'
+          in the current directory of your Ansible control machine.
+          It has been modified to use the master's public IP: {{ hostvars[groups['k3s_master'][0]]['ansible_host'] }}.
+
+          To use it with kubectl:
+          export KUBECONFIG=$(pwd)/k3s_celte_config.yaml
+
+          Then, check the nodes (it may take a while for the agent to register):
+          kubectl get nodes -o wide
+
+          If you want a more descriptive context name (optional):
+          kubectl --kubeconfig=$(pwd)/k3s_celte_config.yaml config rename-context default k3s-celte
