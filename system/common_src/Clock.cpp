@@ -16,8 +16,8 @@ void Clock::Start() {
           .topics = {tp::global_clock()},
           .subscriptionName = RUNTIME.GetUUID() + "." + tp::global_clock(),
           .exclusive = false,
-          .messageHandlerSync = [this](const pulsar::Consumer,
-                                       req::ClockTick tick) {
+          .messageHandler = [this](const pulsar::Consumer,
+                                   req::ClockTick tick) {
             __updateCurrentTime(tick);
           }});
 }
@@ -45,7 +45,9 @@ void Clock::ScheduleAt(const timepoint &unified_timepoint,
       task();
       return;
     }
-    std::this_thread::sleep_until(unified_timepoint);
+    auto diff = unified_timepoint - now;
+    auto diff_ms = std::chrono::duration_cast<std::chrono::milliseconds>(diff);
+    std::this_thread::sleep_for(diff_ms);
     task();
   });
 }

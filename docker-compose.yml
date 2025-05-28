@@ -232,7 +232,9 @@ services:
       - managedLedgerDefaultAckQuorum=1
       - advertisedAddress=broker
       - advertisedListeners=external:pulsar://${DOCKER_HOST_IP}:6650
-      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
+      # - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
+      # - PULSAR_MEM=-Xms1536m -Xmx1536m -XX:MaxDirectMemorySize=1536m
+      - PULSAR_MEM=-Xms4608m -Xmx4608m -XX:MaxDirectMemorySize=4608m
     depends_on:
       zookeeper:
         condition: service_healthy

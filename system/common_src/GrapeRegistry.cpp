@@ -104,21 +104,28 @@ void GrapeRegistry::SetRemoteGrapeSubscription(
   if (_grapes.find(acc, grapeId)) {
     if (subscribe && not acc->second._proxySubscriptions.count(containerId)) {
       acc->second._proxySubscriptions.insert(containerId);
+      std::cout << "Grape " << grapeId << " is subscribing to container "
+                << containerId << " owned by " << ownerOfContainerId
+                << std::endl;
       CallGrapeSubscribeToContainer()
           .on_peer(grapeId)
           .on_fail_log_error()
           .with_timeout(std::chrono::milliseconds(1000))
           .retry(3)
-          .fire_and_forget(ownerOfContainerId, containerId);
+          // .fire_and_forget(ownerOfContainerId, containerId);
+          .call<bool>(ownerOfContainerId, containerId);
     } else if (not subscribe and
                acc->second._proxySubscriptions.count(containerId)) {
       acc->second._proxySubscriptions.erase(containerId);
+      std::cout << "Grape " << grapeId << " is unsubscribing from container "
+                << containerId << " owned by " << ownerOfContainerId
+                << std::endl;
       CallGrapeUnsubscribeFromContainer()
           .on_peer(grapeId)
           .on_fail_log_error()
           .with_timeout(std::chrono::milliseconds(1000))
           .retry(3)
-          .fire_and_forget(ownerOfContainerId, containerId);
+          .call<bool>(ownerOfContainerId, containerId);
     }
   }
 }

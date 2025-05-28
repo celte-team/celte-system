@@ -50,9 +50,9 @@ class Program
 
     private static void CheckEnvironmentVariables()
     {
-        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PULSAR_BROKERS")))
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CELTE_PULSAR_HOST")))
         {
-            throw new ArgumentException("\n\nPULSAR_BROKERS witch is refered to the brokers of the pulsar cluster is not set.\n");
+            throw new ArgumentException("\n\nCELTE_PULSAR_HOST witch is refered to the brokers of the pulsar cluster is not set.\n");
         }
         if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CELTE_GODOT_PROJECT_PATH")))
         {

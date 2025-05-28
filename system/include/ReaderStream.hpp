@@ -29,11 +29,7 @@ struct ReaderStream {
     std::vector<std::string> topics;
     std::string subscriptionName;
     bool exclusive = false;
-    std::function<void(const pulsar::Consumer, Req)> messageHandlerSync =
-        nullptr;
     std::function<void(const pulsar::Consumer, Req)> messageHandler = nullptr;
-    std::function<void()> onReadySync = nullptr;
-    std::function<void()> onConnectErrorSync = nullptr;
     std::function<void()> onReady = nullptr;
     std::function<void()> onConnectError = nullptr;
   };
@@ -46,19 +42,27 @@ struct ReaderStream {
     _consumer.close();
   }
 
-  template <typename Req> /**
-   * @brief Configures and opens a Pulsar consumer for asynchronous message processing.
-   *
-   * This function sets up a Pulsar consumer using the provided subscription options and callback
-   * handlers. It validates that the request type (Req) is derived from google::protobuf::Message, and, if
-   * no subscription name is provided, generates a unique one. The consumer type is set based on whether
-   * exclusive access is requested. Both synchronous and asynchronous connection event handlers are
-   * registered, as well as a message handler that parses JSON messages into a protobuf object of type Req.
-   *
-   * @tparam Req Protobuf message type used to parse and handle incoming JSON messages.
-   * @param options Options object containing subscription details, topics, consumer mode, and callback
-   *                functions for connection and message handling.
-   */
+  template <
+      typename Req> /**
+                     * @brief Configures and opens a Pulsar consumer for
+                     * asynchronous message processing.
+                     *
+                     * This function sets up a Pulsar consumer using the
+                     * provided subscription options and callback handlers. It
+                     * validates that the request type (Req) is derived from
+                     * google::protobuf::Message, and, if no subscription name
+                     * is provided, generates a unique one. The consumer type is
+                     * set based on whether exclusive access is requested. Both
+                     * synchronous and asynchronous connection event handlers
+                     * are registered, as well as a message handler that parses
+                     * JSON messages into a protobuf object of type Req.
+                     *
+                     * @tparam Req Protobuf message type used to parse and
+                     * handle incoming JSON messages.
+                     * @param options Options object containing subscription
+                     * details, topics, consumer mode, and callback functions
+                     * for connection and message handling.
+                     */
   void Open(Options<Req> &options) {
     static_assert(std::is_base_of<google::protobuf::Message, Req>::value,
                   "Req must be a protobuf message.");
@@ -86,16 +90,6 @@ struct ReaderStream {
         .then = // executed in the main thread after the consumer is created
         [this, options](pulsar::Consumer consumer,
                         const pulsar::Result &result) {
-          if (result != pulsar::ResultOk and options.onConnectErrorSync) {
-            options.onConnectErrorSync();
-          }
-          if (options.onReadySync)
-            options.onReadySync();
-        },
-
-        .thenAsync = // executed after the consumer is created
-        [this, options](pulsar::Consumer consumer,
-                        const pulsar::Result &result) {
           if (result != pulsar::ResultOk and options.onConnectError) {
             options.onConnectError();
           }
@@ -103,12 +97,17 @@ struct ReaderStream {
           _ready = true;
           if (options.onReady)
             options.onReady();
+          _pendingMessages = 0; // reset pending messages counter
+                                //
         },
 
         .messageHandler = // executed when a message is received
-        [this, options](pulsar::Consumer consumer, const pulsar::Message &msg) {
+        [this, options](pulsar::Consumer consumer, const pulsar::Message msg) {
           PendingRefCount prc(
               _pendingMessages); // RAII counter for pending handler messages.
+          Req req;
+          std::string data(static_cast<const char *>(msg.getData()),
+                           msg.getLength());
           if (_closed) {
             consumer.acknowledge(msg);
             return;
@@ -118,9 +117,6 @@ struct ReaderStream {
             consumer.acknowledge(msg);
             return;
           }
-          Req req;
-          std::string data(static_cast<const char *>(msg.getData()),
-                           msg.getLength());
 
           // { // don't remove this if its commented, someone will use it
           //   // debugrea;a
@@ -136,10 +132,6 @@ struct ReaderStream {
           }
           if (options.messageHandler)
             options.messageHandler(consumer, req);
-          if (options.messageHandlerSync)
-            RUNTIME.ScheduleSyncTask([this, consumer, req, options]() {
-              options.messageHandlerSync(consumer, req);
-            });
           consumer.acknowledge(msg);
         }};
     net.CreateConsumer(subOps);

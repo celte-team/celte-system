@@ -1,8 +1,8 @@
 #pragma once
 #include "Runtime.hpp"
-#include "systems_structs.pb.h"
 #include "pulsar/Producer.h"
 #include "pulsar/Schema.h"
+#include "systems_structs.pb.h"
 #include <google/protobuf/util/json_util.h>
 
 namespace celte {
@@ -16,8 +16,6 @@ struct WriterStream {
   struct Options {
     std::string topic;
     bool exclusive = false;
-    std::function<void(WriterStream &)> onReadySync = nullptr;
-    std::function<void()> onConnectErrorSync = nullptr;
     std::function<void(WriterStream &)> onReady = nullptr;
     std::function<void()> onConnectError = nullptr;
   };
@@ -39,28 +37,18 @@ struct WriterStream {
     auto pOptions = CelteNet::ProducerOptions{
         .conf = conf,
         .topic = options.topic,
-        .then =
-            [this](pulsar::Producer producer, const pulsar::Result &result) {
-              if (result != pulsar::ResultOk and options.onConnectErrorSync) {
-                RUNTIME.ScheduleSyncTask(options.onConnectErrorSync);
-                return;
-              }
-              if (options.onReadySync)
-                RUNTIME.ScheduleSyncTask(
-                    [this]() { options.onReadySync(*this); });
-            },
+        .then = [this](pulsar::Producer producer,
+                       const pulsar::Result &result) {
+          if (result != pulsar::ResultOk and options.onConnectError) {
+            options.onConnectError();
+            return;
+          }
+          _producer = producer;
+          _ready = true;
+          if (options.onReady)
+            options.onReady(*this);
+        }};
 
-        .thenAsync =
-            [this](pulsar::Producer producer, const pulsar::Result &result) {
-              if (result != pulsar::ResultOk and options.onConnectError) {
-                options.onConnectError();
-                return;
-              }
-              _producer = producer;
-              _ready = true;
-              if (options.onReady)
-                options.onReady(*this);
-            }};
     net.CreateProducer(pOptions);
   }
 

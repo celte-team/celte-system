@@ -12,7 +12,8 @@ public class PulsarSingleton
 
     public static void InitializeClient()
     {
-        string pulsarBrokers = Environment.GetEnvironmentVariable("PULSAR_BROKERS") ?? string.Empty;
+        string pulsarBrokers = Environment.GetEnvironmentVariable("CELTE_PULSAR_HOST") ?? string.Empty;
+        pulsarBrokers = "pulsar://" + pulsarBrokers;
         if (string.IsNullOrEmpty(pulsarBrokers))
         {
             throw new ArgumentException("Pulsar brokers are not set.");

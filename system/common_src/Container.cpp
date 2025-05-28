@@ -64,12 +64,12 @@ void Container::__initStreams() {
          .topics = {tp::repl(_id)},
          .subscriptionName = tp::peer(RUNTIME.GetUUID()),
          .exclusive = false,
-         .messageHandlerSync = [this](const pulsar::Consumer,
-                                      req::ReplicationDataPacket req) {},
-         .messageHandler =
-             [this](const pulsar::Consumer, req::ReplicationDataPacket req) {
-               GhostSystem::HandleReplicationPacket(req);
-             }});
+         //  .messageHandlerSync = [this](const pulsar::Consumer,
+         //                               req::ReplicationDataPacket req) {},
+         .messageHandler = [this](const pulsar::Consumer,
+                                  req::ReplicationDataPacket req) {
+           GhostSystem::HandleReplicationPacket(req);
+         }});
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   }
@@ -80,7 +80,8 @@ void Container::__initStreams() {
       .topics = {tp::input(_id)},
       .subscriptionName = tp::peer(RUNTIME.GetUUID()),
       .exclusive = false,
-      .messageHandlerSync =
+      // .messageHandlerSync =
+      .messageHandler =
           [this](const pulsar::Consumer, req::InputUpdate req) {
             CINPUT.HandleInput(req.uuid(), req.name(), req.pressed(), req.x(),
                                req.y());
@@ -158,14 +159,16 @@ std::string ContainerRegistry::CreateContainerIfNotExists(const std::string &id,
 void ContainerRegistry::UpdateRefCount(const std::string &containerId) {
   accessor acc;
   if (_containers.find(acc, containerId)) {
+#ifdef CELTE_SERVER_MODE_ENABLED
     if (acc->second.container.use_count() == 1) {
+#endif
       ETTREGISTRY.DeleteEntitiesInContainer(containerId);
-      std::cout << "trashing container " << containerId.substr(0, 4)
-                << std::endl;
       RUNTIME.GetTrashBin().TrashItem(std::move(acc->second.GetContainerPtr()));
       _containers.erase(acc);
       LOGDEBUG("Container " + containerId +
                " is no longer referenced and has been deleted.");
     }
+#ifdef CELTE_SERVER_MODE_ENABLED
   }
+#endif
 }

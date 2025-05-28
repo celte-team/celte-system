@@ -122,14 +122,14 @@ void PeerService::SubscribeClientToContainer(const std::string &clientId,
     RUNTIME.GetPeerService().GetClientRegistry().RunWithLock(
         clientId, [&](ClientData &c) {
           if (c.isSubscribedToContainer(containerId)) {
+            then();
             return;
           }
           std::cout << "client " << clientId.substr(0, 7)
                     << "\033[032m <- \033[0m" << containerId.substr(0, 4)
                     << std::endl;
           c.remoteClientSubscriptions.insert(containerId);
-
-          RUNTIME.ScheduleAsyncIOTask([this, clientId, containerId]() {
+          RUNTIME.ScheduleAsyncIOTask([this, then, clientId, containerId]() {
             LOGINFO("Subscribing client " + clientId + " to container " +
                     containerId);
             CallPeerServiceSubscribeClientToContainer()
@@ -137,7 +137,19 @@ void PeerService::SubscribeClientToContainer(const std::string &clientId,
                 .on_fail_log_error()
                 .with_timeout(std::chrono::milliseconds(1000))
                 .retry(3)
-                .fire_and_forget(containerId, RUNTIME.GetAssignedGrape());
+                .call_async<bool>(
+                    [then, containerId](bool ok) {
+                      std::cout << "Client was subscribed to container "
+                                << containerId.substr(0, 4) << " by grape "
+                                << RUNTIME.GetAssignedGrape().substr(0, 7)
+                                << std::endl;
+                      if (ok) {
+                        then();
+                      } else {
+                        LOGERROR("Error subscribing client to container");
+                      }
+                    },
+                    containerId, RUNTIME.GetAssignedGrape());
           });
         });
   });
@@ -168,12 +180,19 @@ void PeerService::UnsubscribeClientFromContainer(
           RUNTIME.ScheduleAsyncIOTask([this, clientId, containerId]() {
             LOGINFO("Unsubscribing client " + clientId + " from container " +
                     containerId);
-            CallPeerServiceUnsubscribeClientFromContainer()
-                .on_peer(clientId)
-                .on_fail_log_error()
-                .with_timeout(std::chrono::milliseconds(1000))
-                .retry(3)
-                .fire_and_forget(containerId);
+            bool sucess = CallPeerServiceUnsubscribeClientFromContainer()
+                              .on_peer(clientId)
+                              .on_fail_log_error()
+                              .with_timeout(std::chrono::milliseconds(1000))
+                              .retry(3)
+                              // .fire_and_forget(containerId);
+                              .call<bool>(containerId)
+                              .value_or(false);
+            if (!sucess) {
+              LOGERROR("Error unsubscribing client from container");
+              std::cerr << "Error unsubscribing client from container"
+                        << std::endl;
+            }
           });
         });
   });

@@ -5,6 +5,7 @@
 
 #include "Clock.hpp"
 #include "ContainerSubscriptionComponent.hpp"
+#include <atomic>
 #include <chrono>
 #include <string>
 #include <tbb/concurrent_hash_map.h>

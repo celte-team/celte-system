@@ -17,3 +17,4 @@ pulsar
 celte-godot
 **/autotest
 .qodo
+**.code-workspace
