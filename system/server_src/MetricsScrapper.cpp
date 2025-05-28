@@ -89,54 +89,93 @@ void MetricsScrapper::__uploadWorker() {
     std::this_thread::sleep_for(std::chrono::seconds(_metricsUploadInterval));
   }
 }
-
 int MetricsScrapper::__getCPULoad() {
 #ifdef _WIN32
-  static PDH_HQUERY cpuQuery;
-  static PDH_HCOUNTER cpuTotal;
-  static bool initialized = false;
+  static ULARGE_INTEGER lastSysKernel, lastSysUser, lastProcKernel,
+      lastProcUser;
+  FILETIME sysIdle, sysKernel, sysUser;
+  FILETIME procCreation, procExit, procKernel, procUser;
 
-  if (!initialized) {
-    PdhOpenQuery(NULL, NULL, &cpuQuery);
-    PdhAddCounter(cpuQuery, "\\Processor(_Total)\\% Processor Time", NULL,
-                  &cpuTotal);
-    PdhCollectQueryData(cpuQuery);
-    initialized = true;
+  HANDLE hProcess = GetCurrentProcess();
+  if (!GetSystemTimes(&sysIdle, &sysKernel, &sysUser) ||
+      !GetProcessTimes(hProcess, &procCreation, &procExit, &procKernel,
+                       &procUser)) {
+    throw std::runtime_error("Failed to get times");
   }
 
-  PdhCollectQueryData(cpuQuery);
-  PDH_FMT_COUNTERVALUE counterVal;
-  PdhGetFormattedCounterValue(cpuTotal, PDH_FMT_DOUBLE, NULL, &counterVal);
-  return static_cast<int>(counterVal.doubleValue);
+  ULARGE_INTEGER sysKernelTime, sysUserTime, procKernelTime, procUserTime;
+  memcpy(&sysKernelTime, &sysKernel, sizeof(FILETIME));
+  memcpy(&sysUserTime, &sysUser, sizeof(FILETIME));
+  memcpy(&procKernelTime, &procKernel, sizeof(FILETIME));
+  memcpy(&procUserTime, &procUser, sizeof(FILETIME));
+
+  if (lastSysKernel.QuadPart == 0) {
+    lastSysKernel = sysKernelTime;
+    lastSysUser = sysUserTime;
+    lastProcKernel = procKernelTime;
+    lastProcUser = procUserTime;
+    return 0;
+  }
+
+  ULONGLONG sysTotal = (sysKernelTime.QuadPart - lastSysKernel.QuadPart) +
+                       (sysUserTime.QuadPart - lastSysUser.QuadPart);
+  ULONGLONG procTotal = (procKernelTime.QuadPart - lastProcKernel.QuadPart) +
+                        (procUserTime.QuadPart - lastProcUser.QuadPart);
+
+  lastSysKernel = sysKernelTime;
+  lastSysUser = sysUserTime;
+  lastProcKernel = procKernelTime;
+  lastProcUser = procUserTime;
+
+  if (sysTotal == 0)
+    return 0;
+  return static_cast<int>(100.0 * double(procTotal) / double(sysTotal));
 
 #elif __linux__
-  static long prevIdleTime = 0;
-  static long prevTotalTime = 0;
+  static long prevProcTime = 0, prevTotalTime = 0;
+  long utime, stime;
+  {
+    std::ifstream statFile("/proc/self/stat");
+    std::string ignore;
+    for (int i = 0; i < 13; ++i)
+      statFile >> ignore;
+    statFile >> utime >> stime;
+  }
+  long procTime = utime + stime;
 
-  std::ifstream file("/proc/stat");
-  std::string line;
-  std::getline(file, line);
-  file.close();
-
-  std::istringstream ss(line);
-  std::string cpu;
-  long user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice;
-  ss >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >>
-      steal >> guest >> guest_nice;
-
-  long idleTime = idle + iowait;
+  long user, nice, system, idle, iowait, irq, softirq, steal;
+  {
+    std::ifstream file("/proc/stat");
+    std::string line;
+    std::getline(file, line);
+    std::istringstream ss(line);
+    std::string cpu;
+    ss >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >>
+        steal;
+  }
   long totalTime = user + nice + system + idle + iowait + irq + softirq + steal;
 
-  long deltaIdle = idleTime - prevIdleTime;
+  long deltaProc = procTime - prevProcTime;
   long deltaTotal = totalTime - prevTotalTime;
 
-  prevIdleTime = idleTime;
+  prevProcTime = procTime;
   prevTotalTime = totalTime;
 
-  return static_cast<int>(
-      100.0 * (1.0 - (deltaIdle / static_cast<double>(deltaTotal))));
+  if (deltaTotal == 0)
+    return 0;
+
+  int numCpus = sysconf(_SC_NPROCESSORS_ONLN);
+  return static_cast<int>(100.0 * (double(deltaProc) / double(deltaTotal)) *
+                          numCpus);
 
 #elif __APPLE__
+  static uint64_t prevProcTime = 0, prevTotalTime = 0;
+
+  struct rusage usage;
+  getrusage(RUSAGE_SELF, &usage);
+  uint64_t procTime = usage.ru_utime.tv_sec * 1e6 + usage.ru_utime.tv_usec +
+                      usage.ru_stime.tv_sec * 1e6 + usage.ru_stime.tv_usec;
+
   host_cpu_load_info_data_t cpuinfo;
   mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
   if (host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO,
@@ -144,23 +183,24 @@ int MetricsScrapper::__getCPULoad() {
     throw std::runtime_error("Failed to get CPU load info");
   }
 
-  static uint64_t prevIdleTime = 0;
-  static uint64_t prevTotalTime = 0;
+  uint64_t totalTime =
+      cpuinfo.cpu_ticks[CPU_STATE_USER] + cpuinfo.cpu_ticks[CPU_STATE_SYSTEM] +
+      cpuinfo.cpu_ticks[CPU_STATE_IDLE] + cpuinfo.cpu_ticks[CPU_STATE_NICE];
 
-  uint64_t idleTime = cpuinfo.cpu_ticks[CPU_STATE_IDLE];
-  uint64_t totalTime = idleTime + cpuinfo.cpu_ticks[CPU_STATE_USER] +
-                       cpuinfo.cpu_ticks[CPU_STATE_SYSTEM] +
-                       cpuinfo.cpu_ticks[CPU_STATE_NICE];
-
-  uint64_t deltaIdle = idleTime - prevIdleTime;
+  uint64_t deltaProc = procTime - prevProcTime;
   uint64_t deltaTotal = totalTime - prevTotalTime;
 
-  prevIdleTime = idleTime;
+  prevProcTime = procTime;
   prevTotalTime = totalTime;
 
-  return static_cast<int>(
-      100.0 * (1.0 - (deltaIdle / static_cast<double>(deltaTotal))));
+  if (deltaTotal == 0)
+    return 0;
 
+  int numCpus;
+  size_t size = sizeof(numCpus);
+  sysctlbyname("hw.ncpu", &numCpus, &size, NULL, 0);
+  return static_cast<int>(
+      100.0 * (double(deltaProc) / (double(deltaTotal) * 1e6)) * numCpus);
 #else
   throw std::runtime_error("Unsupported platform");
 #endif

@@ -52,8 +52,8 @@ public:
     std::string topic;                  ///< The topic to produce to.
     std::function<void(pulsar::Producer, const pulsar::Result &)> then =
         nullptr; ///< called in the main thread once the producer is created.
-    std::function<void(pulsar::Producer, const pulsar::Result &)> thenAsync =
-        nullptr; ///< called asynchronously once the producer is created.
+    // std::function<void(pulsar::Producer, const pulsar::Result &)> thenAsync =
+    //     nullptr; ///< called asynchronously once the producer is created.
   };
 
   /**
@@ -67,8 +67,9 @@ public:
     pulsar::ConsumerConfiguration conf; ///< Pulsar configuration.
     std::function<void(const pulsar::Consumer, const pulsar::Result &)> then =
         nullptr; ///< called once the subscription is done, in the main thread.
-    std::function<void(const pulsar::Consumer &, const pulsar::Result &)>
-        thenAsync = nullptr; ///< called once the subscription is done (async).
+    // std::function<void(const pulsar::Consumer &, const pulsar::Result &)>
+    //     thenAsync = nullptr; ///< called once the subscription is done
+    //     (async).
     std::function<void(pulsar::Consumer &, const pulsar::Message &)>
         messageHandler = nullptr; ///< callback called when a message is
                                   ///< received by the consumer.

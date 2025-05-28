@@ -64,12 +64,12 @@ void Container::__initStreams() {
          .topics = {tp::repl(_id)},
          .subscriptionName = tp::peer(RUNTIME.GetUUID()),
          .exclusive = false,
-         .messageHandlerSync = [this](const pulsar::Consumer,
-                                      req::ReplicationDataPacket req) {},
-         .messageHandler =
-             [this](const pulsar::Consumer, req::ReplicationDataPacket req) {
-               GhostSystem::HandleReplicationPacket(req);
-             }});
+         //  .messageHandlerSync = [this](const pulsar::Consumer,
+         //                               req::ReplicationDataPacket req) {},
+         .messageHandler = [this](const pulsar::Consumer,
+                                  req::ReplicationDataPacket req) {
+           GhostSystem::HandleReplicationPacket(req);
+         }});
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   }
@@ -80,7 +80,8 @@ void Container::__initStreams() {
       .topics = {tp::input(_id)},
       .subscriptionName = tp::peer(RUNTIME.GetUUID()),
       .exclusive = false,
-      .messageHandlerSync =
+      // .messageHandlerSync =
+      .messageHandler =
           [this](const pulsar::Consumer, req::InputUpdate req) {
             CINPUT.HandleInput(req.uuid(), req.name(), req.pressed(), req.x(),
                                req.y());

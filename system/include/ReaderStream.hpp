@@ -29,11 +29,7 @@ struct ReaderStream {
     std::vector<std::string> topics;
     std::string subscriptionName;
     bool exclusive = false;
-    std::function<void(const pulsar::Consumer, Req)> messageHandlerSync =
-        nullptr;
     std::function<void(const pulsar::Consumer, Req)> messageHandler = nullptr;
-    std::function<void()> onReadySync = nullptr;
-    std::function<void()> onConnectErrorSync = nullptr;
     std::function<void()> onReady = nullptr;
     std::function<void()> onConnectError = nullptr;
   };
@@ -94,16 +90,6 @@ struct ReaderStream {
         .then = // executed in the main thread after the consumer is created
         [this, options](pulsar::Consumer consumer,
                         const pulsar::Result &result) {
-          if (result != pulsar::ResultOk and options.onConnectErrorSync) {
-            options.onConnectErrorSync();
-          }
-          if (options.onReadySync)
-            options.onReadySync();
-        },
-
-        .thenAsync = // executed after the consumer is created
-        [this, options](pulsar::Consumer consumer,
-                        const pulsar::Result &result) {
           if (result != pulsar::ResultOk and options.onConnectError) {
             options.onConnectError();
           }
@@ -111,6 +97,8 @@ struct ReaderStream {
           _ready = true;
           if (options.onReady)
             options.onReady();
+          _pendingMessages = 0; // reset pending messages counter
+                                //
         },
 
         .messageHandler = // executed when a message is received
@@ -144,10 +132,6 @@ struct ReaderStream {
           }
           if (options.messageHandler)
             options.messageHandler(consumer, req);
-          if (options.messageHandlerSync)
-            RUNTIME.ScheduleSyncTask([this, consumer, req, options]() {
-              options.messageHandlerSync(consumer, req);
-            });
           consumer.acknowledge(msg);
         }};
     net.CreateConsumer(subOps);

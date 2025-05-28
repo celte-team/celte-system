@@ -16,8 +16,8 @@ void Clock::Start() {
           .topics = {tp::global_clock()},
           .subscriptionName = RUNTIME.GetUUID() + "." + tp::global_clock(),
           .exclusive = false,
-          .messageHandlerSync = [this](const pulsar::Consumer,
-                                       req::ClockTick tick) {
+          .messageHandler = [this](const pulsar::Consumer,
+                                   req::ClockTick tick) {
             __updateCurrentTime(tick);
           }});
 }

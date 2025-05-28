@@ -98,3 +98,11 @@ target_link_libraries(${PROJECT_NAME}_client ${LINK_LIBS_SYSTEMS_API})
 install(TARGETS ${PROJECT_NAME}_server DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(TARGETS ${PROJECT_NAME}_client DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 # install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
+
+add_executable(test_broker_load
+    test/test_broker_load.cpp
+)
+target_link_libraries(test_broker_load
+    ${LINK_LIBS_SYSTEMS_API}
+)
