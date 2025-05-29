@@ -1,0 +1,9 @@
+dependencies:
+- name: pulsar
+  repository: https://pulsar.apache.org/charts
+  version: 4.1.0
+- name: prometheus-pushgateway
+  repository: https://prometheus-community.github.io/helm-charts
+  version: 3.3.0
+digest: sha256:08e764232637422b9f618902af810d65d08c3e87140d5cc69341585aca1a16ef
+generated: "2025-05-29T18:32:28.051175+02:00"

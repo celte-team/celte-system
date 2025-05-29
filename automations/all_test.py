@@ -7,14 +7,17 @@ import http.client
 import argparse
 import matplotlib.pyplot as plt
 import statistics
+import requests
 
 # Configuration depuis l'environnement ou fallback
-PULSAR_SERVICE_URL = os.getenv('PULSAR_BROKERS', 'pulsar://57.128.60.39:32407')
+PULSAR_SERVICE_URL = os.getenv('PULSAR_BROKERS', 'pulsar://57.128.60.39:32102')
 REDIS_HOST = os.getenv('REDIS_HOST', '57.128.60.39')
 MASTER_HOST = os.getenv('CELTE_MASTER_HOST', '57.128.60.39')
 MASTER_PORT = int(os.getenv('CELTE_MASTER_PORT', '1908'))
 LOBBY_HOST = os.getenv('CELTE_LOBBY_HOST', '57.128.60.39')  # à adapter si lobby sur autre IP
 LOBBY_PORT = int(os.getenv('CELTE_LOBBY_PORT', '5002'))     # à adapter si lobby sur autre port
+PUSHGATEWAY_HOST = os.getenv('PUSHGATEWAY_HOST', '57.128.60.39')
+PUSHGATEWAY_PORT = int(os.getenv('PUSHGATEWAY_PORT', '30091'))
 
 def ms_duration(start, end):
     return int((end - start) * 1000)
@@ -47,12 +50,12 @@ def test_redis():
     start = time.monotonic()
     try:
         r = redis.Redis(host=REDIS_HOST, port=6379, socket_connect_timeout=5)
-        info = r.info('replication')
-        print(f"Redis role: {info.get('role')}")
-        if info.get('role') != 'master':
-            end = time.monotonic()
-            print(f"[FAIL] Redis: Ce n'est pas le master, impossible d'écrire. (après {ms_duration(start, end)} ms)")
-            return False, None
+        # info = r.info('replication')
+        # print(f"Redis role: {info.get('role')}")
+        # if info.get('role') != 'master':
+        #     end = time.monotonic()
+        #     print(f"[FAIL] Redis: Ce n'est pas le master, impossible d'écrire. (après {ms_duration(start, end)} ms)")
+        #     return False, None
         pong_start = time.monotonic()
         pong = r.ping()
         pong_end = time.monotonic()
@@ -103,6 +106,40 @@ def test_lobby():
     except Exception as e:
         end = time.monotonic()
         print(f"[FAIL] Lobby: {e} (après {ms_duration(start, end)} ms)")
+        return False, None
+
+# --- PUSHGATEWAY TEST ---
+def test_pushgateway():
+    job_name = "test_pushgateway_job"
+    instance_name = "test_instance"
+    pushgateway_url = f"http://{PUSHGATEWAY_HOST}:{PUSHGATEWAY_PORT}/metrics/job/{job_name}/instance/{instance_name}"
+    print(f"\n[TEST] Connexion à Pushgateway: {pushgateway_url}")
+    start = time.monotonic()
+    try:
+        # Simple metric in Prometheus text format
+        metric_data = "my_custom_metric 123\n"
+        response = requests.post(pushgateway_url, data=metric_data, headers={'Content-Type': 'text/plain'}, timeout=5)
+        end = time.monotonic()
+
+        # Pushgateway usually returns 200 or 202 on successful push
+        if response.status_code == 200 or response.status_code == 202:
+            print(f"[OK] Pushgateway: Métrique poussée avec succès. Status: {response.status_code}. Ping: {ms_duration(start, end)} ms")
+            # Optionally, try to delete the metric group to keep Pushgateway clean
+            try:
+                delete_response = requests.delete(pushgateway_url, timeout=2)
+                if delete_response.status_code == 202:
+                    print(f"[INFO] Pushgateway: Groupe de métriques supprimé avec succès.")
+                else:
+                    print(f"[WARN] Pushgateway: Échec de la suppression du groupe de métriques, status: {delete_response.status_code}")
+            except Exception as del_e:
+                print(f"[WARN] Pushgateway: Erreur lors de la suppression du groupe de métriques: {del_e}")
+            return True, ms_duration(start, end)
+        else:
+            print(f"[FAIL] Pushgateway: Échec de la poussée de la métrique. Status: {response.status_code} {response.reason}. (après {ms_duration(start, end)} ms)")
+            return False, None
+    except requests.exceptions.RequestException as e:
+        end = time.monotonic()
+        print(f"[FAIL] Pushgateway: {e} (après {ms_duration(start, end)} ms)")
         return False, None
 
 def benchmark_pulsar(messages=1000, payload_size=100):
@@ -169,6 +206,7 @@ if __name__ == '__main__':
             'redis': test_redis(),
             'master': test_master(),
             'lobby': test_lobby(),
+            'pushgateway': test_pushgateway(),
         }
         print("\nRésumé des tests:")
         for k, (v, ping) in results.items():

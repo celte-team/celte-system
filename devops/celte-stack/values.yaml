@@ -1,0 +1,139 @@
+# Umbrella chart values for celte-stack
+
+pulsar:
+  # Contents from devops/pulsar-values.yaml will be nested here
+  # Global settings
+  initialize: true
+  image:
+    repository: apachepulsar/pulsar
+    tag: "3.2.0"
+    pullPolicy: IfNotPresent
+
+  components:
+    functions: false
+    prestoCoordinator: false
+    prestoWorker: false
+
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+
+  # Configuration for the victoria-metrics-k8s-stack subchart (part of pulsar chart)
+  victoria-metrics-k8s-stack:
+    grafana:
+      enabled: true
+      service:
+        type: NodePort
+        nodePort: 30000
+      adminPassword: "eliotisthebest"
+      persistence:
+        enabled: true
+
+    vmagent:
+      enabled: true
+
+    vmalert:
+      enabled: false # Keeping this disabled as per previous step
+
+  toolset:
+    enabled: false
+
+  zookeeper:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: "0.2"
+        memory: "512Mi"
+      limits:
+        cpu: "0.5"
+        memory: "1Gi"
+    configData:
+      PULSAR_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=128m"
+    persistence:
+      enabled: true
+      storageClassName: "local-path"
+      size: "5Gi"
+
+  bookkeeper:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: "0.2"
+        memory: "512Mi"
+      limits:
+        cpu: "0.5"
+        memory: "1Gi"
+    configData:
+      BOOKIE_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m"
+      managedLedgerDefaultEnsembleSize: "1"
+      managedLedgerDefaultWriteQuorum: "1"
+      managedLedgerDefaultAckQuorum: "1"
+      autoRecoveryDaemonEnabled: "true"
+    persistence:
+      enabled: true
+      journal:
+        storageClassName: "local-path"
+        size: "5Gi"
+      ledgers:
+        storageClassName: "local-path"
+        size: "10Gi"
+
+  broker:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: "0.2"
+        memory: "1Gi"
+      limits:
+        cpu: "0.5"
+        memory: "1.5Gi"
+    configData:
+      PULSAR_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m"
+      advertisedListeners: "internal:pulsar://pulsar-broker:6650,external:pulsar://57.128.60.39:32102"
+      brokerListenerName: "internal"
+      managedLedgerDefaultEnsembleSize: "1"
+      managedLedgerDefaultWriteQuorum: "1"
+      managedLedgerDefaultAckQuorum: "1"
+      loadBalancerEnabled: "false"
+      brokerDeleteInactiveTopicsEnabled: "false"
+
+  proxy:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: "0.1"
+        memory: "256Mi"
+      limits:
+        cpu: "0.2"
+        memory: "512Mi"
+    configData:
+      PULSAR_MEM: "-Xms256m -Xmx256m -XX:MaxDirectMemorySize=128m"
+      brokerServiceURL: "pulsar://pulsar-broker:6650"
+      brokerWebServiceURL: "http://pulsar-broker:8080"
+      advertisedAddress: "57.128.60.39"
+      servicePort: "32102"
+      servicePortTls: ""
+      webServicePort: "32247"
+      webServicePortTls: ""
+    service:
+      type: NodePort
+
+# Configuration for the prometheus-pushgateway subchart
+pushgateway:
+  # Refer to prometheus-community/prometheus-pushgateway chart's values.yaml for all options
+  # For example: https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-pushgateway/values.yaml
+  enabled: true # This key might be redundant if the chart is listed as a dependency, but often good for clarity
+  service:
+    type: NodePort
+    port: 9091 # Default internal port for pushgateway
+    nodePort: 9091 # Your desired external NodePort
+  # resources:
+  #   requests:
+  #     cpu: 50m
+  #     memory: 50Mi
+  #   limits:
+  #     cpu: 100m
+  #     memory: 100Mi
+  persistence:
+    enabled: false # Pushgateway is usually stateless, but can be enabled if needed

@@ -16,8 +16,23 @@ monitoring:
   enabled: true
   prometheus:
     enabled: true
+
+# Add this new section for the subchart
+victoria-metrics-k8s-stack:
   grafana:
     enabled: true
+    service:
+      type: NodePort
+      nodePort: 30000
+    adminPassword: "eliotisthebest"
+    persistence:
+      enabled: true
+
+  vmagent:
+    enabled: true
+
+  vmalert:
+    enabled: false
 
 toolset:
   enabled: false
@@ -94,6 +109,17 @@ proxy:
     brokerWebServiceURL: "http://pulsar-broker:8080"
   service:
     type: NodePort
+
+# NEW TOP-LEVEL CONFIGURATION FOR PUSHGATEWAY
+# prometheus-pushgateway:  # This assumes the Pulsar chart can accept arbitrary top-level keys that map to subcharts if they were added as dependencies
+#   enabled: true
+#   service:
+#     type: NodePort
+#     port: 9091 # Default internal port for pushgateway
+#     nodePort: 30091 # Your desired external NodePort
+#   # Add any other specific pushgateway configurations here,
+#   # like persistence, resources, annotations, etc.
+#   # Refer to the prometheus-community/prometheus-pushgateway chart's values.yaml for options.
 
 
 

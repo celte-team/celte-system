@@ -1,0 +1,16 @@
+apiVersion: v2
+name: celte-stack
+description: A Helm chart for deploying the CELTE application stack (Pulsar, Grafana, Pushgateway)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: pulsar
+    version: "4.1.0"
+    repository: "https://pulsar.apache.org/charts"
+    alias: pulsar
+  - name: prometheus-pushgateway
+    version: "3.3.0" # Updated to latest version
+    repository: "https://prometheus-community.github.io/helm-charts"
+    alias: pushgateway
