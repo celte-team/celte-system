@@ -77,9 +77,8 @@ void MetricsScrapper::PushMetrics() {
 
   CURLcode res = curl_easy_perform(_curl);
   if (res != CURLE_OK) {
-    THROW_ERROR(MetricsUploadException,
-                "Failed to upload metrics to pushgateway: " +
-                    std::string(curl_easy_strerror(res)));
+    LOGERROR("Failed to upload metrics to pushgateway: " +
+             std::string(curl_easy_strerror(res)));
   }
 }
 

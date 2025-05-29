@@ -7,7 +7,7 @@ class RedisDb
 
     private static Lazy<ConnectionMultiplexer> lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
     {
-        string celteRedisHost = Environment.GetEnvironmentVariable("CELTE_PULSAR_HOST") ?? string.Empty;
+        string celteRedisHost = Environment.GetEnvironmentVariable("CELTE_REDIS_HOST") ?? string.Empty;
         var config = ConfigurationOptions.Parse(celteRedisHost + ":6379");
         config.ConnectRetry = 5;
         config.AbortOnConnectFail = false;

@@ -14,7 +14,7 @@ Config::Config() {
   const char *redis_key = getenv("REDIS_KEY");
   _config["redis_key"] = redis_key ? redis_key : "logs";
 
-  const char *pushgateway_host = getenv("CELTE_HOST");
+  const char *pushgateway_host = getenv("CELTE_PULSAR_HOST");
   _config["pushgateway_host"] =
       pushgateway_host ? pushgateway_host : "localhost";
 
@@ -27,7 +27,7 @@ Config::Config() {
 
   const char *replication_interval = getenv("REPLICATION_INTERVAL");
   _config["replication_interval"] =
-      replication_interval ? replication_interval : "33";
+      replication_interval ? replication_interval : "1000";
 }
 
 std::optional<std::string> Config::Get(const std::string &key) const {
