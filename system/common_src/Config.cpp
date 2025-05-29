@@ -5,7 +5,7 @@ using namespace celte;
 Config::Config() {
   dotenv::init();
 
-  const char *redis_host = getenv("REDIS_HOST");
+  const char *redis_host = getenv("CELTE_REDIS_HOST");
   _config["redis_host"] = redis_host ? redis_host : "localhost";
 
   const char *redis_port = getenv("REDIS_PORT");
