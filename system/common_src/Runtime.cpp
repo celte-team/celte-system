@@ -83,8 +83,8 @@ bool Runtime::__connectToMaster(const std::string &masterAddress,
 
 void Runtime::Connect() {
   // get config from env
-  std::string host = _config.Get("CELTE_HOST").value_or("localhost");
-  std::string port = _config.Get("CELTE_PORT").value_or("6650");
+  std::string host = _config.Get("CELTE_PULSAR_HOST").value_or("localhost");
+  std::string port = _config.Get("CELTE_PULSAR_PORT").value_or("6650");
   std::string sessionId = _config.Get("CELTE_SESSION_ID").value_or("default");
   std::string masterHost =
       _config.Get("CELTE_MASTER_HOST").value_or("localhost");
