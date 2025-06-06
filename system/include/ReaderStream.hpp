@@ -35,10 +35,13 @@ struct ReaderStream {
   };
 
   ReaderStream() { _clientRef = CelteNet::Instance().GetClientPtr(); }
-  ~ReaderStream() { _consumer.close(); }
+  ~ReaderStream() { Close(); }
 
   inline void Close() {
     _closed = true;
+    while (_pendingMessages > 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
     _consumer.close();
   }
 
@@ -103,15 +106,15 @@ struct ReaderStream {
 
         .messageHandler = // executed when a message is received
         [this, options](pulsar::Consumer consumer, const pulsar::Message msg) {
+          if (_closed) {
+            consumer.acknowledge(msg);
+            return;
+          }
           PendingRefCount prc(
               _pendingMessages); // RAII counter for pending handler messages.
           Req req;
           std::string data(static_cast<const char *>(msg.getData()),
                            msg.getLength());
-          if (_closed) {
-            consumer.acknowledge(msg);
-            return;
-          }
           // if consumer is closed, don't handle the message
           if (not consumer.isConnected()) {
             consumer.acknowledge(msg);

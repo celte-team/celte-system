@@ -163,7 +163,7 @@ void ContainerRegistry::UpdateRefCount(const std::string &containerId) {
     if (acc->second.container.use_count() == 1) {
 #endif
       ETTREGISTRY.DeleteEntitiesInContainer(containerId);
-      RUNTIME.GetTrashBin().TrashItem(std::move(acc->second.GetContainerPtr()));
+      RUNTIME.GetTrashBin().TrashItem(acc->second.GetContainerPtr());
       _containers.erase(acc);
       LOGDEBUG("Container " + containerId +
                " is no longer referenced and has been deleted.");

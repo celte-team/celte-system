@@ -219,6 +219,13 @@ void RPCCalleeStub::_init_consumer(const std::string &scope,
   }
 }
 
+RPCCalleeStub::~RPCCalleeStub() {
+  for (auto [scope, method] : _methods) {
+    method.consumer.close();
+    method.methods.clear();
+  }
+}
+
 /**
  * @brief Unregisters an RPC method from the specified scope.
  *

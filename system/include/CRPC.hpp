@@ -620,6 +620,8 @@ public:
   using scope_method_accessor =
       tbb::concurrent_hash_map<std::string, ScopeMethods>::accessor;
 
+  ~RPCCalleeStub();
+
   /// @brief  Template for generic callables, will be used to find what the
   /// return and arg types of a callable are
   template <typename T> struct FunctionTraits;
