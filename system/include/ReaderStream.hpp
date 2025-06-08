@@ -112,14 +112,14 @@ struct ReaderStream {
             consumer.acknowledge(msg);
             return;
           }
-          Req req;
-          std::string data(static_cast<const char *>(msg.getData()),
-                           msg.getLength());
-          // if consumer is closed, don't handle the message
           if (not consumer.isConnected()) {
             consumer.acknowledge(msg);
             return;
           }
+          Req req;
+          std::string data(static_cast<const char *>(msg.getData()),
+                           msg.getLength());
+          // if consumer is closed, don't handle the message
 
           // { // don't remove this if its commented, someone will use it
           //   // debugrea;a
