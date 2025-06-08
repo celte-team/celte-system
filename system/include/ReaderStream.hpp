@@ -106,12 +106,12 @@ struct ReaderStream {
 
         .messageHandler = // executed when a message is received
         [this, options](pulsar::Consumer consumer, const pulsar::Message msg) {
+          PendingRefCount prc(
+              _pendingMessages); // RAII counter for pending handler messages.
           if (_closed) {
             consumer.acknowledge(msg);
             return;
           }
-          PendingRefCount prc(
-              _pendingMessages); // RAII counter for pending handler messages.
           Req req;
           std::string data(static_cast<const char *>(msg.getData()),
                            msg.getLength());
