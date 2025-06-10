@@ -57,25 +57,6 @@ void CelteNet::CreateProducer(ProducerOptions &options) {
  * handler is not set.
  */
 void CelteNet::CreateConsumer(SubscribeOptions &options) {
-  if (!_client) {
-    throw CelteNetException("Client not initialized");
-  }
-
-  if (options.messageHandler == nullptr) {
-    throw CelteNetException("Message handler not set");
-  }
-
-  options.conf.setMessageListener(
-      [options](pulsar::Consumer &consumer, const pulsar::Message &msg) {
-        options.messageHandler(consumer, msg);
-      });
-
-  _client->subscribeAsync(
-      options.topics, options.subscriptionName + "." + RUNTIME.GetUUID(),
-      options.conf,
-      [this, options](pulsar::Result result, pulsar::Consumer newConsumer) {
-        if (options.then) {
-          options.then(newConsumer, result);
-        }
-      });
+  throw std::runtime_error(
+      "Creating consumers via celte net is now depreceated");
 }

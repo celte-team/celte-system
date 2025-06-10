@@ -8,7 +8,9 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <condition_variable>
 #include <google/protobuf/util/json_util.h>
+#include <mutex>
 
 namespace celte {
 namespace net {
@@ -29,130 +31,133 @@ struct ReaderStream {
     std::vector<std::string> topics;
     std::string subscriptionName;
     bool exclusive = false;
-    std::function<void(const pulsar::Consumer, Req)> messageHandler = nullptr;
+    std::function<void(const pulsar::Consumer &, Req)> messageHandler = nullptr;
     std::function<void()> onReady = nullptr;
     std::function<void()> onConnectError = nullptr;
   };
 
-  ReaderStream() { _clientRef = CelteNet::Instance().GetClientPtr(); }
-  ~ReaderStream() { Close(); }
-
+  ReaderStream() {
+    _clientRef = CelteNet::Instance().GetClientPtr();
+    _consumer = std::make_shared<pulsar::Consumer>();
+  }
+  ~ReaderStream() {
+    if (!*_closed)
+      Close();
+  }
   inline void Close() {
-    _closed = true;
-    while (_pendingMessages > 0) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    if (*_closed) {
+      return; // already closed
     }
-    _consumer.close();
+
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool done = false;
+
+    std::unique_lock<std::mutex> lock(mtx);
+
+    _consumer->unsubscribeAsync([this, &done, &mtx,
+                                 &cv](const pulsar::Result &result) {
+      {
+        std::lock_guard<std::mutex> guard(mtx);
+
+        if (result != pulsar::ResultOk) {
+          std::cerr << "Error unsubscribing: " << result << std::endl;
+        } else {
+          *_closed = true;
+          while (*_pendingMessages > 0) { // wait for final messages to process
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        }
+        done = true;
+      }
+      cv.notify_all();
+    });
+
+    cv.wait(lock, [&done]() { return done; });
+
+    auto consumerKeepAlive = _consumer; // keep the consumer alive until
+                                        // the close is done
+    _consumer->closeAsync([consumerKeepAlive](pulsar::Result res) {
+      if (res != pulsar::ResultOk) {
+        std::cerr << "Error closing consumer: " << res << std::endl;
+      }
+    });
   }
-
-  template <
-      typename Req> /**
-                     * @brief Configures and opens a Pulsar consumer for
-                     * asynchronous message processing.
-                     *
-                     * This function sets up a Pulsar consumer using the
-                     * provided subscription options and callback handlers. It
-                     * validates that the request type (Req) is derived from
-                     * google::protobuf::Message, and, if no subscription name
-                     * is provided, generates a unique one. The consumer type is
-                     * set based on whether exclusive access is requested. Both
-                     * synchronous and asynchronous connection event handlers
-                     * are registered, as well as a message handler that parses
-                     * JSON messages into a protobuf object of type Req.
-                     *
-                     * @tparam Req Protobuf message type used to parse and
-                     * handle incoming JSON messages.
-                     * @param options Options object containing subscription
-                     * details, topics, consumer mode, and callback functions
-                     * for connection and message handling.
-                     */
-  void Open(Options<Req> &options) {
-    static_assert(std::is_base_of<google::protobuf::Message, Req>::value,
-                  "Req must be a protobuf message.");
-    auto &net = CelteNet::Instance();
-    auto conf = pulsar::ConsumerConfiguration();
-
-    // is access mode exclusive? -> only this consumer can read from the topic
-    if (options.exclusive)
-      conf.setConsumerType(pulsar::ConsumerExclusive);
-    else {
-      conf.setConsumerType(pulsar::ConsumerShared);
-    }
-
-    // if subscription name is empty, set it to a random uuid
-    if (options.subscriptionName.empty()) {
-      boost::uuids::uuid uuid = boost::uuids::random_generator()();
-      options.subscriptionName = boost::uuids::to_string(uuid);
-    }
-
-    CelteNet::SubscribeOptions subOps{
-        .topics = options.topics,
-        .subscriptionName = options.subscriptionName,
-        .conf = conf,
-
-        .then = // executed in the main thread after the consumer is created
-        [this, options](pulsar::Consumer consumer,
-                        const pulsar::Result &result) {
-          if (result != pulsar::ResultOk and options.onConnectError) {
-            options.onConnectError();
-          }
-          _consumer = consumer;
-          _ready = true;
-          if (options.onReady)
-            options.onReady();
-          _pendingMessages = 0; // reset pending messages counter
-                                //
-        },
-
-        .messageHandler = // executed when a message is received
-        [this, options](pulsar::Consumer consumer, const pulsar::Message msg) {
-          PendingRefCount prc(
-              _pendingMessages); // RAII counter for pending handler messages.
-          if (_closed) {
-            consumer.acknowledge(msg);
-            return;
-          }
-          if (not consumer.isConnected()) {
-            consumer.acknowledge(msg);
-            return;
-          }
-          Req req;
-          std::string data(static_cast<const char *>(msg.getData()),
-                           msg.getLength());
-          // if consumer is closed, don't handle the message
-
-          // { // don't remove this if its commented, someone will use it
-          //   // debugrea;a
-          //   if (msg.getTopicName().find("global.clock") == std::string::npos)
-          //     std::cout << "[[ReaderStream]] handling message " << data
-          //               << " from topic " << msg.getTopicName() << std::endl;
-          // }
-
-          if (!google::protobuf::util::JsonStringToMessage(data, &req).ok()) {
-            std::cerr << "Error parsing message: " << data << std::endl;
-            consumer.acknowledge(msg);
-            return;
-          }
-          if (options.messageHandler)
-            options.messageHandler(consumer, req);
-          consumer.acknowledge(msg);
-        }};
-    net.CreateConsumer(subOps);
-  }
-
-  bool Ready() { return _ready; }
 
   /// @brief Blocks until the pending message counter has reached zero.
   void BlockUntilNoPending();
+
+  bool Ready() { return _ready; }
+
+  template <typename Req> void Open(Options<Req> &options) {
+    static_assert(std::is_base_of<google::protobuf::Message, Req>::value,
+                  "Req must be a protobuf message.");
+    auto consumer = _consumer; // copy for memory safety
+    RUNTIME.ScheduleAsyncIOTask(
+        [this, options = std::move(options), consumer] mutable {
+          if (!__subscribe<Req>(options)) {
+            return;
+          }
+
+          std::function<void(const pulsar::Consumer &, Req)> handler =
+              options.messageHandler;
+
+          _messageHandler = [this, options, handler = std::move(handler),
+                             consumer](const std::string &data) mutable {
+            Req req;
+            if (google::protobuf::util::JsonStringToMessage(data, &req).ok()) {
+              handler(*consumer, req);
+            }
+          };
+
+          __startPolling(consumer);
+          _ready = true;
+          if (options.onReady) {
+            options.onReady();
+          }
+        }); // end of async task
+  }
+
+private:
+  template <typename Req> bool __subscribe(Options<Req> &options) {
+    auto &client = CelteNet::Instance().GetClient();
+    pulsar::ConsumerConfiguration conf;
+    if (options.exclusive)
+      throw std::runtime_error("Exclusive consumer type is not supported in "
+                               "ReaderStream anymore. It is deprecated");
+
+    std::string subscriptionName = options.subscriptionName;
+    if (subscriptionName.empty()) {
+      boost::uuids::uuid uuid = boost::uuids::random_generator()();
+      subscriptionName = boost::uuids::to_string(uuid);
+    }
+
+    pulsar::Result res =
+        client.subscribe(options.topics, subscriptionName, *_consumer);
+
+    if (res != pulsar::ResultOk) {
+      if (options.onConnectError) {
+        options.onConnectError();
+      }
+      std::cerr << "Error subscribing to topic: " << res << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  void __startPolling(std::shared_ptr<pulsar::Consumer> consumer);
 
 protected:
   std::shared_ptr<pulsar::Client>
       _clientRef; ///< used for RAII, keeps the client alive until the stream is
                   ///< closed
-  pulsar::Consumer _consumer;
+  std::shared_ptr<pulsar::Consumer> _consumer;
   std::atomic_bool _ready = false;
-  std::atomic_bool _closed = false;
-  std::atomic_int _pendingMessages = 0;
+  std::shared_ptr<std::atomic_bool> _closed =
+      std::make_shared<std::atomic_bool>(false);
+  std::shared_ptr<std::atomic_int> _pendingMessages =
+      std::make_shared<std::atomic_int>(0);
+  std::function<void(const std::string &)> _messageHandler;
 };
 } // namespace net
 } // namespace celte
