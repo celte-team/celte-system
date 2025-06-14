@@ -49,31 +49,11 @@ struct ReaderStream {
       return; // already closed
     }
 
-    std::mutex mtx;
-    std::condition_variable cv;
-    bool done = false;
-
-    std::unique_lock<std::mutex> lock(mtx);
-
-    _consumer->unsubscribeAsync([this, &done, &mtx,
-                                 &cv](const pulsar::Result &result) {
-      {
-        std::lock_guard<std::mutex> guard(mtx);
-
-        if (result != pulsar::ResultOk) {
-          std::cerr << "Error unsubscribing: " << result << std::endl;
-        } else {
-          *_closed = true;
-          while (*_pendingMessages > 0) { // wait for final messages to process
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-          }
-        }
-        done = true;
-      }
-      cv.notify_all();
-    });
-
-    cv.wait(lock, [&done]() { return done; });
+    auto topic = _consumer->getTopic();
+    *_closed = true;
+    if (_pendingMessages->load() > 0) {
+      BlockUntilNoPending();
+    }
 
     auto consumerKeepAlive = _consumer; // keep the consumer alive until
                                         // the close is done
@@ -92,30 +72,29 @@ struct ReaderStream {
   template <typename Req> void Open(Options<Req> &options) {
     static_assert(std::is_base_of<google::protobuf::Message, Req>::value,
                   "Req must be a protobuf message.");
-    auto consumer = _consumer; // copy for memory safety
-    RUNTIME.ScheduleAsyncIOTask(
-        [this, options = std::move(options), consumer] mutable {
-          if (!__subscribe<Req>(options)) {
-            return;
-          }
+    RUNTIME.ScheduleAsyncIOTask([this, options = std::move(options)] mutable {
+      if (!__subscribe<Req>(options)) {
+        std::cerr << "Failed to subscribe to topics." << std::endl;
+        return;
+      }
+      std::function<void(const pulsar::Consumer &, Req)> handler =
+          options.messageHandler;
 
-          std::function<void(const pulsar::Consumer &, Req)> handler =
-              options.messageHandler;
+      auto consumer = _consumer; // copy for memory safety
+      _messageHandler = [this, options, handler = std::move(handler),
+                         consumer](const std::string &data) mutable {
+        Req req;
+        if (google::protobuf::util::JsonStringToMessage(data, &req).ok()) {
+          handler(*consumer, req);
+        }
+      };
 
-          _messageHandler = [this, options, handler = std::move(handler),
-                             consumer](const std::string &data) mutable {
-            Req req;
-            if (google::protobuf::util::JsonStringToMessage(data, &req).ok()) {
-              handler(*consumer, req);
-            }
-          };
-
-          __startPolling(consumer);
-          _ready = true;
-          if (options.onReady) {
-            options.onReady();
-          }
-        }); // end of async task
+      __startPolling(consumer);
+      _ready = true; // mark the stream as ready
+      if (options.onReady) {
+        options.onReady();
+      }
+    }); // end of async task
   }
 
 private:
@@ -125,6 +104,7 @@ private:
     if (options.exclusive)
       throw std::runtime_error("Exclusive consumer type is not supported in "
                                "ReaderStream anymore. It is deprecated");
+    conf.setConsumerType(pulsar::ConsumerShared);
 
     std::string subscriptionName = options.subscriptionName;
     if (subscriptionName.empty()) {
@@ -133,7 +113,7 @@ private:
     }
 
     pulsar::Result res =
-        client.subscribe(options.topics, subscriptionName, *_consumer);
+        client.subscribe(options.topics, subscriptionName, conf, *_consumer);
 
     if (res != pulsar::ResultOk) {
       if (options.onConnectError) {
@@ -143,6 +123,39 @@ private:
       return false;
     }
     return true;
+
+    // std::mutex mtx;
+    // std::condition_variable cv;
+    // bool done = false;
+
+    // // std::unique_lock<std::mutex> lock(mtx);
+
+    // client.subscribeAsync(
+    //     options.topics, subscriptionName, conf,
+    //     [this, options = std::move(options), &mtx, &done,
+    //      &cv](const pulsar::Result &res, pulsar::Consumer consumer) {
+    //       std::lock_guard<std::mutex> guard(mtx);
+    //       if (res != pulsar::ResultOk) {
+    //         if (options.onConnectError) {
+    //           options.onConnectError();
+    //         }
+    //         std::cerr << "Error subscribing to topic: " << res << std::endl;
+    //         done = true;
+    //         cv.notify_all();
+    //         return;
+    //       }
+    //       _consumer =
+    //       std::make_shared<pulsar::Consumer>(std::move(consumer)); if
+    //       (options.onReady) {
+    //         options.onReady();
+    //       }
+    //       done = true;
+    //       cv.notify_all();
+    //     });
+
+    // cv.wait(lock, [&done]() { return done; });
+    // _ready = true;
+    // return true;
   }
 
   void __startPolling(std::shared_ptr<pulsar::Consumer> consumer);

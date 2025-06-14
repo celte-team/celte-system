@@ -18,6 +18,7 @@ class Clients
         {
             // TODO: uniformize nameing convention to adapt with future dynamic nodes
             nodeId = "sn-" + RedisDb.GetSNFromSpawnerId(reqBody.spawnerId);
+            Console.WriteLine($"Redirecting client {reqBody.clientId} to node {nodeId} for spawner {reqBody.spawnerId}");
         }
         catch (Exception ex)
         {

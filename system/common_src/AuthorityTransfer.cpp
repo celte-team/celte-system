@@ -17,7 +17,18 @@ static void __notifyTakeAuthority(nlohmann::json args) {
           args.dump());
   CallContainerTakeAuthority()
       .on_scope(args["t"].get<std::string>())
-      .on_fail_log_error()
+      // .on_fail_log_error()
+      .on_fail_do([](CStatus &status) {
+        try {
+          if (status) {
+            std::rethrow_exception(*status);
+          }
+        } catch (const std::exception &e) {
+          std::cerr << "AuthorityTransfer: Failed to notify container to take "
+                       "authority: "
+                    << e.what() << std::endl;
+        }
+      })
       .fire_and_forget(args.dump());
 }
 
@@ -74,7 +85,7 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   args["payload"] = payload;
   args["g"] = GHOSTSYSTEM.PeekProperties(entityId).value_or("{}");
 
-  LOGGER.log(celte::Logger::DEBUG, "AuthorityTransfer: \n" + args.dump());
+  LOGGER.Log(celte::Logger::DEBUG, "AuthorityTransfer: \n" + args.dump());
   // #ifdef DEBUG
   prettyPrintAuthTransfer(args);
   // #endif
@@ -173,7 +184,7 @@ static void applyGhostToEntity(const std::string &entityId,
  * container.
  */
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
-  LOGGER.log(celte::Logger::DEBUG,
+  LOGGER.Log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing take order.\n" + args.dump());
   std::cout << "AuthorityTransfer: Executing take order.\n"
             << args["e"].get<std::string>().substr(0, 4) << std::endl;
@@ -185,9 +196,6 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   std::string payload = args["payload"].get<std::string>();
   nlohmann::json ghostData = args["g"];
 
-  Clock::timepoint whenTp = Clock::FromISOString(when);
-
-  // CLOCK.ScheduleAt(whenTp, [=]() {
   //   // if ett exists, transfer auth
   ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
     e.ownerContainerId = toContainerId;
@@ -237,8 +245,12 @@ void AuthorityTransfer::ExecDropOrder(nlohmann::json args) {
     return;
   }
 
-  LOGGER.log(celte::Logger::DEBUG,
+  LOGGER.Log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing drop order.\n" + args.dump());
+  std::cout << "Drop order scheduled at " << Clock::ToISOString(whenTp)
+            << " for entity " << entityId.substr(0, 4) << " from "
+            << fromContainerId.substr(0, 4) << " to "
+            << toContainerId.substr(0, 4) << std::endl;
   CLOCK.ScheduleAt(
       whenTp, [entityId, toContainerId, fromContainerId, procedureId]() {
         ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {

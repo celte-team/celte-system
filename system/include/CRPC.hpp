@@ -576,7 +576,10 @@ public:
         --_retry;
         return __call_impl<RetVal>(std::move(uuid), args...);
       } else {
+        std::cout << "crpc failed in " << TypeIdentifier<MetaFunction>::name()
+                  << std::endl;
         _fail_callback(status);
+        std::cout << "no crash after callback" << std::endl;
         // RPCCallerStub::instance().forget_promise(uuid);
         return std::nullopt;
       }

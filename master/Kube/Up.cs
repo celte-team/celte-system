@@ -27,7 +27,8 @@ class UpAndDown
         {
             headlessMode = "--headless"; ;
         }
-        string command = $"cd {celte_godot_project_path} ; export CELTE_MODE=server; export CELTE_NODE_ID={nodeinfo.Id}; export CELTE_NODE_PID={nodeinfo.Pid}; {godot_path} . {headlessMode}> {logFile} 2>&1";
+        string command = $"cd {celte_godot_project_path} ; export CELTE_MODE=server; export CELTE_NODE_ID={nodeinfo.Id}; export CELTE_NODE_PID={nodeinfo.Pid}; DYLD_INSERT_LIBRARIES=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/lib/darwin/libclang_rt.asan_osx_dynamic.dylib {godot_path} . {headlessMode}> {logFile} 2>&1";
+        Console.WriteLine($"Starting node {nodeinfo.Id} with command: {command}");
 
         if (OperatingSystem.IsMacOS())
         {
@@ -42,6 +43,8 @@ class UpAndDown
                 CreateNoWindow = true
             };
 
+            // if (Environment.GetEnvironmentVariable("CELTE_SERVERS_MANUAL") != "true")
+            // {
             var process = new Process { StartInfo = startInfo };
             process.Start();
 
@@ -51,12 +54,15 @@ class UpAndDown
             // Store the process ID in Redis for later reference
             nodeinfo.Pid = process.Id.ToString();
 
-            RedisDb.SetHashField("nodes", nodeinfo.Id, JsonSerializer.Serialize(nodeinfo));
 
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"Node {nodeinfo.Id} started with PID {process.Id}");
             Console.WriteLine($"Logs are being written to: {logFile}");
             Console.ResetColor();
+            // }
+
+            RedisDb.SetHashField("nodes", nodeinfo.Id, JsonSerializer.Serialize(nodeinfo));
+
         }
         else if (OperatingSystem.IsWindows())
         {

@@ -14,26 +14,42 @@ static void poll(std::shared_ptr<pulsar::Consumer> consumer,
                  std::shared_ptr<std::atomic_bool> closed,
                  std::function<void(const std::string &)> messageHandler,
                  std::shared_ptr<std::atomic_int> pendingMessages) {
-  consumer->receiveAsync([consumer, closed, messageHandler, pendingMessages](
-                             pulsar::Result result, pulsar::Message msg) {
-    PendingRefCount prc(*pendingMessages); // RAII counter for pending ops.
+  // RUNTIME.ScheduleAsyncIOTask([consumer, closed, messageHandler,
+  //                              pendingMessages]() {
+  std::thread([consumer, closed, messageHandler, pendingMessages]() mutable {
+    // if (!*closed) {
+    while (!*closed) {
+      pulsar::Message msg;
+      PendingRefCount prc(*pendingMessages); // RAII counter for pending
+      pulsar::Result result = consumer->receive(msg);
 
-    if (*closed) {
-      return; // If the stream is closed, do not process any more messages.
+      if (result == pulsar::ResultOk) {
+
+        std::string data(static_cast<const char *>(msg.getData()),
+                         msg.getLength());
+        consumer->acknowledge(msg);
+
+        // {
+        //   // debug
+        //   if (data.find("unified_time_ms") == std::string::npos) {
+        //     std::cout << "Received message: " << data << std::endl;
+        //   }
+        // }
+
+        // poll(consumer, closed, messageHandler, pendingMessages);
+        messageHandler(data);
+      } else if (result == pulsar::ResultTimeout) {
+        // poll(consumer, closed, messageHandler, pendingMessages);
+        continue;
+      } else {
+        consumer->negativeAcknowledge(msg); // Negative acknowledge on error
+        std::cerr << "Error receiving message: " << pulsar::strResult(result)
+                  << std::endl;
+        // poll(consumer, closed, messageHandler, pendingMessages);
+        continue;
+      }
     }
-    if (result == pulsar::ResultOk) {
-      std::string data(static_cast<const char *>(msg.getData()),
-                       msg.getLength());
-      poll(consumer, closed, messageHandler,
-           pendingMessages); // Schedule the next poll
-      messageHandler(data);
-      consumer->acknowledge(msg);
-    } else {
-      std::cerr << "Error receiving message: " << result << std::endl;
-      poll(consumer, closed, messageHandler,
-           pendingMessages); // Retry polling on error
-    }
-  });
+  }).detach(); // Detach the thread to run independently
 }
 
 void ReaderStream::__startPolling(std::shared_ptr<pulsar::Consumer> consumer) {

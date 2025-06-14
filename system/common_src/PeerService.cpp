@@ -201,10 +201,16 @@ void PeerService::UnsubscribeClientFromContainer(
 #else
 
 bool PeerService::ForceConnectToNode(std::string grapeId) {
-  std::cout << "FORCE CONNECT TO NODE WAS CALLED FOR GRAPE "
-            << grapeId.substr(0, 7) << std::endl;
+  std::cout << "FORCE CONNECT TO NODE WAS CALLED FOR GRAPE " << grapeId
+            << std::endl;
   RUNTIME.ScheduleAsyncTask(
       [grapeId]() { RUNTIME.Hooks().onLoadGrape(grapeId, false); });
+  // wait for the grape to be loaded (i.e registered in the grape registry.)
+  // this method is ran in an async context so it won't block the app.
+  // we do expect the task to complete someday though (ᵕ—ᴗ—)
+  while (!GRAPES.GrapeExists(grapeId)) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
   return true;
 }
 
@@ -237,7 +243,15 @@ std::map<std::string, int> PeerService::GetLatency() {
     auto start = std::chrono::steady_clock::now();
     CallGrapePing()
         .on_peer(g)
-        .on_fail_do([&g, &latencies](auto &e) { latencies[g] = -1; })
+        .on_fail_do([&g, &latencies](auto &e) {
+          latencies[g] = -1;
+          try {
+            std::rethrow_exception(e.value());
+          } catch (const std::exception &ex) {
+            std::cerr << "Error pinging grape " << g << ": " << ex.what()
+                      << std::endl;
+          }
+        })
         .with_timeout(std::chrono::milliseconds(1000))
         .retry(3)
         .call<bool>();

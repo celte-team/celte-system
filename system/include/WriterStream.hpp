@@ -43,7 +43,7 @@ struct WriterStream {
             options.onConnectError();
             return;
           }
-          _producer = producer;
+          _producer = std::make_shared<pulsar::Producer>(producer);
           _ready = true;
           if (options.onReady)
             options.onReady(*this);
@@ -63,13 +63,14 @@ struct WriterStream {
       return;
     }
     auto message = pulsar::MessageBuilder().setContent(j);
-
-    _pending++;
-    _producer.sendAsync(
+    auto producerKeepAlive = _producer;
+    auto pendingKeepAlive = _pending;
+    (*pendingKeepAlive)++;
+    producerKeepAlive->sendAsync(
         message.build(),
-        [this, onDelivered](pulsar::Result result,
-                            const pulsar::MessageId &messageId) {
-          _pending--;
+        [this, onDelivered, pendingKeepAlive, producerKeepAlive](
+            pulsar::Result result, const pulsar::MessageId &messageId) {
+          (*pendingKeepAlive)--;
           if (onDelivered)
             onDelivered(result);
         });
@@ -85,9 +86,10 @@ struct WriterStream {
   bool HasPending() { return _pending > 0; }
 
 private:
-  pulsar::Producer _producer;
+  std::shared_ptr<pulsar::Producer> _producer;
   std::atomic_bool _ready;
-  std::atomic_int _pending{0};
+  std::shared_ptr<std::atomic_int> _pending =
+      std::make_shared<std::atomic_int>(0);
 };
 } // namespace net
 } // namespace celte
