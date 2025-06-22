@@ -11,6 +11,7 @@
 #include "Topics.hpp"
 #include <exception>
 #ifdef CELTE_SERVER_MODE_ENABLED
+#include "ClientRegistry.hpp"
 #include "MetricsScrapper.hpp"
 #endif
 
@@ -516,4 +517,23 @@ GetInputCircularBuf(const std::string &uuid, const std::string &InputName) {
 EXPORT std::string GetUUID() { return RUNTIME.GetUUID(); }
 
 #pragma endregion
+
+#ifdef CELTE_SERVER_MODE_ENABLED
+EXPORT void KeepClientConnectionAlive(const std::string &clientId) {
+  RUNTIME.ScheduleAsyncIOTask([clientId] {
+    celte::CallPeerServicePing()
+        .on_peer(clientId)
+        .on_fail_do(
+            [clientId](auto &e) { RUNTIME.Hooks().onClientNotSeen(clientId); })
+        .with_timeout(
+            std::chrono::milliseconds(std::atoi(RUNTIME.GetConfig()
+                                                    .Get("client_timeout_ms")
+                                                    .value_or("2000")
+                                                    .c_str())))
+        .retry(3)
+        .call<bool>()
+        .value_or(false);
+  });
+}
+#endif // CELTE_SERVER_MODE_ENABLED
 }

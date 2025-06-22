@@ -14,10 +14,10 @@ static void poll(std::shared_ptr<pulsar::Consumer> consumer,
                  std::shared_ptr<std::atomic_bool> closed,
                  std::function<void(const std::string &)> messageHandler,
                  std::shared_ptr<std::atomic_int> pendingMessages) {
-  // RUNTIME.ScheduleAsyncIOTask([consumer, closed, messageHandler,
-  //                              pendingMessages]() {
-  std::thread([consumer, closed, messageHandler, pendingMessages]() mutable {
-    // if (!*closed) {
+  RUNTIME.ScheduleAsyncIOTask([consumer, closed, messageHandler,
+                               pendingMessages]() {
+    // std::thread([consumer, closed, messageHandler, pendingMessages]() mutable
+    // { if (!*closed) {
     while (!*closed) {
       pulsar::Message msg;
       PendingRefCount prc(*pendingMessages); // RAII counter for pending
@@ -49,7 +49,8 @@ static void poll(std::shared_ptr<pulsar::Consumer> consumer,
         continue;
       }
     }
-  }).detach(); // Detach the thread to run independently
+  });
+  // }).detach(); // Detach the thread to run independently
 }
 
 void ReaderStream::__startPolling(std::shared_ptr<pulsar::Consumer> consumer) {

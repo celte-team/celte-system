@@ -26,7 +26,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     add_compile_options(-Wno-return-type-c-linkage)
 endif()
 
-# set(SANITIZE_FLAGS "-fsanitize=address")
 
 find_package(Protobuf REQUIRED)
 find_package(TBB REQUIRED)
@@ -92,15 +91,11 @@ set(LINK_LIBS_SYSTEMS_API
 add_library(${PROJECT_NAME}_server SHARED ${SOURCES} ${SERVER_SRC} ${PROTO_SRCS})
 target_compile_definitions(${PROJECT_NAME}_server PRIVATE CELTE_SERVER_MODE_ENABLED)
 target_link_libraries(${PROJECT_NAME}_server ${LINK_LIBS_SYSTEMS_API})
-target_compile_options(${PROJECT_NAME}_server PRIVATE ${SANITIZE_FLAGS})
-target_link_options(${PROJECT_NAME}_server PRIVATE ${SANITIZE_FLAGS})
 
 
 add_library(${PROJECT_NAME}_client SHARED ${SOURCES} ${CLIENT_SRC} ${PROTO_SRCS})
 target_compile_definitions(${PROJECT_NAME}_client PRIVATE CELTE_CLIENT_MODE_ENABLED)
 target_link_libraries(${PROJECT_NAME}_client ${LINK_LIBS_SYSTEMS_API})
-target_compile_options(${PROJECT_NAME}_client PRIVATE ${SANITIZE_FLAGS})
-target_link_options(${PROJECT_NAME}_client PRIVATE ${SANITIZE_FLAGS})
 
 install(TARGETS ${PROJECT_NAME}_server DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(TARGETS ${PROJECT_NAME}_client DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
@@ -114,5 +109,3 @@ add_executable(test_broker_load
 target_link_libraries(test_broker_load
     ${LINK_LIBS_SYSTEMS_API}
 )
-target_compile_options(test_broker_load PRIVATE ${SANITIZE_FLAGS})
-target_link_options(test_broker_load PRIVATE ${SANITIZE_FLAGS})

@@ -112,8 +112,24 @@ private:
       subscriptionName = boost::uuids::to_string(uuid);
     }
 
-    pulsar::Result res =
-        client.subscribe(options.topics, subscriptionName, conf, *_consumer);
+    bool notSub = true;
+    pulsar::Result res;
+    int retry = 10;
+    while (notSub && retry > 0) {
+      try {
+        res = client.subscribe(options.topics, subscriptionName, conf,
+                               *_consumer);
+        if (res == pulsar::ResultOk) {
+          notSub = false; // successfully subscribed
+          break;
+        }
+      } catch (...) {
+        std::cerr << "Failed to subscribe to topics, retrying..." << std::endl;
+
+        continue; // retry subscription
+      }
+      retry--;
+    }
 
     if (res != pulsar::ResultOk) {
       if (options.onConnectError) {
@@ -139,10 +155,8 @@ private:
     //         if (options.onConnectError) {
     //           options.onConnectError();
     //         }
-    //         std::cerr << "Error subscribing to topic: " << res << std::endl;
-    //         done = true;
-    //         cv.notify_all();
-    //         return;
+    //         std::cerr << "Error subscribing to topic: " << res <<
+    //         std::endl; done = true; cv.notify_all(); return;
     //       }
     //       _consumer =
     //       std::make_shared<pulsar::Consumer>(std::move(consumer)); if
@@ -162,8 +176,8 @@ private:
 
 protected:
   std::shared_ptr<pulsar::Client>
-      _clientRef; ///< used for RAII, keeps the client alive until the stream is
-                  ///< closed
+      _clientRef; ///< used for RAII, keeps the client alive until the stream
+                  ///< is closed
   std::shared_ptr<pulsar::Consumer> _consumer;
   std::atomic_bool _ready = false;
   std::shared_ptr<std::atomic_bool> _closed =

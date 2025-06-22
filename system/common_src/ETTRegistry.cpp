@@ -254,14 +254,9 @@ void ETTRegistry::UploadInputData(std::string uuid, std::string inputName,
   inputUpdate.set_uuid(uuid);
   inputUpdate.set_x(x);
   inputUpdate.set_y(y);
-  static int counter = 0;
-  int counterk = counter;
-  std::cout << "call write " << counter++ << std::endl;
-  CINPUT.GetWriterPool().Write<req::InputUpdate>(
-      tp::input(ownerChunk), inputUpdate, [counterk](pulsar::Result r) {
-        std::cout << "[" << counterk << "] Input update sent with result: " << r
-                  << std::endl;
-      });
+
+  CINPUT.GetWriterPool().Write<req::InputUpdate>(tp::input(ownerChunk),
+                                                 inputUpdate);
 }
 
 void ETTRegistry::DeleteEntitiesInContainer(const std::string &containerId) {
