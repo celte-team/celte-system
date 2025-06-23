@@ -44,7 +44,7 @@ Container::~Container() {
   ContainerTakeAuthorityReactor::unsubscribe(tp::rpc(_id));
   ContainerDropAuthorityReactor::unsubscribe(tp::rpc(_id));
   ContainerDeleteEntityReactor::unsubscribe(tp::rpc(_id));
-  std::cout << "called container destructor" << std::endl;
+  std::cout << "called container destructor: " << _id << std::endl;
 }
 
 void Container::__initRPCs() {

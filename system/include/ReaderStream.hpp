@@ -12,6 +12,12 @@
 #include <google/protobuf/util/json_util.h>
 #include <mutex>
 
+void handleMessageDelegate(
+    pulsar::Message msg, std::shared_ptr<pulsar::Consumer> consumer,
+    std::shared_ptr<std::atomic_bool> closed,
+    std::function<void(const std::string &)> messageHandler,
+    std::shared_ptr<std::atomic_int> pendingMessages);
+
 namespace celte {
 namespace net {
 
@@ -45,23 +51,46 @@ struct ReaderStream {
       Close();
   }
   inline void Close() {
+    std::string topic = _consumer->getTopic();
+    std::cout << "Closing reader stream for topic: " << topic << std::endl;
     if (*_closed) {
+      std::cout << "Consumer already closed for topic: " << topic << std::endl;
       return; // already closed
     }
 
-    auto topic = _consumer->getTopic();
     *_closed = true;
+    _consumer->pauseMessageListener(); // stop receiving messages
+    std::cout << "Waiting for pending messages to finish for topic: " << topic
+              << std::endl;
     if (_pendingMessages->load() > 0) {
       BlockUntilNoPending();
     }
+    std::cout << "there are no more pending messages for topic: " << topic
+              << std::endl;
 
     auto consumerKeepAlive = _consumer; // keep the consumer alive until
-                                        // the close is done
-    _consumer->closeAsync([consumerKeepAlive](pulsar::Result res) {
-      if (res != pulsar::ResultOk) {
-        std::cerr << "Error closing consumer: " << res << std::endl;
-      }
-    });
+    // the close is done
+    std::cout << "Closing consumer for topic: " << topic << std::endl;
+    _consumer->unsubscribeAsync(
+        [this, topic, consumerKeepAlive](pulsar::Result res) {
+          if (res != pulsar::ResultOk) {
+            std::cerr << "Error unsubscribing consumer for topic " << topic
+                      << ": " << res << std::endl;
+          } else {
+            _consumer->closeAsync(
+                [this, topic, consumerKeepAlive](pulsar::Result res) {
+                  if (res != pulsar::ResultOk) {
+                    std::cerr << "Error closing consumer for topic " << topic
+                              << ": " << res << std::endl;
+                  } else {
+                    std::cout << "Consumer for topic " << topic
+                              << " closed successfully." << std::endl;
+                  }
+                });
+            std::cout << "Consumer for topic " << topic
+                      << " unsubscribed successfully." << std::endl;
+          }
+        });
   }
 
   /// @brief Blocks until the pending message counter has reached zero.
@@ -73,13 +102,8 @@ struct ReaderStream {
     static_assert(std::is_base_of<google::protobuf::Message, Req>::value,
                   "Req must be a protobuf message.");
     RUNTIME.ScheduleAsyncIOTask([this, options = std::move(options)] mutable {
-      if (!__subscribe<Req>(options)) {
-        std::cerr << "Failed to subscribe to topics." << std::endl;
-        return;
-      }
       std::function<void(const pulsar::Consumer &, Req)> handler =
           options.messageHandler;
-
       auto consumer = _consumer; // copy for memory safety
       _messageHandler = [this, options, handler = std::move(handler),
                          consumer](const std::string &data) mutable {
@@ -89,10 +113,9 @@ struct ReaderStream {
         }
       };
 
-      __startPolling(consumer);
-      _ready = true; // mark the stream as ready
-      if (options.onReady) {
-        options.onReady();
+      if (!__subscribe<Req>(options)) {
+        std::cerr << "Failed to subscribe to topics." << std::endl;
+        return;
       }
     }); // end of async task
   }
@@ -112,6 +135,18 @@ private:
       subscriptionName = boost::uuids::to_string(uuid);
     }
 
+    // Keep alive shared pointers to avoid dangling references
+    auto consumerKA = _consumer;
+    auto closedKA = _closed;
+    auto messageHandlerKA = _messageHandler;
+    auto pendingKA = _pendingMessages;
+    conf.setMessageListener([consumerKA, closedKA, messageHandlerKA, pendingKA](
+                                pulsar::Consumer &_, pulsar::Message msg) {
+      handleMessageDelegate(
+          msg, consumerKA, closedKA, messageHandlerKA,
+          pendingKA); // handle the message in a separate thread
+    });
+
     bool notSub = true;
     pulsar::Result res;
     int retry = 10;
@@ -121,6 +156,10 @@ private:
                                *_consumer);
         if (res == pulsar::ResultOk) {
           notSub = false; // successfully subscribed
+          _ready = true;
+          if (options.onReady) {
+            options.onReady();
+          }
           break;
         }
       } catch (...) {
@@ -139,40 +178,7 @@ private:
       return false;
     }
     return true;
-
-    // std::mutex mtx;
-    // std::condition_variable cv;
-    // bool done = false;
-
-    // // std::unique_lock<std::mutex> lock(mtx);
-
-    // client.subscribeAsync(
-    //     options.topics, subscriptionName, conf,
-    //     [this, options = std::move(options), &mtx, &done,
-    //      &cv](const pulsar::Result &res, pulsar::Consumer consumer) {
-    //       std::lock_guard<std::mutex> guard(mtx);
-    //       if (res != pulsar::ResultOk) {
-    //         if (options.onConnectError) {
-    //           options.onConnectError();
-    //         }
-    //         std::cerr << "Error subscribing to topic: " << res <<
-    //         std::endl; done = true; cv.notify_all(); return;
-    //       }
-    //       _consumer =
-    //       std::make_shared<pulsar::Consumer>(std::move(consumer)); if
-    //       (options.onReady) {
-    //         options.onReady();
-    //       }
-    //       done = true;
-    //       cv.notify_all();
-    //     });
-
-    // cv.wait(lock, [&done]() { return done; });
-    // _ready = true;
-    // return true;
   }
-
-  void __startPolling(std::shared_ptr<pulsar::Consumer> consumer);
 
 protected:
   std::shared_ptr<pulsar::Client>

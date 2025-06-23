@@ -30,11 +30,6 @@ void GrapeRegistry::RegisterGrape(const std::string &grapeId,
 
   acc->second.id = grapeId;
   acc->second.isLocallyOwned = isLocallyOwned;
-#ifdef CELTE_SERVER_MODE_ENABLED
-  if (isLocallyOwned) {
-    RUNTIME.GetPeerService().GetClientRegistry().StartKeepAliveThread();
-  }
-#endif
   acc.release();
 
   if (onReady) {

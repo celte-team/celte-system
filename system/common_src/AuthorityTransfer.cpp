@@ -15,6 +15,10 @@ using namespace celte;
 static void __notifyTakeAuthority(nlohmann::json args) {
   LOGINFO("AuthorityTransfer: Notifying container to take authority.\n" +
           args.dump());
+  std::cout << "Calling take on authority for entity "
+            << args["e"].get<std::string>().substr(0, 4) << " from "
+            << args["f"].get<std::string>().substr(0, 4) << " to "
+            << args["t"].get<std::string>().substr(0, 4) << std::endl;
   CallContainerTakeAuthority()
       .on_scope(args["t"].get<std::string>())
       // .on_fail_log_error()
@@ -35,6 +39,10 @@ static void __notifyTakeAuthority(nlohmann::json args) {
 static void __notifyDrop(nlohmann::json args) {
   LOGINFO("AuthorityTransfer: Notifying container to drop authority.\n" +
           args.dump());
+  std::cout << "Calling drop on authority for entity "
+            << args["e"].get<std::string>().substr(0, 4) << " from "
+            << args["f"].get<std::string>().substr(0, 4) << " to "
+            << args["t"].get<std::string>().substr(0, 4) << std::endl;
   CallContainerDropAuthority()
       .on_scope(args["f"].get<std::string>())
       .on_fail_log_error()

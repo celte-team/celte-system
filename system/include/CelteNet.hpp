@@ -108,7 +108,7 @@ private:
    * @brief Initializes the configuration and the client.
    */
   void __init(const std::string &brokers = "pulsar://localhost:6650",
-              int timeoutMs = 1000);
+              int timeoutMs = 10000);
 
   std::shared_ptr<pulsar::Client> _client;
 };

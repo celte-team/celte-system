@@ -51,10 +51,6 @@ public:
   /// broadcasted to all nodes in the cluster.
   void DisconnectClient(const std::string &clientId);
 
-  /// @brief Starts the keep alive thread that will remove clients that have
-  /// not been seen for a while. (force disconnect)
-  void StartKeepAliveThread();
-
   /// @brief Runs a function with a lock on the client.
   template <typename F, typename... Args>
   void RunWithLock(const std::string &clientId, F &&f, Args &&...args) {
@@ -66,7 +62,5 @@ public:
 
 private:
   tbb::concurrent_hash_map<std::string, ClientData> _clients;
-  std::thread _keepAliveThread;
-  std::atomic_bool _keepAliveThreadRunning = false;
 };
 } // namespace celte

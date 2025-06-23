@@ -37,6 +37,7 @@ static std::string make_uuid() {
 
 Runtime::Runtime() : _uuid(make_uuid()) {
   std::cout << "Runtime created with id: " << _uuid << std::endl;
+  std::cout << "Process PID: " << getpid() << std::endl;
 }
 
 Runtime &Runtime::GetInstance() {
@@ -127,6 +128,8 @@ void Runtime::Connect(const std::string &celteHost, int port,
                       const std::string &sessionId) {
   _config.SetSessionId(sessionId);
   std::string clusterAddress = celteHost + ":" + std::to_string(port);
+  std::cout << "[" << _uuid.substr(0, 8) << "] Connecting to cluster at "
+            << clusterAddress << std::endl;
   __connectToCluster(clusterAddress);
 }
 
