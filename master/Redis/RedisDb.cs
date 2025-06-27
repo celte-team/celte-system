@@ -7,8 +7,10 @@ class RedisDb
 
     private static Lazy<ConnectionMultiplexer> lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
     {
-        string celteRedisHost = Environment.GetEnvironmentVariable("CELTE_REDIS_HOST") ?? string.Empty;
-        var config = ConfigurationOptions.Parse(celteRedisHost + ":6379");
+        string celteRedisHost = Utils.GetConfigOption("CELTE_REDIS_HOST", "localhost");
+        string celteRedisPort = Utils.GetConfigOption("CELTE_REDIS_PORT", "6379");
+        var config = ConfigurationOptions.Parse($"{celteRedisHost}:{celteRedisPort}");
+        Console.WriteLine($"Connecting to Redis at {celteRedisHost}:{celteRedisPort}");
         config.ConnectRetry = 5;
         config.AbortOnConnectFail = false;
         return ConnectionMultiplexer.Connect(config);

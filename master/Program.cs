@@ -14,7 +14,7 @@ class Program
         string configPath;
         if (args.Length < 1)
         {
-            Console.Error.WriteLine("Usage: <program> <path_to_config.yaml>");
+            Console.Error.WriteLine("Warning: Default config will be used from ~/.celte.yaml. To override, use: <program> <path_to_config.yaml>");
             var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             configPath = Path.Combine(homeDirectory, ".celte.yaml");
             Console.WriteLine($"Using default config path: {configPath}");

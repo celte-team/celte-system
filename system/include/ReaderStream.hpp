@@ -52,25 +52,17 @@ struct ReaderStream {
   }
   inline void Close() {
     std::string topic = _consumer->getTopic();
-    std::cout << "Closing reader stream for topic: " << topic << std::endl;
     if (*_closed) {
-      std::cout << "Consumer already closed for topic: " << topic << std::endl;
       return; // already closed
     }
 
     *_closed = true;
     _consumer->pauseMessageListener(); // stop receiving messages
-    std::cout << "Waiting for pending messages to finish for topic: " << topic
-              << std::endl;
     if (_pendingMessages->load() > 0) {
       BlockUntilNoPending();
     }
-    std::cout << "there are no more pending messages for topic: " << topic
-              << std::endl;
-
+    std::cout << "CLOSING CONSUMER FOR TOPIC: " << topic << std::endl;
     auto consumerKeepAlive = _consumer; // keep the consumer alive until
-    // the close is done
-    std::cout << "Closing consumer for topic: " << topic << std::endl;
     _consumer->unsubscribeAsync(
         [this, topic, consumerKeepAlive](pulsar::Result res) {
           if (res != pulsar::ResultOk) {
@@ -82,13 +74,8 @@ struct ReaderStream {
                   if (res != pulsar::ResultOk) {
                     std::cerr << "Error closing consumer for topic " << topic
                               << ": " << res << std::endl;
-                  } else {
-                    std::cout << "Consumer for topic " << topic
-                              << " closed successfully." << std::endl;
                   }
                 });
-            std::cout << "Consumer for topic " << topic
-                      << " unsubscribed successfully." << std::endl;
           }
         });
   }

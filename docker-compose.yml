@@ -80,6 +80,8 @@ services:
       context: ./clock-server
       dockerfile: Dockerfile
     container_name: clock-server
+    volumes:
+      - ${HOME}/.celte.yaml:/root/.celte.yaml
     networks:
       - pulsar
     environment:

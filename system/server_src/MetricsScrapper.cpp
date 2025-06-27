@@ -40,21 +40,23 @@ MetricsScrapper::~MetricsScrapper() {
 }
 
 void MetricsScrapper::Start() {
-  const std::string host = RUNTIME.GetConfig().Get("pushgateway_host").value();
-  const std::string port = RUNTIME.GetConfig().Get("pushgateway_port").value();
+  const std::string host =
+      RUNTIME.GetConfig().Get("PUSHGATEWAY_HOST").value_or("localhost");
+  const std::string port =
+      RUNTIME.GetConfig().Get("PUSHGATEWAY_PORT").value_or("9091");
   const std::string job = RUNTIME.GetUUID();
   _url = "http://" + host + ":" + port + "/metrics/job/" + job;
 
   RegisterMetric<int>("cpu_load", [this]() { return __getCPULoad(); });
   _uploadThreadRunning = true;
   _uploadThread = std::thread(&MetricsScrapper::__uploadWorker, this);
-
   try {
     _metricsUploadInterval =
-        std::stoi(RUNTIME.GetConfig().Get("metrics_upload_interval").value());
+        std::stoi(RUNTIME.GetConfig().Get("METRICS_UPLOAD_INTERVAL").value());
   } catch (const std::exception &e) {
     LOGERROR("Failed to get metrics upload interval: " + std::string(e.what()));
   }
+  std::cout << "debug11" << std::endl;
 }
 
 void MetricsScrapper::PushMetrics() {

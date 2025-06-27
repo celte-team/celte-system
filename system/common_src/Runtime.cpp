@@ -103,6 +103,7 @@ void Runtime::Connect() {
   _peerService = std::make_unique<PeerService>(
       std::function<void(bool)>([this, masterHost, masterPort](bool connected) {
         if (!connected) {
+          std::cout << "Failed to connect to the pulsar cluster." << std::endl;
           _hooks.onConnectionFailed();
           return;
         }
@@ -114,8 +115,9 @@ void Runtime::Connect() {
           std::cout << "Error connecting to master: " << e.what() << std::endl;
           _hooks.onConnectionFailed();
         }
-        METRICS.Start(); // metrics should have been registered by now, in the
-                         // engine. (i.e before attempting to connect)
+        METRICS.Start(); // metrics should have been registered by
+        // now, in the engine. (i.e before
+        // attempting to connect)
         GHOSTSYSTEM.StartReplicationUploadWorker();
         _hooks.onConnectionSuccess();
       }));

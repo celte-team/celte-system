@@ -9,23 +9,12 @@ void handleMessageDelegate(
     std::shared_ptr<std::atomic_int> pendingMessages) {
   celte::net::PendingRefCount prc(*pendingMessages); // RAII counter for pending
   if (*closed) {
-    std::cout << "Consumer closed, stopping message handling." << std::endl;
-    return; // Exit if closed
+    return;
   }
   if (msg.getLength() > 0) {
     std::string data(static_cast<const char *>(msg.getData()), msg.getLength());
     consumer->acknowledge(msg);
-
-    // {
-    //   // debug
-    //   if (data.find("unified_time_ms") == std::string::npos) {
-    //     std::cout << "Received message: " << data << std::endl;
-    //   }
-    // }
-
     messageHandler(data);
-  } else {
-    std::cerr << "Received empty message, skipping." << std::endl;
   }
 }
 

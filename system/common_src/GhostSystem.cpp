@@ -106,8 +106,11 @@ void GhostSystem::ApplyUpdate(const std::string &jsonUpdate) {
 #ifdef CELTE_SERVER_MODE_ENABLED
 
 void GhostSystem::StartReplicationUploadWorker() {
-  int interval = std::atoi(
-      RUNTIME.GetConfig().Get("replication_interval").value_or("100").c_str());
+  std::string default_val = "100";
+  int interval = std::atoi(RUNTIME.GetConfig()
+                               .Get("REPLICATION_INTERVAL")
+                               .value_or(default_val)
+                               .c_str());
   _replicationUploadWorkerRunning = true;
   _replicationUploadWorker = std::thread([this, interval]() {
     while (_replicationUploadWorkerRunning) {

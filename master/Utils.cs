@@ -43,6 +43,7 @@ class Utils
                     string key = ((YamlScalarNode)kv.Key).Value;
                     string value = ((YamlScalarNode)kv.Value).Value;
                     dict[key] = value;
+                    Console.WriteLine($"\t- {key}: {value}");
                 }
             }
         }

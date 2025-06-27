@@ -75,11 +75,12 @@ Logger::Logger() : _context(std::make_shared<RedisThreadContext>()) {
     _isInit = true;
   }
   int redis_port =
-      std::stoi(RUNTIME.GetConfig().Get("redis_port").value_or("6379"));
+      std::stoi(RUNTIME.GetConfig().Get("CELTE_REDIS_PORT").value_or("6379"));
   std::string redis_host =
-      RUNTIME.GetConfig().Get("redis_host").value_or("localhost");
+      RUNTIME.GetConfig().Get("CELTE_REDIS_HOST").value_or("localhost");
   _context->uuid = RUNTIME.GetUUID();
-  _context->redisKey = RUNTIME.GetConfig().Get("redis_key").value_or("logs");
+  _context->redisKey =
+      RUNTIME.GetConfig().Get("CELTE_REDIS_KEY").value_or("logs");
 
   _context = std::make_shared<RedisThreadContext>();
   if (not detail::createRedisContext(redis_host, redis_port, _context)) {
