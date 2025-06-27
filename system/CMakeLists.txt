@@ -33,6 +33,7 @@ find_package(Boost REQUIRED COMPONENTS thread system)
 find_package(unofficial-pulsar CONFIG)
 find_package(hiredis CONFIG REQUIRED)
 find_package(cpr CONFIG REQUIRED)
+find_package(yaml-cpp CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
 
@@ -85,6 +86,7 @@ set(LINK_LIBS_SYSTEMS_API
     hiredis::hiredis
     cpr::cpr
     nlohmann_json::nlohmann_json
+    yaml-cpp::yaml-cpp
 )
 
 

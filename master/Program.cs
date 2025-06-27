@@ -1,19 +1,38 @@
-﻿using DotNetEnv;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Master.Routes;
+using Microsoft.Extensions.Configuration;
 
 class Program
 {
     static async Task Main(string[] args)
     {
-        Env.Load();
-        CheckEnvironmentVariables();
-        PulsarSingleton.InitializeClient();
+        string configPath;
+        if (args.Length < 1)
+        {
+            Console.Error.WriteLine("Usage: <program> <path_to_config.yaml>");
+            var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            configPath = Path.Combine(homeDirectory, ".celte.yaml");
+            Console.WriteLine($"Using default config path: {configPath}");
+
+        }
+        else
+            configPath = args[0];
+
+        try
+        {
+            Utils.LoadYamlConfig(configPath);
+            PulsarSingleton.InitializeClient();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error loading config: {ex.Message}");
+            return;
+        }
 
         var host = Host.CreateDefaultBuilder(args)
             .ConfigureWebHostDefaults(webBuilder =>
@@ -48,21 +67,6 @@ class Program
         await PulsarSingleton.ShutdownAsync();
     }
 
-    private static void CheckEnvironmentVariables()
-    {
-        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CELTE_PULSAR_HOST")))
-        {
-            throw new ArgumentException("\n\nCELTE_PULSAR_HOST witch is refered to the brokers of the pulsar cluster is not set.\n");
-        }
-        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CELTE_GODOT_PROJECT_PATH")))
-        {
-            throw new ArgumentException("\n\nCELTE_GODOT_PROJECT_PATH witch is refered to the path of the celte godot project is not set.\n");
-        }
-        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CELTE_GODOT_PATH")))
-        {
-            throw new ArgumentException("\n\nCELTE_GODOT_PATH witch is refered to the path of the godot executable is not set.\n");
-        }
-    }
 }
 
 namespace HttpServer

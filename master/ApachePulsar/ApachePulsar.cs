@@ -12,8 +12,8 @@ public class PulsarSingleton
 
     public static void InitializeClient()
     {
-        string pulsarBrokers = Environment.GetEnvironmentVariable("CELTE_PULSAR_HOST") ?? string.Empty;
-        string pulsarPort = Environment.GetEnvironmentVariable("CELTE_PULSAR_PORT") ?? "6650";
+        string pulsarBrokers = Utils.GetConfigOption("PULSAR_BROKERS", string.Empty);
+        string pulsarPort = Utils.GetConfigOption("CELTE_PULSAR_PORT", "6650");
         pulsarBrokers = "pulsar://" + pulsarBrokers + ":" + pulsarPort;
         if (string.IsNullOrEmpty(pulsarBrokers))
         {

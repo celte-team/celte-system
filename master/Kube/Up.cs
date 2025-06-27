@@ -9,8 +9,14 @@ class UpAndDown
     public static void Up(Nodes.NodeInfo nodeinfo)
     {
         // get godot_path from the environment variables
-        string celte_godot_project_path = Environment.GetEnvironmentVariable("CELTE_GODOT_PROJECT_PATH") ?? throw new InvalidOperationException("CELTE_GODOT_PROJECT_PATH is not set");
-        string godot_path = Environment.GetEnvironmentVariable("CELTE_GODOT_PATH") ?? throw new InvalidOperationException("CELTE_GODOT_PATH is not set");
+        string celte_godot_project_path = Utils.GetConfigOption("CELTE_GODOT_PROJECT_PATH", string.Empty);
+        string godot_path = Utils.GetConfigOption("CELTE_GODOT_PATH", string.Empty);
+
+
+        if (string.IsNullOrEmpty(celte_godot_project_path) || string.IsNullOrEmpty(godot_path))
+        {
+            throw new InvalidOperationException("CELTE_GODOT_PROJECT_PATH or CELTE_GODOT_PATH is not set");
+        }
 
         // Create logs directory if it doesn't exist
         string logsDir = Path.Combine(celte_godot_project_path, "logs");
@@ -23,7 +29,7 @@ class UpAndDown
 
         // Prepare the command
         string headlessMode = "";
-        if (Environment.GetEnvironmentVariable("CELTE_SERVER_GRAPHICAL_MODE") != "true")
+        if (Utils.GetConfigOption("CELTE_SERVER_GRAPHICAL_MODE", "false") != "true")
         {
             headlessMode = "--headless"; ;
         }
@@ -43,7 +49,7 @@ class UpAndDown
                 CreateNoWindow = true
             };
 
-            // if (Environment.GetEnvironmentVariable("CELTE_SERVERS_MANUAL") != "true")
+            // if (Utils.GetConfigOption("CELTE_SERVERS_MANUAL", "false") != "true")
             // {
             var process = new Process { StartInfo = startInfo };
             process.Start();

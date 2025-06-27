@@ -1,49 +1,64 @@
 #include "Config.hpp"
-#include <laserpants/dotenv/dotenv.h>
+#include <iostream>
+#include <yaml-cpp/yaml.h>
 using namespace celte;
 
-Config::Config() {
-  dotenv::init();
+Config::Config()
+{
+    try {
+        std::string section = "celte";
+        std::string yamlPath = std::string(std::getenv("HOME")) + "/.celte.yaml";
+        YAML::Node root = YAML::LoadFile(yamlPath);
+        if (!root[section]) {
+            throw std::runtime_error("Section '" + section + "' not found in YAML");
+        }
 
-  const char *redis_host = getenv("CELTE_REDIS_HOST");
-  _config["redis_host"] = redis_host ? redis_host : "localhost";
+        for (const auto& entry : root[section]) {
+            for (const auto& kv : entry) {
+                std::string key = kv.first.as<std::string>();
+                std::string value = kv.second.as<std::string>();
+                _config[key] = value;
+            }
+        }
 
-  const char *redis_port = getenv("CELTE_REDIS_PORT");
-  _config["redis_port"] = redis_port ? redis_port : "6379";
+        // Fallback defaults if some keys are missing
+        if (_config.find("CELTE_REDIS_HOST") == _config.end())
+            _config["CELTE_REDIS_HOST"] = "localhost";
+        if (_config.find("CELTE_REDIS_PORT") == _config.end())
+            _config["CELTE_REDIS_PORT"] = "6379";
+        if (_config.find("CELTE_REDIS_KEY") == _config.end())
+            _config["CELTE_REDIS_KEY"] = "logs";
+        if (_config.find("PULSAR_BROKERS") == _config.end())
+            _config["PULSAR_BROKERS"] = "localhost";
+        if (_config.find("PUSHGATEWAY_PORT") == _config.end())
+            _config["PUSHGATEWAY_PORT"] = "9091";
+        if (_config.find("METRICS_UPLOAD_INTERVAL") == _config.end())
+            _config["METRICS_UPLOAD_INTERVAL"] = "5";
+        if (_config.find("REPLICATION_INTERVAL") == _config.end())
+            _config["REPLICATION_INTERVAL"] = "1000";
 
-  const char *redis_key = getenv("CELTE_REDIS_KEY");
-  _config["redis_key"] = redis_key ? redis_key : "logs";
-
-  const char *pushgateway_host = getenv("CELTE_PULSAR_HOST");
-  _config["pushgateway_host"] =
-      pushgateway_host ? pushgateway_host : "localhost";
-
-  const char *pushgateway_port = getenv("PUSHGATEWAY_PORT");
-  _config["pushgateway_port"] = pushgateway_port ? pushgateway_port : "9091";
-
-  const char *metrics_upload_interval = getenv("METRICS_UPLOAD_INTERVAL");
-  _config["metrics_upload_interval"] =
-      metrics_upload_interval ? metrics_upload_interval : "5";
-
-  const char *replication_interval = getenv("REPLICATION_INTERVAL");
-  _config["replication_interval"] =
-      replication_interval ? replication_interval : "1000";
-}
-
-std::optional<std::string> Config::Get(const std::string &key) const {
-  auto it = _config.find(key);
-  if (it == _config.end()) {
-    // try to get it from the environment
-    const char *env_value = getenv(key.c_str());
-    if (env_value) {
-      return std::string(env_value);
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to load config from YAML: " << e.what() << std::endl;
+        throw;
     }
-    // if not found, return nullopt
-    return std::nullopt;
-  }
-  return it->second;
 }
 
-void Config::Set(const std::string &key, const std::string &value) {
-  _config[key] = value;
+std::optional<std::string> Config::Get(const std::string& key) const
+{
+    auto it = _config.find(key);
+    if (it == _config.end()) {
+        // try to get it from the environment
+        const char* env_value = getenv(key.c_str());
+        if (env_value) {
+            return std::string(env_value);
+        }
+        // if not found, return nullopt
+        return std::nullopt;
+    }
+    return it->second;
+}
+
+void Config::Set(const std::string& key, const std::string& value)
+{
+    _config[key] = value;
 }
