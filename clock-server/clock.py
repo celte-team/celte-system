@@ -6,7 +6,8 @@ from pulsar import Client
 import sys
 
 def load_config():
-    with open("/root/.celte.yaml", 'r') as f:
+    yaml_path = os.getenv("CELTE_CONFIG", "/root/.celte.yaml")
+    with open(yaml_path, 'r') as f:
         config = yaml.safe_load(f)
     # Fallback to 'master' section if 'clock' not defined
     raw_config = config.get("celte") or config.get("clock") or config.get("master")

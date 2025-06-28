@@ -12,16 +12,24 @@ class Program
     static async Task Main(string[] args)
     {
         string configPath;
-        if (args.Length < 1)
+        string? envConfigPath = Environment.GetEnvironmentVariable("CELTE_CONFIG");
+
+        if (!string.IsNullOrWhiteSpace(envConfigPath))
         {
-            Console.Error.WriteLine("Warning: Default config will be used from ~/.celte.yaml. To override, use: <program> <path_to_config.yaml>");
+            configPath = envConfigPath;
+            Console.WriteLine($"Using config path from CELTE_CONFIG env var: {configPath}");
+        }
+        else if (args.Length >= 1 && !string.IsNullOrWhiteSpace(args[0]))
+        {
+            configPath = args[0];
+            Console.WriteLine($"Using config path from argument: {configPath}");
+        }
+        else
+        {
             var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             configPath = Path.Combine(homeDirectory, ".celte.yaml");
             Console.WriteLine($"Using default config path: {configPath}");
-
         }
-        else
-            configPath = args[0];
 
         try
         {
