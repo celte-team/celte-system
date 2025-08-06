@@ -211,12 +211,15 @@ void RPCCalleeStub::_init_consumer(const std::string &scope,
   });
 
   std::string subscriptionName = RUNTIME.GetUUID();
-  pulsar::Result result =
-      _client->subscribe(scope, subscriptionName, consumerConfig, consumer);
-  if (result != pulsar::ResultOk) {
-    throw std::runtime_error("Failed to subscribe to " + scope + ": " +
-                             pulsar::strResult(result));
-  }
+  pulsar::Result result;
+  do {
+    try {
+      result =
+          _client->subscribe(scope, subscriptionName, consumerConfig, consumer);
+    } catch (std::exception &e) {
+      result = pulsar::ResultUnknownError;
+    }
+  } while (result != pulsar::ResultOk);
 }
 
 RPCCalleeStub::~RPCCalleeStub() {
