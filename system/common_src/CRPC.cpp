@@ -211,11 +211,21 @@ void RPCCalleeStub::_init_consumer(const std::string &scope,
   });
 
   std::string subscriptionName = RUNTIME.GetUUID();
-  pulsar::Result result =
-      _client->subscribe(scope, subscriptionName, consumerConfig, consumer);
-  if (result != pulsar::ResultOk) {
-    throw std::runtime_error("Failed to subscribe to " + scope + ": " +
-                             pulsar::strResult(result));
+  pulsar::Result result;
+  do {
+    try {
+      result =
+          _client->subscribe(scope, subscriptionName, consumerConfig, consumer);
+    } catch (std::exception &e) {
+      result = pulsar::ResultUnknownError;
+    }
+  } while (result != pulsar::ResultOk);
+}
+
+RPCCalleeStub::~RPCCalleeStub() {
+  for (auto [scope, method] : _methods) {
+    method.consumer.close();
+    method.methods.clear();
   }
 }
 
@@ -354,222 +364,3 @@ void RPCCalleeStub::_handle_call(const std::string &scope,
 }
 
 } // namespace celte
-
-// functional test below!
-
-class Test {
-public:
-  /**
-   * @brief Constructs a Test object with a specified name.
-   *
-   * Initializes a Test instance using the provided name, which can be used for
-   * identification in RPC operations or logging.
-   *
-   * @param name The name assigned to the Test instance.
-   */
-  Test(const std::string name) : _name(name) {}
-  /**
-   * @brief Computes the sum of two integers while logging the operation.
-   *
-   * This method outputs a log message that includes the object's name and the
-   * two numbers being added, then returns their sum.
-   *
-   * @param a The first integer value.
-   * @param b The second integer value.
-   * @return int The sum of a and b.
-   */
-  int Add(int a, int b) {
-    std::cout << _name << " adding " << a << " and " << b << std::endl;
-    return a + b;
-  };
-  /**
-   * @brief Prints a greeting message.
-   *
-   * Outputs "hello!" to the standard output stream, followed by a newline.
-   */
-  void PrintHello() { std::cout << "hello! " << std::endl; }
-  /**
-   * @brief Returns the constant integer 5.
-   *
-   * This function always returns the fixed value of 5.
-   *
-   * @return int The integer 5.
-   */
-  int GetFive() { return 5; }
-
-private:
-  std::string _name;
-};
-
-REGISTER_RPC(Test, Add);
-REGISTER_RPC(Test, PrintHello);
-REGISTER_RPC(Test, GetFive);
-
-/**
- * @brief Executes a series of RPC calls and handles their outcomes.
- *
- * This function performs multiple RPC interactions:
- * - Sends a non-blocking call to invoke a greeting message on "peer1".
- * - Initiates an asynchronous call to retrieve a fixed value (expected to be
- * five) on "peer1", printing the result via a callback.
- * - Performs synchronous addition RPC calls on "peer1" and "peer2", printing
- * the results.
- *
- * Each RPC call is configured with custom error handling that logs exceptions
- * if the call fails. After dispatching these RPC calls, the function enters a
- * loop that reads from standard input, terminating when the user types "exit".
- */
-void RunCaller() {
-
-  CallTestPrintHello()
-      .on_peer("peer1")
-      .on_fail_do([](celte::CStatus &status) {
-        try {
-          if (status) {
-            std::rethrow_exception(*status);
-          }
-        } catch (const std::exception &e) {
-          std::cout << "Failed to call PrintHello: " << e.what() << std::endl;
-        }
-      })
-      .fire_and_forget();
-
-  CallTestGetFive()
-      .on_peer("peer1")
-      .on_fail_do([](celte::CStatus &status) {
-        try {
-          if (status) {
-            std::rethrow_exception(*status);
-          }
-        } catch (const std::exception &e) {
-          std::cout << "Failed to call GetFive: " << e.what() << std::endl;
-        }
-      })
-      .with_timeout(std::chrono::milliseconds(1000))
-      .retry(1)
-      .call_async<int>(
-          [](int x) { std::cout << "GetFive returned : " << x << std::endl; });
-
-  int x = CallTestAdd()
-              .on_peer("peer1")
-              .on_fail_do([](celte::CStatus &status) {
-                try {
-                  if (status) {
-                    std::rethrow_exception(*status);
-                  }
-                } catch (const std::exception &e) {
-                  std::cout << "Failed to call Add: " << e.what() << std::endl;
-                }
-              })
-              .with_timeout(std::chrono::milliseconds(1000))
-              .retry(1)
-              .call<int>(1, 2)
-              .value_or(0);
-  std::cout << "Result for instance 1: " << x << std::endl;
-
-  int y = CallTestAdd()
-              .on_peer("peer2")
-              .on_fail_do([](celte::CStatus &status) {
-                try {
-                  if (status) {
-                    std::rethrow_exception(*status);
-                  }
-                } catch (const std::exception &e) {
-                  std::cout << "Failed to call Add: " << e.what() << std::endl;
-                }
-              })
-              .with_timeout(std::chrono::milliseconds(1000))
-              .retry(1)
-              .call<int>(1, 2)
-              .value_or(0);
-  std::cout << "Result instance 2: " << y << std::endl;
-
-  while (std::cin) {
-    std::string line;
-    std::getline(std::cin, line);
-    if (line == "exit") {
-      break;
-    }
-  }
-}
-
-/**
- * @brief Runs the RPC callee process by subscribing test instances to RPC
- * reactors.
- *
- * This function creates two test objects and registers them with specific RPC
- * reactors:
- * - The first instance ("instance 1") is subscribed to addition, greeting, and
- * fixed integer reactors on peer "peer1".
- * - The second instance ("instance 2") is subscribed to the addition reactor on
- * peer "peer2".
- *
- * After setting up the subscriptions, the function waits for user input from
- * standard input. When the user types "exit", the function breaks out of the
- * loop and unsubscribes all reactors to clean up.
- */
-void RunCallee() {
-  Test test("instance 1");
-  TestAddReactor::subscribe("peer1", &test);
-  TestPrintHelloReactor::subscribe("peer1", &test);
-  TestGetFiveReactor::subscribe("peer1", &test);
-
-  Test test2("instance 2");
-  TestAddReactor::subscribe("peer2", &test2);
-
-  while (std::cin) {
-    std::string line;
-    std::getline(std::cin, line);
-    if (line == "exit") {
-      break;
-    }
-  }
-
-  TestAddReactor::unsubscribe("peer1");
-  TestPrintHelloReactor::unsubscribe("peer1");
-  TestGetFiveReactor::unsubscribe("peer1");
-
-  TestAddReactor::unsubscribe("peer2");
-}
-
-/**
- * @brief Initializes the RPC system and executes the appropriate caller or
- * callee mode.
- *
- * The function configures an Apache Pulsar client with predefined settings and
- * assigns it to both the callee and caller RPC stubs. It then starts listening
- * for RPC responses. If the command-line argument "--call" is provided, the
- * system runs in caller mode, otherwise it operates in callee mode.
- *
- * @param ac Number of command-line arguments.
- * @param av Array of command-line argument strings.
- * @return int Always returns 0.
- */
-int test(int ac, char **av) {
-  if (ac > 1 && std::string(av[1]) == "--call")
-    static_uuid = "caller-peer";
-
-  // creating the pulsar client
-  pulsar::ClientConfiguration conf;
-  conf.setOperationTimeoutSeconds(10000 / 1000);
-  conf.setIOThreads(1);
-  conf.setMessageListenerThreads(1);
-  conf.setUseTls(false);
-  conf.setLogger(new pulsar::ConsoleLoggerFactory(pulsar::Logger::LEVEL_WARN));
-
-  std::string pulsarBrokers = "pulsar://localhost:6650";
-  auto client = std::make_shared<pulsar::Client>(pulsarBrokers, conf);
-  // wait until the client is connected to the cluster
-
-  celte::RPCCalleeStub::instance().SetClient(client);
-  celte::RPCCallerStub::instance().SetClient(client);
-  celte::RPCCallerStub::instance().StartListeningForAnswers();
-
-  // if --call in args, we are calling the method.. Else, we are subscribers
-  if (ac > 1 && std::string(av[1]) == "--call") {
-    RunCaller();
-  } else {
-    RunCallee();
-  }
-  return 0;
-}

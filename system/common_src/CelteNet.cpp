@@ -30,55 +30,33 @@ void CelteNet::CreateProducer(ProducerOptions &options) {
     throw CelteNetException("Client not initialized");
   }
 
-  _client->createProducerAsync(
+  _client->createProducerAsync( // TODO : use runtime thread pool instead of
+                                // pulsar's async, & benchmark difference
       options.topic, options.conf,
       [this, options](pulsar::Result result, pulsar::Producer newProducer) {
         if (options.then) {
-          RUNTIME.ScheduleSyncTask([options, newProducer, result]() {
-            options.then(newProducer, result);
-          });
+          options.then(newProducer, result);
         }
-        if (options.thenAsync)
-          options.thenAsync(newProducer, result);
       });
 }
 
 /**
  * @brief Creates a Pulsar consumer asynchronously.
  *
- * Configures the subscription using the provided options, sets a message listener that copies incoming messages to
- * ensure controlled message lifecycle management, calls the specified message handler, and acknowledges the original message.
- * The resulting consumer is delivered via asynchronous callbacks defined in the options.
+ * Configures the subscription using the provided options, sets a message
+ * listener that copies incoming messages to ensure controlled message lifecycle
+ * management, calls the specified message handler, and acknowledges the
+ * original message. The resulting consumer is delivered via asynchronous
+ * callbacks defined in the options.
  *
- * @param options Contains subscription configuration details including topics, subscription name, message handler,
- *                and callbacks for handling the consumer creation result.
+ * @param options Contains subscription configuration details including topics,
+ * subscription name, message handler, and callbacks for handling the consumer
+ * creation result.
  *
- * @throws CelteNetException if the client is not initialized or if the message handler is not set.
+ * @throws CelteNetException if the client is not initialized or if the message
+ * handler is not set.
  */
 void CelteNet::CreateConsumer(SubscribeOptions &options) {
-  if (!_client) {
-    throw CelteNetException("Client not initialized");
-  }
-
-  if (options.messageHandler == nullptr) {
-    throw CelteNetException("Message handler not set");
-  }
-
-  options.conf.setMessageListener(
-      [options](pulsar::Consumer &consumer, const pulsar::Message &msg) {
-        options.messageHandler(consumer, msg);
-      });
-
-  _client->subscribeAsync(
-      options.topics, options.subscriptionName + "." + RUNTIME.GetUUID(),
-      options.conf,
-      [this, options](pulsar::Result result, pulsar::Consumer newConsumer) {
-        if (options.thenAsync)
-          options.thenAsync(newConsumer, result);
-        if (options.then) {
-          RUNTIME.ScheduleSyncTask([options, newConsumer, result]() {
-            options.then(newConsumer, result);
-          });
-        }
-      });
+  throw std::runtime_error(
+      "Creating consumers via celte net is now depreceated");
 }

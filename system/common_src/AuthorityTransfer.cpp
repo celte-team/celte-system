@@ -15,15 +15,34 @@ using namespace celte;
 static void __notifyTakeAuthority(nlohmann::json args) {
   LOGINFO("AuthorityTransfer: Notifying container to take authority.\n" +
           args.dump());
+  std::cout << "Calling take on authority for entity "
+            << args["e"].get<std::string>().substr(0, 4) << " from "
+            << args["f"].get<std::string>().substr(0, 4) << " to "
+            << args["t"].get<std::string>().substr(0, 4) << std::endl;
   CallContainerTakeAuthority()
       .on_scope(args["t"].get<std::string>())
-      .on_fail_log_error()
+      // .on_fail_log_error()
+      .on_fail_do([](CStatus &status) {
+        try {
+          if (status) {
+            std::rethrow_exception(*status);
+          }
+        } catch (const std::exception &e) {
+          std::cerr << "AuthorityTransfer: Failed to notify container to take "
+                       "authority: "
+                    << e.what() << std::endl;
+        }
+      })
       .fire_and_forget(args.dump());
 }
 
 static void __notifyDrop(nlohmann::json args) {
   LOGINFO("AuthorityTransfer: Notifying container to drop authority.\n" +
           args.dump());
+  std::cout << "Calling drop on authority for entity "
+            << args["e"].get<std::string>().substr(0, 4) << " from "
+            << args["f"].get<std::string>().substr(0, 4) << " to "
+            << args["t"].get<std::string>().substr(0, 4) << std::endl;
   CallContainerDropAuthority()
       .on_scope(args["f"].get<std::string>())
       .on_fail_log_error()
@@ -47,6 +66,8 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   std::string fromContainerId;
 
   ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
+    // if ett is to be assigned to the container that it is already in, we
+    // don't need to do anything
     fromContainerId = e.ownerContainerId;
     if (e.quarantine || !e.isValid ||
         (e.ownerContainerId == toContainerId && !ignoreNoMove)) {
@@ -72,10 +93,10 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   args["payload"] = payload;
   args["g"] = GHOSTSYSTEM.PeekProperties(entityId).value_or("{}");
 
-  LOGGER.log(celte::Logger::DEBUG, "AuthorityTransfer: \n" + args.dump());
-#ifdef DEBUG
+  LOGGER.Log(celte::Logger::DEBUG, "AuthorityTransfer: \n" + args.dump());
+  // #ifdef DEBUG
   prettyPrintAuthTransfer(args);
-#endif
+  // #endif
 
   // notify the container that will take authority
   __notifyTakeAuthority(args);
@@ -89,15 +110,21 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
 /**
  * @brief Executes the drop order process for an entity.
  *
- * This function checks whether the target container exists for the given entity. If the target container does not exist,
- * the entity is marked as invalid and quarantined. When running in server mode, if the source and target containers differ,
- * the entity is removed from its source container. Finally, if the target container is still absent, the function logs a deletion
- * message and schedules the entity for deletion by pushing a task to the engine.
+ * This function checks whether the target container exists for the given
+ * entity. If the target container does not exist, the entity is marked as
+ * invalid and quarantined. When running in server mode, if the source and
+ * target containers differ, the entity is removed from its source container.
+ * Finally, if the target container is still absent, the function logs a
+ * deletion message and schedules the entity for deletion by pushing a task to
+ * the engine.
  *
  * @param e The entity to be processed for the drop order.
- * @param toContainerId Identifier of the target container; absence leads to entity quarantine and deletion.
- * @param fromContainerId Identifier of the source container; if differing from the target, triggers removal of the entity.
- * @param procedureId Identifier for the drop order procedure (currently unused).
+ * @param toContainerId Identifier of the target container; absence leads to
+ * entity quarantine and deletion.
+ * @param fromContainerId Identifier of the source container; if differing from
+ * the target, triggers removal of the entity.
+ * @param procedureId Identifier for the drop order procedure (currently
+ * unused).
  */
 static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
                                 const std::string &fromContainerId,
@@ -115,12 +142,16 @@ static void __execDropOrderImpl(Entity &e, const std::string &toContainerId,
 #endif
   // if toContainerId is not registered here, we need to delete the entity.
   if (not GRAPES.ContainerExists(toContainerId)) {
+    std::cout << "to container id not registered ("
+              << toContainerId.substr(0, 4) << "), deleting entity"
+              << std::endl;
     std::cout << "\033[1;31mDELETE\033[0m " << e.id << std::endl;
     std::string id = e.id;
     std::string payload = e.payload;
     RUNTIME.TopExecutor().PushTaskToEngine(
         [id = std::move(id), payload = std::move(payload)]() {
           RUNTIME.Hooks().onDeleteEntity(id, payload);
+          ETTREGISTRY.UnregisterEntity(id);
         });
   }
 }
@@ -138,13 +169,15 @@ static void applyGhostToEntity(const std::string &entityId,
 /**
  * @brief Executes an authority take order based on the provided JSON arguments.
  *
- * This function schedules a task to transfer authority for an entity by updating its
- * owner to a target container at a specified time. It extracts order details from the
- * JSON object, including the entity identifier ("e"), target container identifier ("t"),
- * source container identifier ("f"), procedure identifier ("p"), execution time in ISO format ("w"),
- * payload details ("payload"), and ghost data ("g"). Within the scheduled task, the function
- * updates the entity's ownership and clears its quarantine status if the entity exists. If the
- * entity is not registered, it pushes a task to instantiate the entity and apply ghost data.
+ * This function schedules a task to transfer authority for an entity by
+ * updating its owner to a target container at a specified time. It extracts
+ * order details from the JSON object, including the entity identifier ("e"),
+ * target container identifier ("t"), source container identifier ("f"),
+ * procedure identifier ("p"), execution time in ISO format ("w"), payload
+ * details ("payload"), and ghost data ("g"). Within the scheduled task, the
+ * function updates the entity's ownership and clears its quarantine status if
+ * the entity exists. If the entity is not registered, it pushes a task to
+ * instantiate the entity and apply ghost data.
  *
  * @param args JSON object containing order details:
  *             - "e": Entity identifier.
@@ -155,11 +188,14 @@ static void applyGhostToEntity(const std::string &entityId,
  *             - "payload": Payload with additional transfer details.
  *             - "g": Ghost data for updating the entity.
  *
- * @note In server mode, the new entity is also registered to the target container.
+ * @note In server mode, the new entity is also registered to the target
+ * container.
  */
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
-  LOGGER.log(celte::Logger::DEBUG,
+  LOGGER.Log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing take order.\n" + args.dump());
+  std::cout << "AuthorityTransfer: Executing take order.\n"
+            << args["e"].get<std::string>().substr(0, 4) << std::endl;
   std::string entityId = args["e"].get<std::string>();
   std::string toContainerId = args["t"].get<std::string>();
   std::string fromContainerId = args["f"].get<std::string>();
@@ -168,34 +204,33 @@ void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
   std::string payload = args["payload"].get<std::string>();
   nlohmann::json ghostData = args["g"];
 
-  Clock::timepoint whenTp = Clock::FromISOString(when);
+  //   // if ett exists, transfer auth
+  ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
+    e.ownerContainerId = toContainerId;
+    e.quarantine = false;
+  });
 
-  CLOCK.ScheduleAt(whenTp, [=]() {
-    // std::cout << "is ett registered? "
-    //           << ETTREGISTRY.IsEntityRegistered(entityId) << std::endl;
-
-    // if ett exists, transfer auth
-    ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {
-      e.ownerContainerId = toContainerId;
-      e.quarantine = false;
-    });
-
-    // if ett does not exist, schedule it for creation (container will be
-    // emplaced)
-    // if (!ettExists) {
-    if (!ETTREGISTRY.IsEntityRegistered(entityId)) {
-      RUNTIME.TopExecutor().PushTaskToEngine(
-          [payload, entityId, toContainerId, ghostData]() {
-            ETTREGISTRY.EngineCallInstantiate(entityId, payload, toContainerId);
-            applyGhostToEntity(entityId, ghostData);
-          });
-    }
+  // if ett does not exist, schedule it for creation (container will be
+  // emplaced)
+  if (!ETTREGISTRY.IsEntityRegistered(entityId)) {
+    std::cout << "entity will be instantiated: " << entityId.substr(0, 4)
+              << std::endl;
+    RUNTIME.TopExecutor().PushTaskToEngine(
+        [payload, entityId, toContainerId, ghostData]() {
+          std::cout << "call instantiate in exec take order" << std::endl;
+          ETTREGISTRY.EngineCallInstantiate(entityId, payload, toContainerId);
+          applyGhostToEntity(entityId, ghostData);
+        });
+  } else {
+    std::cout << "entity is already registered: " << entityId.substr(0, 4)
+              << std::endl;
+  }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-    ContainerRegistry::GetInstance().RegisterNewOwnedEntityToContainer(
-        toContainerId, entityId);
+  ContainerRegistry::GetInstance().RegisterNewOwnedEntityToContainer(
+      toContainerId, entityId);
 #endif
-  });
+  // });
 }
 
 void AuthorityTransfer::ExecDropOrder(nlohmann::json args) {
@@ -218,8 +253,12 @@ void AuthorityTransfer::ExecDropOrder(nlohmann::json args) {
     return;
   }
 
-  LOGGER.log(celte::Logger::DEBUG,
+  LOGGER.Log(celte::Logger::DEBUG,
              "AuthorityTransfer: Executing drop order.\n" + args.dump());
+  std::cout << "Drop order scheduled at " << Clock::ToISOString(whenTp)
+            << " for entity " << entityId.substr(0, 4) << " from "
+            << fromContainerId.substr(0, 4) << " to "
+            << toContainerId.substr(0, 4) << std::endl;
   CLOCK.ScheduleAt(
       whenTp, [entityId, toContainerId, fromContainerId, procedureId]() {
         ETTREGISTRY.RunWithLock(entityId, [&](Entity &e) {

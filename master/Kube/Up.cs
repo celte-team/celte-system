@@ -9,8 +9,14 @@ class UpAndDown
     public static void Up(Nodes.NodeInfo nodeinfo)
     {
         // get godot_path from the environment variables
-        string celte_godot_project_path = Environment.GetEnvironmentVariable("CELTE_GODOT_PROJECT_PATH") ?? throw new InvalidOperationException("CELTE_GODOT_PROJECT_PATH is not set");
-        string godot_path = Environment.GetEnvironmentVariable("CELTE_GODOT_PATH") ?? throw new InvalidOperationException("CELTE_GODOT_PATH is not set");
+        string celte_godot_project_path = Utils.GetConfigOption("CELTE_GODOT_PROJECT_PATH", string.Empty);
+        string godot_path = Utils.GetConfigOption("CELTE_GODOT_PATH", string.Empty);
+
+
+        if (string.IsNullOrEmpty(celte_godot_project_path) || string.IsNullOrEmpty(godot_path))
+        {
+            throw new InvalidOperationException("CELTE_GODOT_PROJECT_PATH or CELTE_GODOT_PATH is not set");
+        }
 
         // Create logs directory if it doesn't exist
         string logsDir = Path.Combine(celte_godot_project_path, "logs");
@@ -22,7 +28,13 @@ class UpAndDown
         }
 
         // Prepare the command
-        string command = $"cd {celte_godot_project_path} ; export CELTE_MODE=server; export CELTE_NODE_ID={nodeinfo.Id}; export CELTE_NODE_PID={nodeinfo.Pid}; {godot_path} . --headless > {logFile} 2>&1";
+        string headlessMode = "";
+        if (Utils.GetConfigOption("CELTE_SERVER_GRAPHICAL_MODE", "false") != "true")
+        {
+            headlessMode = "--headless"; ;
+        }
+        string command = $"cd {celte_godot_project_path} ; export CELTE_MODE=server; export CELTE_NODE_ID={nodeinfo.Id}; export CELTE_NODE_PID={nodeinfo.Pid}; DYLD_INSERT_LIBRARIES=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/lib/darwin/libclang_rt.asan_osx_dynamic.dylib {godot_path} . {headlessMode}> {logFile} 2>&1";
+        Console.WriteLine($"Starting node {nodeinfo.Id} with command: {command}");
 
         if (OperatingSystem.IsMacOS())
         {
@@ -37,6 +49,8 @@ class UpAndDown
                 CreateNoWindow = true
             };
 
+            // if (Utils.GetConfigOption("CELTE_SERVERS_MANUAL", "false") != "true")
+            // {
             var process = new Process { StartInfo = startInfo };
             process.Start();
 
@@ -45,12 +59,16 @@ class UpAndDown
 
             // Store the process ID in Redis for later reference
             nodeinfo.Pid = process.Id.ToString();
-            RedisDb.SetHashField("nodes", nodeinfo.Id, JsonSerializer.Serialize(nodeinfo));
+
 
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"Node {nodeinfo.Id} started with PID {process.Id}");
             Console.WriteLine($"Logs are being written to: {logFile}");
             Console.ResetColor();
+            // }
+
+            RedisDb.SetHashField("nodes", nodeinfo.Id, JsonSerializer.Serialize(nodeinfo));
+
         }
         else if (OperatingSystem.IsWindows())
         {

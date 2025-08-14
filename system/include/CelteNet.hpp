@@ -52,8 +52,8 @@ public:
     std::string topic;                  ///< The topic to produce to.
     std::function<void(pulsar::Producer, const pulsar::Result &)> then =
         nullptr; ///< called in the main thread once the producer is created.
-    std::function<void(pulsar::Producer, const pulsar::Result &)> thenAsync =
-        nullptr; ///< called asynchronously once the producer is created.
+    // std::function<void(pulsar::Producer, const pulsar::Result &)> thenAsync =
+    //     nullptr; ///< called asynchronously once the producer is created.
   };
 
   /**
@@ -65,10 +65,8 @@ public:
     std::vector<std::string> topics;    ///< List of topics to subscribe to.
     std::string subscriptionName;       ///< The name of the subscription.
     pulsar::ConsumerConfiguration conf; ///< Pulsar configuration.
-    std::function<void(const pulsar::Consumer, const pulsar::Result &)> then =
+    std::function<void(const pulsar::Consumer &, const pulsar::Result &)> then =
         nullptr; ///< called once the subscription is done, in the main thread.
-    std::function<void(const pulsar::Consumer &, const pulsar::Result &)>
-        thenAsync = nullptr; ///< called once the subscription is done (async).
     std::function<void(pulsar::Consumer &, const pulsar::Message &)>
         messageHandler = nullptr; ///< callback called when a message is
                                   ///< received by the consumer.
@@ -110,7 +108,7 @@ private:
    * @brief Initializes the configuration and the client.
    */
   void __init(const std::string &brokers = "pulsar://localhost:6650",
-              int timeoutMs = 1000);
+              int timeoutMs = 10000);
 
   std::shared_ptr<pulsar::Client> _client;
 };

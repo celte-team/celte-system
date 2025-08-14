@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+import os
+import sys
+import yaml
+import readline
+from pathlib import Path
+import socket
+
+
+CONFIG_PATH = os.path.expanduser('~/.celte.yaml')
+
+
+def get_ip_address():
+    """Retrieve the IP address of the host machine."""
+    # return "192.168.0.64"
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        print(f"Host IP Address: {ip}")
+        s.close()
+        return ip
+    except Exception as e:
+        print(f"Failed to get IP address: {e}")
+        sys.exit(1)
+
+# Map dot notation to YAML key
+KEY_MAP = {
+    'celte.master.host': 'CELTE_MASTER_HOST',
+    'celte.master.port': 'CELTE_MASTER_PORT',
+    'celte.redis.port': 'CELTE_REDIS_PORT',
+    'celte.redis.key': 'CELTE_REDIS_KEY',
+    'celte.redis.host': 'CELTE_REDIS_HOST',
+    'celte.session.id': 'CELTE_SESSION_ID',
+    'celte.server.graphical.mode': 'CELTE_SERVER_GRAPHICAL_MODE',
+    'celte.godot.path': 'CELTE_GODOT_PATH',
+    'celte.godot.project.path': 'CELTE_GODOT_PROJECT_PATH',
+    'celte.pulsar.host': 'CELTE_PULSAR_HOST',
+    'celte.pulsar.port': 'CELTE_PULSAR_PORT',
+}
+
+REVERSE_KEY_MAP = {v: k for k, v in KEY_MAP.items()}
+
+# For autocompletion
+ALL_KEYS = list(KEY_MAP.keys()) + list(KEY_MAP.values())
+
+def complete(text, state):
+    options = [k for k in ALL_KEYS if k.startswith(text)]
+    if state < len(options):
+        return options[state]
+    return None
+
+readline.set_completer_delims(' \t\n;')
+readline.parse_and_bind('tab: complete')
+readline.set_completer(complete)
+
+def load_yaml():
+    if not os.path.exists(CONFIG_PATH):
+        print(f"Config file not found: {CONFIG_PATH}")
+        sys.exit(1)
+    with open(CONFIG_PATH, 'r') as f:
+        return yaml.safe_load(f)
+
+def save_yaml(data):
+    with open(CONFIG_PATH, 'w') as f:
+        yaml.dump(data, f, default_flow_style=False)
+
+def set_value(key, value):
+    data = load_yaml()
+    if 'celte' not in data:
+        data['celte'] = []
+    # Find the YAML key
+    yaml_key = KEY_MAP.get(key, key)
+    # Remove any existing entry for this key
+    data['celte'] = [item for item in data['celte'] if not (isinstance(item, dict) and yaml_key in item)]
+    # Add the new value
+    data['celte'].append({yaml_key: value})
+    save_yaml(data)
+    print(f"Set {yaml_key} to {value}")
+
+def main():
+    if len(sys.argv) < 3:
+        print("Usage: cconf <key> <value>")
+        print("Example: cconf celte.master.host 192.168.0.66")
+        sys.exit(1)
+    key = sys.argv[1]
+    value = sys.argv[2]
+    set_value(key, value)
+
+if __name__ == "__main__":
+    main()

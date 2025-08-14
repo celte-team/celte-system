@@ -49,7 +49,7 @@ public:
       : _message("At " + file + " - " + std::to_string(line) + " : " + msg),
         logger(log), _callback(callback) {
     try {
-      logger.log(Logger::ERROR,
+      logger.Log(Logger::ERROR,
                  "At " + file + " - " + std::to_string(line) + " : " + msg);
       if (callback) {
         callback(_message);

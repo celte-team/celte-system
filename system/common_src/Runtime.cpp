@@ -35,7 +35,10 @@ static std::string make_uuid() {
 #endif
 }
 
-Runtime::Runtime() : _uuid(make_uuid()) {}
+Runtime::Runtime() : _uuid(make_uuid()) {
+  std::cout << "Runtime created with id: " << _uuid << std::endl;
+  std::cout << "Process PID: " << getpid() << std::endl;
+}
 
 Runtime &Runtime::GetInstance() {
   static Runtime instance;
@@ -81,12 +84,13 @@ bool Runtime::__connectToMaster(const std::string &masterAddress,
 
 void Runtime::Connect() {
   // get config from env
-  std::string host = _config.Get("CELTE_HOST").value_or("localhost");
-  std::string port = _config.Get("CELTE_PORT").value_or("6650");
+  std::string host = _config.Get("CELTE_PULSAR_HOST").value_or("localhost");
+  std::string port = _config.Get("CELTE_PULSAR_PORT").value_or("6650");
   std::string sessionId = _config.Get("CELTE_SESSION_ID").value_or("default");
   std::string masterHost =
       _config.Get("CELTE_MASTER_HOST").value_or("localhost");
   std::string masterPort = _config.Get("CELTE_MASTER_PORT").value_or("1908");
+
   _config.SetSessionId(sessionId);
 
   // connect to the pulsar cluster
@@ -99,6 +103,7 @@ void Runtime::Connect() {
   _peerService = std::make_unique<PeerService>(
       std::function<void(bool)>([this, masterHost, masterPort](bool connected) {
         if (!connected) {
+          std::cout << "Failed to connect to the pulsar cluster." << std::endl;
           _hooks.onConnectionFailed();
           return;
         }
@@ -110,8 +115,9 @@ void Runtime::Connect() {
           std::cout << "Error connecting to master: " << e.what() << std::endl;
           _hooks.onConnectionFailed();
         }
-        METRICS.Start(); // metrics should have been registered by now, in the
-                         // engine. (i.e before attempting to connect)
+        METRICS.Start(); // metrics should have been registered by
+        // now, in the engine. (i.e before
+        // attempting to connect)
         GHOSTSYSTEM.StartReplicationUploadWorker();
         _hooks.onConnectionSuccess();
       }));
@@ -124,11 +130,13 @@ void Runtime::Connect(const std::string &celteHost, int port,
                       const std::string &sessionId) {
   _config.SetSessionId(sessionId);
   std::string clusterAddress = celteHost + ":" + std::to_string(port);
+  std::cout << "[" << _uuid.substr(0, 8) << "] Connecting to cluster at "
+            << clusterAddress << std::endl;
   __connectToCluster(clusterAddress);
 }
 
 void Runtime::__connectToCluster(const std::string &clusterAddress) {
-  net::CelteNet::Instance().Connect(clusterAddress);
+  net::CelteNet::Instance().Connect(clusterAddress, 50000);
   RPCCalleeStub::instance().SetClient(net::CelteNet::Instance().GetClientPtr());
   RPCCallerStub::instance().SetClient(net::CelteNet::Instance().GetClientPtr());
   RPCCallerStub::instance().StartListeningForAnswers();
@@ -160,8 +168,9 @@ void Runtime::RegisterCustomGlobalRPC(
 /**
  * @brief Invokes a scoped RPC without expecting a return value.
  *
- * This function attempts to call a remote procedure within the specified scope by converting the scope using
- * tp::rpc. It requires that the peer service is initialized; otherwise, it logs an error message to standard error.
+ * This function attempts to call a remote procedure within the specified scope
+ * by converting the scope using tp::rpc. It requires that the peer service is
+ * initialized; otherwise, it logs an error message to standard error.
  *
  * @param scope The RPC scope identifier.
  * @param name The name of the RPC to invoke.
@@ -176,14 +185,16 @@ void Runtime::CallScopedRPCNoRetVal(const std::string &scope,
 /**
  * @brief Calls a scoped remote procedure and returns its result.
  *
- * This method forms a complete RPC scope by appending the provided scope to a default scope prefix,
- * then invokes the corresponding RPC with the given name and arguments. If the peer service is
- * not initialized, it logs an error and returns an empty string.
+ * This method forms a complete RPC scope by appending the provided scope to a
+ * default scope prefix, then invokes the corresponding RPC with the given name
+ * and arguments. If the peer service is not initialized, it logs an error and
+ * returns an empty string.
  *
  * @param scope The specific segment of the RPC scope to use.
  * @param name The name of the remote procedure to invoke.
  * @param args A string containing RPC arguments.
- * @return std::string The result returned by the RPC call, or an empty string if the peer service is not initialized.
+ * @return std::string The result returned by the RPC call, or an empty string
+ * if the peer service is not initialized.
  */
 std::string Runtime::CallScopedRPC(const std::string &scope,
                                    const std::string &name,

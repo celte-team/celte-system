@@ -14,7 +14,6 @@ bool GhostSystem::Properties::Set(const std::string &key,
   auto it = properties.find(key);
   if (it == properties.end() or it->second.value != value) {
     properties[key].value = value;
-    // properties[key].synced = false;
     properties[key].lastUpdate = std::chrono::high_resolution_clock::now();
     return true;
   }
@@ -27,7 +26,6 @@ GhostSystem::Properties::Get(const std::string &key) {
   if (it == properties.end()) {
     return std::nullopt;
   }
-  // if (it != properties.end() && !it->second.synced) {
   if (it != properties.end() && it->second.lastUpdate > it->second.lastSync) {
     return it->second.value;
   }
@@ -37,7 +35,6 @@ GhostSystem::Properties::Get(const std::string &key) {
 void GhostSystem::Properties::AcknowledgeSync(const std::string &key) {
   auto it = properties.find(key);
   if (it != properties.end()) {
-    // it->second.synced = true;
     it->second.lastSync = std::chrono::high_resolution_clock::now();
   }
 }
@@ -109,8 +106,11 @@ void GhostSystem::ApplyUpdate(const std::string &jsonUpdate) {
 #ifdef CELTE_SERVER_MODE_ENABLED
 
 void GhostSystem::StartReplicationUploadWorker() {
-  int interval = std::atoi(
-      RUNTIME.GetConfig().Get("replication_interval").value_or("100").c_str());
+  std::string default_val = "100";
+  int interval = std::atoi(RUNTIME.GetConfig()
+                               .Get("REPLICATION_INTERVAL")
+                               .value_or(default_val)
+                               .c_str());
   _replicationUploadWorkerRunning = true;
   _replicationUploadWorker = std::thread([this, interval]() {
     while (_replicationUploadWorkerRunning) {

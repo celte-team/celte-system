@@ -7,7 +7,10 @@ class RedisDb
 
     private static Lazy<ConnectionMultiplexer> lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
     {
-        var config = ConfigurationOptions.Parse("localhost:6379");
+        string celteRedisHost = Utils.GetConfigOption("CELTE_REDIS_HOST", "localhost");
+        string celteRedisPort = Utils.GetConfigOption("CELTE_REDIS_PORT", "6379");
+        var config = ConfigurationOptions.Parse($"{celteRedisHost}:{celteRedisPort}");
+        Console.WriteLine($"Connecting to Redis at {celteRedisHost}:{celteRedisPort}");
         config.ConnectRetry = 5;
         config.AbortOnConnectFail = false;
         return ConnectionMultiplexer.Connect(config);
@@ -35,5 +38,17 @@ class RedisDb
     public static string? GetHashField(string hashKey, string fieldKey)
     {
         return Database.HashGet(hashKey, fieldKey);
+    }
+
+    public static string GetSNFromSpawnerId(string spawnerId)
+    {
+        string sessionId = Utils.GetConfigOption("sessionId", "default");
+        string redisKey = sessionId + spawnerId;
+        string? value = GetString(redisKey);
+        if (value == null)
+        {
+            throw new Exception($"SN not found for spawnerId: {spawnerId}");
+        }
+        return value;
     }
 }

@@ -40,6 +40,7 @@ def check_dependencies():
 
 def get_ip_address():
     """Retrieve the IP address of the host machine."""
+    # return "192.168.0.64"
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
