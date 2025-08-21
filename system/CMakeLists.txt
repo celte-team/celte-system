@@ -3,7 +3,8 @@ project(celte-systems-api LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_COMPILER "clang++")
+# Let CMake choose the available compiler instead of forcing clang++
+# set(CMAKE_CXX_COMPILER "clang++")
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_TOOLCHAIN_FILE "${ENV}/vcpkg/scripts/buildsystems/vcpkg.cmake"
@@ -34,8 +35,76 @@ find_package(unofficial-pulsar CONFIG)
 find_package(hiredis CONFIG REQUIRED)
 find_package(cpr CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
 
+# Handle nlohmann_json with fallback options
+find_package(nlohmann_json CONFIG QUIET)
+if(NOT nlohmann_json_FOUND)
+    find_package(nlohmann_json REQUIRED)
+endif()
+
+# If still not found, try to find it manually
+if(NOT nlohmann_json_FOUND)
+    # Try multiple possible library names and paths
+    find_library(NLOHMANN_JSON_LIBRARY
+        NAMES nlohmann_json nlohmann-json nlohmann_json3 nlohmann_json3d
+        PATHS
+            ${CMAKE_PREFIX_PATH}/lib
+            ${CMAKE_PREFIX_PATH}/lib64
+            ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib
+            ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib64
+        NO_DEFAULT_PATH
+    )
+
+    find_path(NLOHMANN_JSON_INCLUDE_DIR
+        NAMES nlohmann/json.hpp
+        PATHS
+            ${CMAKE_PREFIX_PATH}/include
+            ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include
+        NO_DEFAULT_PATH
+    )
+
+    if(NLOHMANN_JSON_LIBRARY AND NLOHMANN_JSON_INCLUDE_DIR)
+        message(STATUS "Found nlohmann_json manually: ${NLOHMANN_JSON_LIBRARY}")
+        add_library(nlohmann_json::nlohmann_json INTERFACE IMPORTED)
+        set_target_properties(nlohmann_json::nlohmann_json PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${NLOHMANN_JSON_INCLUDE_DIR}"
+            INTERFACE_LINK_LIBRARIES "${NLOHMANN_JSON_LIBRARY}"
+        )
+    elseif(NLOHMANN_JSON_INCLUDE_DIR)
+        # nlohmann_json is header-only, no library needed
+        message(STATUS "Found nlohmann_json headers manually (header-only library): ${NLOHMANN_JSON_INCLUDE_DIR}")
+        add_library(nlohmann_json::nlohmann_json INTERFACE IMPORTED)
+        set_target_properties(nlohmann_json::nlohmann_json PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${NLOHMANN_JSON_INCLUDE_DIR}"
+        )
+    else()
+        # Last resort: try to find it in system paths
+        find_library(NLOHMANN_JSON_LIBRARY
+            NAMES nlohmann_json nlohmann-json nlohmann_json3 nlohmann_json3d
+        )
+        find_path(NLOHMANN_JSON_INCLUDE_DIR
+            NAMES nlohmann/json.hpp
+        )
+
+        if(NLOHMANN_JSON_LIBRARY AND NLOHMANN_JSON_INCLUDE_DIR)
+            message(STATUS "Found nlohmann_json in system: ${NLOHMANN_JSON_LIBRARY}")
+            add_library(nlohmann_json::nlohmann_json INTERFACE IMPORTED)
+            set_target_properties(nlohmann_json::nlohmann_json PROPERTIES
+                INTERFACE_INCLUDE_DIRECTORIES "${NLOHMANN_JSON_INCLUDE_DIR}"
+                INTERFACE_LINK_LIBRARIES "${NLOHMANN_JSON_LIBRARY}"
+            )
+        elseif(NLOHMANN_JSON_INCLUDE_DIR)
+            # nlohmann_json is header-only, no library needed
+            message(STATUS "Found nlohmann_json headers (header-only library): ${NLOHMANN_JSON_INCLUDE_DIR}")
+            add_library(nlohmann_json::nlohmann_json INTERFACE IMPORTED)
+            set_target_properties(nlohmann_json::nlohmann_json PROPERTIES
+                INTERFACE_INCLUDE_DIRECTORIES "${NLOHMANN_JSON_INCLUDE_DIR}"
+            )
+        else()
+            message(FATAL_ERROR "nlohmann_json not found. Please install it via vcpkg or system package manager.")
+        endif()
+    endif()
+endif()
 
 # GENERATE PROTO FILES
 set(PROTO_DIR ${CMAKE_SOURCE_DIR}/protos/)

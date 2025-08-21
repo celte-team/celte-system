@@ -27,13 +27,38 @@ class UpAndDown
             File.Delete(logFile);
         }
 
-        // Prepare the command
+        // Prepare the base command (without local log redirection)
         string headlessMode = "";
         if (Utils.GetConfigOption("CELTE_SERVER_GRAPHICAL_MODE", "false") != "true")
         {
-            headlessMode = "--headless"; ;
+            headlessMode = "--headless";
         }
-        string command = $"cd {celte_godot_project_path} ; export CELTE_MODE=server; export CELTE_NODE_ID={nodeinfo.Id}; export CELTE_NODE_PID={nodeinfo.Pid}; DYLD_INSERT_LIBRARIES=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/lib/darwin/libclang_rt.asan_osx_dynamic.dylib {godot_path} . {headlessMode}> {logFile} 2>&1";
+        string baseCommand = $"cd {celte_godot_project_path} ; export CELTE_MODE=server; export CELTE_NODE_ID={nodeinfo.Id}; export CELTE_NODE_PID={nodeinfo.Pid}; {godot_path} . {headlessMode}";
+
+        // If running inside a container, run a sibling container with the command provided
+        if (IsRunningInContainer())
+        {
+            string dockerCmd = $"docker run -d clmt/celte-sn /bin/sh -lc \"{baseCommand}\"";
+            var startInfoContainer = new ProcessStartInfo
+            {
+                FileName = "/bin/sh",
+                Arguments = $"-c \"{dockerCmd}\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+            var procContainer = new Process { StartInfo = startInfoContainer };
+            procContainer.Start();
+            string containerId = procContainer.StandardOutput.ReadToEnd().Trim();
+            Console.WriteLine(string.IsNullOrEmpty(containerId)
+                ? $"Failed to start node container: {procContainer.StandardError.ReadToEnd()}"
+                : $"Started node container: {containerId}");
+            return;
+        }
+
+        // Append local logging for non-container runs
+        string command = baseCommand + $" > {logFile} 2>&1";
         Console.WriteLine($"Starting node {nodeinfo.Id} with command: {command}");
 
         if (OperatingSystem.IsMacOS())
@@ -49,8 +74,6 @@ class UpAndDown
                 CreateNoWindow = true
             };
 
-            // if (Utils.GetConfigOption("CELTE_SERVERS_MANUAL", "false") != "true")
-            // {
             var process = new Process { StartInfo = startInfo };
             process.Start();
 
@@ -169,5 +192,30 @@ class UpAndDown
             }
         }
         _processes.Clear();
+    }
+
+    private static bool IsRunningInContainer()
+    {
+        try
+        {
+            // Common indicators for containerized environments
+            if (File.Exists("/.dockerenv")) return true;
+            var inContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER");
+            if (!string.IsNullOrEmpty(inContainer) && inContainer.ToLowerInvariant() == "true") return true;
+            // Fallback: cgroup check
+            if (File.Exists("/proc/1/cgroup"))
+            {
+                var text = File.ReadAllText("/proc/1/cgroup");
+                if (text.Contains("docker") || text.Contains("kubepods")) return true;
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    private static string EnvForward(string name)
+    {
+        var value = Environment.GetEnvironmentVariable(name);
+        return string.IsNullOrEmpty(value) ? string.Empty : $"-e {name}={value} ";
     }
 }
