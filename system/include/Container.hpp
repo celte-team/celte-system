@@ -138,7 +138,7 @@ public:
   /// of the container.
   std::string
   CreateContainerIfNotExists(const std::string &id,
-                             __attribute__((nonnull)) bool *wasCreated);
+                             bool *wasCreated) __attribute__((nonnull(3)));
 
   /// @brief If the number of references to the container is 1 (meaning the only
   /// reference is

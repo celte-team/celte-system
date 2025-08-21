@@ -666,77 +666,6 @@ public:
   /// @tparam ArgsTuple
   template <typename Ret, typename ArgsTuple> struct FunctionClassifier;
 
-  // specialization for non-void return type and no arguments
-  template <typename Ret> struct FunctionClassifier<Ret, std::tuple<>> {
-    using FunctionType = Ret();
-
-    template <typename ClassType>
-    static auto build_delegate(ClassType *instance,
-                               FunctionType ClassType::*func) {
-      return [instance, func](nlohmann::json) -> nlohmann::json {
-        Ret result = (instance->*func)();
-        return nlohmann::json(result);
-      };
-    }
-  };
-
-  // specialization for void return type and no arguments
-  template <> struct FunctionClassifier<void, std::tuple<>> {
-    using FunctionType = void();
-
-    template <typename ClassType>
-    static auto build_delegate(ClassType *instance,
-                               FunctionType ClassType::*func) {
-      return [instance, func](nlohmann::json) -> nlohmann::json {
-        (instance->*func)();
-        return nlohmann::json(); // Return an empty JSON object for void
-      };
-    }
-  };
-
-  // specialization for non-void return type
-  template <typename Ret, typename... Args>
-  struct FunctionClassifier<Ret, std::tuple<Args...>> {
-    using FunctionType = Ret(Args...);
-
-    template <typename ClassType>
-    static auto build_delegate(ClassType *instance,
-                               FunctionType ClassType::*func) {
-      return [instance, func](nlohmann::json jargs) -> nlohmann::json {
-        std::tuple<Args...> args;
-        jargs.get_to(args);
-
-        Ret result = std::apply(
-            [instance, func](Args... unpackedArgs) {
-              return (instance->*func)(unpackedArgs...);
-            },
-            args);
-        return nlohmann::json(result);
-      };
-    }
-  };
-
-  // specialization for void return type
-  template <typename... Args>
-  struct FunctionClassifier<void, std::tuple<Args...>> {
-    using FunctionType = void(Args...);
-
-    template <typename ClassType>
-    static auto build_delegate(ClassType *instance,
-                               FunctionType ClassType::*func) {
-      return [instance, func](nlohmann::json jargs) -> nlohmann::json {
-        std::tuple<Args...> args;
-        jargs.get_to(args);
-        std::apply(
-            [instance, func](Args... unpackedArgs) {
-              (instance->*func)(unpackedArgs...);
-            },
-            args);
-        return nlohmann::json(); // Return an empty JSON object for void
-      };
-    }
-  };
-
   /// @brief Register a method that can be called by another remote instance of
   /// the program. Note that this method is blocking and might perform IO
   /// operations to create a consumer on the specified scope.
@@ -806,6 +735,82 @@ private:
   detail::UniqueTaskManager _uniqueTaskManager;
 };
 
+} // namespace celte
+
+// FunctionClassifier template specializations
+namespace celte {
+  // specialization for non-void return type and no arguments
+  template <typename Ret>
+  struct RPCCalleeStub::FunctionClassifier<Ret, std::tuple<>> {
+    using FunctionType = Ret();
+
+    template <typename ClassType>
+    static auto build_delegate(ClassType *instance,
+                               FunctionType ClassType::*func) {
+      return [instance, func](nlohmann::json) -> nlohmann::json {
+        Ret result = (instance->*func)();
+        return nlohmann::json(result);
+      };
+    }
+  };
+
+  // specialization for void return type and no arguments
+  template <>
+  struct RPCCalleeStub::FunctionClassifier<void, std::tuple<>> {
+    using FunctionType = void();
+
+    template <typename ClassType>
+    static auto build_delegate(ClassType *instance,
+                               FunctionType ClassType::*func) {
+      return [instance, func](nlohmann::json) -> nlohmann::json {
+        (instance->*func)();
+        return nlohmann::json(); // Return an empty JSON object for void
+      };
+    }
+  };
+
+  // specialization for non-void return type
+  template <typename Ret, typename... Args>
+  struct RPCCalleeStub::FunctionClassifier<Ret, std::tuple<Args...>> {
+    using FunctionType = Ret(Args...);
+
+    template <typename ClassType>
+    static auto build_delegate(ClassType *instance,
+                               FunctionType ClassType::*func) {
+      return [instance, func](nlohmann::json jargs) -> nlohmann::json {
+        std::tuple<Args...> args;
+        jargs.get_to(args);
+
+        Ret result = std::apply(
+            [instance, func](Args... unpackedArgs) {
+              return (instance->*func)(unpackedArgs...);
+            },
+            args);
+        return nlohmann::json(result);
+      };
+    }
+  };
+
+  // specialization for void return type
+  template <typename... Args>
+  struct RPCCalleeStub::FunctionClassifier<void, std::tuple<Args...>> {
+    using FunctionType = void(Args...);
+
+    template <typename ClassType>
+    static auto build_delegate(ClassType *instance,
+                               FunctionType ClassType::*func) {
+      return [instance, func](nlohmann::json jargs) -> nlohmann::json {
+        std::tuple<Args...> args;
+        jargs.get_to(args);
+        std::apply(
+            [instance, func](Args... unpackedArgs) {
+              (instance->*func)(unpackedArgs...);
+            },
+            args);
+        return nlohmann::json(); // Return an empty JSON object for void
+      };
+    }
+  };
 } // namespace celte
 
 // Helper to extract argument types from a member function pointer
