@@ -12,6 +12,7 @@ services:
     container_name: master1
     volumes:
       - ${HOME}/.celte.yaml:/root/.celte.yaml
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - pulsar
       - redis
@@ -100,6 +101,31 @@ services:
       - pulsar-init
       - bookie
       - broker
+
+  lobby-server:
+  # clmt/celte-lobby-server
+    image: clmt/celte-lobby-server:latest
+    container_name: lobby-server
+    volumes:
+      - ${HOME}/.celte.yaml:/root/.celte.yaml
+    networks:
+      - pulsar
+    environment:
+      - PULSAR_BROKERS=${PULSAR_BROKERS}
+    restart: on-failure
+    depends_on:
+      - clock-server
+      - master1
+      - redis_master
+      - redis_slave
+      - sentinel
+      - redisinsight
+      - zookeeper
+      - pulsar-init
+      - bookie
+      - broker
+    ports:
+      - "5002:5002"
 
 
   # redis:

@@ -1,18 +1,17 @@
-FROM celte-system-clock-server:latest
+FROM python:3.11-slim
 
-WORKDIR /app
-
-# Copy full repo when building with project-root context so we can access .celte.yaml
-COPY . /app
-
-# Ensure the config from the repo root is available inside the image
-COPY .celte.yaml /root/.celte.yaml
-ENV CELTE_CONFIG=/root/.celte.yaml
-
+# Set working directory for the clock server
 WORKDIR /app/clock-server
 
-RUN pip3 install --no-cache-dir -r requirements.txt
+# Install Python dependencies first to leverage Docker layer caching
+COPY clock-server/requirements.txt /app/clock-server/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-ENV PYTHONUNBUFFERED=1
+# Copy the clock server source code
+COPY clock-server/ /app/clock-server/
 
-CMD ["python3", "clock.py"]
+# Configuration is provided at runtime via volume in docker-compose
+ENV CELTE_CONFIG=/root/.celte.yaml \
+    PYTHONUNBUFFERED=1
+
+CMD ["python", "clock.py"]
