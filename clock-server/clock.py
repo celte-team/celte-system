@@ -7,26 +7,58 @@ import sys
 
 def load_config():
     yaml_path = os.getenv("CELTE_CONFIG", "/root/.celte.yaml")
-    with open(yaml_path, 'r') as f:
-        config = yaml.safe_load(f)
-    # Fallback to 'master' section if 'clock' not defined
-    raw_config = config.get("celte") or config.get("clock") or config.get("master")
+    if not os.path.exists(yaml_path):
+        return {}
 
-    if isinstance(raw_config, list):
-        # Convert list of dicts to a single flat dict
+    try:
+        with open(yaml_path, 'r') as f:
+            config = yaml.safe_load(f) or {}
+    except Exception:
+        return {}
+
+    section = None
+    if isinstance(config, dict):
+        section = config.get("celte") or config.get("clock") or config.get("master")
+
+    if isinstance(section, list):
         flat_config = {}
-        for item in raw_config:
-            flat_config.update(item)
+        for item in section:
+            if isinstance(item, dict):
+                flat_config.update(item)
         return flat_config
 
-    return raw_config or {}
+    if isinstance(section, dict):
+        return section
+
+    return config if isinstance(config, dict) else {}
+
+
+def resolve_pulsar_broker_url(config: dict) -> str:
+    """Resolve Pulsar broker URL from env or config.
+
+    Priority:
+    1) PULSAR_BROKERS env (full URL or host:port)
+    2) CELTE_PULSAR_HOST and CELTE_PULSAR_PORT (env overrides config)
+    """
+    env_brokers = os.getenv("PULSAR_BROKERS")
+    if env_brokers:
+        url = env_brokers.strip()
+        if not url.startswith("pulsar://"):
+            url = f"pulsar://{url}"
+        return url
+
+    host = os.getenv("CELTE_PULSAR_HOST") or config.get("CELTE_PULSAR_HOST")
+    port = os.getenv("CELTE_PULSAR_PORT") or config.get("CELTE_PULSAR_PORT")
+    if host and port:
+        return f"pulsar://{host}:{port}"
+
+    raise SystemExit(
+        "Pulsar broker not configured. Set PULSAR_BROKERS or CELTE_PULSAR_HOST/CELTE_PULSAR_PORT"
+    )
 
 def clock_thread():
-    global client
     config = load_config()
-    pulsar_broker_host = config.get("CELTE_PULSAR_HOST", "localhost")
-    pulsar_broker_port = config.get("CELTE_PULSAR_PORT", "6650")
-    pulsar_broker_url = f"pulsar://{pulsar_broker_host}:{pulsar_broker_port}"
+    pulsar_broker_url = resolve_pulsar_broker_url(config)
 
     print(f"Connecting to Pulsar broker at {pulsar_broker_url}")
     client = Client(pulsar_broker_url)
