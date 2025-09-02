@@ -100,29 +100,6 @@ namespace Master.Routes
             Console.WriteLine("debug 4");
         }
 
-        // public static async Task CleanupSession(HttpContext context)
-        // {
-        //     try
-        //     {
-        //         UpAndDown.CleanupAllProcesses();
-
-        //         context.Response.StatusCode = StatusCodes.Status200OK;
-        //         context.Response.ContentType = "application/json";
-        //         await context.Response.WriteAsync(new JsonObject
-        //         {
-        //             ["message"] = "All servers have been terminated."
-        //         }.ToJsonString());
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        //         context.Response.ContentType = "application/json";
-        //         await context.Response.WriteAsync(new JsonObject
-        //         {
-        //             ["error"] = ex.Message
-        //         }.ToJsonString());
-        //     }
-        // }
 
         public static async Task CreateSession(HttpContext context)
         {

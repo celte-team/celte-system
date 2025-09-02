@@ -125,8 +125,7 @@ class Nodes
                 ["id"] = existingNodeInfo.Id,
                 ["pid"] = existingNodeInfo.Pid,
                 ["ready"] = existingNodeInfo.Ready,
-                ["payload"] = existingNodeInfo.Payload
-                ,
+                ["payload"] = existingNodeInfo.Payload,
                 ["sessionId"] = existingNodeInfo.SessionId
             }
         });

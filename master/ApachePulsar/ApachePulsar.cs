@@ -171,7 +171,7 @@ public class PulsarSingleton
                 topics = Array.Empty<string>();
             }
 
-            // Helper to strip scheme like "non-persistent://" or "non-persistent://"
+            // Helper to strip scheme like "persistent://" or "non-persistent://"
             static string StripScheme(string full)
             {
                 if (full.StartsWith("non-persistent://")) return full.Substring("non-persistent://".Length);
