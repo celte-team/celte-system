@@ -29,8 +29,18 @@ public:
 
   /// @brief Destroy the Peer Service object
   ~PeerService();
+  inline void InitGlobalRPC() {
+    if (!_globalRPC) {
+      _globalRPC = std::make_shared<Global>();
+    }
+  }
 
-  inline Global &GetGlobalRPC() { return _globalRPC; }
+  inline Global &GetGlobalRPC() {
+    if (!_globalRPC) {
+      _globalRPC = std::make_shared<Global>();
+    }
+    return *_globalRPC;
+  }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
   void ConnectClientToThisNode(const std::string &clientId,
@@ -134,7 +144,8 @@ private:
 #endif
 
   net::WriterStreamPool _wspool;
-  Global _globalRPC;
+  // Global _globalRPC;
+  std::shared_ptr<Global> _globalRPC;
 };
 
 REGISTER_SERVER_RPC(PeerService, AssignGrape);

@@ -56,7 +56,6 @@ void MetricsScrapper::Start() {
   } catch (const std::exception &e) {
     LOGERROR("Failed to get metrics upload interval: " + std::string(e.what()));
   }
-  std::cout << "debug11" << std::endl;
 }
 
 void MetricsScrapper::PushMetrics() {

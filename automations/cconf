@@ -31,7 +31,6 @@ KEY_MAP = {
     'celte.redis.port': 'CELTE_REDIS_PORT',
     'celte.redis.key': 'CELTE_REDIS_KEY',
     'celte.redis.host': 'CELTE_REDIS_HOST',
-    'celte.session.id': 'CELTE_SESSION_ID',
     'celte.server.graphical.mode': 'CELTE_SERVER_GRAPHICAL_MODE',
     'celte.godot.path': 'CELTE_GODOT_PATH',
     'celte.godot.project.path': 'CELTE_GODOT_PROJECT_PATH',

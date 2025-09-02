@@ -102,30 +102,30 @@ services:
       - bookie
       - broker
 
-  lobby-server:
-  ## clmt/celte-lobby-server
-    # image: clmt/celte-lobby-server:latest
-    # container_name: lobby-server
-    # volumes:
-    #   - ${HOME}/.celte.yaml:/root/.celte.yaml
-    # networks:
-    #   - pulsar
-    # environment:
-    #   - PULSAR_BROKERS=${PULSAR_BROKERS}
-    # restart: on-failure
-    # depends_on:
-    #   - clock-server
-    #   - master1
-    #   - redis_master
-    #   - redis_slave
-    #   - sentinel
-    #   - redisinsight
-    #   - zookeeper
-    #   - pulsar-init
-    #   - bookie
-    #   - broker
-    # ports:
-    #   - "5002:5002"
+  # lobby-server:
+  # # clmt/celte-lobby-server
+  #   image: clmt/celte-lobby-server:latest
+  #   container_name: lobby-server
+  #   volumes:
+  #     - ${HOME}/.celte.yaml:/root/.celte.yaml
+  #   networks:
+  #     - pulsar
+  #   environment:
+  #     - PULSAR_BROKERS=${PULSAR_BROKERS}
+  #   restart: on-failure
+  #   depends_on:
+  #     - clock-server
+  #     - master1
+  #     - redis_master
+  #     - redis_slave
+  #     - sentinel
+  #     - redisinsight
+  #     - zookeeper
+  #     - pulsar-init
+  #     - bookie
+  #     - broker
+  #   ports:
+  #     - "5002:5002"
 
 
   # redis:
@@ -238,6 +238,7 @@ services:
       # See: https://github.com/apache/bookkeeper/blob/405e72acf42bb1104296447ea8840d805094c787/bookkeeper-server/src/main/java/org/apache/bookkeeper/bookie/Cookie.java#L57-68
       - advertisedAddress=bookie
       - BOOKIE_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
+
     depends_on:
       zookeeper:
         condition: service_healthy

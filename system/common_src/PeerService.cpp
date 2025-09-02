@@ -16,15 +16,21 @@ PeerService::PeerService(std::function<void(bool)> onReady,
     : _wspool({.idleTimeout = 10000ms}) {
 
   std::cout << "Listening on " << tp::rpc(RUNTIME.GetUUID()) << " and "
-            << tp::rpc(tp::global_rpc()) << std::endl;
+            << tp::global_rpc() << std::endl;
 
+  std::cout << "starting clock" << std::endl;
   CLOCK.Start();
+  std::cout << "clock connected successfully" << std::endl;
   RUNTIME.ScheduleAsyncTask([this, onReady, connectionTimeout]() {
+    std::cout << "waiting network ready" << std::endl;
     if (!__waitNetworkReady(connectionTimeout)) {
+      std::cout << "failed to connect" << std::endl;
       onReady(false);
       return;
     }
+    std::cout << "connecting peer service" << std::endl;
     __initPeerRPCs();
+    std::cout << "peer service connected" << std::endl;
     onReady(true);
   });
 }
@@ -143,23 +149,12 @@ void PeerService::SubscribeClientToContainer(const std::string &clientId,
                     << "\033[032m <- \033[0m" << containerId.substr(0, 4)
                     << std::endl;
           c.remoteClientSubscriptions.insert(containerId);
-          std::cout << "Creating task for subscribing client "
-                    << clientId.substr(0, 7) << " to container "
-                    << containerId.substr(0, 4) << std::endl;
           std::chrono::time_point<std::chrono::steady_clock>
               taskSubmissionTimestamp = std::chrono::steady_clock::now();
           RUNTIME.ScheduleAsyncIOTask([this, then, clientId, containerId,
                                        taskSubmissionTimestamp]() {
             LOGINFO("Subscribing client " + clientId + " to container " +
                     containerId);
-            std::cout << "[ASYNC TASK] Subscribing client "
-                      << clientId.substr(0, 7) << " to container "
-                      << containerId.substr(0, 4)
-                      << " after a processing time of "  <<
-                std::chrono::duration_cast<std::chrono::milliseconds>(
-                    std::chrono::steady_clock::now() - taskSubmissionTimestamp)
-                        .count()
-                    << " ms" << std::endl;
             CallPeerServiceSubscribeClientToContainer()
                 .on_peer(clientId)
                 .on_fail_log_error()
