@@ -18,6 +18,16 @@ namespace Master.Routes
                 {
                     PropertyNameCaseInsensitive = true
                 });
+                if (string.IsNullOrWhiteSpace(reqBody.SessionId))
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(new JsonObject
+                    {
+                        ["error"] = "SessionId is required"
+                    }.ToJsonString());
+                    return;
+                }
                 var (status, body) = Clients.ConnectClientToCluster(reqBody);
                 context.Response.StatusCode = status;
                 context.Response.ContentType = "application/json";

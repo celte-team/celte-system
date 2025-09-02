@@ -51,10 +51,12 @@ bool Runtime::__connectToMaster(const std::string &masterAddress,
   HttpClient http([this](int statusCode, const std::string &message) {
     _hooks.onConnectionFailed();
   });
-  nlohmann::json jsonBody(
-      {{"Id", _uuid},
-       {"Pid", _config.Get("CELTE_NODE_PID").value_or("unknown-parent")},
-       {"Ready", true}});
+  nlohmann::json jsonBody({
+      {"Id", _uuid},
+      {"Pid", _config.Get("CELTE_NODE_PID").value_or("unknown-parent")},
+      {"Ready", true},
+      {"SessionId", _config.GetSessionId()},
+  });
   std::string strResponse =
       http.Post("http://" + masterAddress + ":" + std::to_string(masterPort) +
                     "/server/connect",
@@ -66,15 +68,12 @@ bool Runtime::__connectToMaster(const std::string &masterAddress,
   } catch (const std::exception &e) {
     std::cerr << "Error parsing response from master server: " << e.what()
               << std::endl;
-    std::cout << "err 0 " << std::endl;
     return false;
   }
   if (response["message"] != "Node accepted") {
-    std::cout << "err 1" << std::endl;
     return false;
   }
   if (response["node"]["payload"].is_null()) {
-    std::cout << "err 2" << std::endl;
     return false;
   }
   _hooks.onServerReceivedInitializationPayload(
@@ -92,6 +91,9 @@ void Runtime::Connect() {
   std::string masterPort = _config.Get("CELTE_MASTER_PORT").value_or("1908");
 
   _config.SetSessionId(sessionId);
+  std::cout << "[" << _uuid.substr(0, 8) << "] Connecting to cluster at "
+            << host << ":" << port << " with session id " << sessionId
+            << std::endl;
 
   // connect to the pulsar cluster
   net::CelteNet::Instance().Connect(host + ":" + port);
@@ -108,6 +110,7 @@ void Runtime::Connect() {
           return;
         }
         try {
+          _peerService->InitGlobalRPC();
           if (!__connectToMaster(masterHost, std::atoi(masterPort.data()))) {
             _hooks.onConnectionFailed();
           }
@@ -129,9 +132,11 @@ void Runtime::Connect() {
 void Runtime::Connect(const std::string &celteHost, int port,
                       const std::string &sessionId) {
   _config.SetSessionId(sessionId);
+  std::cout << "set session id to " << sessionId << std::endl;
+  std::cout << "tp rpc is now " << tp::rpc("") << std::endl;
   std::string clusterAddress = celteHost + ":" + std::to_string(port);
   std::cout << "[" << _uuid.substr(0, 8) << "] Connecting to cluster at "
-            << clusterAddress << std::endl;
+            << clusterAddress << " with session id " << sessionId << std::endl;
   __connectToCluster(clusterAddress);
 }
 
@@ -140,8 +145,10 @@ void Runtime::__connectToCluster(const std::string &clusterAddress) {
   RPCCalleeStub::instance().SetClient(net::CelteNet::Instance().GetClientPtr());
   RPCCallerStub::instance().SetClient(net::CelteNet::Instance().GetClientPtr());
   RPCCallerStub::instance().StartListeningForAnswers();
+
   _peerService = std::make_unique<PeerService>(
       std::function<void(bool)>([this](bool connected) {
+        _peerService->InitGlobalRPC();
         if (!connected) {
           _hooks.onConnectionFailed();
           return;

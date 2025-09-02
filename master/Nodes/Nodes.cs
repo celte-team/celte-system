@@ -32,6 +32,7 @@ class Nodes
     {
         public string Id { get; set; }
         public string Pid { get; set; }
+        public string SessionId { get; set; }
         public bool Ready { get; set; }
     }
 
@@ -41,6 +42,7 @@ class Nodes
         public string Pid { get; set; }
         public string Ready { get; set; }
         public string Payload { get; set; }
+        public string SessionId { get; set; }
 
     }
 
@@ -123,7 +125,8 @@ class Nodes
                 ["id"] = existingNodeInfo.Id,
                 ["pid"] = existingNodeInfo.Pid,
                 ["ready"] = existingNodeInfo.Ready,
-                ["payload"] = existingNodeInfo.Payload
+                ["payload"] = existingNodeInfo.Payload,
+                ["sessionId"] = existingNodeInfo.SessionId
             }
         });
     }
@@ -138,6 +141,7 @@ class Nodes
     {
         public string parentId { get; set; }
         public string payload { get; set; }
+        public string SessionId { get; set; }
     }
 
     /// <summary>
@@ -156,14 +160,14 @@ class Nodes
         string id;
         if (!reqBody.parentId.StartsWith("sn-"))
         {
-            id = "sn-" + reqBody.parentId;
+            id = reqBody.SessionId + "-sn-" + reqBody.parentId;
         }
         else
         {
             // we generate a deterministic ID using a Redis counter to keep track of the filiation
             string counterKey = $"counter:{reqBody.parentId}";
             long counter = RedisDb.Database.StringIncrement(counterKey);
-            id = $"{reqBody.parentId}-{counter}";
+            id = $"{reqBody.parentId}-{counter}"; // session id already included in parent id
         }
 
         NodeInfo nodeinfo = new NodeInfo
@@ -171,7 +175,8 @@ class Nodes
             Id = id,
             Pid = reqBody.parentId,
             Ready = "false",
-            Payload = reqBody.payload
+            Payload = reqBody.payload,
+            SessionId = reqBody.SessionId
         };
 
         // The following creates the ndoe process instance on the cluter.

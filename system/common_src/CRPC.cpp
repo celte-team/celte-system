@@ -109,12 +109,13 @@ void RPCCallerStub::StartListeningForAnswers() {
     }
     consumer.acknowledge(msg);
     RPCCalleeStub::instance().try_handle_request(
-        tp::default_scope + RUNTIME.GetUUID(), request);
+        tp::default_scope() + RUNTIME.GetUUID(), request);
   });
 
   std::string subscriptionName = RUNTIME.GetUUID();
   pulsar::Result result = _producerPool.GetClient()->subscribe(
-      RUNTIME.GetUUID(), subscriptionName, consumerConfig, _responseConsumer);
+      tp::default_scope() + RUNTIME.GetUUID(), subscriptionName, consumerConfig,
+      _responseConsumer);
 }
 
 /**

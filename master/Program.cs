@@ -68,6 +68,7 @@ class Program
         {
             Console.WriteLine("Application is shutting down...");
             UpAndDown.CleanupAllProcesses();
+            // PulsarSingleton.DeleteAllNamespacesAsync("public").Wait();
             Console.WriteLine("All processes have been cleaned up.");
         });
 
@@ -98,12 +99,12 @@ namespace HttpServer
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapPost("/server/create", Routes.CreateNode);
                 endpoints.MapPost("/server/connect", Routes.AcceptNode);
                 endpoints.MapPost("/client/link", Routes.AcceptClient);
-                endpoints.MapPost("/server/create", Routes.CreateNode);
                 endpoints.MapPost("/redis/clear", Routes.ClearRedis);
+                endpoints.MapPost("/server/create_session", Routes.CreateSession);
                 endpoints.MapPost("/server/cleanup_session", Routes.CleanupSession);
-                // endpoints.MapPost("/master/create", Routes.CreateMaster);
             });
         }
 

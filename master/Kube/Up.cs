@@ -4,13 +4,15 @@ using System.Collections.Concurrent;
 
 class UpAndDown
 {
-    private static readonly ConcurrentDictionary<string, Process> _processes = new();
+    // sessionId -> (nodeId -> Process)
+    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Process>> _processes = new();
 
     public static void Up(Nodes.NodeInfo nodeinfo)
     {
         // get godot_path from the environment variables
         string celte_godot_project_path = Utils.GetConfigOption("CELTE_GODOT_PROJECT_PATH", string.Empty);
         string godot_path = Utils.GetConfigOption("CELTE_GODOT_PATH", string.Empty);
+        string session_id = nodeinfo.SessionId;
 
 
         if (string.IsNullOrEmpty(celte_godot_project_path) || string.IsNullOrEmpty(godot_path))
@@ -33,7 +35,7 @@ class UpAndDown
         {
             headlessMode = "--headless";
         }
-        string baseCommand = $"cd {celte_godot_project_path} ; export CELTE_MODE=server; export CELTE_NODE_ID={nodeinfo.Id}; export CELTE_NODE_PID={nodeinfo.Pid}; {godot_path} . {headlessMode}";
+        string baseCommand = $"cd {celte_godot_project_path} ; export CELTE_SESSION_ID={session_id}; export CELTE_MODE=server; export CELTE_NODE_ID={nodeinfo.Id}; export CELTE_NODE_PID={nodeinfo.Pid}; {godot_path} . {headlessMode}";
 
         // If running inside a container, run a sibling container with the command provided
         if (IsRunningInContainer())
@@ -77,8 +79,9 @@ class UpAndDown
             var process = new Process { StartInfo = startInfo };
             process.Start();
 
-            // Store the process for later cleanup
-            _processes.TryAdd(nodeinfo.Id, process);
+            // Store the process under its session for later cleanup
+            var sessionMap = _processes.GetOrAdd(session_id ?? string.Empty, _ => new ConcurrentDictionary<string, Process>());
+            sessionMap.TryAdd(nodeinfo.Id, process);
 
             // Store the process ID in Redis for later reference
             nodeinfo.Pid = process.Id.ToString();
@@ -109,8 +112,9 @@ class UpAndDown
             var process = new Process { StartInfo = startInfo };
             process.Start();
 
-            // Store the process for later cleanup
-            _processes.TryAdd(nodeinfo.Id, process);
+            // Store the process under its session for later cleanup
+            var sessionMap = _processes.GetOrAdd(session_id ?? string.Empty, _ => new ConcurrentDictionary<string, Process>());
+            sessionMap.TryAdd(nodeinfo.Id, process);
 
             // Store the process ID in Redis for later reference
             nodeinfo.Pid = process.Id.ToString();
@@ -137,8 +141,9 @@ class UpAndDown
             var process = new Process { StartInfo = startInfo };
             process.Start();
 
-            // Store the process for later cleanup
-            _processes.TryAdd(nodeinfo.Id, process);
+            // Store the process under its session for later cleanup
+            var sessionMap = _processes.GetOrAdd(session_id ?? string.Empty, _ => new ConcurrentDictionary<string, Process>());
+            sessionMap.TryAdd(nodeinfo.Id, process);
 
             // Store the process ID in Redis for later reference
             nodeinfo.Pid = process.Id.ToString();
@@ -157,41 +162,70 @@ class UpAndDown
 
     public static void Down(Nodes.NodeInfo nodeinfo)
     {
-        if (_processes.TryRemove(nodeinfo.Id, out Process? process))
+        var sessionKey = nodeinfo.SessionId ?? string.Empty;
+        if (_processes.TryGetValue(sessionKey, out var sessionMap))
         {
-            try
+            if (sessionMap.TryRemove(nodeinfo.Id, out var process))
             {
-                if (!process.HasExited)
+                try
                 {
-                    process.Kill(true); // Kill the process and its children
-                    process.WaitForExit(5000); // Wait up to 5 seconds for the process to exit
+                    if (process != null && !process.HasExited)
+                    {
+                        process.Kill(true); // Kill the process and its children
+                        process.WaitForExit(5000); // Wait up to 5 seconds for the process to exit
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error killing process {nodeinfo.Id}: {ex.Message}");
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error killing process {nodeinfo.Id}: {ex.Message}");
+                }
             }
         }
     }
 
     public static void CleanupAllProcesses()
     {
-        foreach (var process in _processes.Values)
+        foreach (var sessionMap in _processes.Values)
         {
-            try
+            foreach (var process in sessionMap.Values)
             {
-                if (!process.HasExited)
+                try
                 {
-                    process.Kill(true);
-                    process.WaitForExit(5000);
+                    if (process != null && !process.HasExited)
+                    {
+                        process.Kill(true);
+                        process.WaitForExit(5000);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error killing process {process.Id}: {ex.Message}");
                 }
             }
-            catch (Exception ex)
+        }
+    }
+
+    public static void CleanupSessionProcesses(string sessionId)
+    {
+        var key = sessionId ?? string.Empty;
+        if (_processes.TryRemove(key, out var sessionMap))
+        {
+            foreach (var process in sessionMap.Values)
             {
-                Console.WriteLine($"Error killing process {process.Id}: {ex.Message}");
+                try
+                {
+                    if (process != null && !process.HasExited)
+                    {
+                        process.Kill(true);
+                        process.WaitForExit(5000);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error killing process {process.Id}: {ex.Message}");
+                }
             }
         }
-        _processes.Clear();
     }
 
     private static bool IsRunningInContainer()

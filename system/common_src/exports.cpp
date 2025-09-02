@@ -25,6 +25,8 @@ extern "C" {
 /* ------------------- EXPORT RUNTIME TOP LEVEL FUNCTIONS ------------------- */
 #pragma region TOP LEVEL BINDINGS
 
+EXPORT std::string GetSessionId() { return RUNTIME.GetConfig().GetSessionId(); }
+
 #ifdef CELTE_SERVER_MODE_ENABLED
 EXPORT void ServerNodeConnect() { RUNTIME.Connect(); }
 #else
@@ -377,8 +379,6 @@ EXPORT void RegisterClientRPC(const std::string &clientId, int filter,
 #ifdef CELTE_CLIENT_MODE_ENABLED
   if (RUNTIME.GetUUID() == clientId)
     RUNTIME.GetPeerService().RegisterRPC(name, f);
-  else
-    std::cout << "    NOT GOOD UUID    ";
 #endif
 }
 

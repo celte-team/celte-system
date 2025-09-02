@@ -7,6 +7,7 @@ class Clients
     {
         public string clientId { get; set; } // Client ID in the network (its RUNTIME uuid)
         public string spawnerId { get; set; } // Spawner ID in the network (its RUNTIME uuid)
+        public string SessionId { get; set; }
     }
 
 
@@ -17,7 +18,7 @@ class Clients
         try
         {
             // TODO: uniformize nameing convention to adapt with future dynamic nodes
-            nodeId = "sn-" + RedisDb.GetSNFromSpawnerId(reqBody.spawnerId);
+            nodeId = RedisDb.GetSNFromSpawnerId(reqBody.spawnerId, reqBody.SessionId);
             Console.WriteLine($"Redirecting client {reqBody.clientId} to node {nodeId} for spawner {reqBody.spawnerId}");
         }
         catch (Exception ex)
@@ -28,7 +29,7 @@ class Clients
                 ["message"] = "Failed to get nodeId from spawnerId.",
             });
         }
-        if (!RPC.ConnectClientToNode(nodeId, reqBody.spawnerId, reqBody.clientId))
+        if (!RPC.ConnectClientToNode(nodeId, reqBody.spawnerId, reqBody.clientId, reqBody.SessionId))
         {
             return (500, new JsonObject
             {
@@ -39,6 +40,7 @@ class Clients
         return (200, new JsonObject
         {
             ["message"] = "Ok, await further instructions from the assigned node.",
+            ["SessionId"] = reqBody.SessionId
         });
     }
 }

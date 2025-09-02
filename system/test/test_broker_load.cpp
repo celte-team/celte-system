@@ -45,49 +45,44 @@ int main() {
       }
       producers[i] = producer;
       while (true) {
-          std::shared_ptr<std::string> oui = std::make_shared<std::string>(
-              "Hello from producer " + std::to_string(i) + " to topic " + topic);
-          auto msg = pulsar::MessageBuilder().setContent(*oui.get());
-          producers[i]->sendAsync(
-              msg.build(),
-              [i, topic, oui](pulsar::Result result,
-                               const pulsar::MessageId &messageId) {
-          if (result != pulsar::ResultOk) {
-            std::cerr << "Failed to send message from producer " << i
-                      << " to topic " << topic << std::endl;
-            std::cerr << "Error: " << pulsar::strResult(result) << std::endl;
-          } else {
-            // std::cout << "Producer " << i << " sent message to topic " << topic
-            //           << std::endl;
-          }
-          });
-          std::this_thread::sleep_for(
-              std::chrono::milliseconds(100)); // Throttle
-        }
-      });
+        std::shared_ptr<std::string> oui = std::make_shared<std::string>(
+            "Hello from producer " + std::to_string(i) + " to topic " + topic);
+        auto msg = pulsar::MessageBuilder().setContent(*oui.get());
+        producers[i]->sendAsync(
+            msg.build(), [i, topic, oui](pulsar::Result result,
+                                         const pulsar::MessageId &messageId) {
+              if (result != pulsar::ResultOk) {
+                std::cerr << "Failed to send message from producer " << i
+                          << " to topic " << topic << std::endl;
+                std::cerr << "Error: " << pulsar::strResult(result)
+                          << std::endl;
+              }
+            });
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Throttle
+      }
+    });
   }
 
   // Start consumers
   for (int i = 0; i < numConsumers; ++i) {
-      consumerThreads.emplace_back([i, &consumers, &getRandomTopic,
-                                    &running]() {
-        std::string topic = "topic-" + std::to_string(getRandomTopic());
-        std::string subName = "sub-" + std::to_string(i);
-        pulsar::ConsumerConfiguration consConfig;
-        consConfig.setMessageListener(
-            [i](pulsar::Consumer &consumer, const pulsar::Message &msg) {
-              consumer.acknowledge(msg);
-            });
-        client->subscribeAsync(
-            topic, subName, consConfig,
-            [i, &consumers](pulsar::Result result, pulsar::Consumer consumer) {
-              if (result != pulsar::ResultOk) {
-                std::cerr << "Failed to subscribe consumer " << i << std::endl;
-                return;
-              }
-              consumers[i] = new pulsar::Consumer(std::move(consumer));
-            });
-      });
+    consumerThreads.emplace_back([i, &consumers, &getRandomTopic, &running]() {
+      std::string topic = "topic-" + std::to_string(getRandomTopic());
+      std::string subName = "sub-" + std::to_string(i);
+      pulsar::ConsumerConfiguration consConfig;
+      consConfig.setMessageListener(
+          [i](pulsar::Consumer &consumer, const pulsar::Message &msg) {
+            consumer.acknowledge(msg);
+          });
+      client->subscribeAsync(
+          topic, subName, consConfig,
+          [i, &consumers](pulsar::Result result, pulsar::Consumer consumer) {
+            if (result != pulsar::ResultOk) {
+              std::cerr << "Failed to subscribe consumer " << i << std::endl;
+              return;
+            }
+            consumers[i] = new pulsar::Consumer(std::move(consumer));
+          });
+    });
   }
 
   // Join all threads
@@ -98,11 +93,11 @@ int main() {
 
   // Cleanup
   for (auto *producer : producers) {
-      if (producer) {
-        producer->close();
-        delete producer;
-      }
+    if (producer) {
+      producer->close();
+      delete producer;
+    }
   }
   delete client;
   return 0;
-  }
+}

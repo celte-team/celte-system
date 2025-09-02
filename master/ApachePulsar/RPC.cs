@@ -9,10 +9,10 @@ using Google.Protobuf;
 /// </summary>
 class RPC
 {
-    public static bool ConnectClientToNode(string nodeId, string spawnerId, string clientId)
+    public static bool ConnectClientToNode(string nodeId, string spawnerId, string clientId, string sessionId)
     {
-        string sessionId = Utils.GetConfigOption("sessionId", "default");
-        string topic = $"persistent://public/{sessionId}/{nodeId}.rpc";
+        string topic = $"non-persistent://public/{sessionId}/{nodeId}.rpc";
+        Console.WriteLine($"Connecting client {clientId} to node {nodeId} on topic {topic}");
         try
         {
             Task.Run(async () =>

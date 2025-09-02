@@ -27,7 +27,8 @@
 #include <unordered_map>
 #include <variant>
 
-static const std::string PERSISTENT_DEFAULT = "persistent://public/default/";
+static const std::string PERSISTENCE_MODE_DEFAULT =
+    "non-persistent://public/default/";
 static std::string static_uuid = "peer1";
 
 namespace celte {
@@ -272,7 +273,7 @@ public:
       req::RPRequest request;
       request.set_name(method_name);
       request.set_args(__serialize__(args...));
-      request.set_response_topic(tp::default_scope + RUNTIME.GetUUID());
+      request.set_response_topic(tp::default_scope() + RUNTIME.GetUUID());
       request.set_rpc_id(rpc_id);
 
       {
@@ -579,7 +580,6 @@ public:
         std::cout << "crpc failed in " << TypeIdentifier<MetaFunction>::name()
                   << std::endl;
         _fail_callback(status);
-        std::cout << "no crash after callback" << std::endl;
         // RPCCallerStub::instance().forget_promise(uuid);
         return std::nullopt;
       }
@@ -597,7 +597,7 @@ public:
   /// @param peer
   /// @return
   inline auto on_peer(const std::string &peer) {
-    return FailHandlingPolicy(tp::default_scope + peer, false);
+    return FailHandlingPolicy(tp::default_scope() + peer, false);
   }
 
   /// @brief Use this method to specify that the method should be called on
@@ -606,7 +606,7 @@ public:
   /// @param scope
   /// @return
   inline auto on_scope(const std::string &scope) {
-    return FailHandlingPolicy(tp::default_scope + scope + ".rpc", true);
+    return FailHandlingPolicy(tp::default_scope() + scope + ".rpc", true);
   }
 };
 
@@ -739,78 +739,77 @@ private:
 
 // FunctionClassifier template specializations
 namespace celte {
-  // specialization for non-void return type and no arguments
-  template <typename Ret>
-  struct RPCCalleeStub::FunctionClassifier<Ret, std::tuple<>> {
-    using FunctionType = Ret();
+// specialization for non-void return type and no arguments
+template <typename Ret>
+struct RPCCalleeStub::FunctionClassifier<Ret, std::tuple<>> {
+  using FunctionType = Ret();
 
-    template <typename ClassType>
-    static auto build_delegate(ClassType *instance,
-                               FunctionType ClassType::*func) {
-      return [instance, func](nlohmann::json) -> nlohmann::json {
-        Ret result = (instance->*func)();
-        return nlohmann::json(result);
-      };
-    }
-  };
+  template <typename ClassType>
+  static auto build_delegate(ClassType *instance,
+                             FunctionType ClassType::*func) {
+    return [instance, func](nlohmann::json) -> nlohmann::json {
+      Ret result = (instance->*func)();
+      return nlohmann::json(result);
+    };
+  }
+};
 
-  // specialization for void return type and no arguments
-  template <>
-  struct RPCCalleeStub::FunctionClassifier<void, std::tuple<>> {
-    using FunctionType = void();
+// specialization for void return type and no arguments
+template <> struct RPCCalleeStub::FunctionClassifier<void, std::tuple<>> {
+  using FunctionType = void();
 
-    template <typename ClassType>
-    static auto build_delegate(ClassType *instance,
-                               FunctionType ClassType::*func) {
-      return [instance, func](nlohmann::json) -> nlohmann::json {
-        (instance->*func)();
-        return nlohmann::json(); // Return an empty JSON object for void
-      };
-    }
-  };
+  template <typename ClassType>
+  static auto build_delegate(ClassType *instance,
+                             FunctionType ClassType::*func) {
+    return [instance, func](nlohmann::json) -> nlohmann::json {
+      (instance->*func)();
+      return nlohmann::json(); // Return an empty JSON object for void
+    };
+  }
+};
 
-  // specialization for non-void return type
-  template <typename Ret, typename... Args>
-  struct RPCCalleeStub::FunctionClassifier<Ret, std::tuple<Args...>> {
-    using FunctionType = Ret(Args...);
+// specialization for non-void return type
+template <typename Ret, typename... Args>
+struct RPCCalleeStub::FunctionClassifier<Ret, std::tuple<Args...>> {
+  using FunctionType = Ret(Args...);
 
-    template <typename ClassType>
-    static auto build_delegate(ClassType *instance,
-                               FunctionType ClassType::*func) {
-      return [instance, func](nlohmann::json jargs) -> nlohmann::json {
-        std::tuple<Args...> args;
-        jargs.get_to(args);
+  template <typename ClassType>
+  static auto build_delegate(ClassType *instance,
+                             FunctionType ClassType::*func) {
+    return [instance, func](nlohmann::json jargs) -> nlohmann::json {
+      std::tuple<Args...> args;
+      jargs.get_to(args);
 
-        Ret result = std::apply(
-            [instance, func](Args... unpackedArgs) {
-              return (instance->*func)(unpackedArgs...);
-            },
-            args);
-        return nlohmann::json(result);
-      };
-    }
-  };
+      Ret result = std::apply(
+          [instance, func](Args... unpackedArgs) {
+            return (instance->*func)(unpackedArgs...);
+          },
+          args);
+      return nlohmann::json(result);
+    };
+  }
+};
 
-  // specialization for void return type
-  template <typename... Args>
-  struct RPCCalleeStub::FunctionClassifier<void, std::tuple<Args...>> {
-    using FunctionType = void(Args...);
+// specialization for void return type
+template <typename... Args>
+struct RPCCalleeStub::FunctionClassifier<void, std::tuple<Args...>> {
+  using FunctionType = void(Args...);
 
-    template <typename ClassType>
-    static auto build_delegate(ClassType *instance,
-                               FunctionType ClassType::*func) {
-      return [instance, func](nlohmann::json jargs) -> nlohmann::json {
-        std::tuple<Args...> args;
-        jargs.get_to(args);
-        std::apply(
-            [instance, func](Args... unpackedArgs) {
-              (instance->*func)(unpackedArgs...);
-            },
-            args);
-        return nlohmann::json(); // Return an empty JSON object for void
-      };
-    }
-  };
+  template <typename ClassType>
+  static auto build_delegate(ClassType *instance,
+                             FunctionType ClassType::*func) {
+    return [instance, func](nlohmann::json jargs) -> nlohmann::json {
+      std::tuple<Args...> args;
+      jargs.get_to(args);
+      std::apply(
+          [instance, func](Args... unpackedArgs) {
+            (instance->*func)(unpackedArgs...);
+          },
+          args);
+      return nlohmann::json(); // Return an empty JSON object for void
+    };
+  }
+};
 } // namespace celte
 
 // Helper to extract argument types from a member function pointer

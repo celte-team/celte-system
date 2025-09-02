@@ -62,7 +62,7 @@ def clock_thread():
 
     print(f"Connecting to Pulsar broker at {pulsar_broker_url}")
     client = Client(pulsar_broker_url)
-    producer = client.create_producer('persistent://public/default/global.clock')
+    producer = client.create_producer('non-persistent://public/default/global.clock')
     while True:
         time.sleep(1)  # 1 second
         msg = {
