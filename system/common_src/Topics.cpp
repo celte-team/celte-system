@@ -20,7 +20,9 @@ std::string hello_master_sn() { return default_scope_name + "master.hello.sn"; }
 std::string hello_master_cl() {
   return default_scope_name + "master.hello.client";
 }
-std::string global_clock() { return default_scope_name + "global.clock"; }
+std::string global_clock() {
+  return "persistent://public/default/global.clock";
+} // todo: non persistent but need access to VMs
 std::string global_rpc() { return default_scope_name + "global.rpc"; }
 std::string hello_client() { return default_scope_name + "client.hello"; }
 

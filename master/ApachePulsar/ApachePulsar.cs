@@ -108,15 +108,15 @@ public class PulsarSingleton
     }
 
     // --- Pulsar Admin helpers ------------------------------------------------
-    // These helpers call the Pulsar Admin REST API (default port 8080) to create
+    // These helpers call the Pulsar Admin REST API (default port 30080) to create
     // namespaces. Configure the admin base URL with the CELTE_PULSAR_ADMIN_URL
-    // config option (e.g. http://pulsar-broker:8080). If Pulsar is secured with
+    // config option (e.g. http://pulsar-broker:30080). If Pulsar is secured with
     // token auth for the admin API, set CELTE_PULSAR_ADMIN_TOKEN to a valid token.
 
     public static async Task CreateNamespaceAsync(string tenant, string ns)
     {
         string pulsarBrokers = Utils.GetConfigOption("CELTE_PULSAR_HOST", string.Empty);
-        var adminUrl = Utils.GetConfigOption("CELTE_PULSAR_ADMIN_URL", $"http://{pulsarBrokers}:8080").TrimEnd('/');
+        var adminUrl = Utils.GetConfigOption("CELTE_PULSAR_ADMIN_URL", $"http://{pulsarBrokers}:30080").TrimEnd('/');
         var uri = new Uri($"{adminUrl}/admin/v2/namespaces/{tenant}/{ns}");
 
         using var http = new HttpClient();
@@ -144,7 +144,7 @@ public class PulsarSingleton
         async Task DeleteNamespaceImplAsync(string t, string n)
         {
             string pulsarBrokers = Utils.GetConfigOption("CELTE_PULSAR_HOST", string.Empty);
-            var adminUrl = Utils.GetConfigOption("CELTE_PULSAR_ADMIN_URL", $"http://{pulsarBrokers}:8080").TrimEnd('/');
+            var adminUrl = Utils.GetConfigOption("CELTE_PULSAR_ADMIN_URL", $"http://{pulsarBrokers}:30080").TrimEnd('/');
 
             using var http = new HttpClient();
             var token = Utils.GetConfigOption("CELTE_PULSAR_ADMIN_TOKEN", string.Empty);

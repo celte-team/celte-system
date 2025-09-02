@@ -68,7 +68,7 @@ class Program
         {
             Console.WriteLine("Application is shutting down...");
             UpAndDown.CleanupAllProcesses();
-            PulsarSingleton.DeleteAllNamespacesAsync("tenant").Wait();
+            // PulsarSingleton.DeleteAllNamespacesAsync("public").Wait();
             Console.WriteLine("All processes have been cleaned up.");
         });
 

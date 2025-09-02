@@ -79,7 +79,6 @@ services:
   #     - bookie
   #     - broker
 
-
   clock-server:
     build:
       context: .
