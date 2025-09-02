@@ -102,30 +102,30 @@ services:
       - bookie
       - broker
 
-  lobby-server:
+  # lobby-server:
   ## clmt/celte-lobby-server
-    # image: clmt/celte-lobby-server:latest
-    # container_name: lobby-server
-    # volumes:
-    #   - ${HOME}/.celte.yaml:/root/.celte.yaml
-    # networks:
-    #   - pulsar
-    # environment:
-    #   - PULSAR_BROKERS=${PULSAR_BROKERS}
-    # restart: on-failure
-    # depends_on:
-    #   - clock-server
-    #   - master1
-    #   - redis_master
-    #   - redis_slave
-    #   - sentinel
-    #   - redisinsight
-    #   - zookeeper
-    #   - pulsar-init
-    #   - bookie
-    #   - broker
-    # ports:
-    #   - "5002:5002"
+  # image: clmt/celte-lobby-server:latest
+  # container_name: lobby-server
+  # volumes:
+  #   - ${HOME}/.celte.yaml:/root/.celte.yaml
+  # networks:
+  #   - pulsar
+  # environment:
+  #   - PULSAR_BROKERS=${PULSAR_BROKERS}
+  # restart: on-failure
+  # depends_on:
+  #   - clock-server
+  #   - master1
+  #   - redis_master
+  #   - redis_slave
+  #   - sentinel
+  #   - redisinsight
+  #   - zookeeper
+  #   - pulsar-init
+  #   - bookie
+  #   - broker
+  # ports:
+  #   - "5002:5002"
 
 
   # redis:
@@ -183,7 +183,7 @@ services:
     ports:
       - "5050:8081"
     user: redis
-# ///////////////////////////////////////
+  # ///////////////////////////////////////
   # pulsar:
   zookeeper:
     image: apachepulsar/pulsar:latest
@@ -201,8 +201,8 @@ services:
       - "2181:2181"
     command: >
       bash -c "bin/apply-config-from-env.py conf/zookeeper.conf && \
-             bin/generate-zookeeper-config.sh conf/zookeeper.conf && \
-             exec bin/pulsar zookeeper"
+        bin/generate-zookeeper-config.sh conf/zookeeper.conf && \
+        exec bin/pulsar zookeeper"
     healthcheck:
       test: ["CMD", "bin/pulsar-zookeeper-ruok.sh"]
       interval: 10s
@@ -264,9 +264,9 @@ services:
       - managedLedgerDefaultAckQuorum=1
       - advertisedAddress=broker
       - advertisedListeners=external:pulsar://${DOCKER_HOST_IP}:6650
-      # - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
-      # - PULSAR_MEM=-Xms1536m -Xmx1536m -XX:MaxDirectMemorySize=1536m
-      - PULSAR_MEM=-Xms4608m -Xmx4608m -XX:MaxDirectMemorySize=4608m
+      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m
+    # - PULSAR_MEM=-Xms1536m -Xmx1536m -XX:MaxDirectMemorySize=1536m
+    # - PULSAR_MEM=-Xms4608m -Xmx4608m -XX:MaxDirectMemorySize=4608m
     depends_on:
       zookeeper:
         condition: service_healthy
