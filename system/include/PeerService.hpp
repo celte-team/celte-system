@@ -144,7 +144,6 @@ private:
 #endif
 
   net::WriterStreamPool _wspool;
-  // Global _globalRPC;
   std::shared_ptr<Global> _globalRPC;
 };
 
