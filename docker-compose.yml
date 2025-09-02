@@ -102,7 +102,7 @@ services:
       - bookie
       - broker
 
-  lobby-server:
+  # lobby-server:
   ## clmt/celte-lobby-server
     # image: clmt/celte-lobby-server:latest
     # container_name: lobby-server
