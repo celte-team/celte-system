@@ -116,7 +116,8 @@ public class PulsarSingleton
     public static async Task CreateNamespaceAsync(string tenant, string ns)
     {
         string pulsarBrokers = Utils.GetConfigOption("CELTE_PULSAR_HOST", string.Empty);
-        var adminUrl = Utils.GetConfigOption("CELTE_PULSAR_ADMIN_URL", $"http://{pulsarBrokers}:30080").TrimEnd('/');
+        int pulsarAdminPort = int.Parse(Utils.GetConfigOption("CELTE_PULSAR_ADMIN_PORT", "30080"));
+        var adminUrl = Utils.GetConfigOption("CELTE_PULSAR_ADMIN_URL", $"http://{pulsarBrokers}:{pulsarAdminPort}").TrimEnd('/');
         var uri = new Uri($"{adminUrl}/admin/v2/namespaces/{tenant}/{ns}");
 
         using var http = new HttpClient();
@@ -144,7 +145,8 @@ public class PulsarSingleton
         async Task DeleteNamespaceImplAsync(string t, string n)
         {
             string pulsarBrokers = Utils.GetConfigOption("CELTE_PULSAR_HOST", string.Empty);
-            var adminUrl = Utils.GetConfigOption("CELTE_PULSAR_ADMIN_URL", $"http://{pulsarBrokers}:30080").TrimEnd('/');
+            int pulsarAdminPort = int.Parse(Utils.GetConfigOption("CELTE_PULSAR_ADMIN_PORT", "30080"));
+            var adminUrl = Utils.GetConfigOption("CELTE_PULSAR_ADMIN_URL", $"http://{pulsarBrokers}:{pulsarAdminPort}").TrimEnd('/');
 
             using var http = new HttpClient();
             var token = Utils.GetConfigOption("CELTE_PULSAR_ADMIN_TOKEN", string.Empty);
