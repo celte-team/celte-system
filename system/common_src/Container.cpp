@@ -109,7 +109,6 @@ void Container::DeleteEntity(std::string entityId, std::string payload) {
   RUNTIME.TopExecutor().PushTaskToEngine([entityId, payload]() {
     ETTREGISTRY.SetEntityValid(entityId, false);
     RUNTIME.Hooks().onDeleteEntity(entityId, payload);
-    ETTREGISTRY.UnregisterEntity(entityId);
   });
 }
 

@@ -231,7 +231,7 @@ void ETTRegistry::SendEntityDeleteOrder(const std::string &id) {
           }
           RUNTIME.ScheduleAsyncIOTask([id, ownerContainer, payload]() {
             CallContainerDeleteEntity()
-                .on_peer(ownerContainer)
+                .on_scope(ownerContainer)
                 .on_fail_log_error()
                 .fire_and_forget(id, payload);
           });
