@@ -40,6 +40,11 @@ Runtime::Runtime() : _uuid(make_uuid()) {
   std::cout << "Process PID: " << getpid() << std::endl;
 }
 
+Runtime::~Runtime() {
+  std::cout << "Runtime destructor called, clearing hooks" << std::endl;
+  ResetHooks();
+}
+
 Runtime &Runtime::GetInstance() {
   static Runtime instance;
   return instance;
