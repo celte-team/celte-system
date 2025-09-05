@@ -4,10 +4,6 @@
 
 namespace celte {
     class CustomRPCTemplate {
-        // struct CustomFunc {
-        //     std::string name;
-        //     std::function<std::string(std::string)> func;
-        // };
 
     protected:
         std::map<std::string, std::function<void(std::string)>> _rpcs;

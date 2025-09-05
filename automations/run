@@ -551,7 +551,9 @@ def flush_pulsar():
         try:
             subprocess.run(['rm', '-fr', 'data'])
             subprocess.run(
-                ['mkdir', '-p', 'data/bookkeeper/', 'data/zookeeper/'])
+                ['mkdir', '-p', 'data/bookkeeper/', 'data/zookeeper/', 'data/zookeeper/version-2'])
+            subprocess.run(['chmod', '-R', 'o+rw', 'data/'])
+
             os.chdir('..')
         except Exception as e:
             print(f"{Fore.RED}Error flushing Pulsar topics: {e}{Style.RESET_ALL}")
