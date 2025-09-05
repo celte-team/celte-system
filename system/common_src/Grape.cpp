@@ -27,6 +27,7 @@ void Grape::initRPCService() {
       GrapePingReactor::subscribe(tp::peer(id), this);
       GrapeCMIInstantiateReactor::subscribe(tp::peer(id), this);
       GrapeRPCHandlerReactor::subscribe(tp::peer(id), this);
+      GrapeYggdrasilOrderTransferReactor::subscribe(tp::peer(id), this);
     }
 
 #endif
@@ -161,5 +162,12 @@ void Grape::CMIInstantiate(std::string cmiId, std::string prefabId,
                            std::string payload, std::string clientId) {
   GRAPES.PushNamedTaskToEngine(id, "CMIInstantiate", cmiId, prefabId, payload,
                                clientId);
+}
+
+void Grape::YggdrasilOrderTransfer(std::vector<std::string> entityIds,
+                                   std::string fromContainerId,
+                                   std::string toContainerId) {
+  AuthorityTransfer::__rp_proxyTakeAuthorityBatch(
+      id, entityIds, fromContainerId, toContainerId);
 }
 #endif

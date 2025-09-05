@@ -19,17 +19,17 @@
 #include <functional>
 #include <iostream>
 #include <string>
-// To change : Logger should be from a singleton instead of given by reference
+// To change : RedisDb should be from a singleton instead of given by reference
 
 #define THROW_ERROR(errorType, msg)                                            \
   do {                                                                         \
-    errorType error(msg, LOGGER, __FILE__, __LINE__);                          \
+    errorType error(msg, REDISDB, __FILE__, __LINE__);                         \
     throw error;                                                               \
   } while (0)
 
 #define THROW_ERROR_CB(errorType, msg, callback)                               \
   do {                                                                         \
-    errorType error(msg, LOGGER, __FILE__, __LINE__, callback);                \
+    errorType error(msg, REDISDB, __FILE__, __LINE__, callback);               \
     throw error;                                                               \
   } while (0)
 
@@ -39,17 +39,17 @@ private:
   int line;
   std::string file;
   std::string _message;
-  Logger &logger;
+  RedisDb &logger;
   std::function<void(const std::string &)> _callback;
 
 public:
-  CelteError(const std::string &msg, Logger &log, std::string file = __FILE__,
+  CelteError(const std::string &msg, RedisDb &log, std::string file = __FILE__,
              int line = __LINE__,
              const std::function<void(const std::string &)> &callback = nullptr)
       : _message("At " + file + " - " + std::to_string(line) + " : " + msg),
         logger(log), _callback(callback) {
     try {
-      logger.Log(Logger::ERROR,
+      logger.Log(RedisDb::ERROR,
                  "At " + file + " - " + std::to_string(line) + " : " + msg);
       if (callback) {
         callback(_message);

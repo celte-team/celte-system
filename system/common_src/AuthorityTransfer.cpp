@@ -93,7 +93,7 @@ void AuthorityTransfer::TransferAuthority(const std::string &entityId,
   args["payload"] = payload;
   args["g"] = GHOSTSYSTEM.PeekProperties(entityId).value_or("{}");
 
-  LOGGER.Log(celte::Logger::DEBUG, "AuthorityTransfer: \n" + args.dump());
+  REDISDB.Log(RedisDb::LogLevel::DEBUG, "AuthorityTransfer: \n" + args.dump());
   // #ifdef DEBUG
   prettyPrintAuthTransfer(args);
   // #endif
@@ -192,8 +192,8 @@ static void applyGhostToEntity(const std::string &entityId,
  * container.
  */
 void AuthorityTransfer::ExecTakeOrder(nlohmann::json args) {
-  LOGGER.Log(celte::Logger::DEBUG,
-             "AuthorityTransfer: Executing take order.\n" + args.dump());
+  REDISDB.Log(RedisDb::LogLevel::DEBUG,
+              "AuthorityTransfer: Executing take order.\n" + args.dump());
   std::cout << "AuthorityTransfer: Executing take order.\n"
             << args["e"].get<std::string>().substr(0, 4) << std::endl;
   std::string entityId = args["e"].get<std::string>();
@@ -253,8 +253,8 @@ void AuthorityTransfer::ExecDropOrder(nlohmann::json args) {
     return;
   }
 
-  LOGGER.Log(celte::Logger::DEBUG,
-             "AuthorityTransfer: Executing drop order.\n" + args.dump());
+  REDISDB.Log(RedisDb::LogLevel::DEBUG,
+              "AuthorityTransfer: Executing drop order.\n" + args.dump());
   std::cout << "Drop order scheduled at " << Clock::ToISOString(whenTp)
             << " for entity " << entityId.substr(0, 4) << " from "
             << fromContainerId.substr(0, 4) << " to "

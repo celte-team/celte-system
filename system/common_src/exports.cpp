@@ -65,16 +65,16 @@ EXPORT std::string ContainerCreateAndAttach(const std::string &grapeId,
 }
 
 EXPORT void SetRedisKVP(const std::string &key, const std::string &value) {
-  LOGGER.SetRedisKVP(key, value);
+  REDISDB.SetRedisKVP(key, value);
 }
 
 EXPORT std::optional<std::string> GetRedisKVP(const std::string &key) {
-  return LOGGER.GetRedisKVP(key);
+  return REDISDB.GetRedisKVP(key);
 }
 
 EXPORT void GetRedisKVPAsync(const std::string &key,
                              std::function<void(bool, std::string)> callback) {
-  LOGGER.GetRedisKVPAsync(key, callback);
+  REDISDB.GetRedisKVPAsync(key, callback);
 }
 
 #endif

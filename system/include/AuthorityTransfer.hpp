@@ -7,7 +7,7 @@ namespace celte {
 /// @brief Exception type related to authority transfer.
 class AuthorityTransferException : public CelteError {
 public:
-  AuthorityTransferException(const std::string &msg, Logger &log,
+  AuthorityTransferException(const std::string &msg, RedisDb &log,
                              std::string file, int line)
       : CelteError(msg, log, file, line) {}
 };

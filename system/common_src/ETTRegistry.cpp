@@ -127,7 +127,7 @@ void ETTRegistry::EngineCallInstantiate(const std::string &id,
     return;
   }
   RUNTIME.Hooks().onInstantiateEntity(id, payload);
-  LOGGER.Log(Logger::LogLevel::DEBUG, "Entity " + id + " instantiated.");
+  REDISDB.Log(RedisDb::LogLevel::DEBUG, "Entity " + id + " instantiated.");
 }
 
 void ETTRegistry::LoadExistingEntities(const std::string &grapeId,
@@ -231,7 +231,7 @@ void ETTRegistry::SendEntityDeleteOrder(const std::string &id) {
           }
           RUNTIME.ScheduleAsyncIOTask([id, ownerContainer, payload]() {
             CallContainerDeleteEntity()
-                .on_peer(ownerContainer)
+                .on_scope(ownerContainer)
                 .on_fail_log_error()
                 .fire_and_forget(id, payload);
           });

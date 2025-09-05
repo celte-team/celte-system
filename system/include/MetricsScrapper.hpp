@@ -18,7 +18,7 @@
 namespace celte {
 class MetricsUploadException : public CelteError {
 public:
-  MetricsUploadException(const std::string &msg, Logger &log,
+  MetricsUploadException(const std::string &msg, RedisDb &log,
                          std::string file = __FILE__, int line = __LINE__)
       : CelteError(msg, log, file, line,
                    [msg](std::string s) { std::cerr << msg << std::endl; }) {}

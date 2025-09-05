@@ -1,10 +1,3 @@
-/*
-** EPITECH PROJECT, 2025
-** celte-system
-** File description:
-** Container
-*/
-
 #include "AuthorityTransfer.hpp"
 #include "CelteError.hpp"
 #include "CelteInputSystem.hpp"
@@ -22,7 +15,7 @@ using namespace celte;
 
 class ContainerCreationException : public CelteError {
 public:
-  ContainerCreationException(const std::string &msg, Logger &log,
+  ContainerCreationException(const std::string &msg, RedisDb &log,
                              std::string file, int line)
       : CelteError(msg, log, file, line) {}
 };
@@ -44,7 +37,6 @@ Container::~Container() {
   ContainerTakeAuthorityReactor::unsubscribe(tp::rpc(_id));
   ContainerDropAuthorityReactor::unsubscribe(tp::rpc(_id));
   ContainerDeleteEntityReactor::unsubscribe(tp::rpc(_id));
-  std::cout << "called container destructor: " << _id << std::endl;
 }
 
 void Container::__initRPCs() {

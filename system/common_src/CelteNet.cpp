@@ -16,7 +16,7 @@ void CelteNet::Connect(const std::string &brokers, int timeoutMs) {
 void CelteNet::__init(const std::string &brokers, int timeoutMs) {
   pulsar::ClientConfiguration conf;
   conf.setOperationTimeoutSeconds(timeoutMs / 1000);
-  conf.setIOThreads(1);
+  conf.setIOThreads(5);
   conf.setMessageListenerThreads(1);
   conf.setUseTls(false);
   conf.setLogger(new pulsar::ConsoleLoggerFactory(pulsar::Logger::LEVEL_WARN));

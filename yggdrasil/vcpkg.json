@@ -1,0 +1,16 @@
+{
+  "name": "yggdrasil",
+  "version": "0.1.0",
+  "dependencies": [
+    "glm",
+    "pulsar-client-cpp",
+    "hiredis",
+    "cpr",
+    "gtest",
+    {
+      "name": "protobuf",
+      "version>=": "4.25.1"
+    }
+  ],
+  "builtin-baseline": "86fba13068f1e8111e7d885de2aef11378435139"
+}

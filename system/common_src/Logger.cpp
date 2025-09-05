@@ -6,12 +6,12 @@
 using namespace std;
 using namespace celte;
 
-Logger &Logger::GetInstance() {
-  static Logger instance;
+RedisDb &RedisDb::GetInstance() {
+  static RedisDb instance;
   return instance;
 }
 
-Logger::~Logger() {
+RedisDb::~RedisDb() {
   _context->running = false;
   _context->cv.notify_all(); // Notify the thread to stop processing tasks
   if (_redisThread.joinable()) {
@@ -23,7 +23,7 @@ Logger::~Logger() {
 namespace detail {
 static bool
 createRedisContext(const std::string &host, int port,
-                   std::shared_ptr<Logger::RedisThreadContext> context) {
+                   std::shared_ptr<RedisDb::RedisThreadContext> context) {
   if (!context) {
     throw std::logic_error("Redis thread context is null");
   }
@@ -45,7 +45,7 @@ createRedisContext(const std::string &host, int port,
   return true;
 }
 
-static void popTask(std::shared_ptr<Logger::RedisThreadContext> context) {
+static void popTask(std::shared_ptr<RedisDb::RedisThreadContext> context) {
   std::unique_lock<std::mutex> lock(context->mutex);
   context->cv.wait(
       lock, [&]() { return !context->taskQueue.empty() || !context->running; });
@@ -59,14 +59,14 @@ static void popTask(std::shared_ptr<Logger::RedisThreadContext> context) {
 }
 
 static void
-sendThreadWorker(std::shared_ptr<Logger::RedisThreadContext> context) {
+sendThreadWorker(std::shared_ptr<RedisDb::RedisThreadContext> context) {
   while (context->running) {
     popTask(context);
   }
 }
 } // namespace detail
 
-Logger::Logger() : _context(std::make_shared<RedisThreadContext>()) {
+RedisDb::RedisDb() : _context(std::make_shared<RedisThreadContext>()) {
   { // Prevent double init of singleton
     std::unique_lock<std::mutex> lock(_context->mutex);
     if (_isInit) {
@@ -92,13 +92,13 @@ Logger::Logger() : _context(std::make_shared<RedisThreadContext>()) {
   _redisThread = std::thread(detail::sendThreadWorker, _context);
 }
 
-void Logger::__pushTask(const RedisTask &task) {
+void RedisDb::__pushTask(const RedisTask &task) {
   std::lock_guard<std::mutex> lock(_context->mutex);
   _context->taskQueue.push(task);
   _context->cv.notify_one();
 }
 
-void Logger::Log(LogLevel level, const std::string &message) {
+void RedisDb::Log(LogLevel level, const std::string &message) {
   std::string log_message = __getCurrentTime() + " [" +
                             __logLevelToString(level) + "] " + _context->uuid +
                             " " + message;
@@ -113,7 +113,7 @@ void Logger::Log(LogLevel level, const std::string &message) {
   });
 }
 
-std::string Logger::__getCurrentTime() {
+std::string RedisDb::__getCurrentTime() {
   auto time = CLOCK.GetUnifiedTime();
   auto now = std::chrono::system_clock::to_time_t(time);
   char buffer[80] = {0};
@@ -121,7 +121,7 @@ std::string Logger::__getCurrentTime() {
   return std::string(buffer);
 }
 
-std::string Logger::__logLevelToString(LogLevel level) {
+std::string RedisDb::__logLevelToString(LogLevel level) {
   switch (level) {
   case DEBUG:
     return "DEBUG";
@@ -137,7 +137,7 @@ std::string Logger::__logLevelToString(LogLevel level) {
 }
 
 #ifdef CELTE_SERVER_MODE_ENABLED
-void Logger::SetRedisKVP(const std::string &key, const std::string &value) {
+void RedisDb::SetRedisKVP(const std::string &key, const std::string &value) {
   __pushTask([key, value](std::shared_ptr<redisContext> context) {
     std::string fullKey = RUNTIME.GetConfig().GetSessionId() + key;
     redisReply *reply = (redisReply *)redisCommand(
@@ -149,7 +149,7 @@ void Logger::SetRedisKVP(const std::string &key, const std::string &value) {
   });
 }
 
-std::optional<std::string> Logger::GetRedisKVP(const std::string &key) {
+std::optional<std::string> RedisDb::GetRedisKVP(const std::string &key) {
   std::mutex mutex;
   std::condition_variable cv;
   bool done = false;
@@ -177,8 +177,8 @@ std::optional<std::string> Logger::GetRedisKVP(const std::string &key) {
   return result;
 }
 
-void Logger::GetRedisKVPAsync(const std::string &key,
-                              std::function<void(bool, std::string)> callback) {
+void RedisDb::GetRedisKVPAsync(
+    const std::string &key, std::function<void(bool, std::string)> callback) {
   __pushTask([key, callback, this](std::shared_ptr<redisContext> context) {
     std::optional<std::string> value = GetRedisKVP(key);
     if (value.has_value()) {
