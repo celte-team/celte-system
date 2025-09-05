@@ -562,11 +562,14 @@ EXPORT void SetOnDeleteEntityHook(
     RUNTIME.Hooks().onDeleteEntity = f;
 }
 
-EXPORT void UploadInputData(const std::string& uuid,
-    const std::string& inputName, bool pressed,
-    float x = 0, float y = 0)
-{
-    ETTREGISTRY.UploadInputData(uuid, inputName, pressed, x, y);
+EXPORT void UnregisterEntity(const std::string &entityId) {
+  ETTREGISTRY.UnregisterEntity(entityId);
+}
+
+EXPORT void UploadInputData(const std::string &uuid,
+                            const std::string &inputName, bool pressed,
+                            float x = 0, float y = 0) {
+  ETTREGISTRY.UploadInputData(uuid, inputName, pressed, x, y);
 }
 
 EXPORT std::optional<const celte::INPUT>
