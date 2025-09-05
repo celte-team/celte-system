@@ -503,6 +503,8 @@ EXPORT void SetOnDeleteEntityHook(
   RUNTIME.Hooks().onDeleteEntity = f;
 }
 
+EXPORT void CelteCleanup() { RUNTIME.ResetHooks(); }
+
 EXPORT void UploadInputData(const std::string &uuid,
                             const std::string &inputName, bool pressed,
                             float x = 0, float y = 0) {

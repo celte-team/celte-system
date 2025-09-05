@@ -23,6 +23,7 @@ class Runtime {
 public:
   static Runtime &GetInstance();
   Runtime();
+  ~Runtime();
   /* ---------------------- FUNCTIONS EXPOSED TO THE API
    * ----------------------
    */
@@ -113,6 +114,11 @@ public:
 
   /// @brief Returns the hook table.
   inline HookTable &Hooks() { return _hooks; }
+
+  /// @brief Clears all registered hooks, replacing them with default no-op
+  /// handlers. Call this from the embedding (e.g., Godot) before unloading the
+  /// library to avoid destructor-time callback crashes.
+  inline void ResetHooks() { _hooks = HookTable(); }
 
   /// @brief Returns the peer service.
   /// @throws std::runtime_error if the peer service is not initialized.
